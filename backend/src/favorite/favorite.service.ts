@@ -1,0 +1,56 @@
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class FavoriteService {
+  constructor(private prisma: PrismaService) {}
+
+  // 1. Hàm thêm bài đăng vào mục yêu thích
+  async addFavorite(userId: any, postId: any) {
+    try {
+      return await this.prisma.favorite.upsert({
+        where: {
+          userId_postId: {
+            userId: String(userId),
+            postId: String(postId),
+          },
+        },
+        update: {}, // Nếu đã tồn tại thì không làm gì cả
+        create: {
+          userId: String(userId),
+          postId: String(postId),
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException('Không thể thêm vào yêu thích');
+    }
+  }
+
+  // 2. Hàm xóa bài đăng khỏi mục yêu thích
+  async removeFavorite(userId: any, postId: any) {
+    try {
+      return await this.prisma.favorite.delete({
+        where: {
+          userId_postId: {
+            userId: String(userId),
+            postId: String(postId),
+          },
+        },
+      });
+    } catch (error) {
+      // Nếu không tìm thấy để xóa cũng không báo lỗi nặng
+      return { message: 'Đã xóa hoặc không tồn tại' };
+    }
+  }
+
+  // 3. Hàm lấy danh sách bài yêu thích của User
+  async getFavorites(userId: any) {
+    return this.prisma.favorite.findMany({
+      where: { userId: String(userId) },
+      include: {
+        post: true, // Lấy kèm thông tin chi tiết bài đăng
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+}

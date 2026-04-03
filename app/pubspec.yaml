@@ -1,0 +1,38 @@
+name: cho_va_tang
+description: "Dự án trao đổi đồ cũ chuẩn Jimoty VN"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+# ĐÂY LÀ ĐOẠN ANH ĐANG THIẾU (Sửa lỗi hình 11)
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- KẾT NỐI SERVER & API ---
+  http: ^1.2.1
+  socket_io_client: ^3.0.2
+
+  # --- QUẢN LÝ TRẠNG THÁI ---
+  provider: ^6.1.1
+
+  # --- BẢN ĐỒ & VỊ TRÍ ---
+  google_maps_flutter: ^2.6.1
+  geocoding: ^3.0.0
+
+  # --- LƯU TRỮ & HÌNH ẢNH ---
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+  image_picker: ^1.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

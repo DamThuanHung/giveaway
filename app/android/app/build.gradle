@@ -1,0 +1,58 @@
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found.")
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    compileSdkVersion flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions { jvmTarget = '1.8' }
+
+    sourceSets { main.java.srcDirs += 'src/main/kotlin' }
+
+    defaultConfig {
+        applicationId "com.example.cho_va_tang"
+        minSdkVersion 21
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release { signingConfig signingConfigs.debug }
+    }
+
+    flutter { source '../..' }
+
+    // ĐOẠN NÀY ĐỂ XỬ LÝ TRIỆT ĐỂ LỖI DUPLICATE CLASS BẠN VỪA GẶP
+    configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.jetbrains.kotlin') {
+                details.useVersion "1.9.10"
+            }
+        }
+    }
+}
+
+dependencies {
+    // Lưu ý: Kotlin 1.9.0+ không cần tách jdk7/jdk8 nữa
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
+}

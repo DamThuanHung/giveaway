@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Quản lý Người dùng
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String   
+  createdAt DateTime @default(now())
+  posts     Post[]
+  favorites Favorite[]
+  chatAsBuyer ChatRoom[] @relation("BuyerRooms")
+  chatAsSeller ChatRoom[] @relation("SellerRooms")
+}
+
+// 2. Quản lý Bài đăng Jimoty (Có bản đồ)
+model Post {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  price         Int
+  latitude      Float    @default(0.0)
+  longitude     Float    @default(0.0)
+  province      String   @default("")
+  district      String   @default("")
+  ward          String   @default("")
+  addressDetail String   @default("")
+  listingType   String   @default("donated")
+  itemCategory  String   @default("Khác")
+  imageLabel    String   @default("")
+  status        String   @default("available")
+  authorId      String?
+  author        User?    @relation(fields: [authorId], references: [id])
+  favorites     Favorite[]
+  chatRooms     ChatRoom[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 3. Quản lý Chat & Yêu thích
+model ChatRoom {
+  id        String    @id @default(cuid())
+  postId    String
+  buyerId   String
+  sellerId  String
+  post      Post      @relation(fields: [postId], references: [id])
+  buyer     User      @relation("BuyerRooms", fields: [buyerId], references: [id])
+  seller    User      @relation("SellerRooms", fields: [sellerId], references: [id])
+  messages  Message[]
+  @@unique([postId, buyerId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  text       String
+  createdAt  DateTime @default(now())
+  roomId     String
+  senderId   String
+  room       ChatRoom @relation(fields: [roomId], references: [id])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+  @@unique([userId, postId])
+}
