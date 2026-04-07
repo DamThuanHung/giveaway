@@ -39,6 +39,9 @@ app/ios/Pods/
 app/ios/.symlinks/
 app/macos/Pods/
 
+# Firebase service account key (bí mật, không push lên git)
+backend/firebase-service-account.json
+
 # AI memory (session cục bộ)
 .claude/
 plans/

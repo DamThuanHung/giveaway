@@ -13,6 +13,7 @@ if (flutterRoot == null) {
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.google.gms.google-services'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
@@ -29,7 +30,7 @@ android {
     sourceSets { main.java.srcDirs += 'src/main/kotlin' }
 
     defaultConfig {
-        applicationId "com.example.cho_va_tang"
+        applicationId "vn.chovatang.app"
         minSdkVersion 21
         targetSdkVersion flutter.targetSdkVersion
         versionCode 1

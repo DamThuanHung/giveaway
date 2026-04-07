@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FcmService } from '../fcm/fcm.service';
 
 @Injectable()
 export class NotificationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private fcm: FcmService,
+  ) {}
 
   async getNotifications(userId: string) {
     return this.prisma.notification.findMany({
@@ -33,6 +37,22 @@ export class NotificationService {
   }
 
   async createNotification(userId: string, type: string, title: string, body: string, data?: string) {
-    return this.prisma.notification.create({ data: { userId, type, title, body, data } });
+    const notif = await this.prisma.notification.create({ data: { userId, type, title, body, data } });
+
+    // Gửi FCM push notification nếu user có fcmToken
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { fcmToken: true } });
+    if (user?.fcmToken) {
+      const fcmData: Record<string, string> = { type, notificationId: notif.id };
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.roomId) fcmData.roomId = parsed.roomId;
+          if (parsed.postId) fcmData.postId = parsed.postId;
+        } catch (_) {}
+      }
+      await this.fcm.sendToToken(user.fcmToken, title, body, fcmData);
+    }
+
+    return notif;
   }
 }

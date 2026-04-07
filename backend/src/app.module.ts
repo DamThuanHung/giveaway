@@ -14,6 +14,7 @@ import { DealController } from './deal/deal.controller';
 import { DealService } from './deal/deal.service';
 import { FavoriteController } from './favorite/favorite.controller';
 import { FavoriteService } from './favorite/favorite.service';
+import { FcmService } from './fcm/fcm.service';
 import { NotificationController } from './notification/notification.controller';
 import { NotificationService } from './notification/notification.service';
 import { PostController } from './post/post.controller';
@@ -62,6 +63,7 @@ import { UserService } from './user/user.service';
     DealService,
     ReviewService,
     NotificationService,
+    FcmService,
     JwtStrategy,
   ],
 })

@@ -583,4 +583,14 @@ class ApiService {
           .timeout(const Duration(seconds: 5));
     } catch (_) {}
   }
+
+  static Future<void> saveFcmToken(String token) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/notification/fcm-token'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'token': token}),
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
 }
