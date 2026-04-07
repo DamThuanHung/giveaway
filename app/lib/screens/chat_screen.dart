@@ -1,20 +1,26 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../models/chat_message.dart';
-import '../../models/chat_thread.dart';
-import '../../models/post.dart';
-import '../../services/api_service.dart';
-import '../../services/chat_socket_service.dart';
+import 'package:provider/provider.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../providers/auth_provider.dart';
+import '../providers/notification_provider.dart';
+import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_image.dart';
+import 'review/write_review_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  final Post post;
-  final ChatThread thread;
-  final int roomId;
+  final String roomId;
+  final String otherUserName;
+  final String postTitle;
+  final String postImageLabel;
 
   const ChatScreen({
     super.key,
-    required this.post,
-    required this.thread,
     required this.roomId,
+    required this.otherUserName,
+    required this.postTitle,
+    this.postImageLabel = '',
   });
 
   @override
@@ -22,165 +28,388 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late final TextEditingController messageController;
-  final chatService = ChatSocketService();
-  final ScrollController _scrollController = ScrollController();
-
-  int get currentUserId => int.tryParse(ApiService.currentUser?['id']?.toString() ?? '0') ?? 0;
+  final _msgCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  List<dynamic> _messages = [];
+  bool _isLoading = true;
+  late IO.Socket _socket;
+  String? _myId;
 
   @override
   void initState() {
     super.initState();
-    messageController = TextEditingController();
-    chatService.initConnection();
-    chatService.joinRoom(widget.roomId);
-    chatService.loadMessagesStream.listen((_) => _scrollToBottom());
+    _myId = context.read<AuthProvider>().userId;
+    _loadHistory();
+    _connectSocket();
+  }
+
+  Future<void> _loadHistory() async {
+    final msgs = await ApiService.getMessages(widget.roomId);
+    if (!mounted) return;
+    setState(() { _messages = msgs; _isLoading = false; });
+    _scrollToBottom();
+    // Đánh dấu đã đọc & cập nhật badge
+    ApiService.markRoomAsRead(widget.roomId);
+    if (mounted) context.read<NotificationProvider>().refresh();
+  }
+
+  void _connectSocket() {
+    _socket = IO.io(
+      ApiService.baseUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .setQuery({'roomId': widget.roomId})
+          .build(),
+    );
+
+    _socket.onConnect((_) {
+      _socket.emit('joinRoom', {'roomId': widget.roomId});
+    });
+
+    _socket.on('receive_message', (data) {
+      if (!mounted) return;
+      setState(() => _messages.add(data));
+      _scrollToBottom();
+      // Đang xem chat này → mark as read ngay
+      ApiService.markRoomAsRead(widget.roomId);
+      context.read<NotificationProvider>().refresh();
+    });
   }
 
   @override
   void dispose() {
-    messageController.dispose();
-    _scrollController.dispose();
+    _msgCtrl.dispose();
+    _scrollCtrl.dispose();
+    _socket.disconnect();
     super.dispose();
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
-  void sendMessage() {
-    final text = messageController.text.trim();
-    if (text.isEmpty) return;
+  void _sendMessage() {
+    final text = _msgCtrl.text.trim();
+    if (text.isEmpty || _myId == null) return;
 
-    chatService.sendMessage(
-      roomId: widget.roomId,
-      senderId: currentUserId,
-      text: text,
-    );
+    _socket.emit('sendMessage', {
+      'roomId': widget.roomId,
+      'senderId': _myId,
+      'text': text,
+    });
 
-    messageController.clear();
-    _scrollToBottom();
+    _msgCtrl.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.thread.senderName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            Text(widget.post.title ?? '', style: const TextStyle(fontSize: 11), maxLines: 1),
+            Text(widget.otherUserName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            if (widget.postTitle.isNotEmpty)
+              Text(widget.postTitle, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),
       body: Column(
         children: [
-          _buildPostHeader(),
-          Expanded(
-            child: StreamBuilder<List<ChatMessage>>(
-              stream: chatService.loadMessagesStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final messages = snapshot.data ?? [];
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) => _buildMessageBubble(messages[index]),
-                );
-              },
+          // Banner sản phẩm
+          if (widget.postTitle.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: AppTheme.primary.withOpacity(0.06),
+              child: Row(children: [
+                if (widget.postImageLabel.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 40, height: 40,
+                      child: AppImage(url: '${ApiService.baseUrl}/uploads/${widget.postImageLabel}'),
+                    ),
+                  ),
+                if (widget.postImageLabel.isNotEmpty) const SizedBox(width: 10),
+                const Icon(Icons.inventory_2_outlined, size: 14, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(widget.postTitle,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+                ),
+              ]),
             ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                : _messages.isEmpty
+                    ? const Center(child: Text('Hãy bắt đầu cuộc trò chuyện', style: TextStyle(color: AppTheme.textSecondary)))
+                    : ListView.builder(
+                        controller: _scrollCtrl,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length,
+                        itemBuilder: (ctx, i) {
+                          final msg = _messages[i];
+                          final isMe = msg['senderId'] == _myId;
+                          // Detect deal card
+                          final metaStr = msg['metadata']?.toString();
+                          if (metaStr != null && metaStr.isNotEmpty) {
+                            try {
+                              final meta = jsonDecode(metaStr) as Map;
+                              if (meta['type'] == 'deal') {
+                                return _DealCard(
+                                  meta: meta,
+                                  isMe: isMe,
+                                  myId: _myId ?? '',
+                                  otherUserName: widget.otherUserName,
+                                  onUpdateStatus: (dealId, status) async {
+                                    final ok = await ApiService.updateDealStatus(dealId, status);
+                                    if (ok) _loadHistory();
+                                  },
+                                );
+                              }
+                            } catch (_) {}
+                          }
+                          return _MessageBubble(message: msg, isMe: isMe);
+                        },
+                      ),
           ),
-          _buildInputBar(),
+          _InputBar(controller: _msgCtrl, onSend: _sendMessage),
         ],
       ),
     );
   }
+}
 
-  Widget _buildPostHeader() {
-    String rawImg = widget.post.imageUrl ?? '';
-    String finalImageUrl = rawImg;
+class _MessageBubble extends StatelessWidget {
+  final dynamic message;
+  final bool isMe;
+  const _MessageBubble({required this.message, required this.isMe});
 
-    if (finalImageUrl.isNotEmpty && !finalImageUrl.startsWith('http') && !finalImageUrl.startsWith('uploads/')) {
-      finalImageUrl = "uploads/$finalImageUrl";
-    }
-
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: finalImageUrl.isEmpty
-                ? Container(width: 50, height: 50, color: Colors.grey[200], child: const Icon(Icons.image))
-                : Image.network(
-              "${ApiService.baseUrl}/$finalImageUrl",
-              width: 50, height: 50, fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 40),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.post.title ?? 'Không có tiêu đề', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(widget.post.displayPrice ?? '0đ', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(ChatMessage message) {
-    // Sửa lỗi đỏ so sánh: Ép cả 2 về String để so sánh an toàn
-    bool isMe = message.senderId.toString() == currentUserId.toString();
+  @override
+  Widget build(BuildContext context) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
         decoration: BoxDecoration(
-          color: isMe ? const Color(0xFF2563EB) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: isMe ? null : Border.all(color: const Color(0xFFE5E7EB)),
+          color: isMe ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 16),
+          ),
+          border: isMe ? null : Border.all(color: AppTheme.border),
         ),
-        child: Text(message.text, style: TextStyle(color: isMe ? Colors.white : Colors.black)),
+        child: Text(
+          message['text'] ?? '',
+          style: TextStyle(color: isMe ? Colors.white : AppTheme.textPrimary, fontSize: 14),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildInputBar() {
+class _DealCard extends StatefulWidget {
+  final Map meta;
+  final bool isMe;
+  final String myId;
+  final String otherUserName;
+  final Future<void> Function(String dealId, String status) onUpdateStatus;
+
+  const _DealCard({required this.meta, required this.isMe, required this.myId, required this.otherUserName, required this.onUpdateStatus});
+
+  @override
+  State<_DealCard> createState() => _DealCardState();
+}
+
+class _DealCardState extends State<_DealCard> {
+  bool _reviewed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = widget.meta['status']?.toString() ?? 'pending';
+    final dealId = widget.meta['dealId']?.toString() ?? '';
+    final postTitle = widget.meta['postTitle']?.toString() ?? '';
+    final userMessage = widget.meta['userMessage']?.toString();
+
+    // Người bán = không phải người gửi deal (isMe = false với người bán)
+    final isSeller = !widget.isMe;
+
+    Color borderColor;
+    String statusLabel;
+    Color statusColor;
+    switch (status) {
+      case 'accepted':
+        borderColor = AppTheme.success;
+        statusLabel = '✅ Đã đồng ý';
+        statusColor = AppTheme.success;
+        break;
+      case 'rejected':
+        borderColor = AppTheme.error;
+        statusLabel = '❌ Đã từ chối';
+        statusColor = AppTheme.error;
+        break;
+      case 'completed':
+        borderColor = AppTheme.primary;
+        statusLabel = '🎉 Đã giao xong';
+        statusColor = AppTheme.primary;
+        break;
+      default:
+        borderColor = Colors.orange;
+        statusLabel = '⏳ Chờ phản hồi';
+        statusColor = Colors.orange;
+    }
+
     return Container(
-      padding: const EdgeInsets.all(12),
-      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor, width: 1.5),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Header
+            Row(children: [
+              const Icon(Icons.handshake_outlined, size: 18, color: AppTheme.primary),
+              const SizedBox(width: 6),
+              const Text('Yêu cầu nhận đồ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
+            ]),
+            if (postTitle.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(postTitle, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+            if (userMessage != null && userMessage.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(8)),
+                child: Text('"$userMessage"',
+                    style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: AppTheme.textSecondary)),
+              ),
+            ],
+            // Nút hành động — chỉ người bán thấy
+            if (isSeller && status == 'pending') ...[
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error, side: const BorderSide(color: AppTheme.error)),
+                  onPressed: () => widget.onUpdateStatus(dealId, 'rejected'),
+                  child: const Text('Từ chối'),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+                  onPressed: () => widget.onUpdateStatus(dealId, 'accepted'),
+                  child: const Text('Đồng ý', style: TextStyle(color: Colors.white)),
+                )),
+              ]),
+            ],
+            if (isSeller && status == 'accepted') ...[
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+                onPressed: () => widget.onUpdateStatus(dealId, 'completed'),
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                label: const Text('Đã giao xong', style: TextStyle(color: Colors.white)),
+              )),
+            ],
+            // Cả hai đều có thể viết đánh giá khi deal hoàn thành
+            if (status == 'completed') ...[
+              const SizedBox(height: 12),
+              if (_reviewed)
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+                  Icon(Icons.check_circle, color: AppTheme.success, size: 16),
+                  SizedBox(width: 6),
+                  Text('Đã gửi đánh giá', style: TextStyle(color: AppTheme.success, fontSize: 13, fontWeight: FontWeight.w500)),
+                ])
+              else
+                SizedBox(width: double.infinity, child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
+                  onPressed: () async {
+                    final done = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(builder: (_) => WriteReviewScreen(
+                        dealId: dealId,
+                        revieweeName: widget.otherUserName,
+                      )),
+                    );
+                    if (done == true) setState(() => _reviewed = true);
+                  },
+                  icon: const Icon(Icons.star_rounded, color: Colors.white, size: 18),
+                  label: const Text('Viết đánh giá', style: TextStyle(color: Colors.white)),
+                )),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _InputBar extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onSend;
+  const _InputBar({required this.controller, required this.onSend});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 16, right: 8, top: 10, bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, -2))],
+      ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
-              controller: messageController,
-              decoration: const InputDecoration(hintText: 'Nhập tin nhắn...', border: InputBorder.none),
+              controller: controller,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => onSend(),
+              decoration: InputDecoration(
+                hintText: 'Nhập tin nhắn...',
+                filled: true,
+                fillColor: AppTheme.background,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
             ),
           ),
-          IconButton(onPressed: sendMessage, icon: const Icon(Icons.send, color: Color(0xFF2563EB))),
+          const SizedBox(width: 8),
+          CircleAvatar(
+            backgroundColor: AppTheme.primary,
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white, size: 18),
+              onPressed: onSend,
+            ),
+          ),
         ],
       ),
     );

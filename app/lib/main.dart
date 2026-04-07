@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// 1. Import các Provider (Giữ nguyên vì đã đúng)
 import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
 import 'providers/chat_provider.dart';
-
-// 2. SỬA LỖI ĐỎ TẠI ĐÂY: Bỏ chữ 'post/' vì file của anh nằm ở ngoài screens
-import 'screens/home_tab.dart';
-import 'screens/login_screen.dart';
+import 'providers/notification_provider.dart';
+import 'screens/app_shell.dart';
+import 'screens/auth/login_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +17,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PostProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),
@@ -30,25 +30,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jimoty Clone',
+      title: 'Cho và Tặng',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
       home: Consumer<AuthProvider>(
         builder: (ctx, auth, _) {
-          // Vì auth_provider của anh đang để mặc định isAuth = true nên sẽ vào HomeTab
-          if (auth.isAuth) {
-            return const HomeTab();
-          } else {
-            return const LoginScreen(onLoginSuccess: _dummyCallback);
+          if (auth.isLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
+          return auth.isAuth ? const AppShell() : const LoginScreen();
         },
       ),
     );
   }
 }
-
-// Hàm giả lập để tránh lỗi logic
-void _dummyCallback() {}

@@ -1,10 +1,22 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ChatController } from './chat.controller';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtStrategy } from '../auth/jwt.strategy';
 
 @Module({
-  providers: [ChatGateway, ChatService, PrismaService],
+  imports: [
+    PassportModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'cho_va_tang_jwt_secret_2026',
+      signOptions: { expiresIn: '7d' },
+    }),
+  ],
+  controllers: [ChatController],
+  providers: [ChatGateway, ChatService, PrismaService, JwtStrategy],
   exports: [ChatService],
 })
 export class ChatModule {}

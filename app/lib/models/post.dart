@@ -14,8 +14,14 @@ class Post {
   final String status;
 
   final String imageLabel;
-  // Đã sửa từ imageUrl thành images (dạng danh sách) để khớp với PostCard
   final List<String>? images;
+
+  final double latitude;
+  final double longitude;
+
+  final String? authorId;
+  final String? authorName;
+  final String? authorAvatar;
 
   Post({
     required this.id,
@@ -31,6 +37,11 @@ class Post {
     required this.status,
     required this.imageLabel,
     this.images,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
+    this.authorId,
+    this.authorName,
+    this.authorAvatar,
   });
 
   // TẠO LỐI TẮT: Giúp các màn hình cũ dùng "imageUrl" vẫn không bị lỗi
@@ -108,6 +119,8 @@ class Post {
       imageList = List<String>.from(json['images']);
     }
 
+    final author = json['author'];
+
     return Post(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? 'Không có tiêu đề',
@@ -121,7 +134,12 @@ class Post {
       itemCategory: json['itemCategory']?.toString().isNotEmpty == true ? json['itemCategory'] : 'other',
       status: json['status']?.toString().isNotEmpty == true ? json['status'] : 'available',
       imageLabel: json['imageLabel']?.toString() ?? '',
-      images: imageList, // Gán danh sách ảnh vào đây
+      images: imageList,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      authorId: json['authorId']?.toString() ?? author?['id']?.toString(),
+      authorName: author?['name']?.toString(),
+      authorAvatar: author?['avatar']?.toString(),
     );
   }
 }

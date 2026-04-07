@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../models/post.dart';
-import '../../services/api_service.dart';
+import 'package:provider/provider.dart';
+import '../models/post.dart';
+import '../services/api_service.dart';
+import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_image.dart';
+import 'chat_screen.dart';
+import 'auth/login_screen.dart';
+import 'profile/user_profile_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final Post post;
@@ -21,12 +28,49 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   late bool localIsFavorite;
   bool isUpdatingFavorite = false;
+  bool _isChatLoading = false;
+  bool _isDealLoading = false;
   int _currentImageIndex = 0;
 
   @override
   void initState() {
     super.initState();
     localIsFavorite = widget.isFavorite;
+  }
+
+  Future<void> _openChat() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuth) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+    if (widget.post.authorId == null) return;
+    if (widget.post.authorId == auth.userId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đây là bài đăng của bạn'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+
+    setState(() => _isChatLoading = true);
+    final room = await ApiService.getOrCreateRoom(widget.post.id, widget.post.authorId!);
+    if (!mounted) return;
+    setState(() => _isChatLoading = false);
+
+    if (room == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể mở chat'), backgroundColor: AppTheme.error, behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => ChatScreen(
+        roomId: room['id'],
+        otherUserName: widget.post.authorName ?? 'Người đăng',
+        postTitle: widget.post.title,
+      ),
+    ));
   }
 
   // Chuẩn hóa URL ảnh chống lỗi
@@ -113,23 +157,165 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     try {
       await widget.onToggleFavorite();
     } catch (_) {
-      if (!mounted) return;
-      setState(() => localIsFavorite = oldValue);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể cập nhật tin đã lưu')));
-    } finally {
-      if (!mounted) return;
-      setState(() => isUpdatingFavorite = false);
+      if (mounted) {
+        setState(() => localIsFavorite = oldValue);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể cập nhật tin đã lưu')));
+      }
     }
+    if (mounted) setState(() => isUpdatingFavorite = false);
+  }
+
+  Future<void> _requestDeal() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuth) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
+    // Bắt buộc nhập lời nhắn
+    final msgCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Tôi muốn nhận'),
+        content: Form(
+          key: formKey,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(widget.post.title,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            const Text('Hãy nhắn một lời để người đăng biết bạn quan tâm nhé!',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: msgCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'VD: Chào bạn, mình muốn nhận món này...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              maxLength: 200,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập lời nhắn' : null,
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(context, true);
+            },
+            child: const Text('Gửi yêu cầu', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _isDealLoading = true);
+    final result = await ApiService.createDeal(widget.post.id, message: msgCtrl.text.trim());
+    if (!mounted) return;
+    setState(() => _isDealLoading = false);
+
+    if (result != null) {
+      final roomId = result['roomId']?.toString();
+      if (roomId != null && mounted) {
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            roomId: roomId,
+            otherUserName: widget.post.authorName ?? 'Người đăng',
+            postTitle: widget.post.title,
+            postImageLabel: widget.post.imageLabel,
+          ),
+        ));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Không thể gửi yêu cầu. Bạn có thể đã gửi rồi.'),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  Widget _buildBottomBar(AuthProvider auth) {
+    final isOwn = auth.isAuth && auth.userId == widget.post.authorId;
+    final isAvailable = widget.post.status == 'available';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: SafeArea(
+        child: isOwn
+            // Bài của mình: chỉ hiện nút chat (disabled)
+            ? ElevatedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Đây là bài đăng của bạn', style: TextStyle(fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.border,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              )
+            : Row(children: [
+                // Nút nhắn tin
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isChatLoading ? null : _openChat,
+                    icon: _isChatLoading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.chat_outlined, size: 18),
+                    label: const Text('Nhắn tin'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Nút muốn nhận
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: (!isAvailable || _isDealLoading) ? null : _requestDeal,
+                    icon: _isDealLoading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.handshake_outlined, color: Colors.white, size: 18),
+                    label: Text(
+                      isAvailable ? 'Tôi muốn nhận' : 'Không còn nhận',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isAvailable ? AppTheme.success : AppTheme.textSecondary,
+                      minimumSize: const Size(0, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ]),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     // Thu thập toàn bộ ảnh hợp lệ
     List<String> validImages = [];
     if (widget.post.images != null && widget.post.images!.isNotEmpty) {
       validImages = widget.post.images!.map((e) => _getCleanImageUrl(e)).where((e) => e.isNotEmpty).toList();
     } else if (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty) {
       validImages.add(_getCleanImageUrl(widget.post.imageUrl!));
+    } else if (widget.post.imageLabel.isNotEmpty) {
+      validImages.add('${ApiService.baseUrl}/uploads/${widget.post.imageLabel}');
     }
 
     return Scaffold(
@@ -163,11 +349,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   itemCount: validImages.length,
                   onPageChanged: (index) => setState(() => _currentImageIndex = index),
                   itemBuilder: (context, index) {
-                    return Image.network(
-                      validImages[index],
-                      fit: BoxFit.cover,
+                    return AppImage(
+                      url: validImages[index],
                       width: double.infinity,
-                      errorBuilder: (ctx, err, stack) => _buildImagePlaceholder(),
                     );
                   },
                 ),
@@ -241,32 +425,39 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const SizedBox(height: 16),
                 const Text('Người đăng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    CircleAvatar(radius: 24, backgroundColor: Colors.grey.shade200, child: const Icon(Icons.person, color: Colors.grey)),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Thành viên ẩn danh', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.star, color: Colors.orange, size: 16),
-                              Icon(Icons.star, color: Colors.orange, size: 16),
-                              Icon(Icons.star, color: Colors.orange, size: 16),
-                              Icon(Icons.star, color: Colors.orange, size: 16),
-                              Icon(Icons.star_half, color: Colors.orange, size: 16),
-                              SizedBox(width: 6),
-                              Text('Tốt', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                            ],
-                          ),
-                        ],
+                GestureDetector(
+                  onTap: widget.post.authorId != null
+                      ? () => Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => UserProfileScreen(
+                              userId: widget.post.authorId!,
+                              userName: widget.post.authorName,
+                            ),
+                          ))
+                      : null,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: AppTheme.primaryLight,
+                        backgroundImage: (widget.post.authorAvatar != null && widget.post.authorAvatar!.isNotEmpty)
+                            ? NetworkImage(widget.post.authorAvatar!) : null,
+                        child: (widget.post.authorAvatar == null || widget.post.authorAvatar!.isEmpty)
+                            ? Text((widget.post.authorName ?? 'U')[0].toUpperCase(),
+                                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))
+                            : null,
                       ),
-                    ),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(widget.post.authorName ?? 'Người đăng',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const Text('Xem trang cá nhân →',
+                              style: TextStyle(fontSize: 12, color: AppTheme.primary)),
+                        ]),
+                      ),
+                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -274,28 +465,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ],
       ),
       // 6. NÚT CHAT CỐ ĐỊNH Ở ĐÁY
-      bottomSheet: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
-        ),
-        child: SafeArea(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              // Chuyển sang màn hình Chat
-              debugPrint("Mở phòng chat với bài đăng: ${widget.post.id}");
-            },
-            icon: const Icon(Icons.chat, color: Colors.white),
-            label: const Text('Nhắn cho người đăng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-        ),
-      ),
+      bottomSheet: _buildBottomBar(auth),
     );
   }
 }

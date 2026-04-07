@@ -1,20 +1,17 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ReportService } from './report.service';
 
 @Controller('report')
 export class ReportController {
-  @Post()
-  reportPost(
-    @Body()
-    body: {
-      postId: string;
-      reason: string;
-    },
-  ) {
-    console.log('🚨 REPORT:', body);
+  constructor(private readonly reportService: ReportService) {}
 
-    return {
-      message: 'Report received',
-      data: body,
-    };
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  reportPost(
+    @Request() req,
+    @Body() body: { postId: string; reason: string },
+  ) {
+    return this.reportService.createReport(req.user.id, body.postId, body.reason);
   }
 }

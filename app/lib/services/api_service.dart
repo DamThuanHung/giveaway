@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  // ĐÃ CẬP NHẬT THEO IP MỚI NHẤT TỪ IPCONFIG CỦA ANH HÙNG
   static const String baseUrl = 'http://192.168.0.108:3800';
 
   static Future<String?> _getToken() async {
@@ -12,96 +11,576 @@ class ApiService {
     return p.getString('auth_token');
   }
 
-  // --- 1. LẤY DANH SÁCH TIN ĐĂNG ---
-  static Future<List<dynamic>> getPosts() async {
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/post'))
-          .timeout(const Duration(seconds: 15));
-
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body);
-      }
-      return [];
-    } catch (e) {
-      print("❌ Lỗi kết nối getPosts: $e");
-      return [];
-    }
+  static Future<Map<String, String>> _authHeaders() async {
+    final t = await _getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (t != null) 'Authorization': 'Bearer $t',
+    };
   }
 
-  // --- 2. BÁO CÁO BÀI ĐĂNG ---
-  static Future<void> reportPost({required String postId, required String reason}) async {
-    final t = await _getToken();
+  // ─── AUTH ────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
       final res = await http.post(
-        Uri.parse('$baseUrl/post/report'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $t',
-        },
-        body: jsonEncode({'postId': postId, 'reason': reason}),
-      ).timeout(const Duration(seconds: 10));
-
-      if (res.statusCode != 200 && res.statusCode != 201) {
-        throw Exception('Server error: ${res.statusCode}');
-      }
-    } catch (e) {
-      print("❌ Lỗi hàm reportPost: $e");
-      rethrow;
-    }
-  }
-
-  // --- 3. ĐĂNG TIN MỚI ---
-  static Future<bool> createPost(Map<String, dynamic> d, List<XFile> images) async {
-    final t = await _getToken();
-    try {
-      print("🚀 GT Neo 5 đang gửi dữ liệu tới: $baseUrl/post");
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/post'));
-      request.headers['Authorization'] = 'Bearer $t';
-
-      request.fields['title'] = d['title'].toString();
-      request.fields['description'] = d['description'].toString();
-      request.fields['price'] = (d['price'] ?? 0).toString();
-      request.fields['itemCategory'] = d['itemCategory'] ?? "other";
-      request.fields['province'] = d['province'] ?? "";
-      request.fields['district'] = d['district'] ?? "";
-      request.fields['ward'] = d['ward'] ?? "";
-      request.fields['addressDetail'] = d['addressDetail'] ?? "";
-      request.fields['listingType'] = d['listingType'] ?? "sell";
-
-      for (var image in images) {
-        request.files.add(await http.MultipartFile.fromPath('images', image.path));
-      }
-
-      // Tăng timeout lên 45s cho máy thật khi upload qua Wifi
-      var streamedResponse = await request.send().timeout(const Duration(seconds: 45));
-
-      print("📩 Phản hồi từ Server: ${streamedResponse.statusCode}");
-      return streamedResponse.statusCode == 201 || streamedResponse.statusCode == 200;
-    } catch (e) {
-      print('❌ Lỗi hàm createPost (Máy thật): $e');
-      return false;
-    }
-  }
-
-  // --- 4. ĐĂNG NHẬP ---
-  static Future<bool> login(String e, String p) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
+        Uri.parse('$baseUrl/user/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': e, 'password': p}),
+        body: jsonEncode({'email': email, 'password': password}),
       ).timeout(const Duration(seconds: 15));
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         final d = jsonDecode(res.body);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', d['access_token']);
-        return true;
+        await prefs.setString('auth_token', d['accessToken'] ?? d['access_token'] ?? '');
+        await prefs.setString('user_id', d['user']['id'] ?? '');
+        await prefs.setString('user_name', d['user']['name'] ?? '');
+        await prefs.setString('user_email', d['user']['email'] ?? '');
+        await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
+        await prefs.setString('user_role', d['user']['role'] ?? 'user');
+        return d['user'];
       }
-      return false;
+      return null;
     } catch (e) {
-      print("❌ Lỗi login máy thật: $e");
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> register(String name, String email, String password) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'name': name, 'email': email, 'password': password}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final d = jsonDecode(res.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await prefs.setString('user_id', d['user']['id'] ?? '');
+        await prefs.setString('user_name', d['user']['name'] ?? '');
+        await prefs.setString('user_email', d['user']['email'] ?? '');
+        return d['user'];
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_id');
+    await prefs.remove('user_name');
+    await prefs.remove('user_email');
+    await prefs.remove('user_avatar');
+  }
+
+  // ─── USER ────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getMe() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/user/me'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/user/$userId'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<bool> updateUser(String userId, Map<String, dynamic> data) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/user/$userId'),
+        headers: await _authHeaders(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
       return false;
     }
+  }
+
+  static Future<bool> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/change-password'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'oldPassword': oldPassword, 'newPassword': newPassword}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ─── POST ────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getPosts({
+    int page = 1,
+    int limit = 20,
+    String? search,
+    String? province,
+    String? listingType,
+    String? itemCategory,
+    int? minPrice,
+    int? maxPrice,
+  }) async {
+    try {
+      final params = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (search != null && search.isNotEmpty) 'search': search,
+        if (province != null && province.isNotEmpty) 'province': province,
+        if (listingType != null) 'listingType': listingType,
+        if (itemCategory != null) 'itemCategory': itemCategory,
+        if (minPrice != null) 'minPrice': minPrice.toString(),
+        if (maxPrice != null) 'maxPrice': maxPrice.toString(),
+      };
+      final uri = Uri.parse('$baseUrl/post').replace(queryParameters: params);
+      final res = await http.get(uri).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return {'data': [], 'meta': {'total': 0}};
+    } catch (e) {
+      return {'data': [], 'meta': {'total': 0}};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getPostById(String id) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/post/$id'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getMyPosts({String? status}) async {
+    try {
+      final params = status != null ? '?status=$status' : '';
+      final res = await http.get(
+        Uri.parse('$baseUrl/post/my$params'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<bool> createPost(Map<String, dynamic> data, List<XFile> images) async {
+    try {
+      final t = await _getToken();
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/post'));
+      if (t != null) request.headers['Authorization'] = 'Bearer $t';
+
+      data.forEach((key, value) {
+        if (value != null) request.fields[key] = value.toString();
+      });
+
+      for (var image in images) {
+        final bytes = await image.readAsBytes();
+        final filename = image.name.isNotEmpty ? image.name : 'image.jpg';
+        request.files.add(http.MultipartFile.fromBytes('images', bytes, filename: filename));
+      }
+
+      final resp = await request.send().timeout(const Duration(seconds: 45));
+      return resp.statusCode == 201 || resp.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> updatePost(String id, Map<String, dynamic> data) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/post/$id'),
+        headers: await _authHeaders(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> updatePostStatus(String id, String status) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/post/$id/status'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'status': status}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> deletePost(String id) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/post/$id'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ─── FAVORITE ────────────────────────────────────────
+  static Future<bool> addFavorite(String userId, String postId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/favorite'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'userId': userId, 'postId': postId}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> removeFavorite(String userId, String postId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/favorite'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'userId': userId, 'postId': postId}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<List<dynamic>> getFavorites(String userId) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/favorite/$userId'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ─── REPORT ──────────────────────────────────────────
+  static Future<bool> reportPost({required String postId, required String reason}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/report'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'postId': postId, 'reason': reason}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ─── CHAT ────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getOrCreateRoom(String postId, String sellerId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/chat/room'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'postId': postId, 'sellerId': sellerId}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getMyRooms() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/chat/rooms'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getRoomById(String roomId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/chat/room/$roomId'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getMessages(String roomId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/chat/room/$roomId/messages'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ─── DEAL ────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> createDeal(String postId, {String? message}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/deal'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'postId': postId, if (message != null) 'message': message}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 201 || res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getIncomingDeals() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/deal/incoming'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<List<dynamic>> getOutgoingDeals() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/deal/outgoing'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<bool> updateDealStatus(String dealId, String status) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/deal/$dealId/status'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'status': status}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ─── REVIEW ──────────────────────────────────────────
+  static Future<bool> createReview(String dealId, int rating, {String? comment}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/review'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'dealId': dealId, 'rating': rating, if (comment != null) 'comment': comment}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 201 || res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getUserReviews(String userId) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/review/user/$userId'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ─── ADMIN ───────────────────────────────────────────
+  static Future<List<dynamic>> adminGetPosts({String? status, String? search}) async {
+    try {
+      final params = <String, String>{'limit': '50'};
+      if (status != null) params['status'] = status;
+      if (search != null) params['search'] = search;
+      final uri = Uri.parse('$baseUrl/admin/posts').replace(queryParameters: params);
+      final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body)['data'] ?? [];
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<List<dynamic>> adminGetUsers({String? search}) async {
+    try {
+      final params = <String, String>{'limit': '50'};
+      if (search != null) params['search'] = search;
+      final uri = Uri.parse('$baseUrl/admin/users').replace(queryParameters: params);
+      final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body)['data'] ?? [];
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<List<dynamic>> adminGetReports({String? status}) async {
+    try {
+      final params = <String, String>{'limit': '50'};
+      if (status != null) params['status'] = status;
+      final uri = Uri.parse('$baseUrl/admin/reports').replace(queryParameters: params);
+      final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body)['data'] ?? [];
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<bool> adminHidePost(String id) async {
+    try {
+      final res = await http.patch(Uri.parse('$baseUrl/admin/posts/$id/hide'), headers: await _authHeaders()).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> adminDeletePost(String id) async {
+    try {
+      final res = await http.delete(Uri.parse('$baseUrl/admin/posts/$id'), headers: await _authHeaders()).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> adminBanUser(String id, bool isBanned) async {
+    try {
+      final res = await http.patch(Uri.parse('$baseUrl/admin/users/$id/ban'),
+        headers: await _authHeaders(), body: jsonEncode({'isBanned': isBanned})).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> adminResolveReport(String id, String action) async {
+    try {
+      final res = await http.patch(Uri.parse('$baseUrl/admin/reports/$id'),
+        headers: await _authHeaders(), body: jsonEncode({'action': action})).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  // ─── SELLER STATS ────────────────────────────────────
+  static Future<Map<String, dynamic>?> getMyStats() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/post/my/stats'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ─── ADMIN ───────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getAdminStats() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/admin/stats'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ─── NOTIFICATION ─────────────────────────────────────
+  static Future<List<dynamic>> getNotifications() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/notification'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<bool> markNotificationRead(String id) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/notification/$id/read'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> markAllNotificationsRead() async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/notification/read-all'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<int> getUnreadNotificationCount() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/notification/unread-count'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body)['count'] ?? 0;
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static Future<int> getUnreadMessageCount() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/chat/unread-count'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body)['count'] ?? 0;
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static Future<void> markRoomAsRead(String roomId) async {
+    try {
+      await http.post(Uri.parse('$baseUrl/chat/room/$roomId/read'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 }

@@ -1,36 +1,81 @@
-import { Body, Controller, Get, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import {
+  Body, Controller, Delete, Get, Param, Patch, Post,
+  Query, Request, UploadedFiles, UseGuards, UseInterceptors,
+} from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PostService } from './post.service';
-import { diskStorage } from 'multer'; // Thêm cái này
-import { extname } from 'path'; // Thêm cái này
+
+const multerOptions = {
+  storage: diskStorage({
+    destination: './uploads',
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+    },
+  }),
+};
 
 @Controller('post')
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
   @Get()
-  async getPosts() {
-    return this.postService.getAllPosts();
+  getPosts(@Query() query: any) {
+    return this.postService.getAllPosts({
+      page: query.page ? parseInt(query.page) : 1,
+      limit: query.limit ? parseInt(query.limit) : 20,
+      search: query.search,
+      province: query.province,
+      listingType: query.listingType,
+      itemCategory: query.itemCategory,
+      minPrice: query.minPrice ? parseInt(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? parseInt(query.maxPrice) : undefined,
+      status: query.status,
+    });
+  }
+
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  getMyPosts(@Request() req, @Query('status') status?: string) {
+    return this.postService.getMyPosts(req.user.id, status);
+  }
+
+  @Get('my/stats')
+  @UseGuards(JwtAuthGuard)
+  getMyStats(@Request() req) {
+    return this.postService.getMyStats(req.user.id);
+  }
+
+  @Get(':id')
+  getPostById(@Param('id') id: string) {
+    return this.postService.getPostById(id);
   }
 
   @Post()
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      storage: diskStorage({
-        destination: './uploads', // Nơi lưu file vật lý
-        filename: (req, file, cb) => {
-          // Tạo tên file duy nhất để không bị trùng (vd: image-12345.jpg)
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-  )
-  async createPost(
-    @Body() body: any, 
-    @UploadedFiles() files: any[] 
-  ) {
-    // Bây giờ 'files' sẽ chứa thông tin 'filename' đã được lưu trên đĩa
-    return this.postService.createPost(body, files);
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('images', 5, multerOptions))
+  createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
+    return this.postService.createPost(body, files, req.user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  updatePost(@Param('id') id: string, @Request() req, @Body() body: any) {
+    return this.postService.updatePost(id, req.user.id, body);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  updateStatus(@Param('id') id: string, @Request() req, @Body() body: { status: string }) {
+    return this.postService.updateStatus(id, req.user.id, body.status);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  deletePost(@Param('id') id: string, @Request() req) {
+    return this.postService.deletePost(id, req.user.id);
   }
 }

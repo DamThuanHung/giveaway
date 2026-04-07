@@ -1,24 +1,35 @@
 import {
-  WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
-  WebSocketServer,
+  WebSocketGateway, WebSocketServer,
+  SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
+import { ChatService } from './chat.service';
 
-// PHẢI CÓ: cors: { origin: '*' } ở đây
-@WebSocketGateway({
-  cors: {
-    origin: '*',
-  },
-})
-export class ChatGateway {
+@WebSocketGateway({ cors: { origin: '*' } })
+export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
+  constructor(private readonly chatService: ChatService) {}
+
+  handleConnection(client: Socket) {
+    const roomId = client.handshake.query.roomId as string;
+    if (roomId) client.join(roomId);
+  }
+
+  @SubscribeMessage('joinRoom')
+  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { roomId: string }) {
+    client.join(data.roomId);
+    return { event: 'joinedRoom', data: data.roomId };
+  }
+
   @SubscribeMessage('sendMessage')
-  handleMessage(@MessageBody() data: any): void {
-    // Gửi lại tin nhắn cho tất cả mọi người
-    this.server.emit('receive_message', data);
+  async handleMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; senderId: string; text: string },
+  ) {
+    const message = await this.chatService.sendMessage(data.roomId, data.senderId, data.text);
+    this.server.to(data.roomId).emit('receive_message', message);
+    return message;
   }
 }

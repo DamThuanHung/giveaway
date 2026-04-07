@@ -7,22 +7,16 @@ export class FavoriteController {
 
   @Post()
   add(@Body() body: any) {
-    return this.favoriteService.addFavorite(
-      Number(body.userId),
-      Number(body.postId),
-    );
+    return this.favoriteService.addFavorite(body.userId, body.postId);
   }
 
   @Delete()
   remove(@Body() body: any) {
-    return this.favoriteService.removeFavorite(
-      Number(body.userId),
-      Number(body.postId),
-    );
+    return this.favoriteService.removeFavorite(body.userId, body.postId);
   }
 
   @Get(':userId')
   get(@Param('userId') userId: string) {
-    return this.favoriteService.getFavorites(Number(userId));
+    return this.favoriteService.getFavorites(userId);
   }
 }

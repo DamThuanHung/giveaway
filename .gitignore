@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# Build outputs
+build/
+dist/
+app/build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Uploads (ảnh người dùng — lưu ngoài git)
+backend/uploads/*.jpg
+backend/uploads/*.jpeg
+backend/uploads/*.png
+backend/uploads/*.gif
+backend/uploads/*.webp
+backend/uploads/*.jfif
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/ios/Pods/
+app/ios/.symlinks/
+app/macos/Pods/
+
+# AI memory (session cục bộ)
+.claude/
+plans/
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,199 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import 'chat_screen.dart';
+import 'package:provider/provider.dart';
+
+class NotificationsScreen extends StatefulWidget {
+  const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  List<dynamic> _notifications = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _isLoading = true);
+    final data = await ApiService.getNotifications();
+    if (!mounted) return;
+    setState(() { _notifications = data; _isLoading = false; });
+    // Đánh dấu tất cả đã đọc
+    ApiService.markAllNotificationsRead();
+  }
+
+  Future<void> _navigateToTarget(Map n) async {
+    final dataStr = n['data']?.toString();
+    if (dataStr == null || dataStr.isEmpty) return;
+    try {
+      final data = jsonDecode(dataStr) as Map;
+      final roomId = data['roomId']?.toString();
+      if (roomId == null || roomId.isEmpty) return;
+
+      final room = await ApiService.getRoomById(roomId);
+      if (!mounted || room == null) return;
+
+      final myId = context.read<AuthProvider>().userId;
+      final other = room['buyerId'] == myId ? room['seller'] : room['buyer'];
+      final post = room['post'] as Map? ?? {};
+
+      Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+        roomId: roomId,
+        otherUserName: other?['name']?.toString() ?? 'Người dùng',
+        postTitle: post['title']?.toString() ?? '',
+        postImageLabel: post['imageLabel']?.toString() ?? '',
+      )));
+    } catch (_) {}
+  }
+
+  IconData _iconFor(String type) {
+    switch (type) {
+      case 'deal':   return Icons.swap_horiz_rounded;
+      case 'chat':   return Icons.chat_bubble_rounded;
+      case 'review': return Icons.star_rounded;
+      default:       return Icons.notifications_rounded;
+    }
+  }
+
+  Color _colorFor(String type) {
+    switch (type) {
+      case 'deal':   return AppTheme.success;
+      case 'chat':   return AppTheme.primary;
+      case 'review': return AppTheme.warning;
+      default:       return AppTheme.textSecondary;
+    }
+  }
+
+  String _timeAgo(String createdAt) {
+    final dt = DateTime.tryParse(createdAt);
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Vừa xong';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
+    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: const Text('Thông báo'),
+        actions: [
+          if (_notifications.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                await ApiService.markAllNotificationsRead();
+                _load();
+              },
+              child: const Text('Đọc tất cả', style: TextStyle(color: AppTheme.primary)),
+            ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : _notifications.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
+                      const SizedBox(height: 16),
+                      const Text('Chưa có thông báo nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.separated(
+                    itemCount: _notifications.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+                    itemBuilder: (ctx, i) {
+                      final n = _notifications[i];
+                      final isRead = n['isRead'] == true;
+                      final type = n['type'] ?? 'system';
+
+                      return InkWell(
+                        onTap: () async {
+                          await ApiService.markNotificationRead(n['id']);
+                          setState(() => n['isRead'] = true);
+                          await _navigateToTarget(n);
+                        },
+                        child: Container(
+                          color: isRead ? Colors.white : AppTheme.primary.withOpacity(0.04),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Icon loại thông báo
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: _colorFor(type).withOpacity(0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(_iconFor(type), color: _colorFor(type), size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              // Nội dung
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            n['title'] ?? '',
+                                            style: TextStyle(
+                                              fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                                              fontSize: 14,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        if (!isRead)
+                                          Container(
+                                            width: 8, height: 8,
+                                            decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      n['body'] ?? '',
+                                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _timeAgo(n['createdAt'] ?? ''),
+                                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+    );
+  }
+}
