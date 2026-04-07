@@ -36,6 +36,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   void initState() {
     super.initState();
     localIsFavorite = widget.isFavorite;
+    _checkFavoriteStatus();
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuth || auth.userId == null) return;
+    try {
+      final data = await ApiService.getFavorites(auth.userId!);
+      if (!mounted) return;
+      final isFav = data.any((item) {
+        final postId = item['postId']?.toString() ?? item['post']?['id']?.toString();
+        return postId == widget.post.id;
+      });
+      setState(() => localIsFavorite = isFav);
+    } catch (_) {}
   }
 
   Future<void> _openChat() async {
@@ -149,12 +164,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> handleFavoriteTap() async {
     if (isUpdatingFavorite) return;
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuth || auth.userId == null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
     final oldValue = localIsFavorite;
     setState(() {
       isUpdatingFavorite = true;
       localIsFavorite = !localIsFavorite;
     });
     try {
+      if (oldValue) {
+        await ApiService.removeFavorite(auth.userId!, widget.post.id);
+      } else {
+        await ApiService.addFavorite(auth.userId!, widget.post.id);
+      }
+      // Notify parent list to refresh (no-op callbacks are fine here)
       await widget.onToggleFavorite();
     } catch (_) {
       if (mounted) {
