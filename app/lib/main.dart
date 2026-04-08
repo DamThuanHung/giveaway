@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
@@ -11,6 +12,7 @@ import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/app_shell.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
@@ -27,6 +29,9 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
+  final prefs = await SharedPreferences.getInstance();
+  final onboardingDone = prefs.getBool('onboarding_done') ?? false;
+
   runApp(
     MultiProvider(
       providers: [
@@ -35,13 +40,14 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(onboardingDone: onboardingDone),
     ),
   );
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool onboardingDone;
+  const MyApp({super.key, required this.onboardingDone});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -108,6 +114,7 @@ class _MyAppState extends State<MyApp> {
           if (auth.isAuth && _pendingFcmToken != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) => _trySendToken());
           }
+          if (!widget.onboardingDone) return const OnboardingScreen();
           return auth.isAuth ? const AppShell() : const LoginScreen();
         },
       ),
