@@ -178,7 +178,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 0.72,
+                  childAspectRatio: 0.65,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => _buildPostCard(ctx, posts[i]),
@@ -235,6 +235,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.grey.shade200),
         ),
+        clipBehavior: Clip.hardEdge,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Stack(children: [
             AppImage(url: imgUrl, height: 140, width: double.infinity,
