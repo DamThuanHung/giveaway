@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/post.dart';
 import '../services/api_service.dart';
 import '../providers/auth_provider.dart';
@@ -107,6 +108,36 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Text(
             widget.post.itemCategoryLabel,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6B7280)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBlockDialog(BuildContext context) {
+    final authorName = widget.post.authorName ?? 'người này';
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Chặn người dùng'),
+        content: Text('Bài đăng của $authorName sẽ không hiển thị với bạn nữa. Bạn có chắc không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              if (widget.post.authorId == null) return;
+              final ok = await ApiService.blockUser(widget.post.authorId!);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(ok ? 'Đã chặn $authorName' : 'Có lỗi xảy ra'),
+                backgroundColor: ok ? AppTheme.success : AppTheme.error,
+                behavior: SnackBarBehavior.floating,
+              ));
+              if (ok) Navigator.pop(context);
+            },
+            child: const Text('Chặn', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -352,13 +383,37 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.share_outlined, color: Colors.black87),
+            onPressed: () {
+              final price = widget.post.price == 0 ? 'Miễn phí' : '${widget.post.price}đ';
+              final text = '${widget.post.title}\n$price\n\nTìm thấy trên Cho và Tặng!';
+              Share.share(text, subject: widget.post.title);
+            },
+          ),
+          IconButton(
             onPressed: isUpdatingFavorite ? null : handleFavoriteTap,
             icon: Icon(localIsFavorite ? Icons.favorite : Icons.favorite_border, color: localIsFavorite ? Colors.red : Colors.black87),
           ),
-          IconButton(
-            onPressed: () => _showReportDialog(context),
-            icon: const Icon(Icons.flag_outlined, color: Colors.black87),
-          ),
+          if (context.read<AuthProvider>().userId != widget.post.authorId)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.black87),
+              onSelected: (value) {
+                if (value == 'report') _showReportDialog(context);
+                if (value == 'block') _showBlockDialog(context);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'report', child: Row(children: [
+                  Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+                  SizedBox(width: 10),
+                  Text('Báo cáo bài đăng'),
+                ])),
+                PopupMenuItem(value: 'block', child: Row(children: [
+                  Icon(Icons.block, size: 18, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text('Chặn người này'),
+                ])),
+              ],
+            ),
         ],
       ),
       body: ListView(

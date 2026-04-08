@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'map_picker_screen.dart';
+import '../../data/categories.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -300,20 +301,10 @@ class _CreatePostTabState extends State<CreatePostTab> {
   }
 
   Widget _buildCategoryDropdown() {
-    const categories = {
-      'appliances': 'Gia dụng',
-      'electronics': 'Điện tử',
-      'clothing': 'Thời trang',
-      'furniture': 'Nội thất',
-      'vehicle': 'Xe cộ',
-      'book': 'Sách & Tài liệu',
-      'toy': 'Đồ chơi & Trẻ em',
-      'other': 'Khác',
-    };
     return DropdownButtonFormField<String>(
       value: _itemCategory,
       decoration: const InputDecoration(labelText: 'Danh mục *', border: OutlineInputBorder()),
-      items: categories.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+      items: AppCategories.list.map((c) => DropdownMenuItem(value: c['value'], child: Text(c['label']!))).toList(),
       onChanged: (v) => setState(() => _itemCategory = v!),
     );
   }

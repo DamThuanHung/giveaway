@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/categories.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
@@ -20,16 +21,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _selectedCategory;
   String? _selectedType;
 
-  final _categories = const [
-    {'value': 'furniture', 'label': 'Nội thất'},
-    {'value': 'appliances', 'label': 'Gia dụng'},
-    {'value': 'bicycle', 'label': 'Xe đạp'},
-    {'value': 'motorbike', 'label': 'Xe máy'},
-    {'value': 'computer', 'label': 'Máy tính'},
-    {'value': 'phone', 'label': 'Điện thoại'},
-    {'value': 'fashion', 'label': 'Thời trang'},
-    {'value': 'other', 'label': 'Khác'},
-  ];
+  final _categories = AppCategories.list;
 
   @override
   void dispose() {

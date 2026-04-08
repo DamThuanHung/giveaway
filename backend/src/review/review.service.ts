@@ -1,10 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatService } from '../chat/chat.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ReviewService {
-  constructor(private prisma: PrismaService, private chatService: ChatService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+  ) {}
 
   async createReview(reviewerId: string, dealId: string, rating: number, comment?: string) {
     const deal = await this.prisma.deal.findUnique({ where: { id: dealId } });
@@ -26,15 +29,13 @@ export class ReviewService {
 
     const reviewerName = (review.reviewer as any)?.name ?? 'Ai đó';
     const stars = '⭐'.repeat(rating);
-    await this.prisma.notification.create({
-      data: {
-        userId: revieweeId,
-        type: 'review',
-        title: `${reviewerName} đã đánh giá bạn ${stars}`,
-        body: comment ? `"${comment}"` : 'Họ đã để lại đánh giá sau giao dịch.',
-        data: JSON.stringify({ roomId: room?.id, dealId }),
-      },
-    });
+    await this.notificationService.createNotification(
+      revieweeId,
+      'review',
+      `${reviewerName} đã đánh giá bạn ${stars}`,
+      comment ? `"${comment}"` : 'Họ đã để lại đánh giá sau giao dịch.',
+      JSON.stringify({ roomId: room?.id, dealId }),
+    );
 
     return review;
   }

@@ -102,4 +102,33 @@ export class UserService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async blockUser(blockerId: string, blockedId: string) {
+    if (blockerId === blockedId) throw new BadRequestException('Không thể chặn chính mình');
+    await this.prisma.blockedUser.upsert({
+      where: { blockerId_blockedId: { blockerId, blockedId } },
+      create: { blockerId, blockedId },
+      update: {},
+    });
+    return { message: 'Đã chặn người dùng' };
+  }
+
+  async unblockUser(blockerId: string, blockedId: string) {
+    await this.prisma.blockedUser.deleteMany({ where: { blockerId, blockedId } });
+    return { message: 'Đã bỏ chặn người dùng' };
+  }
+
+  async getBlockedUsers(blockerId: string) {
+    return this.prisma.blockedUser.findMany({
+      where: { blockerId },
+      select: { blockedId: true, blocked: { select: { id: true, name: true, avatar: true } } },
+    });
+  }
+
+  async isBlocked(blockerId: string, blockedId: string): Promise<boolean> {
+    const r = await this.prisma.blockedUser.findUnique({
+      where: { blockerId_blockedId: { blockerId, blockedId } },
+    });
+    return r !== null;
+  }
 }

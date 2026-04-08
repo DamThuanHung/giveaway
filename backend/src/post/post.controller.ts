@@ -6,6 +6,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { PostService } from './post.service';
 
 const multerOptions = {
@@ -23,7 +24,8 @@ export class PostController {
   constructor(private readonly postService: PostService) {}
 
   @Get()
-  getPosts(@Query() query: any) {
+  @UseGuards(OptionalJwtGuard)
+  getPosts(@Query() query: any, @Request() req: any) {
     return this.postService.getAllPosts({
       page: query.page ? parseInt(query.page) : 1,
       limit: query.limit ? parseInt(query.limit) : 20,
@@ -34,6 +36,7 @@ export class PostController {
       minPrice: query.minPrice ? parseInt(query.minPrice) : undefined,
       maxPrice: query.maxPrice ? parseInt(query.maxPrice) : undefined,
       status: query.status,
+      viewerId: req?.user?.id,
     });
   }
 
@@ -41,6 +44,11 @@ export class PostController {
   @UseGuards(JwtAuthGuard)
   getMyPosts(@Request() req, @Query('status') status?: string) {
     return this.postService.getMyPosts(req.user.id, status);
+  }
+
+  @Get('user/:userId')
+  getUserPosts(@Param('userId') userId: string) {
+    return this.postService.getMyPosts(userId, 'available');
   }
 
   @Get('my/stats')

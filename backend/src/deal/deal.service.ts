@@ -1,9 +1,13 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class DealService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+  ) {}
 
   async createDeal(requesterId: string, postId: string, userMessage?: string) {
     const post = await this.prisma.post.findUnique({
@@ -58,15 +62,13 @@ export class DealService {
 
     // Notification cho người bán
     const requesterName = (deal.requester as any)?.name ?? 'Ai đó';
-    await this.prisma.notification.create({
-      data: {
-        userId: ownerId,
-        type: 'deal',
-        title: `${requesterName} muốn nhận đồ của bạn`,
-        body: `"${post.title}"${userMessage ? ` — "${userMessage}"` : ''}`,
-        data: JSON.stringify({ roomId: room.id, dealId: deal.id }),
-      },
-    });
+    await this.notificationService.createNotification(
+      ownerId,
+      'deal',
+      `${requesterName} muốn nhận đồ của bạn`,
+      `"${post.title}"${userMessage ? ` — "${userMessage}"` : ''}`,
+      JSON.stringify({ roomId: room.id, dealId: deal.id }),
+    );
 
     return { deal, roomId: room.id };
   }
@@ -124,15 +126,13 @@ export class DealService {
         data: { status: 'rejected' },
       });
       // Notify người mua
-      await this.prisma.notification.create({
-        data: {
-          userId: deal.requesterId,
-          type: 'deal',
-          title: 'Yêu cầu được chấp nhận!',
-          body: 'Người bán đã đồng ý. Hãy liên hệ lại để sắp xếp thời gian và địa điểm giao dịch.',
-          data: JSON.stringify({ dealId }),
-        },
-      });
+      await this.notificationService.createNotification(
+        deal.requesterId,
+        'deal',
+        'Yêu cầu được chấp nhận!',
+        'Người bán đã đồng ý. Hãy liên hệ lại để sắp xếp thời gian và địa điểm giao dịch.',
+        JSON.stringify({ dealId }),
+      );
     }
 
     if (status === 'completed') {
@@ -140,27 +140,23 @@ export class DealService {
       const room = await this.prisma.chatRoom.findFirst({
         where: { postId: deal.postId, buyerId: deal.requesterId },
       });
-      await this.prisma.notification.create({
-        data: {
-          userId: deal.requesterId,
-          type: 'review',
-          title: '🎉 Giao dịch hoàn thành!',
-          body: 'Hãy viết đánh giá cho người bán nhé.',
-          data: JSON.stringify({ roomId: room?.id, dealId }),
-        },
-      });
+      await this.notificationService.createNotification(
+        deal.requesterId,
+        'review',
+        'Giao dịch hoàn thành!',
+        'Hãy viết đánh giá cho người bán nhé.',
+        JSON.stringify({ roomId: room?.id, dealId }),
+      );
     }
 
     if (status === 'rejected') {
-      await this.prisma.notification.create({
-        data: {
-          userId: deal.requesterId,
-          type: 'deal',
-          title: 'Yêu cầu bị từ chối',
-          body: 'Người bán đã từ chối yêu cầu của bạn.',
-          data: JSON.stringify({ dealId }),
-        },
-      });
+      await this.notificationService.createNotification(
+        deal.requesterId,
+        'deal',
+        'Yêu cầu bị từ chối',
+        'Người bán đã từ chối yêu cầu của bạn.',
+        JSON.stringify({ dealId }),
+      );
     }
 
     return updated;

@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Param, Patch, Post, Request,
+  Body, Controller, Delete, Get, Param, Patch, Post, Request,
   UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -66,5 +66,29 @@ export class UserController {
   @Get()
   getUsers() {
     return this.userService.getUsers();
+  }
+
+  @Post('block/:blockedId')
+  @UseGuards(JwtAuthGuard)
+  blockUser(@Request() req, @Param('blockedId') blockedId: string) {
+    return this.userService.blockUser(req.user.id, blockedId);
+  }
+
+  @Delete('block/:blockedId')
+  @UseGuards(JwtAuthGuard)
+  unblockUser(@Request() req, @Param('blockedId') blockedId: string) {
+    return this.userService.unblockUser(req.user.id, blockedId);
+  }
+
+  @Get('blocked/list')
+  @UseGuards(JwtAuthGuard)
+  getBlockedUsers(@Request() req) {
+    return this.userService.getBlockedUsers(req.user.id);
+  }
+
+  @Get('block/check/:targetId')
+  @UseGuards(JwtAuthGuard)
+  checkBlocked(@Request() req, @Param('targetId') targetId: string) {
+    return this.userService.isBlocked(req.user.id, targetId).then(isBlocked => ({ isBlocked }));
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/categories.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
@@ -26,16 +27,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
     ('give', 'Cho tặng miễn phí'),
   ];
 
-  static const _categories = [
-    ('furniture', 'Nội thất'),
-    ('appliances', 'Gia dụng'),
-    ('bicycle', 'Xe đạp'),
-    ('motorbike', 'Xe máy'),
-    ('computer', 'Máy tính'),
-    ('phone', 'Điện thoại'),
-    ('fashion', 'Thời trang'),
-    ('other', 'Khác'),
-  ];
+  static final _categories = AppCategories.list.map((c) => (c['value']!, c['label']!)).toList();
 
   static const _statuses = [
     ('available', 'Còn hàng'),

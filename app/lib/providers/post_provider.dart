@@ -10,16 +10,25 @@ class PostProvider with ChangeNotifier {
   bool _hasMore = true;
   int _total = 0;
 
+  String? _listingType;
+  String? _itemCategory;
+
   List<Post> get posts => _posts;
   bool get isLoading => _isLoading;
   bool get hasError => _hasError;
   bool get hasMore => _hasMore;
   int get total => _total;
 
-  Future<void> fetchPosts({bool refresh = true}) async {
+  Future<void> fetchPosts({
+    bool refresh = true,
+    String? listingType,
+    String? itemCategory,
+  }) async {
     if (refresh) {
       _currentPage = 1;
       _hasMore = true;
+      _listingType = listingType;
+      _itemCategory = itemCategory;
     } else if (!_hasMore || _isLoading) {
       return;
     }
@@ -30,7 +39,12 @@ class PostProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await ApiService.getPosts(page: _currentPage, limit: 20);
+      final result = await ApiService.getPosts(
+        page: _currentPage,
+        limit: 20,
+        listingType: _listingType,
+        itemCategory: _itemCategory,
+      );
       final List<dynamic> data = result['data'] ?? [];
       final meta = result['meta'] ?? {};
 
@@ -55,5 +69,9 @@ class PostProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loadMore() => fetchPosts(refresh: false);
+  Future<void> loadMore() => fetchPosts(
+        refresh: false,
+        listingType: _listingType,
+        itemCategory: _itemCategory,
+      );
 }

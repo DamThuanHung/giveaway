@@ -115,19 +115,6 @@ class ApiService {
     }
   }
 
-  static Future<bool> changePassword(String oldPassword, String newPassword) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/user/change-password'),
-        headers: await _authHeaders(),
-        body: jsonEncode({'oldPassword': oldPassword, 'newPassword': newPassword}),
-      ).timeout(const Duration(seconds: 10));
-      return res.statusCode == 200 || res.statusCode == 201;
-    } catch (e) {
-      return false;
-    }
-  }
-
   // ─── POST ────────────────────────────────────────────
   static Future<Map<String, dynamic>> getPosts({
     int page = 1,
@@ -151,7 +138,7 @@ class ApiService {
         if (maxPrice != null) 'maxPrice': maxPrice.toString(),
       };
       final uri = Uri.parse('$baseUrl/post').replace(queryParameters: params);
-      final res = await http.get(uri).timeout(const Duration(seconds: 15));
+      final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) return jsonDecode(res.body);
       return {'data': [], 'meta': {'total': 0}};
     } catch (e) {
@@ -592,5 +579,68 @@ class ApiService {
         body: jsonEncode({'token': token}),
       ).timeout(const Duration(seconds: 5));
     } catch (_) {}
+  }
+
+  static Future<bool> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/change-password'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'oldPassword': oldPassword, 'newPassword': newPassword}),
+      );
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) { return false; }
+  }
+
+  static Future<List<dynamic>> getUserPosts(String userId) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/post/user/$userId'));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (_) { return []; }
+  }
+
+  static Future<List<dynamic>> getBlockedUsers() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/user/blocked/list'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (_) { return []; }
+  }
+
+  static Future<bool> blockUser(String userId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/block/$userId'),
+        headers: await _authHeaders(),
+      );
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) { return false; }
+  }
+
+  static Future<bool> unblockUser(String userId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/user/block/$userId'),
+        headers: await _authHeaders(),
+      );
+      return res.statusCode == 200 || res.statusCode == 204;
+    } catch (_) { return false; }
+  }
+
+  static Future<bool> checkBlocked(String userId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/user/block/check/$userId'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body)['isBlocked'] == true;
+      }
+      return false;
+    } catch (_) { return false; }
   }
 }

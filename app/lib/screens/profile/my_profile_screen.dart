@@ -8,6 +8,8 @@ import '../post/my_posts_screen.dart';
 import '../deal/deals_screen.dart';
 import 'seller_stats_screen.dart';
 import 'my_reviews_screen.dart';
+import 'blocked_users_screen.dart';
+import 'change_password_screen.dart';
 import '../favorites_tab.dart';
 import '../admin/admin_dashboard_screen.dart';
 // Alias để tránh conflict
@@ -95,9 +97,11 @@ class MyProfileScreen extends StatelessWidget {
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreenImport()))),
             _MenuItem(icon: Icons.star_outline, label: 'Đánh giá của tôi',
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()))),
+            _MenuItem(icon: Icons.block, label: 'Danh sách đã chặn',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedUsersScreen()))),
             const Divider(height: 32),
             _MenuItem(icon: Icons.lock_outline, label: 'Đổi mật khẩu',
-              onTap: () {}),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()))),
             _MenuItem(
               icon: Icons.logout,
               label: 'Đăng xuất',

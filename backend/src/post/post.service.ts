@@ -29,12 +29,25 @@ export class PostService {
     minPrice?: number;
     maxPrice?: number;
     status?: string;
+    viewerId?: string;
   }) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
     const where: any = { status: query.status || 'available' };
+
+    // Lọc bài của người bị chặn bởi viewer
+    if (query.viewerId) {
+      const blocked = await this.prisma.blockedUser.findMany({
+        where: { blockerId: query.viewerId },
+        select: { blockedId: true },
+      });
+      const blockedIds = blocked.map(b => b.blockedId);
+      if (blockedIds.length > 0) {
+        where.authorId = { notIn: blockedIds };
+      }
+    }
 
     if (query.search) {
       where.OR = [

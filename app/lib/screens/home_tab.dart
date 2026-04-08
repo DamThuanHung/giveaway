@@ -7,6 +7,7 @@ import '../models/post.dart';
 import '../theme/app_theme.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/app_image.dart';
+import '../data/categories.dart';
 import 'post_detail_screen.dart';
 import 'post/search_screen.dart';
 import 'map_view_screen.dart';
@@ -38,13 +39,39 @@ class _HomeFeedJimoty extends StatefulWidget {
   State<_HomeFeedJimoty> createState() => _HomeFeedJimotyState();
 }
 
-class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
+class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProviderStateMixin {
   final Set<String> _favoriteIds = {};
+  late final TabController _tabController;
+
+  // tab 0 = Tất cả, tab 1 = 0đ Cho tặng, tab 2..N = categories
+  static final _categories = AppCategories.list;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2 + _categories.length, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _loadFavorites();
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    final idx = _tabController.index;
+    final postProv = context.read<PostProvider>();
+    if (idx == 0) {
+      postProv.fetchPosts();
+    } else if (idx == 1) {
+      postProv.fetchPosts(listingType: 'give');
+    } else {
+      postProv.fetchPosts(itemCategory: _categories[idx - 2]['value']);
+    }
   }
 
   Future<void> _loadFavorites() async {
@@ -78,9 +105,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: const Color(0xFFF6F6F6),
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -102,16 +127,16 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
               )
             ],
           ),
-          bottom: const TabBar(
+          bottom: TabBar(
+            controller: _tabController,
             isScrollable: true,
             labelColor: Colors.green,
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.green,
             tabs: [
-              Tab(text: 'Tất cả'),
-              Tab(text: '0đ - Cho tặng'),
-              Tab(text: 'Gia dụng'),
-              Tab(text: 'Xe cộ'),
+              const Tab(text: 'Tất cả'),
+              const Tab(text: '0đ - Cho tặng'),
+              ..._categories.map((c) => Tab(text: c['label']!)),
             ],
           ),
         ),
@@ -131,25 +156,15 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
             }
 
             return TabBarView(
-              children: [
-                _buildGridView(postProv.posts, postProv),
-                _buildGridView(_filterPosts(postProv.posts, isFree: true), postProv),
-                _buildGridView(_filterPosts(postProv.posts, category: 'appliances'), postProv),
-                _buildGridView(_filterPosts(postProv.posts, category: 'motorbike'), postProv),
-              ],
+              controller: _tabController,
+              children: List.generate(
+                2 + _categories.length,
+                (_) => _buildGridView(postProv.posts, postProv),
+              ),
             );
           },
         ),
-      ),
     );
-  }
-
-  List<Post> _filterPosts(List<Post> allPosts, {bool isFree = false, String? category}) {
-    return allPosts.where((post) {
-      if (isFree) return post.price == 0 || post.listingType == 'give' || post.listingType == 'donated';
-      if (category != null) return post.itemCategory.toLowerCase().contains(category.toLowerCase());
-      return true;
-    }).toList();
   }
 
   Widget _buildGridView(List<Post> posts, PostProvider postProv) {

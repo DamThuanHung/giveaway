@@ -30,26 +30,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _load() async {
     final results = await Future.wait([
       ApiService.getUserById(widget.userId),
-      ApiService.getMyPosts(),
+      ApiService.getUserPosts(widget.userId),
       ApiService.getUserReviews(widget.userId),
     ]);
 
     if (!mounted) return;
 
     final userData = results[0] as Map<String, dynamic>?;
-    // results[1] is reserved for future use
+    final postsData = results[1] as List<dynamic>;
     final reviewData = results[2] as Map<String, dynamic>?;
-
-    // Lấy bài đăng của user này từ endpoint public
-    final postsResult = await ApiService.getPosts(limit: 50);
-    final allPosts = (postsResult['data'] as List? ?? [])
-        .map((e) => Post.fromJson(e))
-        .where((p) => p.authorId == widget.userId)
-        .toList();
 
     setState(() {
       _user = userData;
-      _posts = allPosts;
+      _posts = postsData.map((e) => Post.fromJson(e)).toList();
       _reviews = reviewData;
       _isLoading = false;
     });
