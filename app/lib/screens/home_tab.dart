@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../providers/post_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -8,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/app_image.dart';
 import '../data/categories.dart';
+import '../data/provinces.dart';
 import 'post_detail_screen.dart';
 import 'post/search_screen.dart';
 import 'map_view_screen.dart';
@@ -42,6 +45,7 @@ class _HomeFeedJimoty extends StatefulWidget {
 class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProviderStateMixin {
   final Set<String> _favoriteIds = {};
   late final TabController _tabController;
+  String _selectedProvince = 'Toàn quốc';
 
   // tab 0 = Tất cả, tab 1 = 0đ Cho tặng, tab 2..N = categories
   static final _categories = AppCategories.list;
@@ -52,6 +56,52 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
     _tabController = TabController(length: 2 + _categories.length, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadFavorites();
+    _detectLocation();
+  }
+
+  Future<void> _detectLocation() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      LocationPermission perm = permission;
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) return;
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+      ).timeout(const Duration(seconds: 8));
+
+      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      if (placemarks.isEmpty || !mounted) return;
+
+      final admin = placemarks.first.administrativeArea ?? '';
+      if (admin.isEmpty) return;
+
+      String normalize(String s) => s
+          .toLowerCase()
+          .replaceAll('tp. ', '')
+          .replaceAll('tỉnh ', '')
+          .replaceAll('thành phố ', '')
+          .trim();
+
+      final adminNorm = normalize(admin);
+      final matched = AppProvinces.list.firstWhere(
+        (p) {
+          if (p == 'Toàn quốc') return false;
+          final pNorm = normalize(p);
+          return adminNorm.contains(pNorm) || pNorm.contains(adminNorm);
+        },
+        orElse: () => '',
+      );
+
+      if (matched.isNotEmpty && matched != _selectedProvince) {
+        setState(() => _selectedProvince = matched);
+        _refetch();
+      }
+    } catch (_) {
+      // Không có GPS → giữ "Toàn quốc"
+    }
   }
 
   @override
@@ -63,15 +113,67 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
+    _refetch();
+  }
+
+  void _refetch() {
     final idx = _tabController.index;
     final postProv = context.read<PostProvider>();
+    final province = _selectedProvince == 'Toàn quốc' ? null : _selectedProvince;
     if (idx == 0) {
-      postProv.fetchPosts();
+      postProv.fetchPosts(province: province);
     } else if (idx == 1) {
-      postProv.fetchPosts(listingType: 'give');
+      postProv.fetchPosts(listingType: 'give', province: province);
     } else {
-      postProv.fetchPosts(itemCategory: _categories[idx - 2]['value']);
+      postProv.fetchPosts(itemCategory: _categories[idx - 2]['value'], province: province);
     }
+  }
+
+  void _showProvincePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (_, controller) => Column(children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              const Text('Chọn khu vực', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ]),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView.builder(
+              controller: controller,
+              itemCount: AppProvinces.list.length,
+              itemBuilder: (_, i) {
+                final p = AppProvinces.list[i];
+                final isSelected = p == _selectedProvince;
+                return ListTile(
+                  title: Text(p, style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? AppTheme.primary : null,
+                  )),
+                  trailing: isSelected ? const Icon(Icons.check, color: AppTheme.primary) : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    if (p == _selectedProvince) return;
+                    setState(() => _selectedProvince = p);
+                    _refetch();
+                  },
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 
   Future<void> _loadFavorites() async {
@@ -112,9 +214,18 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
           elevation: 0.5,
           title: Row(
             children: [
-              const Icon(Icons.location_on, color: Colors.green),
-              const SizedBox(width: 5),
-              const Text('Khu vực của bạn', style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold)),
+              GestureDetector(
+                onTap: _showProvincePicker,
+                child: Row(children: [
+                  const Icon(Icons.location_on, color: Colors.green),
+                  const SizedBox(width: 4),
+                  Text(
+                    _selectedProvince,
+                    style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                ]),
+              ),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.map_outlined, color: Colors.black54),

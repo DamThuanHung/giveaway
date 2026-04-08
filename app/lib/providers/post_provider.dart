@@ -12,6 +12,7 @@ class PostProvider with ChangeNotifier {
 
   String? _listingType;
   String? _itemCategory;
+  String? _province;
 
   List<Post> get posts => _posts;
   bool get isLoading => _isLoading;
@@ -19,16 +20,20 @@ class PostProvider with ChangeNotifier {
   bool get hasMore => _hasMore;
   int get total => _total;
 
+  String? get province => _province;
+
   Future<void> fetchPosts({
     bool refresh = true,
     String? listingType,
     String? itemCategory,
+    String? province,
   }) async {
     if (refresh) {
       _currentPage = 1;
       _hasMore = true;
       _listingType = listingType;
       _itemCategory = itemCategory;
+      if (province != null) _province = province == 'Toàn quốc' ? null : province;
     } else if (!_hasMore || _isLoading) {
       return;
     }
@@ -44,6 +49,7 @@ class PostProvider with ChangeNotifier {
         limit: 20,
         listingType: _listingType,
         itemCategory: _itemCategory,
+        province: _province,
       );
       final List<dynamic> data = result['data'] ?? [];
       final meta = result['meta'] ?? {};
@@ -73,5 +79,6 @@ class PostProvider with ChangeNotifier {
         refresh: false,
         listingType: _listingType,
         itemCategory: _itemCategory,
+        province: _province,
       );
 }
