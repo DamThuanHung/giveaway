@@ -22,6 +22,7 @@ export class FcmService implements OnModuleInit {
 
   async sendToToken(token: string, title: string, body: string, data?: Record<string, string>) {
     if (admin.apps.length === 0) return;
+    this.logger.log(`Sending FCM to token: ${token.substring(0, 20)}... title: "${title}"`);
     try {
       await admin.messaging().send({
         token,
@@ -29,12 +30,17 @@ export class FcmService implements OnModuleInit {
         data: data ?? {},
         android: {
           priority: 'high',
-          notification: { sound: 'default', clickAction: 'FLUTTER_NOTIFICATION_CLICK' },
+          notification: {
+            sound: 'default',
+            clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+            channelId: 'high_importance_channel',
+          },
         },
         apns: {
           payload: { aps: { sound: 'default', badge: 1 } },
         },
       });
+      this.logger.log(`FCM sent successfully`);
     } catch (err) {
       this.logger.error(`FCM send failed: ${err.message}`);
     }

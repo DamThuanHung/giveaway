@@ -1,3 +1,5 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'home_tab.dart';
@@ -9,6 +11,7 @@ import 'notifications_screen.dart';
 import '../providers/post_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class AppShell extends StatefulWidget {
@@ -37,8 +40,17 @@ class _AppShellState extends State<AppShell> {
       final auth = context.read<AuthProvider>();
       if (auth.isAuth) {
         context.read<NotificationProvider>().startPolling();
+        _registerFcmToken();
       }
     });
+  }
+
+  Future<void> _registerFcmToken() async {
+    if (kIsWeb) return;
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) await ApiService.saveFcmToken(token);
+    } catch (_) {}
   }
 
   @override

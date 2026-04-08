@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+  ) {}
 
   async getRoom(postId: string, buyerId: string) {
     return this.prisma.chatRoom.findUnique({
@@ -53,18 +57,16 @@ export class ChatService {
       }),
     ]);
 
-    // Tạo notification cho người nhận
+    // Tạo notification + gửi FCM push cho người nhận
     const recipientId = room.buyerId === senderId ? room.sellerId : room.buyerId;
     const senderName = (message.sender as any)?.name ?? 'Ai đó';
-    await this.prisma.notification.create({
-      data: {
-        userId: recipientId,
-        type: 'chat',
-        title: `Tin nhắn mới từ ${senderName}`,
-        body: text.length > 60 ? text.substring(0, 60) + '...' : text,
-        data: JSON.stringify({ roomId, postTitle: (room as any).post?.title }),
-      },
-    });
+    await this.notificationService.createNotification(
+      recipientId,
+      'chat',
+      `Tin nhắn mới từ ${senderName}`,
+      text.length > 60 ? text.substring(0, 60) + '...' : text,
+      JSON.stringify({ roomId, postTitle: (room as any).post?.title }),
+    );
 
     return message;
   }

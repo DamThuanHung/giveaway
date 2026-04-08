@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
 import 'providers/chat_provider.dart';
@@ -13,18 +14,16 @@ import 'screens/auth/login_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
-// Handler xử lý notification khi app đang bị tắt hoàn toàn (background isolate)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase chỉ khởi tạo trên mobile (Android/iOS), không phải web
   if (!kIsWeb) {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
@@ -49,6 +48,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  String? _pendingFcmToken;
+
   @override
   void initState() {
     super.initState();
@@ -59,23 +60,35 @@ class _MyAppState extends State<MyApp> {
     if (kIsWeb) return;
     final messaging = FirebaseMessaging.instance;
 
-    // Xin quyền (iOS)
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true, badge: true, sound: true,
+    );
+
     await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-    // Lấy token và lưu lên server khi user đã đăng nhập
-    messaging.onTokenRefresh.listen(_sendTokenToServer);
+    // Lưu token tạm, gửi lên server sau khi auth load xong
+    messaging.onTokenRefresh.listen((token) {
+      _pendingFcmToken = token;
+      _trySendToken();
+    });
 
     final token = await messaging.getToken();
-    if (token != null) _sendTokenToServer(token);
+    if (token != null) {
+      _pendingFcmToken = token;
+      _trySendToken();
+    }
 
-    // Khi app foreground nhận notification — polling đã xử lý, không cần thêm
     FirebaseMessaging.onMessage.listen((_) {});
   }
 
-  Future<void> _sendTokenToServer(String token) async {
+  void _trySendToken() {
+    if (_pendingFcmToken == null) return;
     final auth = context.read<AuthProvider>();
-    if (!auth.isAuth) return;
-    await ApiService.saveFcmToken(token);
+    if (auth.isAuth) {
+      ApiService.saveFcmToken(_pendingFcmToken!);
+      _pendingFcmToken = null;
+    }
+    // Nếu chưa auth → sẽ được gọi lại khi auth thay đổi (xem build bên dưới)
   }
 
   @override
@@ -90,6 +103,10 @@ class _MyAppState extends State<MyApp> {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
+          }
+          // Khi auth vừa load xong và user đã đăng nhập → gửi token nếu còn pending
+          if (auth.isAuth && _pendingFcmToken != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => _trySendToken());
           }
           return auth.isAuth ? const AppShell() : const LoginScreen();
         },
