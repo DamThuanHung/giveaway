@@ -22,6 +22,12 @@ export class UserController {
     return this.userService.login(body);
   }
 
+  @Post('phone-login')
+  phoneLogin(@Body() body: { idToken: string }) {
+    if (!body.idToken) throw new Error('Thiếu idToken');
+    return this.userService.phoneLogin(body.idToken);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getMe(@Request() req) {

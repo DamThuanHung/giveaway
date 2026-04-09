@@ -45,6 +45,31 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> phoneLogin(String idToken) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/phone-login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final d = jsonDecode(res.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await prefs.setString('user_id', d['user']['id'] ?? '');
+        await prefs.setString('user_name', d['user']['name'] ?? '');
+        await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
+        await prefs.setString('user_role', d['user']['role'] ?? 'user');
+        await prefs.setBool('is_phone_verified', d['user']['isPhoneVerified'] == true);
+        return d['user'];
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>?> register(String name, String email, String password) async {
     try {
       final res = await http.post(

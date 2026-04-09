@@ -9,6 +9,7 @@ class AuthProvider with ChangeNotifier {
   String? _userEmail;
   String? _userAvatar;
   String? _userRole;
+  bool _isPhoneVerified = false;
   bool _isLoading = true;
 
   bool get isAuth => _isAuthenticated;
@@ -18,6 +19,7 @@ class AuthProvider with ChangeNotifier {
   String? get userEmail => _userEmail;
   String? get userAvatar => _userAvatar;
   String? get userRole => _userRole;
+  bool get isPhoneVerified => _isPhoneVerified;
 
   AuthProvider() {
     _tryAutoLogin();
@@ -32,6 +34,7 @@ class AuthProvider with ChangeNotifier {
       _userEmail = prefs.getString('user_email');
       _userAvatar = prefs.getString('user_avatar');
       _userRole = prefs.getString('user_role');
+      _isPhoneVerified = prefs.getBool('is_phone_verified') ?? false;
       _isAuthenticated = true;
     }
     _isLoading = false;
@@ -51,6 +54,21 @@ class AuthProvider with ChangeNotifier {
       return null; // null = success
     }
     return 'Email hoặc mật khẩu không đúng';
+  }
+
+  Future<String?> loginWithPhone(String idToken) async {
+    final user = await ApiService.phoneLogin(idToken);
+    if (user != null) {
+      _userId = user['id'];
+      _userName = user['name'];
+      _userAvatar = user['avatar'];
+      _userRole = user['role'];
+      _isPhoneVerified = user['isPhoneVerified'] == true;
+      _isAuthenticated = true;
+      notifyListeners();
+      return null;
+    }
+    return 'Đăng nhập bằng SĐT thất bại. Vui lòng thử lại.';
   }
 
   Future<String?> register(String name, String email, String password) async {
