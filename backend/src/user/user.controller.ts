@@ -64,6 +64,7 @@ export class UserController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   getUsers() {
     return this.userService.getUsers();
   }

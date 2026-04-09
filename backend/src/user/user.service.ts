@@ -22,6 +22,7 @@ export class UserService {
     const name = data?.name?.toString().trim();
 
     if (!email || !password || !name) throw new BadRequestException('Thiếu name, email hoặc password');
+    if (password.length < 6) throw new BadRequestException('Mật khẩu phải có ít nhất 6 ký tự');
 
     const existed = await this.prisma.user.findUnique({ where: { email } });
     if (existed) throw new BadRequestException('Email đã tồn tại');
@@ -80,6 +81,7 @@ export class UserService {
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     const ok = await bcrypt.compare(oldPassword, user.password);
     if (!ok) throw new BadRequestException('Mật khẩu cũ không đúng');
+    if (!newPassword || newPassword.length < 6) throw new BadRequestException('Mật khẩu mới phải có ít nhất 6 ký tự');
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
@@ -87,8 +89,7 @@ export class UserService {
   }
 
   async uploadAvatar(userId: string, filename: string) {
-    const BASE_URL = process.env.BASE_URL || 'http://192.168.0.108:3800';
-    const avatarUrl = `${BASE_URL}/uploads/${filename}`;
+    const avatarUrl = `${process.env.BASE_URL ?? ''}/uploads/${filename}`;
     return this.prisma.user.update({
       where: { id: userId },
       data: { avatar: avatarUrl },
@@ -98,7 +99,7 @@ export class UserService {
 
   async getUsers() {
     return this.prisma.user.findMany({
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, name: true, avatar: true },
       orderBy: { createdAt: 'desc' },
     });
   }

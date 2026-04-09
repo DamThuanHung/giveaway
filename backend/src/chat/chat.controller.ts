@@ -45,14 +45,14 @@ export class ChatController {
   /** Lấy thông tin room theo id */
   @Get('room/:roomId')
   @UseGuards(JwtAuthGuard)
-  getRoomById(@Param('roomId') roomId: string) {
-    return this.chatService.getRoomById(roomId);
+  getRoomById(@Param('roomId') roomId: string, @Request() req) {
+    return this.chatService.getRoomById(roomId, req.user.id);
   }
 
   /** Lấy tin nhắn trong room */
   @Get('room/:roomId/messages')
   @UseGuards(JwtAuthGuard)
-  getMessages(@Param('roomId') roomId: string) {
-    return this.chatService.getMessages(roomId);
+  getMessages(@Param('roomId') roomId: string, @Request() req) {
+    return this.chatService.getMessages(roomId, req.user.id);
   }
 }

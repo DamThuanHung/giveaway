@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -16,6 +17,7 @@ import { FavoriteController } from './favorite/favorite.controller';
 import { FavoriteService } from './favorite/favorite.service';
 import { FcmService } from './fcm/fcm.service';
 import { NotificationController } from './notification/notification.controller';
+import { NotificationGateway } from './notification/notification.gateway';
 import { NotificationService } from './notification/notification.service';
 import { PostController } from './post/post.controller';
 import { PostService } from './post/post.service';
@@ -29,13 +31,14 @@ import { UserService } from './user/user.service';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'uploads'),
       serveRoot: '/uploads',
     }),
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'cho_va_tang_jwt_secret_2026',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
     }),
     ChatModule,
@@ -63,6 +66,7 @@ import { UserService } from './user/user.service';
     DealService,
     ReviewService,
     NotificationService,
+    NotificationGateway,
     FcmService,
     JwtStrategy,
   ],

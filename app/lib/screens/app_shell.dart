@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'home_tab.dart';
 import 'messages_tab.dart';
-import 'favorites_tab.dart';
+import 'search_tab.dart';
 import 'profile_tab.dart';
 import 'post/create_post_tab.dart';
 import 'notifications_screen.dart';
@@ -22,11 +22,10 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
-  final _favKey = GlobalKey<FavoritesTabState>();
 
   late final List<Widget> _pages = [
     const HomeTab(),
-    FavoritesTab(key: _favKey),
+    const SearchTab(),
     const SizedBox(),
     const MessagesTab(),
     const ProfileTab(),
@@ -38,8 +37,8 @@ class _AppShellState extends State<AppShell> {
     // Bắt đầu polling thông báo sau khi widget mount
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
-      if (auth.isAuth) {
-        context.read<NotificationProvider>().startPolling();
+      if (auth.isAuth && auth.userId != null) {
+        context.read<NotificationProvider>().start(auth.userId!);
         _registerFcmToken();
       }
     });
@@ -55,7 +54,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
-    context.read<NotificationProvider>().stopPolling();
+    context.read<NotificationProvider>().stop();
     super.dispose();
   }
 
@@ -72,10 +71,6 @@ class _AppShellState extends State<AppShell> {
       }
     } else {
       setState(() => _selectedIndex = index);
-      // Reload favorites mỗi khi chuyển sang tab
-      if (index == 1) {
-        _favKey.currentState?.load();
-      }
     }
   }
 
@@ -94,51 +89,7 @@ class _AppShellState extends State<AppShell> {
     final unreadMsgCount = notifProvider.unreadMessageCount;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          IndexedStack(index: _selectedIndex, children: _pages),
-          // Nút chuông thông báo góc phải trên cùng
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            right: 12,
-            child: GestureDetector(
-              onTap: _openNotifications,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.notifications_outlined, size: 24, color: AppTheme.textPrimary),
-                    if (unreadCount > 0)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            unreadCount > 99 ? '99+' : '$unreadCount',
-                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
@@ -147,7 +98,7 @@ class _AppShellState extends State<AppShell> {
         onTap: _onItemTapped,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          const BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'Yêu thích'),
+          const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Tìm kiếm'),
           const BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Đăng tin'),
           BottomNavigationBarItem(
             icon: Stack(clipBehavior: Clip.none, children: [

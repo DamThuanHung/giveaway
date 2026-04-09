@@ -37,6 +37,20 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     }
   }
 
+  Future<void> _markStatus(String id, String status) async {
+    final ok = await ApiService.updatePostStatus(id, status);
+    if (!mounted) return;
+    if (ok) {
+      final label = status == 'done' ? 'Đã đánh dấu hoàn thành' : 'Đã mở lại tin đăng';
+      _loadPosts();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(label),
+        backgroundColor: AppTheme.success,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   Future<void> _deletePost(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -96,6 +110,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                         itemBuilder: (ctx, i) => _PostItem(
                           post: _posts[i],
                           onDelete: () => _deletePost(_posts[i].id),
+                          onMarkDone: () => _markStatus(_posts[i].id, 'done'),
+                          onMarkAvailable: () => _markStatus(_posts[i].id, 'available'),
                           onEdit: () async {
                             final updated = await Navigator.push<bool>(ctx, MaterialPageRoute(
                               builder: (_) => EditPostScreen(post: _posts[i]),
@@ -113,7 +129,9 @@ class _PostItem extends StatelessWidget {
   final Post post;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
-  const _PostItem({required this.post, required this.onDelete, required this.onEdit});
+  final VoidCallback onMarkDone;
+  final VoidCallback onMarkAvailable;
+  const _PostItem({required this.post, required this.onDelete, required this.onEdit, required this.onMarkDone, required this.onMarkAvailable});
 
   @override
   Widget build(BuildContext context) {
@@ -166,17 +184,31 @@ class _PostItem extends StatelessWidget {
             onSelected: (val) {
               if (val == 'edit') onEdit();
               if (val == 'delete') onDelete();
+              if (val == 'done') onMarkDone();
+              if (val == 'available') onMarkAvailable();
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Row(children: [
                 Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
                 SizedBox(width: 8),
-                Text('Sửa'),
+                Text('Chỉnh sửa bài đăng'),
               ])),
+              if (post.status != 'done')
+                const PopupMenuItem(value: 'done', child: Row(children: [
+                  Icon(Icons.check_circle_outline, color: AppTheme.success, size: 18),
+                  SizedBox(width: 8),
+                  Text('Đánh dấu đã bán/tặng', style: TextStyle(color: AppTheme.success)),
+                ])),
+              if (post.status == 'done')
+                const PopupMenuItem(value: 'available', child: Row(children: [
+                  Icon(Icons.refresh, color: AppTheme.warning, size: 18),
+                  SizedBox(width: 8),
+                  Text('Mở lại tin đăng', style: TextStyle(color: AppTheme.warning)),
+                ])),
               const PopupMenuItem(value: 'delete', child: Row(children: [
                 Icon(Icons.delete_outline, color: AppTheme.error, size: 18),
                 SizedBox(width: 8),
-                Text('Xóa', style: TextStyle(color: AppTheme.error)),
+                Text('Xóa bài đăng', style: TextStyle(color: AppTheme.error)),
               ])),
             ],
           ),

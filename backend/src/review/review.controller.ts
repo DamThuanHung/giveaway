@@ -15,6 +15,12 @@ export class ReviewController {
     return this.reviewService.createReview(req.user.id, body.dealId, body.rating, body.comment);
   }
 
+  @Get('check/:dealId')
+  @UseGuards(JwtAuthGuard)
+  hasReviewed(@Request() req, @Param('dealId') dealId: string) {
+    return this.reviewService.hasReviewed(req.user.id, dealId);
+  }
+
   @Get('user/:userId')
   getUserReviews(@Param('userId') userId: string) {
     return this.reviewService.getUserReviews(userId);

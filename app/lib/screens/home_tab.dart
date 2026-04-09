@@ -4,6 +4,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../providers/post_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/notification_provider.dart';
+import 'notifications_screen.dart';
 import '../services/api_service.dart';
 import '../models/post.dart';
 import '../theme/app_theme.dart';
@@ -11,8 +13,8 @@ import '../widgets/skeleton.dart';
 import '../widgets/app_image.dart';
 import '../data/categories.dart';
 import '../data/provinces.dart';
+import '../widgets/province_picker_sheet.dart';
 import 'post_detail_screen.dart';
-import 'post/search_screen.dart';
 import 'map_view_screen.dart';
 
 class HomeTab extends StatefulWidget {
@@ -46,6 +48,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
   final Set<String> _favoriteIds = {};
   late final TabController _tabController;
   String _selectedProvince = 'Toàn quốc';
+  RadiusMapResult? _radiusResult;
 
   // tab 0 = Tất cả, tab 1 = 0đ Cho tặng, tab 2..N = categories
   static final _categories = AppCategories.list;
@@ -116,16 +119,25 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
     _refetch();
   }
 
+  String? get _provinceFilter {
+    if (_radiusResult != null) return null;
+    if (_selectedProvince == 'Toàn quốc') return null;
+    if (_selectedProvince.startsWith('Toàn miền')) return null;
+    return _selectedProvince;
+  }
+
   void _refetch() {
     final idx = _tabController.index;
     final postProv = context.read<PostProvider>();
-    final province = _selectedProvince == 'Toàn quốc' ? null : _selectedProvince;
+    final lat = _radiusResult?.lat;
+    final lng = _radiusResult?.lng;
+    final radius = _radiusResult?.radius;
     if (idx == 0) {
-      postProv.fetchPosts(province: province);
+      postProv.fetchPosts(province: _provinceFilter, lat: lat, lng: lng, radius: radius);
     } else if (idx == 1) {
-      postProv.fetchPosts(listingType: 'give', province: province);
+      postProv.fetchPosts(listingType: 'give', province: _provinceFilter, lat: lat, lng: lng, radius: radius);
     } else {
-      postProv.fetchPosts(itemCategory: _categories[idx - 2]['value'], province: province);
+      postProv.fetchPosts(itemCategory: _categories[idx - 2]['value'], province: _provinceFilter, lat: lat, lng: lng, radius: radius);
     }
   }
 
@@ -133,45 +145,25 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (_, controller) => Column(children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              const Text('Chọn khu vực', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-            ]),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView.builder(
-              controller: controller,
-              itemCount: AppProvinces.list.length,
-              itemBuilder: (_, i) {
-                final p = AppProvinces.list[i];
-                final isSelected = p == _selectedProvince;
-                return ListTile(
-                  title: Text(p, style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? AppTheme.primary : null,
-                  )),
-                  trailing: isSelected ? const Icon(Icons.check, color: AppTheme.primary) : null,
-                  onTap: () {
-                    Navigator.pop(context);
-                    if (p == _selectedProvince) return;
-                    setState(() => _selectedProvince = p);
-                    _refetch();
-                  },
-                );
-              },
-            ),
-          ),
-        ]),
+      backgroundColor: Colors.transparent,
+      builder: (_) => ProvincePickerSheet(
+        selected: _selectedProvince == 'Toàn quốc' ? null : _selectedProvince,
+        radiusResult: _radiusResult,
+        onConfirm: (val) {
+          final newProvince = val ?? 'Toàn quốc';
+          setState(() {
+            _selectedProvince = newProvince;
+            _radiusResult = null;
+          });
+          _refetch();
+        },
+        onRadiusConfirm: (result) {
+          setState(() {
+            _radiusResult = result;
+            _selectedProvince = result.label;
+          });
+          _refetch();
+        },
       ),
     );
   }
@@ -232,10 +224,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
                 tooltip: 'Xem bản đồ',
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapViewScreen())),
               ),
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.black54),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-              )
+              _BellButton(),
             ],
           ),
           bottom: TabBar(
@@ -398,6 +387,40 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
           )),
         ]),
       ),
+    );
+  }
+}
+
+class _BellButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final unreadCount = context.watch<NotificationProvider>().unreadCount;
+    return IconButton(
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(Icons.notifications_outlined, color: Colors.black54),
+          if (unreadCount > 0)
+            Positioned(
+              top: -4, right: -4,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
+                child: Text(
+                  unreadCount > 99 ? '99+' : '$unreadCount',
+                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+      onPressed: () {
+        context.read<NotificationProvider>().clearBadge();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))
+            .then((_) => context.read<NotificationProvider>().refresh());
+      },
     );
   }
 }

@@ -18,7 +18,7 @@ export class AdminGuard implements CanActivate {
     let payload: any;
     try {
       payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET || 'cho_va_tang_jwt_secret_2026',
+        secret: process.env.JWT_SECRET,
       });
     } catch {
       throw new ForbiddenException('Token không hợp lệ');

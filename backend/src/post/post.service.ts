@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-const BASE_URL = process.env.BASE_URL || 'http://192.168.0.108:3800';
+const BASE_URL = process.env.BASE_URL ?? '';
 
 function buildImageUrl(imageLabel: string): string | null {
   if (!imageLabel) return null;
@@ -30,6 +30,9 @@ export class PostService {
     maxPrice?: number;
     status?: string;
     viewerId?: string;
+    lat?: number;
+    lng?: number;
+    radius?: number; // km
   }) {
     const page = query.page || 1;
     const limit = query.limit || 20;
@@ -61,6 +64,15 @@ export class PostService {
     if (query.minPrice !== undefined) where.price = { ...where.price, gte: query.minPrice };
     if (query.maxPrice !== undefined) where.price = { ...where.price, lte: query.maxPrice };
 
+    // Nếu có lat/lng/radius → thêm bounding box filter trước
+    if (query.lat !== undefined && query.lng !== undefined && query.radius) {
+      const R = 6371; // km
+      const latDelta = query.radius / R * (180 / Math.PI);
+      const lngDelta = query.radius / (R * Math.cos(query.lat * Math.PI / 180)) * (180 / Math.PI);
+      where.latitude = { gte: query.lat - latDelta, lte: query.lat + latDelta };
+      where.longitude = { gte: query.lng - lngDelta, lte: query.lng + lngDelta };
+    }
+
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
         where,
@@ -72,9 +84,25 @@ export class PostService {
       this.prisma.post.count({ where }),
     ]);
 
+    // Lọc chính xác theo Haversine nếu có radius
+    let filtered = posts;
+    if (query.lat !== undefined && query.lng !== undefined && query.radius) {
+      filtered = posts.filter(p => {
+        if (!p.latitude || !p.longitude) return false;
+        const dLat = (p.latitude - query.lat!) * Math.PI / 180;
+        const dLng = (p.longitude - query.lng!) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+          Math.cos(query.lat! * Math.PI / 180) * Math.cos(p.latitude * Math.PI / 180) *
+          Math.sin(dLng / 2) ** 2;
+        const dist = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return dist <= query.radius!;
+      });
+    }
+
+    const resultPosts = (query.lat !== undefined && query.radius) ? filtered : posts;
     return {
-      data: posts.map(formatPost),
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      data: resultPosts.map(formatPost),
+      meta: { page, limit, total: resultPosts.length, totalPages: Math.ceil(resultPosts.length / limit) },
     };
   }
 

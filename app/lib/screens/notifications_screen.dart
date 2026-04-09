@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'chat_screen.dart';
+import 'deal/deals_screen.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -34,26 +35,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _navigateToTarget(Map n) async {
     final dataStr = n['data']?.toString();
+    final type = n['type']?.toString() ?? '';
     if (dataStr == null || dataStr.isEmpty) return;
     try {
       final data = jsonDecode(dataStr) as Map;
       final roomId = data['roomId']?.toString();
-      if (roomId == null || roomId.isEmpty) return;
 
-      final room = await ApiService.getRoomById(roomId);
-      if (!mounted || room == null) return;
+      // Chat hoặc deal mới (có roomId) → mở màn hình chat
+      if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+        await _openChat(roomId);
+        return;
+      }
 
-      final myId = context.read<AuthProvider>().userId;
-      final other = room['buyerId'] == myId ? room['seller'] : room['buyer'];
-      final post = room['post'] as Map? ?? {};
+      // Deal accepted/rejected (chỉ có dealId) → mở màn hình deals
+      if (type == 'deal') {
+        if (!mounted) return;
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
+        return;
+      }
 
-      Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-        roomId: roomId,
-        otherUserName: other?['name']?.toString() ?? 'Người dùng',
-        postTitle: post['title']?.toString() ?? '',
-        postImageLabel: post['imageLabel']?.toString() ?? '',
-      )));
+      // Review → giao dịch hoàn thành, mở deals để viết đánh giá
+      if (type == 'review') {
+        if (!mounted) return;
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
+        return;
+      }
     } catch (_) {}
+  }
+
+  Future<void> _openChat(String roomId) async {
+    final room = await ApiService.getRoomById(roomId);
+    if (!mounted || room == null) return;
+    final myId = context.read<AuthProvider>().userId;
+    final other = room['buyerId'] == myId ? room['seller'] : room['buyer'];
+    final post = room['post'] as Map? ?? {};
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+      roomId: roomId,
+      otherUserName: other?['name']?.toString() ?? 'Người dùng',
+      postTitle: post['title']?.toString() ?? '',
+      postImageLabel: post['imageLabel']?.toString() ?? '',
+    )));
   }
 
   IconData _iconFor(String type) {

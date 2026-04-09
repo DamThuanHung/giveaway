@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FavoriteService } from './favorite.service';
 
 @Controller('favorite')
@@ -6,16 +7,19 @@ export class FavoriteController {
   constructor(private readonly favoriteService: FavoriteService) {}
 
   @Post()
-  add(@Body() body: any) {
-    return this.favoriteService.addFavorite(body.userId, body.postId);
+  @UseGuards(JwtAuthGuard)
+  add(@Request() req, @Body() body: { postId: string }) {
+    return this.favoriteService.addFavorite(req.user.id, body.postId);
   }
 
   @Delete()
-  remove(@Body() body: any) {
-    return this.favoriteService.removeFavorite(body.userId, body.postId);
+  @UseGuards(JwtAuthGuard)
+  remove(@Request() req, @Body() body: { postId: string }) {
+    return this.favoriteService.removeFavorite(req.user.id, body.postId);
   }
 
   @Get(':userId')
+  @UseGuards(JwtAuthGuard)
   get(@Param('userId') userId: string) {
     return this.favoriteService.getFavorites(userId);
   }

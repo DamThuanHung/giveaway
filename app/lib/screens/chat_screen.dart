@@ -240,6 +240,18 @@ class _DealCardState extends State<_DealCard> {
   bool _reviewed = false;
 
   @override
+  void initState() {
+    super.initState();
+    final status = widget.meta['status']?.toString() ?? '';
+    final dealId = widget.meta['dealId']?.toString() ?? '';
+    if (status == 'completed' && dealId.isNotEmpty) {
+      ApiService.checkReviewed(dealId).then((has) {
+        if (mounted && has) setState(() => _reviewed = true);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final status = widget.meta['status']?.toString() ?? 'pending';
     final dealId = widget.meta['dealId']?.toString() ?? '';

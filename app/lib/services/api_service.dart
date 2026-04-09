@@ -125,6 +125,9 @@ class ApiService {
     String? itemCategory,
     int? minPrice,
     int? maxPrice,
+    double? lat,
+    double? lng,
+    double? radius,
   }) async {
     try {
       final params = <String, String>{
@@ -136,6 +139,9 @@ class ApiService {
         if (itemCategory != null) 'itemCategory': itemCategory,
         if (minPrice != null) 'minPrice': minPrice.toString(),
         if (maxPrice != null) 'maxPrice': maxPrice.toString(),
+        if (lat != null) 'lat': lat.toString(),
+        if (lng != null) 'lng': lng.toString(),
+        if (radius != null) 'radius': radius.toString(),
       };
       final uri = Uri.parse('$baseUrl/post').replace(queryParameters: params);
       final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 15));
@@ -398,6 +404,19 @@ class ApiService {
       ).timeout(const Duration(seconds: 10));
       return res.statusCode == 201 || res.statusCode == 200;
     } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> checkReviewed(String dealId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/review/check/$dealId'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body)['hasReviewed'] == true;
+      return false;
+    } catch (_) {
       return false;
     }
   }

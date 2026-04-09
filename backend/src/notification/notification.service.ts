@@ -1,12 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FcmService } from '../fcm/fcm.service';
+import { NotificationGateway } from './notification.gateway';
 
 @Injectable()
 export class NotificationService {
   constructor(
     private prisma: PrismaService,
     private fcm: FcmService,
+    @Optional() private gateway: NotificationGateway,
   ) {}
 
   async getNotifications(userId: string) {
@@ -51,6 +53,12 @@ export class NotificationService {
         } catch (_) {}
       }
       await this.fcm.sendToToken(user.fcmToken, title, body, fcmData);
+    }
+
+    // Emit realtime unread count nếu socket đang kết nối
+    if (this.gateway) {
+      const { count } = await this.getUnreadCount(userId);
+      this.gateway.sendToUser(userId, count);
     }
 
     return notif;

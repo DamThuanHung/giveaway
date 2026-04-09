@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 
@@ -89,8 +89,8 @@ export class ChatService {
     });
   }
 
-  async getRoomById(roomId: string) {
-    return this.prisma.chatRoom.findUnique({
+  async getRoomById(roomId: string, userId: string) {
+    const room = await this.prisma.chatRoom.findUnique({
       where: { id: roomId },
       include: {
         post: { select: { id: true, title: true, imageLabel: true } },
@@ -98,9 +98,20 @@ export class ChatService {
         seller: { select: { id: true, name: true, avatar: true } },
       },
     });
+    if (!room || (room.buyerId !== userId && room.sellerId !== userId)) {
+      throw new ForbiddenException('Bạn không có quyền truy cập phòng chat này');
+    }
+    return room;
   }
 
-  async getMessages(roomId: string) {
+  async getMessages(roomId: string, userId: string) {
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { buyerId: true, sellerId: true },
+    });
+    if (!room || (room.buyerId !== userId && room.sellerId !== userId)) {
+      throw new ForbiddenException('Bạn không có quyền xem tin nhắn này');
+    }
     return this.prisma.message.findMany({
       where: { roomId },
       include: { sender: { select: { id: true, name: true, avatar: true } } },

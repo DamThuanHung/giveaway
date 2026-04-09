@@ -13,20 +13,29 @@ class PostProvider with ChangeNotifier {
   String? _listingType;
   String? _itemCategory;
   String? _province;
+  double? _lat;
+  double? _lng;
+  double? _radius;
 
   List<Post> get posts => _posts;
   bool get isLoading => _isLoading;
   bool get hasError => _hasError;
   bool get hasMore => _hasMore;
   int get total => _total;
-
   String? get province => _province;
+  double? get lat => _lat;
+  double? get lng => _lng;
+  double? get radius => _radius;
+  bool get isRadiusMode => _lat != null && _lng != null && _radius != null;
 
   Future<void> fetchPosts({
     bool refresh = true,
     String? listingType,
     String? itemCategory,
     String? province,
+    double? lat,
+    double? lng,
+    double? radius,
   }) async {
     if (refresh) {
       _currentPage = 1;
@@ -34,6 +43,9 @@ class PostProvider with ChangeNotifier {
       _listingType = listingType;
       _itemCategory = itemCategory;
       if (province != null) _province = province == 'Toàn quốc' ? null : province;
+      _lat = lat;
+      _lng = lng;
+      _radius = radius;
     } else if (!_hasMore || _isLoading) {
       return;
     }
@@ -49,7 +61,10 @@ class PostProvider with ChangeNotifier {
         limit: 20,
         listingType: _listingType,
         itemCategory: _itemCategory,
-        province: _province,
+        province: isRadiusMode ? null : _province,
+        lat: _lat,
+        lng: _lng,
+        radius: _radius,
       );
       final List<dynamic> data = result['data'] ?? [];
       final meta = result['meta'] ?? {};
@@ -80,5 +95,8 @@ class PostProvider with ChangeNotifier {
         listingType: _listingType,
         itemCategory: _itemCategory,
         province: _province,
+        lat: _lat,
+        lng: _lng,
+        radius: _radius,
       );
 }

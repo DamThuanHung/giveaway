@@ -28,7 +28,7 @@ export class PostController {
   getPosts(@Query() query: any, @Request() req: any) {
     return this.postService.getAllPosts({
       page: query.page ? parseInt(query.page) : 1,
-      limit: query.limit ? parseInt(query.limit) : 20,
+      limit: query.limit ? Math.min(parseInt(query.limit), 50) : 20,
       search: query.search,
       province: query.province,
       listingType: query.listingType,
@@ -37,6 +37,9 @@ export class PostController {
       maxPrice: query.maxPrice ? parseInt(query.maxPrice) : undefined,
       status: query.status,
       viewerId: req?.user?.id,
+      lat: query.lat ? parseFloat(query.lat) : undefined,
+      lng: query.lng ? parseFloat(query.lng) : undefined,
+      radius: query.radius ? parseFloat(query.radius) : undefined,
     });
   }
 

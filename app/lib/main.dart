@@ -3,16 +3,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
-import 'screens/app_shell.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/onboarding_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
@@ -29,9 +25,6 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
-  final prefs = await SharedPreferences.getInstance();
-  final onboardingDone = prefs.getBool('onboarding_done') ?? false;
-
   runApp(
     MultiProvider(
       providers: [
@@ -40,14 +33,13 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
-      child: MyApp(onboardingDone: onboardingDone),
+      child: const MyApp(),
     ),
   );
 }
 
 class MyApp extends StatefulWidget {
-  final bool onboardingDone;
-  const MyApp({super.key, required this.onboardingDone});
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -103,21 +95,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Cho và Tặng',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: Consumer<AuthProvider>(
-        builder: (ctx, auth, _) {
-          if (auth.isLoading) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          // Khi auth vừa load xong và user đã đăng nhập → gửi token nếu còn pending
-          if (auth.isAuth && _pendingFcmToken != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) => _trySendToken());
-          }
-          if (!widget.onboardingDone) return const OnboardingScreen();
-          return auth.isAuth ? const AppShell() : const LoginScreen();
-        },
-      ),
+      home: const SplashScreen(),
     );
   }
 }
