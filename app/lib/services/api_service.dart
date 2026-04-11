@@ -292,8 +292,10 @@ class ApiService {
 
   static Future<List<dynamic>> getFavorites(String userId) async {
     try {
-      final res = await http.get(Uri.parse('$baseUrl/favorite/$userId'))
-          .timeout(const Duration(seconds: 10));
+      final res = await http.get(
+        Uri.parse('$baseUrl/favorite/$userId'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) return jsonDecode(res.body);
       return [];
     } catch (e) {

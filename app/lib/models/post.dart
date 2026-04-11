@@ -54,7 +54,7 @@ class Post {
 
   String get listingTypeLabel {
     switch (listingType) {
-      case 'free': return 'Cho tặng';
+      case 'free': return 'Tặng miễn phí';
       case 'sell': return 'Thanh lý';
       default: return 'Khác';
     }

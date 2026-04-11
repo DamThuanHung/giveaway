@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider.dart' as app_auth;
 import '../../theme/app_theme.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
@@ -86,7 +86,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       final idToken = await result.user!.getIdToken();
       if (!mounted) return;
 
-      final error = await context.read<AuthProvider>().loginWithPhone(idToken!);
+      final error = await context.read<app_auth.AuthProvider>().loginWithPhone(idToken!);
       if (!mounted) return;
 
       if (error != null) {

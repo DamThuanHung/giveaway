@@ -24,7 +24,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   static const _listingTypes = [
     ('sell', 'Bán thanh lý'),
-    ('give', 'Cho tặng miễn phí'),
+    ('give', 'Tặng / Cho miễn phí'),
   ];
 
   static final _categories = AppCategories.list.map((c) => (c['value']!, c['label']!)).toList();
@@ -42,7 +42,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
     _descCtrl = TextEditingController(text: widget.post.description);
     _priceCtrl = TextEditingController(text: widget.post.price == 0 ? '' : '${widget.post.price}');
     _listingType = widget.post.listingType;
-    _itemCategory = widget.post.itemCategory;
+    final validCategories = AppCategories.list.map((c) => c['value']!).toSet();
+    _itemCategory = validCategories.contains(widget.post.itemCategory)
+        ? widget.post.itemCategory
+        : 'other';
     _status = widget.post.status;
   }
 
@@ -78,7 +81,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cập nhật thất bại, thử lại!'), backgroundColor: AppTheme.error, behavior: SnackBarBehavior.floating),
+        const SnackBar(content: Text('Cập nhật thất bại. Vui lòng thử lại.'), backgroundColor: AppTheme.error, behavior: SnackBarBehavior.floating),
       );
     }
   }

@@ -10,7 +10,7 @@ import '../services/api_service.dart';
 import '../models/post.dart';
 import '../theme/app_theme.dart';
 import '../widgets/skeleton.dart';
-import '../widgets/app_image.dart';
+import '../widgets/post_card.dart';
 import '../data/categories.dart';
 import '../data/provinces.dart';
 import '../widgets/province_picker_sheet.dart';
@@ -235,7 +235,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
             indicatorColor: Colors.green,
             tabs: [
               const Tab(text: 'Tất cả'),
-              const Tab(text: '0đ - Cho tặng'),
+              const Tab(icon: Icon(Icons.card_giftcard, size: 14), text: 'Miễn phí'),
               ..._categories.map((c) => Tab(text: c['label']!)),
             ],
           ),
@@ -268,11 +268,14 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
   }
 
   Widget _buildGridView(List<Post> posts, PostProvider postProv) {
+    final bool isAllTab = _tabController.index == 0;
+
     if (posts.isEmpty && !postProv.isLoading) {
       return const Center(child: Text('Không có tin đăng nào', style: TextStyle(color: AppTheme.textSecondary)));
     }
 
     return RefreshIndicator(
+      color: AppTheme.primary,
       onRefresh: () => postProv.fetchPosts(),
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
@@ -286,17 +289,41 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
         },
         child: CustomScrollView(
           slivers: [
+            // Banner "Hàng cho không" — chỉ hiện ở tab Tất cả
+            if (isAllTab)
+              SliverToBoxAdapter(child: _buildGiveBanner()),
+
             SliverPadding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.62,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (ctx, i) => _buildPostCard(ctx, posts[i]),
+                  (ctx, i) => PostCard(
+                    post: posts[i],
+                    isFavorite: _favoriteIds.contains(posts[i].id),
+                    onTap: () => Navigator.push(ctx, MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(
+                        post: posts[i],
+                        isFavorite: _favoriteIds.contains(posts[i].id),
+                        onToggleFavorite: () async {
+                          // Chỉ sync state, API đã gọi trong PostDetailScreen
+                          setState(() {
+                            if (_favoriteIds.contains(posts[i].id)) {
+                              _favoriteIds.remove(posts[i].id);
+                            } else {
+                              _favoriteIds.add(posts[i].id);
+                            }
+                          });
+                        },
+                      ),
+                    )),
+                    onToggleFavorite: () => _toggleFavorite(posts[i].id),
+                  ),
                   childCount: posts.length,
                 ),
               ),
@@ -321,74 +348,44 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
     );
   }
 
-  Widget _buildPostCard(BuildContext ctx, Post item) {
-    final bool isFree = item.price == 0 || item.listingType == 'give' || item.listingType == 'donated';
-    final String location = item.ward.isNotEmpty ? item.ward
-        : item.district.isNotEmpty ? item.district
-        : item.province.isNotEmpty ? item.province
-        : 'Đang cập nhật';
-
-    String imgUrl = '';
-    final rawImageUrl = item.imageUrl ?? '';
-    if (rawImageUrl.isNotEmpty && rawImageUrl.startsWith('http') && !rawImageUrl.contains('10.0.2.2')) {
-      imgUrl = rawImageUrl;
-    } else if (item.imageLabel.isNotEmpty) {
-      imgUrl = '${ApiService.baseUrl}/uploads/${item.imageLabel}';
-    }
-
+  Widget _buildGiveBanner() {
     return GestureDetector(
-      onTap: () => Navigator.push(ctx, MaterialPageRoute(
-        builder: (_) => PostDetailScreen(
-          post: item,
-          isFavorite: _favoriteIds.contains(item.id),
-          onToggleFavorite: () => _toggleFavorite(item.id),
-        ),
-      )),
+      onTap: () {
+        _tabController.animateTo(1);
+        _refetch();
+      },
       child: Container(
+        margin: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
         ),
-        clipBehavior: Clip.hardEdge,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Stack(children: [
-            AppImage(url: imgUrl, height: 140, width: double.infinity,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8))),
-            if (isFree)
-              Positioned(
-                top: 0, left: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: const BoxDecoration(
-                    color: Colors.redAccent,
-                    borderRadius: BorderRadius.only(topLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
-                  ),
-                  child: const Text('Tặng 0đ', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-              ),
-          ]),
-          Expanded(child: Padding(
-            padding: const EdgeInsets.all(8),
+        child: Row(children: [
+          const Text('🎁', style: TextStyle(fontSize: 28)),
+          const SizedBox(width: 12),
+          const Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
-              const Spacer(),
-              Text(
-                isFree ? 'Miễn phí' : '${item.price} đ',
-                style: TextStyle(fontSize: 15, color: isFree ? Colors.redAccent : Colors.black87, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.location_on, size: 12, color: Colors.grey),
-                const SizedBox(width: 2),
-                Expanded(child: Text(location, style: const TextStyle(fontSize: 11, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              ]),
+              Text('Hàng miễn phí', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              SizedBox(height: 2),
+              Text('Đồ miễn phí gần bạn — khám phá ngay!', style: TextStyle(color: Colors.white70, fontSize: 12)),
             ]),
-          )),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+            child: const Text('Xem ngay', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
         ]),
       ),
     );
   }
+
 }
 
 class _BellButton extends StatelessWidget {

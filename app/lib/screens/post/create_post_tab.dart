@@ -30,7 +30,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
   String _selectedWard = '';
 
   String _listingType = 'sell';
-  String _itemCategory = 'appliances';
+  String _itemCategory = 'electronics';
   bool _isSubmitting = false;
 
   @override
@@ -111,12 +111,12 @@ class _CreatePostTabState extends State<CreatePostTab> {
           _lng = null;
           _selectedAddress = '';
           _listingType = 'sell';
-          _itemCategory = 'appliances';
+          _itemCategory = 'electronics';
         });
         if (mounted) Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Đăng tin thất bại, thử lại'),
+          content: Text('Đăng tin thất bại. Vui lòng thử lại.'),
           backgroundColor: AppTheme.error,
           behavior: SnackBarBehavior.floating,
         ));
@@ -294,7 +294,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
         Row(children: [
           _TypeChip(label: 'Bán', value: 'sell', selected: _listingType == 'sell', onTap: () => setState(() => _listingType = 'sell')),
           const SizedBox(width: 8),
-          _TypeChip(label: 'Cho tặng', value: 'give', selected: _listingType == 'give', onTap: () => setState(() => _listingType = 'give')),
+          _TypeChip(label: 'Tặng miễn phí', value: 'give', selected: _listingType == 'give', onTap: () => setState(() => _listingType = 'give')),
         ]),
       ],
     );

@@ -53,10 +53,16 @@ export class PostService {
     }
 
     if (query.search) {
-      where.OR = [
-        { title: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
-      ];
+      // Dùng f_unaccent để tìm kiếm không phân biệt dấu tiếng Việt
+      // "giay the thao" → tìm được "Giày Thể Thao"
+      const searchPattern = `%${query.search}%`;
+      const matchingIds = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "Post"
+        WHERE f_unaccent(lower(title)) LIKE f_unaccent(lower(${searchPattern}))
+           OR f_unaccent(lower(description)) LIKE f_unaccent(lower(${searchPattern}))
+      `;
+      const ids = matchingIds.map(r => r.id);
+      where.id = { in: ids.length > 0 ? ids : ['__no_match__'] };
     }
     if (query.province) where.province = { contains: query.province, mode: 'insensitive' };
     if (query.listingType) where.listingType = query.listingType;

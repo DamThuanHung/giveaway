@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/post_card.dart';
 import 'post_detail_screen.dart';
 import 'auth/login_screen.dart';
 
@@ -52,7 +53,7 @@ class FavoritesTabState extends State<FavoritesTab> {
     if (!auth.isAuth) {
       return Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(title: const Text('Yêu thích')),
+        appBar: AppBar(title: const Text('Bài viết đã lưu')),
         body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Icon(Icons.favorite_border, size: 64, color: AppTheme.border),
           const SizedBox(height: 12),
@@ -71,7 +72,7 @@ class FavoritesTabState extends State<FavoritesTab> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Yêu thích'),
+        title: const Text('Bài viết đã lưu'),
         actions: [
           if (_posts.isNotEmpty)
             Padding(
@@ -109,7 +110,10 @@ class FavoritesTabState extends State<FavoritesTab> {
                           builder: (_) => PostDetailScreen(
                             post: post,
                             isFavorite: true,
-                            onToggleFavorite: () => _removeAndReload(auth.userId!, post.id),
+                            onToggleFavorite: () async {
+                              // API đã gọi trong PostDetailScreen, chỉ cần reload list
+                              load();
+                            },
                           ),
                         )).then((_) => load()),
                         onRemove: () => _removeAndReload(auth.userId!, post.id),
@@ -169,11 +173,11 @@ class _FavoriteItem extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, height: 1.3)),
                   const SizedBox(height: 6),
-                  Text(post.displayPrice,
+                  Text(PostCard.formatPrice(post.price, post.listingType),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: post.price == 0 ? AppTheme.success : AppTheme.primary,
+                        color: (post.listingType == 'give' || post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor,
                       )),
                   const SizedBox(height: 6),
                   Row(children: [

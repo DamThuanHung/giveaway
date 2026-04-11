@@ -4,7 +4,7 @@ class AppTheme {
   // ─── Colors ───────────────────────────────────────────
   static const Color primary       = Color(0xFF1B4EA3);
   static const Color primaryLight  = Color(0xFFE8EEFA);
-  static const Color background    = Color(0xFFF7F8FA);
+  static const Color background    = Color(0xFFF2F3F5);
   static const Color surface       = Color(0xFFFFFFFF);
   static const Color border        = Color(0xFFE2E5EA);
   static const Color textPrimary   = Color(0xFF1A1A2E);
@@ -12,6 +12,12 @@ class AppTheme {
   static const Color success       = Color(0xFF22C55E);
   static const Color warning       = Color(0xFFF59E0B);
   static const Color error         = Color(0xFFEF4444);
+
+  // ─── Semantic colors (VN marketplace) ────────────────
+  static const Color priceColor    = Color(0xFFE53935); // Giá bán — đỏ cam nổi bật
+  static const Color freeColor     = Color(0xFF2E7D32); // Miễn phí — xanh lá
+  static const Color soldColor     = Color(0xFF9E9E9E); // Đã bán — xám
+  static const Color ctaOrange     = Color(0xFFF57C00); // Nút CTA nổi bật
 
   // ─── Theme ────────────────────────────────────────────
   static ThemeData get light {

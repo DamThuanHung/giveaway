@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+export '../widgets/province_picker_sheet.dart' show RadiusMapResult;
 import '../models/post.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../data/categories.dart';
 import '../widgets/province_picker_sheet.dart';
+import '../widgets/post_card.dart';
 import 'post_detail_screen.dart';
 
 class SearchTab extends StatefulWidget {
@@ -32,6 +35,9 @@ class _SearchTabState extends State<SearchTab> {
   String _sortBy = 'newest';   // newest, price_asc, price_desc
   RangeValues _priceRange = const RangeValues(0, 50000000);
   static const double _maxPrice = 50000000;
+
+  // GPS state — dùng RadiusMapResult từ ProvincePickerSheet
+  RadiusMapResult? _radiusResult;
 
   static const _historyKey = 'search_history';
   static const _maxHistory = 12;
@@ -80,10 +86,20 @@ class _SearchTabState extends State<SearchTab> {
     setState(() => _history = []);
   }
 
+  String _formatDistance(Post post) {
+    if (_radiusResult == null || post.latitude == 0.0 || post.longitude == 0.0) return '';
+    final dist = Geolocator.distanceBetween(
+      _radiusResult!.lat, _radiusResult!.lng,
+      post.latitude, post.longitude,
+    );
+    if (dist < 1000) return '${dist.toInt()}m';
+    return '${(dist / 1000).toStringAsFixed(1)}km';
+  }
+
   // ── Search ───────────────────────────────────────
   Future<void> _search(String query) async {
     _debounce?.cancel();
-    if (query.trim().isEmpty && _selectedType == null && _selectedCategory == null && _selectedProvince == null) {
+    if (query.trim().isEmpty && _selectedType == null && _selectedCategory == null && _selectedProvince == null && _radiusResult == null) {
       setState(() { _hasSearched = false; _results = []; });
       return;
     }
@@ -94,19 +110,38 @@ class _SearchTabState extends State<SearchTab> {
       search: query.trim().isEmpty ? null : query.trim(),
       listingType: _selectedType,
       itemCategory: _selectedCategory,
-      province: _selectedProvince,
+      province: _radiusResult != null ? null : _selectedProvince,
       minPrice: _isPriceFiltered ? _priceRange.start.toInt() : null,
       maxPrice: _priceRange.end < _maxPrice ? _priceRange.end.toInt() : null,
+      lat: _radiusResult?.lat,
+      lng: _radiusResult?.lng,
+      radius: _radiusResult?.radius,
       limit: 50,
     );
     if (!mounted) return;
     List<Post> posts = ((result['data'] ?? []) as List).map((j) => Post.fromJson(j)).toList();
 
     // Sort client-side
-    if (_sortBy == 'price_asc') {
+    if (_radiusResult != null) {
+      posts.sort((a, b) {
+        final da = Geolocator.distanceBetween(_radiusResult!.lat, _radiusResult!.lng, a.latitude, a.longitude);
+        final db = Geolocator.distanceBetween(_radiusResult!.lat, _radiusResult!.lng, b.latitude, b.longitude);
+        return da.compareTo(db);
+      });
+    } else if (_sortBy == 'price_asc') {
       posts.sort((a, b) => a.price.compareTo(b.price));
     } else if (_sortBy == 'price_desc') {
       posts.sort((a, b) => b.price.compareTo(a.price));
+    }
+
+    // Fallback: GPS < 5 kết quả → gợi ý mở rộng
+    if (_radiusResult != null && posts.length < 5 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Chỉ tìm thấy ${posts.length} kết quả trong ${_radiusResult!.radius.toInt()}km. Thử mở rộng bán kính?'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
 
     setState(() { _results = posts; _isLoading = false; });
@@ -140,10 +175,11 @@ class _SearchTabState extends State<SearchTab> {
     return '${price}đ';
   }
 
-  int get _activeFilterCount => [_selectedType, _selectedCategory, _selectedProvince]
+  int get _activeFilterCount => [_selectedType, _selectedCategory, if (_radiusResult == null) _selectedProvince]
       .where((v) => v != null).length +
       (_sortBy != 'newest' ? 1 : 0) +
-      (_isPriceFiltered ? 1 : 0);
+      (_isPriceFiltered ? 1 : 0) +
+      (_radiusResult != null ? 1 : 0);
 
   void _openFilterSheet() {
     // Temp state trong sheet
@@ -203,7 +239,7 @@ class _SearchTabState extends State<SearchTab> {
                         children: [
                           _FilterChip(label: 'Tất cả', selected: tmpType == null,
                               onTap: () => setSheet(() => tmpType = null)),
-                          _FilterChip(label: '🎁 Cho tặng', selected: tmpType == 'give',
+                          _FilterChip(label: '🎁 Tặng miễn phí', selected: tmpType == 'give',
                               onTap: () => setSheet(() => tmpType = 'give')),
                           _FilterChip(label: '💰 Thanh lý', selected: tmpType == 'sell',
                               onTap: () => setSheet(() => tmpType = 'sell')),
@@ -278,6 +314,8 @@ class _SearchTabState extends State<SearchTab> {
                       // ── Khu vực ──
                       const Text('Khu vực', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 10),
+
+                      // Province picker — tab Bản đồ bên trong đã có GPS
                       GestureDetector(
                         onTap: () {
                           Navigator.pop(context);
@@ -288,8 +326,22 @@ class _SearchTabState extends State<SearchTab> {
                               isScrollControlled: true,
                               backgroundColor: Colors.transparent,
                               builder: (_) => ProvincePickerSheet(
-                                selected: tmpProvince,
-                                onConfirm: (val) => setState(() => _selectedProvince = val),
+                                selected: _selectedProvince,
+                                radiusResult: _radiusResult,
+                                onConfirm: (val) {
+                                  setState(() {
+                                    _selectedProvince = val;
+                                    _radiusResult = null;
+                                  });
+                                  _search(_searchCtrl.text);
+                                },
+                                onRadiusConfirm: (result) {
+                                  setState(() {
+                                    _radiusResult = result;
+                                    _selectedProvince = null;
+                                  });
+                                  _search(_searchCtrl.text);
+                                },
                               ),
                             );
                           });
@@ -297,21 +349,26 @@ class _SearchTabState extends State<SearchTab> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                           decoration: BoxDecoration(
-                            border: Border.all(color: tmpProvince != null ? AppTheme.primary : AppTheme.border),
+                            border: Border.all(color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary : AppTheme.border),
                             borderRadius: BorderRadius.circular(10),
-                            color: tmpProvince != null ? AppTheme.primary.withOpacity(0.04) : Colors.white,
+                            color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary.withOpacity(0.04) : Colors.white,
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.location_on_outlined,
-                                  color: tmpProvince != null ? AppTheme.primary : AppTheme.textSecondary, size: 18),
+                              Icon(
+                                _radiusResult != null ? Icons.near_me : Icons.location_on_outlined,
+                                color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary : AppTheme.textSecondary,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(child: Text(
-                                tmpProvince ?? 'Toàn quốc',
+                                _radiusResult != null
+                                    ? '${_radiusResult!.label} • ${_radiusResult!.radius.toInt()}km'
+                                    : (_selectedProvince ?? 'Toàn quốc'),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: tmpProvince != null ? AppTheme.primary : AppTheme.textSecondary,
-                                  fontWeight: tmpProvince != null ? FontWeight.w600 : FontWeight.normal,
+                                  color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary : AppTheme.textSecondary,
+                                  fontWeight: (_selectedProvince != null || _radiusResult != null) ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               )),
                               Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 18),
@@ -444,7 +501,7 @@ class _SearchTabState extends State<SearchTab> {
                   children: [
                     if (_selectedType != null)
                       _ActiveChip(
-                        label: _selectedType == 'give' ? 'Cho tặng' : 'Thanh lý',
+                        label: _selectedType == 'give' ? 'Tặng miễn phí' : 'Thanh lý',
                         onRemove: () { setState(() => _selectedType = null); _search(_searchCtrl.text); },
                       ),
                     if (_selectedCategory != null)
@@ -466,6 +523,11 @@ class _SearchTabState extends State<SearchTab> {
                       _ActiveChip(
                         label: '${_fmtPrice(_priceRange.start.toInt())} — ${_priceRange.end >= _maxPrice ? '50tr+' : _fmtPrice(_priceRange.end.toInt())}',
                         onRemove: () { setState(() => _priceRange = const RangeValues(0, _maxPrice)); _search(_searchCtrl.text); },
+                      ),
+                    if (_radiusResult != null)
+                      _ActiveChip(
+                        label: '📍 ${_radiusResult!.radius.toInt()}km',
+                        onRemove: () { setState(() { _radiusResult = null; }); _search(_searchCtrl.text); },
                       ),
                   ],
                 ),
@@ -616,9 +678,10 @@ class _SearchTabState extends State<SearchTab> {
                                 maxLines: 2, overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                             const SizedBox(height: 6),
-                            Text(post.displayPrice,
+                            Text(
+                                PostCard.formatPrice(post.price, post.listingType),
                                 style: TextStyle(
-                                  color: post.price == 0 ? AppTheme.success : AppTheme.warning,
+                                  color: (post.listingType == 'give' || post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor,
                                   fontWeight: FontWeight.bold, fontSize: 14,
                                 )),
                             const SizedBox(height: 4),
@@ -630,6 +693,11 @@ class _SearchTabState extends State<SearchTab> {
                                 maxLines: 1, overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                               )),
+                              if (_radiusResult != null && _formatDistance(post).isNotEmpty) ...[
+                                const SizedBox(width: 4),
+                                Text('• ${_formatDistance(post)}',
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+                              ],
                             ]),
                           ],
                         ),

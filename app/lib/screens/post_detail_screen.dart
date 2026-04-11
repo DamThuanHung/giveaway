@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/post.dart';
@@ -6,6 +8,7 @@ import '../services/api_service.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/post_card.dart';
 import 'chat_screen.dart';
 import 'auth/login_screen.dart';
 import 'profile/user_profile_screen.dart';
@@ -43,15 +46,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _checkFavoriteStatus() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth || auth.userId == null) return;
-    try {
-      final data = await ApiService.getFavorites(auth.userId!);
-      if (!mounted) return;
-      final isFav = data.any((item) {
-        final postId = item['postId']?.toString() ?? item['post']?['id']?.toString();
-        return postId == widget.post.id;
-      });
-      setState(() => localIsFavorite = isFav);
-    } catch (_) {}
+    final favs = await ApiService.getFavorites(auth.userId!);
+    if (!mounted) return;
+    final isFav = favs.any((f) {
+      final id = f['postId']?.toString() ?? f['post']?['id']?.toString();
+      return id == widget.post.id;
+    });
+    if (isFav != localIsFavorite) setState(() => localIsFavorite = isFav);
   }
 
   Future<void> _openChat() async {
@@ -235,7 +236,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Tôi muốn nhận'),
+        title: Text(widget.post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
         content: Form(
           key: formKey,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -243,15 +244,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
-            const Text('Hãy nhắn một lời để người đăng biết bạn quan tâm nhé!',
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            Text(
+              widget.post.listingType == 'give'
+                  ? 'Hãy nhắn một lời để người đăng biết bạn muốn nhận nhé!'
+                  : 'Hãy nhắn một lời để người bán biết bạn quan tâm nhé!',
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               controller: msgCtrl,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'VD: Chào bạn, mình muốn nhận món này...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: widget.post.listingType == 'give'
+                    ? 'VD: Chào bạn, mình muốn nhận món này...'
+                    : 'VD: Chào bạn, mình quan tâm đến món này...',
+                border: const OutlineInputBorder(),
               ),
               maxLines: 3,
               maxLength: 200,
@@ -347,7 +354,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.handshake_outlined, color: Colors.white, size: 18),
                     label: Text(
-                      isAvailable ? 'Tôi muốn nhận' : 'Không còn nhận',
+                      !isAvailable
+                          ? (widget.post.listingType == 'give' ? 'Đã được nhận' : 'Đã bán')
+                          : (widget.post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -385,7 +394,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black87),
             onPressed: () {
-              final price = widget.post.price == 0 ? 'Miễn phí' : '${widget.post.price}đ';
+              final price = PostCard.formatPrice(widget.post.price, widget.post.listingType);
               final text = '${widget.post.title}\n$price\n\nTìm thấy trên Cho và Tặng!';
               Share.share(text, subject: widget.post.title);
             },
@@ -466,7 +475,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(widget.post.displayPrice == "0" ? "Miễn phí" : "${widget.post.displayPrice} đ", style: TextStyle(fontSize: 22, color: widget.post.displayPrice == "0" ? Colors.redAccent : Colors.green, fontWeight: FontWeight.bold)),
+                Text(PostCard.formatPrice(widget.post.price, widget.post.listingType), style: TextStyle(fontSize: 22, color: (widget.post.listingType == 'give' || widget.post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 const Divider(color: Color(0xFFF3F4F6), thickness: 2),
 
@@ -482,13 +491,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Giao diện Placeholder Bản đồ
-                Container(
-                  height: 100,
-                  width: double.infinity,
-                  decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                  child: const Center(child: Text('Bản đồ (Tích hợp Google Maps sau)', style: TextStyle(color: Colors.grey))),
-                ),
+                if (widget.post.latitude != 0.0 && widget.post.longitude != 0.0)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      height: 160,
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(widget.post.latitude, widget.post.longitude),
+                          initialZoom: 15,
+                          interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.chovatang.app',
+                          ),
+                          MarkerLayer(markers: [
+                            Marker(
+                              point: LatLng(widget.post.latitude, widget.post.longitude),
+                              child: const Icon(Icons.location_pin, color: Colors.red, size: 36),
+                            ),
+                          ]),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 16),
                 const Divider(color: Color(0xFFF3F4F6), thickness: 2),

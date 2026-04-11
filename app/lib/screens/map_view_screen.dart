@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../models/post.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/post_card.dart';
 import 'post_detail_screen.dart';
 
 class MapViewScreen extends StatefulWidget {
@@ -199,7 +200,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
               const SizedBox(width: 8),
               _FilterChip(label: 'Tất cả', value: 'all', current: _filter, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
               const SizedBox(width: 6),
-              _FilterChip(label: 'Cho tặng', value: 'give', current: _filter, color: Colors.red, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
+              _FilterChip(label: 'Tặng miễn phí', value: 'give', current: _filter, color: Colors.red, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
               const SizedBox(width: 6),
               _FilterChip(label: 'Bán', value: 'sell', current: _filter, color: AppTheme.primary, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
             ]),
@@ -210,7 +211,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
             bottom: _selectedPost != null ? 196 : 20,
             left: 16,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _Legend(color: Colors.red, label: 'Cho tặng'),
+              _Legend(color: Colors.red, label: 'Tặng miễn phí'),
               const SizedBox(height: 4),
               _Legend(color: AppTheme.primary, label: 'Bán'),
             ]),
@@ -342,7 +343,7 @@ class _PostCard extends StatelessWidget {
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
               Text(
-                isFree ? 'Miễn phí' : '${post.price}đ',
+                PostCard.formatPrice(post.price, post.listingType),
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold,
                     color: isFree ? Colors.red : AppTheme.primary),
               ),

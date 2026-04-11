@@ -96,7 +96,7 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
           // Title
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('Chọn khu vực', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text('Khu vực tìm kiếm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
 
           // Tab toggle — giống Jimoty
@@ -118,8 +118,8 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
                 labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 dividerColor: Colors.transparent,
                 tabs: const [
-                  Tab(text: 'Bản đồ'),
-                  Tab(text: 'Khu vực'),
+                  Tab(text: 'Gần tôi'),
+                  Tab(text: 'Theo tỉnh/thành'),
                 ],
               ),
             ),

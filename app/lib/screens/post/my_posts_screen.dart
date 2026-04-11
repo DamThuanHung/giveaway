@@ -56,7 +56,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Xóa bài đăng'),
-        content: const Text('Bài đăng sẽ bị xóa vĩnh viễn. Tiếp tục?'),
+        content: const Text('Bài đăng sẽ bị xóa vĩnh viễn. Bạn có chắc không?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
           ElevatedButton(
@@ -84,7 +84,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('Tin đăng của tôi')),
+      appBar: AppBar(title: const Text('Bài đăng của tôi')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : _error != null
