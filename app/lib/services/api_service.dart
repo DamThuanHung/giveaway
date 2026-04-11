@@ -140,6 +140,24 @@ class ApiService {
     }
   }
 
+  static Future<String?> uploadAvatar(String filePath) async {
+    try {
+      final headers = await _authHeaders();
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/user/avatar'));
+      request.headers.addAll(headers);
+      request.files.add(await http.MultipartFile.fromPath('avatar', filePath));
+      final streamed = await request.send().timeout(const Duration(seconds: 20));
+      final res = await http.Response.fromStream(streamed);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = jsonDecode(res.body);
+        return data['avatar']?.toString();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ─── POST ────────────────────────────────────────────
   static Future<Map<String, dynamic>> getPosts({
     int page = 1,

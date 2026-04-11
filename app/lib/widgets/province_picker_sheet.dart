@@ -4,6 +4,38 @@ import 'radius_map_picker.dart';
 
 export 'radius_map_picker.dart' show RadiusMapResult;
 
+class _SegmentBtn extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _SegmentBtn({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : AppTheme.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ProvincePickerSheet extends StatefulWidget {
   final String? selected;
   final RadiusMapResult? radiusResult;
@@ -99,27 +131,28 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
             child: Text('Khu vực tìm kiếm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
 
-          // Tab toggle — giống Jimoty
+          // Tab toggle — segmented control tự làm
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
+              height: 44,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F0F0),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: TabBar(
-                controller: _tabCtrl,
-                indicator: BoxDecoration(
-                  color: AppTheme.primary,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                labelColor: Colors.white,
-                unselectedLabelColor: AppTheme.textSecondary,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Gần tôi'),
-                  Tab(text: 'Theo tỉnh/thành'),
+              child: Row(
+                children: [
+                  _SegmentBtn(
+                    label: 'Gần tôi',
+                    selected: _tabCtrl.index == 0,
+                    onTap: () => setState(() => _tabCtrl.animateTo(0)),
+                  ),
+                  _SegmentBtn(
+                    label: 'Theo tỉnh/thành',
+                    selected: _tabCtrl.index == 1,
+                    onTap: () => setState(() => _tabCtrl.animateTo(1)),
+                  ),
                 ],
               ),
             ),

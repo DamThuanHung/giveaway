@@ -7,6 +7,24 @@ import '../widgets/app_image.dart';
 import 'chat_screen.dart';
 import 'auth/login_screen.dart';
 
+String _formatRoomTime(dynamic raw) {
+  if (raw == null) return '';
+  final dt = DateTime.tryParse(raw.toString())?.toLocal();
+  if (dt == null) return '';
+  final now = DateTime.now();
+  final diff = now.difference(dt);
+  if (diff.inDays == 0) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  } else if (diff.inDays == 1) {
+    return 'Hôm qua';
+  } else if (diff.inDays < 7) {
+    const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    return days[dt.weekday - 1];
+  } else {
+    return '${dt.day}/${dt.month}';
+  }
+}
+
 class MessagesTab extends StatefulWidget {
   const MessagesTab({super.key});
 
@@ -74,9 +92,12 @@ class _MessagesTabState extends State<MessagesTab> {
                       final other = room['buyerId'] == auth.userId ? room['seller'] : room['buyer'];
                       final msgs = room['messages'] as List? ?? [];
                       final lastMsg = msgs.isNotEmpty ? msgs[0]['text'] ?? '' : 'Bắt đầu cuộc trò chuyện';
+                      final lastMsgTime = msgs.isNotEmpty ? msgs[0]['createdAt'] : null;
                       final post = room['post'] as Map? ?? {};
                       final postTitle = post['title']?.toString() ?? '';
                       final postImageLabel = post['imageLabel']?.toString() ?? '';
+                      final unread = (room['unreadCount'] as int? ?? 0) > 0;
+                      final avatarUrl = other?['avatar']?.toString() ?? '';
 
                       return InkWell(
                         onTap: () => Navigator.push(
@@ -95,17 +116,56 @@ class _MessagesTabState extends State<MessagesTab> {
                             CircleAvatar(
                               radius: 24,
                               backgroundColor: AppTheme.primaryLight,
-                              child: const Icon(Icons.person, color: AppTheme.primary),
+                              backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                              child: avatarUrl.isEmpty
+                                  ? const Icon(Icons.person, color: AppTheme.primary)
+                                  : null,
                             ),
                             const SizedBox(width: 12),
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              // Tên người chat
-                              Text(other?['name'] ?? 'Người dùng',
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                              const SizedBox(height: 2),
-                              // Tin nhắn cuối
-                              Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                              // Tên + timestamp
+                              Row(children: [
+                                Expanded(
+                                  child: Text(
+                                    other?['name'] ?? 'Người dùng',
+                                    style: TextStyle(
+                                      fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
+                                      fontSize: 15,
+                                      color: unread ? AppTheme.textPrimary : AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  _formatRoomTime(lastMsgTime),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: unread ? AppTheme.primary : AppTheme.textSecondary,
+                                    fontWeight: unread ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                ),
+                              ]),
+                              const SizedBox(height: 3),
+                              // Tin nhắn cuối + unread dot
+                              Row(children: [
+                                Expanded(
+                                  child: Text(
+                                    lastMsg,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: unread ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                      fontSize: 13,
+                                      fontWeight: unread ? FontWeight.w500 : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (unread)
+                                  Container(
+                                    width: 8, height: 8,
+                                    margin: const EdgeInsets.only(left: 6),
+                                    decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                                  ),
+                              ]),
                               // Tag sản phẩm
                               if (postTitle.isNotEmpty) ...[
                                 const SizedBox(height: 5),

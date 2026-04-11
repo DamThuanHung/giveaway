@@ -32,16 +32,25 @@ export class ChatService {
   }
 
   async getMyRooms(userId: string) {
-    return this.prisma.chatRoom.findMany({
+    const rooms = await this.prisma.chatRoom.findMany({
       where: { OR: [{ buyerId: userId }, { sellerId: userId }] },
       include: {
         post: { select: { id: true, title: true, imageLabel: true } },
         buyer: { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
         messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        _count: {
+          select: {
+            messages: { where: { senderId: { not: userId }, isRead: false } },
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
+    return rooms.map((r) => ({
+      ...r,
+      unreadCount: r._count.messages,
+    }));
   }
 
   async sendMessage(roomId: string, senderId: string, text: string) {

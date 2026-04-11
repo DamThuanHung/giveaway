@@ -83,12 +83,17 @@ class Post {
   }
 
   String get fullAddress {
-    final parts = [
+    final raw = [
       addressDetail.trim(),
       ward.trim(),
       district.trim(),
       province.trim(),
-    ].where((part) => part.isNotEmpty).toList();
+    ].where((s) => s.isNotEmpty).toList();
+    // Loại bỏ phần tử trùng với phần tử liền sau
+    final parts = <String>[];
+    for (final s in raw) {
+      if (parts.isEmpty || parts.last != s) parts.add(s);
+    }
     return parts.isEmpty ? 'Chưa cập nhật' : parts.join(', ');
   }
 

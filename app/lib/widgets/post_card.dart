@@ -47,13 +47,11 @@ class PostCard extends StatelessWidget {
       imgUrl = '${ApiService.baseUrl}/uploads/${post.imageLabel}';
     }
 
-    final String location = post.ward.isNotEmpty
-        ? post.ward
-        : post.district.isNotEmpty
-            ? post.district
-            : post.province.isNotEmpty
-                ? post.province
-                : '';
+    final _locParts = <String>[];
+    for (final s in [post.ward, post.district, post.province]) {
+      if (s.isNotEmpty && (_locParts.isEmpty || _locParts.last != s)) _locParts.add(s);
+    }
+    final location = _locParts.join(', ');
 
     return GestureDetector(
       onTap: onTap,

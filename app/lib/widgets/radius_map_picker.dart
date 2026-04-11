@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import '../theme/app_theme.dart';
 
 class RadiusMapResult {
@@ -24,7 +24,7 @@ class RadiusMapPicker extends StatefulWidget {
 }
 
 class _RadiusMapPickerState extends State<RadiusMapPicker> {
-  final Completer<GoogleMapController> _mapCtrl = Completer();
+  final _mapController = MapController();
   LatLng _center = const LatLng(21.0285, 105.8542); // Hà Nội default
   double _radius = 5.0; // km
   bool _locating = false;
@@ -40,6 +40,12 @@ class _RadiusMapPickerState extends State<RadiusMapPicker> {
     } else {
       _detectLocation();
     }
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   Future<void> _detectLocation() async {
@@ -59,31 +65,11 @@ class _RadiusMapPickerState extends State<RadiusMapPicker> {
         _label = 'Vị trí hiện tại';
         _locating = false;
       });
-      final ctrl = await _mapCtrl.future;
-      ctrl.animateCamera(CameraUpdate.newLatLng(latlng));
+      _mapController.move(latlng, 13);
     } catch (_) {
       setState(() => _locating = false);
     }
   }
-
-  Set<Circle> get _circles => {
-    Circle(
-      circleId: const CircleId('radius'),
-      center: _center,
-      radius: _radius * 1000, // metres
-      fillColor: AppTheme.primary.withOpacity(0.15),
-      strokeColor: AppTheme.primary.withOpacity(0.6),
-      strokeWidth: 2,
-    ),
-  };
-
-  Set<Marker> get _markers => {
-    Marker(
-      markerId: const MarkerId('center'),
-      position: _center,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-    ),
-  };
 
   String _radiusLabel(double r) {
     if (r < 1) return '${(r * 1000).toStringAsFixed(0)}m';
@@ -98,20 +84,50 @@ class _RadiusMapPickerState extends State<RadiusMapPicker> {
         Expanded(
           child: Stack(
             children: [
-              GoogleMap(
-                initialCameraPosition: CameraPosition(target: _center, zoom: 13),
-                circles: _circles,
-                markers: _markers,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                onMapCreated: (ctrl) => _mapCtrl.complete(ctrl),
-                onTap: (latlng) {
-                  setState(() {
-                    _center = latlng;
-                    _label = '${latlng.latitude.toStringAsFixed(4)}, ${latlng.longitude.toStringAsFixed(4)}';
-                  });
-                },
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: _center,
+                  initialZoom: 13,
+                  onTap: (_, latlng) {
+                    setState(() {
+                      _center = latlng;
+                      _label = '${latlng.latitude.toStringAsFixed(4)}, ${latlng.longitude.toStringAsFixed(4)}';
+                    });
+                  },
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.chovatang.app',
+                  ),
+                  // Vòng tròn bán kính
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: _center,
+                        radius: _radius * 1000, // metres
+                        useRadiusInMeter: true,
+                        color: AppTheme.primary.withOpacity(0.15),
+                        borderColor: AppTheme.primary.withOpacity(0.6),
+                        borderStrokeWidth: 2,
+                      ),
+                    ],
+                  ),
+                  // Marker trung tâm
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _center,
+                        width: 36,
+                        height: 36,
+                        child: const Icon(Icons.location_pin, color: AppTheme.primary, size: 36),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+
               // Nút GPS
               Positioned(
                 bottom: 16, right: 16,
@@ -184,7 +200,7 @@ class _RadiusMapPickerState extends State<RadiusMapPicker> {
                   lat: _center.latitude,
                   lng: _center.longitude,
                   radius: _radius,
-                  label: '${_radiusLabel(_radius)} quanh ${_label}',
+                  label: '${_radiusLabel(_radius)} quanh $_label',
                 ));
               },
               child: const Text('Áp dụng', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),

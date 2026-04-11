@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../../theme/app_theme.dart';
 
@@ -26,13 +28,67 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   ];
 
   String _cityName = 'Hà Nội';
+  String _ward = '';
+  String _district = '';
+  String _province = 'Hà Nội';
+  String _displayAddress = 'Hà Nội';
+  bool _isGeocoding = false;
 
   void _moveToCity(String name, LatLng pos) {
     setState(() {
       _selectedPos = pos;
       _cityName = name;
+      _province = name;
+      _district = '';
+      _ward = '';
+      _displayAddress = name;
     });
     _mapController.move(pos, 13);
+  }
+
+  Future<void> _onMapTap(LatLng latLng) async {
+    setState(() {
+      _selectedPos = latLng;
+      _isGeocoding = true;
+    });
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=${latLng.latitude}&lon=${latLng.longitude}'
+        '&format=json&addressdetails=1&accept-language=vi',
+      );
+      final res = await http.get(uri, headers: {
+        'User-Agent': 'ChoVaTangApp/1.0',
+      }).timeout(const Duration(seconds: 8));
+
+      if (!mounted) return;
+
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>? ?? {};
+
+      // Nominatim VN: road, suburb/quarter, city_district, state
+      final street = (addr['road'] ?? addr['pedestrian'] ?? addr['footway'] ?? '').toString();
+      final ward = (addr['suburb'] ?? addr['quarter'] ?? addr['neighbourhood'] ?? '').toString();
+      final district = (addr['city_district'] ?? addr['county'] ?? '').toString();
+      final province = (addr['city'] ?? addr['state'] ?? _cityName).toString();
+
+      // Loại trùng liền kề
+      final parts = [street, ward, district, province].where((s) => s.isNotEmpty).toList();
+      final deduped = <String>[];
+      for (final s in parts) {
+        if (deduped.isEmpty || deduped.last != s) deduped.add(s);
+      }
+
+      setState(() {
+        _ward = ward;
+        _district = district;
+        _province = province;
+        _displayAddress = deduped.isNotEmpty ? deduped.join(', ') : province;
+        _isGeocoding = false;
+      });
+    } catch (_) {
+      setState(() => _isGeocoding = false);
+    }
   }
 
   @override
@@ -51,9 +107,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             options: MapOptions(
               initialCenter: _selectedPos,
               initialZoom: 13,
-              onTap: (_, latLng) {
-                setState(() => _selectedPos = latLng);
-              },
+              onTap: (_, latLng) => _onMapTap(latLng),
             ),
             children: [
               TileLayer(
@@ -142,9 +196,15 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               child: Row(children: [
                 const Icon(Icons.pin_drop_outlined, size: 16, color: AppTheme.primary),
                 const SizedBox(width: 8),
-                Text(
-                  '${_selectedPos.latitude.toStringAsFixed(5)}, ${_selectedPos.longitude.toStringAsFixed(5)}',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                Expanded(
+                  child: _isGeocoding
+                      ? const Text('Đang xác định địa chỉ...', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))
+                      : Text(
+                          _displayAddress,
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                 ),
               ]),
             ),
@@ -160,17 +220,18 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              onPressed: () {
+              onPressed: _isGeocoding ? null : () {
                 Navigator.pop(context, {
                   'latlng': _selectedPos,
-                  'address': '$_cityName',
-                  'province': _cityName,
-                  'district': '',
-                  'ward': '',
+                  'address': _displayAddress,
+                  'province': _province,
+                  'district': _district,
+                  'ward': _ward,
                   'latitude': _selectedPos.latitude,
                   'longitude': _selectedPos.longitude,
                 });
               },
+
               icon: const Icon(Icons.check, color: Colors.white),
               label: const Text('XÁC NHẬN VỊ TRÍ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
             ),

@@ -44,20 +44,18 @@ class _HomeFeedJimoty extends StatefulWidget {
   State<_HomeFeedJimoty> createState() => _HomeFeedJimotyState();
 }
 
-class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProviderStateMixin {
+class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   final Set<String> _favoriteIds = {};
-  late final TabController _tabController;
   String _selectedProvince = 'Toàn quốc';
   RadiusMapResult? _radiusResult;
 
-  // tab 0 = Tất cả, tab 1 = 0đ Cho tặng, tab 2..N = categories
+  // 0 = Tất cả, 1 = Miễn phí, 2..N = categories
+  int _selectedChip = 0;
   static final _categories = AppCategories.list;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2 + _categories.length, vsync: this);
-    _tabController.addListener(_onTabChanged);
     _loadFavorites();
     _detectLocation();
   }
@@ -102,21 +100,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
         setState(() => _selectedProvince = matched);
         _refetch();
       }
-    } catch (_) {
-      // Không có GPS → giữ "Toàn quốc"
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _onTabChanged() {
-    if (_tabController.indexIsChanging) return;
-    _refetch();
+    } catch (_) {}
   }
 
   String? get _provinceFilter {
@@ -127,18 +111,28 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
   }
 
   void _refetch() {
-    final idx = _tabController.index;
     final postProv = context.read<PostProvider>();
     final lat = _radiusResult?.lat;
     final lng = _radiusResult?.lng;
     final radius = _radiusResult?.radius;
-    if (idx == 0) {
+
+    if (_selectedChip == 0) {
       postProv.fetchPosts(province: _provinceFilter, lat: lat, lng: lng, radius: radius);
-    } else if (idx == 1) {
+    } else if (_selectedChip == 1) {
       postProv.fetchPosts(listingType: 'give', province: _provinceFilter, lat: lat, lng: lng, radius: radius);
     } else {
-      postProv.fetchPosts(itemCategory: _categories[idx - 2]['value'], province: _provinceFilter, lat: lat, lng: lng, radius: radius);
+      postProv.fetchPosts(
+        itemCategory: _categories[_selectedChip - 2]['value'],
+        province: _provinceFilter,
+        lat: lat, lng: lng, radius: radius,
+      );
     }
+  }
+
+  void _onChipTap(int index) {
+    if (_selectedChip == index) return;
+    setState(() => _selectedChip = index);
+    _refetch();
   }
 
   void _showProvincePicker() {
@@ -200,78 +194,98 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: const Color(0xFFF6F6F6),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0.5,
-          title: Row(
-            children: [
-              GestureDetector(
-                onTap: _showProvincePicker,
-                child: Row(children: [
-                  const Icon(Icons.location_on, color: Colors.green),
-                  const SizedBox(width: 4),
-                  Text(
-                    _selectedProvince,
-                    style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        title: Row(
+          children: [
+            GestureDetector(
+              onTap: _showProvincePicker,
+              child: Row(children: [
+                const Icon(Icons.location_on, color: AppTheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  _selectedProvince,
+                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
+              ]),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.map_outlined, color: AppTheme.textSecondary),
+              tooltip: 'Xem bản đồ',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapViewScreen())),
+            ),
+            _BellButton(),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // ── Chip filter ──────────────────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  _FilterChip(label: 'Tất cả', selected: _selectedChip == 0, onTap: () => _onChipTap(0)),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: '🎁 Miễn phí',
+                    selected: _selectedChip == 1,
+                    onTap: () => _onChipTap(1),
                   ),
-                  const Icon(Icons.arrow_drop_down, color: Colors.black54),
-                ]),
+                  ..._categories.asMap().entries.map((e) {
+                    final idx = e.key + 2;
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _FilterChip(
+                        label: e.value['label']!,
+                        selected: _selectedChip == idx,
+                        onTap: () => _onChipTap(idx),
+                      ),
+                    );
+                  }),
+                ],
               ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.map_outlined, color: Colors.black54),
-                tooltip: 'Xem bản đồ',
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapViewScreen())),
-              ),
-              _BellButton(),
-            ],
+            ),
           ),
-          bottom: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            labelColor: Colors.green,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.green,
-            tabs: [
-              const Tab(text: 'Tất cả'),
-              const Tab(icon: Icon(Icons.card_giftcard, size: 14), text: 'Miễn phí'),
-              ..._categories.map((c) => Tab(text: c['label']!)),
-            ],
-          ),
-        ),
-        body: Consumer<PostProvider>(
-          builder: (ctx, postProv, _) {
-            if (postProv.isLoading && postProv.posts.isEmpty) {
-              return const PostGridSkeleton();
-            }
-            if (postProv.hasError && postProv.posts.isEmpty) {
-              return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
-                const SizedBox(height: 12),
-                const Text('Không thể tải dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
-                const SizedBox(height: 16),
-                OutlinedButton(onPressed: () => postProv.fetchPosts(), child: const Text('Thử lại')),
-              ]));
-            }
 
-            return TabBarView(
-              controller: _tabController,
-              children: List.generate(
-                2 + _categories.length,
-                (_) => _buildGridView(postProv.posts, postProv),
-              ),
-            );
-          },
-        ),
+          // ── Feed ─────────────────────────────────────────
+          Expanded(
+            child: Consumer<PostProvider>(
+              builder: (ctx, postProv, _) {
+                if (postProv.isLoading && postProv.posts.isEmpty) {
+                  return const PostGridSkeleton();
+                }
+                if (postProv.hasError && postProv.posts.isEmpty) {
+                  return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                    const SizedBox(height: 12),
+                    const Text('Không thể tải dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
+                    const SizedBox(height: 16),
+                    OutlinedButton(onPressed: () => postProv.fetchPosts(), child: const Text('Thử lại')),
+                  ]));
+                }
+                return _buildGridView(postProv.posts, postProv);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildGridView(List<Post> posts, PostProvider postProv) {
-    final bool isAllTab = _tabController.index == 0;
-
     if (posts.isEmpty && !postProv.isLoading) {
-      return const Center(child: Text('Không có tin đăng nào', style: TextStyle(color: AppTheme.textSecondary)));
+      return const Center(
+        child: Text('Không có tin đăng nào', style: TextStyle(color: AppTheme.textSecondary)),
+      );
     }
 
     return RefreshIndicator(
@@ -289,8 +303,8 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
         },
         child: CustomScrollView(
           slivers: [
-            // Banner "Hàng cho không" — chỉ hiện ở tab Tất cả
-            if (isAllTab)
+            // Banner "Hàng miễn phí" — chỉ hiện ở tab Tất cả
+            if (_selectedChip == 0)
               SliverToBoxAdapter(child: _buildGiveBanner()),
 
             SliverPadding(
@@ -311,7 +325,6 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
                         post: posts[i],
                         isFavorite: _favoriteIds.contains(posts[i].id),
                         onToggleFavorite: () async {
-                          // Chỉ sync state, API đã gọi trong PostDetailScreen
                           setState(() {
                             if (_favoriteIds.contains(posts[i].id)) {
                               _favoriteIds.remove(posts[i].id);
@@ -328,7 +341,6 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
                 ),
               ),
             ),
-            // Footer: loading hoặc hết bài
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
@@ -350,10 +362,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
 
   Widget _buildGiveBanner() {
     return GestureDetector(
-      onTap: () {
-        _tabController.animateTo(1);
-        _refetch();
-      },
+      onTap: () => _onChipTap(1),
       child: Container(
         margin: const EdgeInsets.fromLTRB(10, 10, 10, 0),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -385,7 +394,40 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> with SingleTickerProvi
       ),
     );
   }
+}
 
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppTheme.primary : AppTheme.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            color: selected ? Colors.white : AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _BellButton extends StatelessWidget {
@@ -396,7 +438,7 @@ class _BellButton extends StatelessWidget {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(Icons.notifications_outlined, color: Colors.black54),
+          const Icon(Icons.notifications_outlined, color: AppTheme.textSecondary),
           if (unreadCount > 0)
             Positioned(
               top: -4, right: -4,
