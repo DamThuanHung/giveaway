@@ -59,10 +59,28 @@ export class UserService {
   async getUserById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, name: true, avatar: true, role: true, createdAt: true, _count: { select: { posts: true } } },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        role: true,
+        createdAt: true,
+        isPhoneVerified: true,
+        _count: {
+          select: {
+            posts: true,
+            dealsAsOwner: { where: { status: 'completed' } },
+            dealsAsRequester: { where: { status: 'completed' } },
+          },
+        },
+      },
     });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    return user;
+    return {
+      ...user,
+      completedDeals: (user._count.dealsAsOwner ?? 0) + (user._count.dealsAsRequester ?? 0),
+    };
   }
 
   async updateUser(id: string, requesterId: string, data: any) {

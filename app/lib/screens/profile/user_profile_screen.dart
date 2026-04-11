@@ -48,6 +48,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     });
   }
 
+  String _formatMemberSince(dynamic createdAt) {
+    if (createdAt == null) return '';
+    final dt = DateTime.tryParse(createdAt.toString());
+    if (dt == null) return '';
+    return 'Thành viên từ tháng ${dt.month}/${dt.year}';
+  }
+
   String _getImageUrl(Post post) {
     if (post.images != null && post.images!.isNotEmpty) return post.images!.first;
     if (post.imageLabel.isNotEmpty) return '${ApiService.baseUrl}/uploads/${post.imageLabel}';
@@ -126,6 +133,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               '${(_reviews?['reviews'] as List?)?.length ?? 0}',
                               'Lượt đánh giá',
                             ),
+                          ],
+                        ),
+                      ),
+
+                      // Trust badges
+                      Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (_user?['isPhoneVerified'] == true)
+                              _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: Colors.blue),
+                            _TrustBadge(
+                              icon: Icons.handshake_outlined,
+                              label: '${_user?['completedDeals'] ?? 0} deal thành công',
+                              color: AppTheme.success,
+                            ),
+                            if (_user?['createdAt'] != null)
+                              _TrustBadge(
+                                icon: Icons.calendar_today_outlined,
+                                label: _formatMemberSince(_user!['createdAt']),
+                                color: AppTheme.textSecondary,
+                              ),
                           ],
                         ),
                       ),
@@ -227,6 +259,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
     ]),
   );
+}
+
+class _TrustBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _TrustBadge({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
 }
 
 class _SectionHeader extends StatelessWidget {

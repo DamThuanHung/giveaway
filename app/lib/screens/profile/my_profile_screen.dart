@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../auth/login_screen.dart';
 import 'edit_profile_screen.dart';
@@ -15,8 +16,36 @@ import '../admin/admin_dashboard_screen.dart';
 // Alias để tránh conflict
 typedef DealsScreenImport = DealsScreen;
 
-class MyProfileScreen extends StatelessWidget {
+class MyProfileScreen extends StatefulWidget {
   const MyProfileScreen({super.key});
+
+  @override
+  State<MyProfileScreen> createState() => _MyProfileScreenState();
+}
+
+class _MyProfileScreenState extends State<MyProfileScreen> {
+  Map<String, dynamic>? _trustData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrust();
+  }
+
+  Future<void> _loadTrust() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuth || auth.userId == null) return;
+    final data = await ApiService.getUserById(auth.userId!);
+    if (!mounted) return;
+    setState(() => _trustData = data);
+  }
+
+  String _formatMemberSince(dynamic createdAt) {
+    if (createdAt == null) return '';
+    final dt = DateTime.tryParse(createdAt.toString());
+    if (dt == null) return '';
+    return 'Thành viên từ tháng ${dt.month}/${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +78,15 @@ class MyProfileScreen extends StatelessWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()))
+                  .then((_) => _loadTrust()),
             ),
           ],
         ),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Avatar + tên
+            // Avatar + tên + email
             Center(
               child: Column(
                 children: [
@@ -71,12 +101,37 @@ class MyProfileScreen extends StatelessWidget {
                         : null,
                   ),
                   const SizedBox(height: 12),
-                  Text(auth.userName ?? 'Người dùng', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  Text(auth.userName ?? 'Người dùng',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                   const SizedBox(height: 4),
                   Text(auth.userEmail ?? '', style: const TextStyle(color: AppTheme.textSecondary)),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Trust badges
+            if (_trustData != null)
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (_trustData!['isPhoneVerified'] == true)
+                    _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: Colors.blue),
+                  _TrustBadge(
+                    icon: Icons.handshake_outlined,
+                    label: '${_trustData!['completedDeals'] ?? 0} deal thành công',
+                    color: AppTheme.success,
+                  ),
+                  if (_trustData!['createdAt'] != null)
+                    _TrustBadge(
+                      icon: Icons.calendar_today_outlined,
+                      label: _formatMemberSince(_trustData!['createdAt']),
+                      color: AppTheme.textSecondary,
+                    ),
+                ],
+              ),
             const SizedBox(height: 24),
 
             // Menu items
@@ -87,21 +142,42 @@ class MyProfileScreen extends StatelessWidget {
                 color: Colors.purple,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
               ),
-            _MenuItem(icon: Icons.list_alt_outlined, label: 'Bài đăng của tôi',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPostsScreen()))),
-            _MenuItem(icon: Icons.bar_chart_outlined, label: 'Thống kê của tôi',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerStatsScreen()))),
-            _MenuItem(icon: Icons.favorite_border, label: 'Bài viết đã lưu',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesTab()))),
-            _MenuItem(icon: Icons.swap_horiz_outlined, label: 'Giao dịch của tôi',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreenImport()))),
-            _MenuItem(icon: Icons.star_outline, label: 'Đánh giá của tôi',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()))),
-            _MenuItem(icon: Icons.block, label: 'Danh sách đã chặn',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedUsersScreen()))),
+            _MenuItem(
+              icon: Icons.list_alt_outlined,
+              label: 'Bài đăng của tôi',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPostsScreen())),
+            ),
+            _MenuItem(
+              icon: Icons.bar_chart_outlined,
+              label: 'Thống kê của tôi',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerStatsScreen())),
+            ),
+            _MenuItem(
+              icon: Icons.favorite_border,
+              label: 'Bài viết đã lưu',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesTab())),
+            ),
+            _MenuItem(
+              icon: Icons.swap_horiz_outlined,
+              label: 'Giao dịch của tôi',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreenImport())),
+            ),
+            _MenuItem(
+              icon: Icons.star_outline,
+              label: 'Đánh giá của tôi',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen())),
+            ),
+            _MenuItem(
+              icon: Icons.block,
+              label: 'Danh sách đã chặn',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedUsersScreen())),
+            ),
             const Divider(height: 32),
-            _MenuItem(icon: Icons.lock_outline, label: 'Đổi mật khẩu',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()))),
+            _MenuItem(
+              icon: Icons.lock_outline,
+              label: 'Đổi mật khẩu',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+            ),
             _MenuItem(
               icon: Icons.logout,
               label: 'Đăng xuất',
@@ -131,6 +207,33 @@ class MyProfileScreen extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+class _TrustBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _TrustBadge({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
   }
 }
 
