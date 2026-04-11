@@ -32,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollCtrl = ScrollController();
   List<dynamic> _messages = [];
   bool _isLoading = true;
+  bool _showSafetyBanner = true;
   late IO.Socket _socket;
   String? _myId;
 
@@ -118,6 +119,27 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          // Banner an toàn giao dịch
+          if (_showSafetyBanner)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: const Color(0xFFFFF8E1),
+              child: Row(children: [
+                const Icon(Icons.shield_outlined, size: 16, color: Color(0xFFF59E0B)),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Gợi ý: Gặp ở nơi công cộng, ban ngày. Không chuyển tiền trước khi nhận hàng.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => setState(() => _showSafetyBanner = false),
+                  child: const Icon(Icons.close, size: 16, color: Color(0xFFF59E0B)),
+                ),
+              ]),
+            ),
+
           // Banner sản phẩm
           if (widget.postTitle.isNotEmpty)
             Container(

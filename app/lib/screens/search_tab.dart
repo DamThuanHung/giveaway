@@ -5,10 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 export '../widgets/province_picker_sheet.dart' show RadiusMapResult;
 import '../models/post.dart';
 import '../services/api_service.dart';
+import '../services/viewed_posts_service.dart';
 import '../theme/app_theme.dart';
 import '../data/categories.dart';
 import '../widgets/province_picker_sheet.dart';
 import '../widgets/post_card.dart';
+import '../widgets/app_image.dart';
 import 'post_detail_screen.dart';
 
 class SearchTab extends StatefulWidget {
@@ -39,6 +41,8 @@ class _SearchTabState extends State<SearchTab> {
   // GPS state — dùng RadiusMapResult từ ProvincePickerSheet
   RadiusMapResult? _radiusResult;
 
+  List<Map<String, dynamic>> _viewedPosts = [];
+
   static const _historyKey = 'search_history';
   static const _maxHistory = 12;
 
@@ -46,6 +50,13 @@ class _SearchTabState extends State<SearchTab> {
   void initState() {
     super.initState();
     _loadHistory();
+    _loadViewedPosts();
+  }
+
+  Future<void> _loadViewedPosts() async {
+    final data = await ViewedPostsService.load();
+    if (!mounted) return;
+    setState(() => _viewedPosts = data);
   }
 
   @override
@@ -550,7 +561,10 @@ class _SearchTabState extends State<SearchTab> {
   }
 
   Widget _buildHistory() {
-    if (_history.isEmpty) {
+    final hasViewed = _viewedPosts.isNotEmpty;
+    final hasHistory = _history.isNotEmpty;
+
+    if (!hasViewed && !hasHistory) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -564,42 +578,132 @@ class _SearchTabState extends State<SearchTab> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              const Text('Lịch sử tìm kiếm',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-              const Spacer(),
-              GestureDetector(
-                onTap: _clearHistory,
-                child: const Text('Xóa tất cả',
-                    style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _history.length,
-            itemBuilder: (_, i) {
-              final item = _history[i];
-              return ListTile(
-                leading: const Icon(Icons.history, color: AppTheme.textSecondary, size: 20),
-                title: Text(item, style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-                trailing: GestureDetector(
-                  onTap: () => _removeHistory(item),
-                  child: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
+        // ── Đã xem gần đây ──
+        if (hasViewed) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                const Text('Đã xem gần đây',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () async {
+                    await ViewedPostsService.clear();
+                    setState(() => _viewedPosts = []);
+                  },
+                  child: const Text('Xóa',
+                      style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
                 ),
-                dense: true,
-                onTap: () => _selectHistory(item),
-              );
-            },
+              ],
+            ),
           ),
-        ),
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _viewedPosts.length,
+              itemBuilder: (_, i) {
+                final p = _viewedPosts[i];
+                final isFree = p['listingType'] == 'give' || (p['price'] as int? ?? 0) == 0;
+                final imgUrl = (p['images'] as List?)?.isNotEmpty == true
+                    ? p['images'][0].toString()
+                    : p['imageLabel']?.toString().isNotEmpty == true
+                        ? '${ApiService.baseUrl}/uploads/${p['imageLabel']}'
+                        : '';
+                return GestureDetector(
+                  onTap: () {
+                    final post = Post(
+                      id: p['id'] ?? '',
+                      title: p['title'] ?? '',
+                      description: '',
+                      price: p['price'] as int? ?? 0,
+                      province: p['province'] ?? '',
+                      district: '', ward: '', addressDetail: '',
+                      listingType: p['listingType'] ?? 'sell',
+                      itemCategory: 'other',
+                      status: 'available',
+                      imageLabel: p['imageLabel'] ?? '',
+                      images: (p['images'] as List?)?.map((e) => e.toString()).toList(),
+                    );
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(post: post, isFavorite: false, onToggleFavorite: () async {}),
+                    )).then((_) => _loadViewedPosts());
+                  },
+                  child: Container(
+                    width: 110,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                        child: AppImage(url: imgUrl, height: 80, width: double.infinity),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(p['title'] ?? '',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
+                            const Spacer(),
+                            Text(
+                              isFree ? 'Miễn phí' : PostCard.formatPrice(p['price'] as int? ?? 0, p['listingType'] ?? 'sell'),
+                              style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold,
+                                color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // ── Lịch sử tìm kiếm ──
+        if (hasHistory) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                const Text('Lịch sử tìm kiếm',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _clearHistory,
+                  child: const Text('Xóa tất cả',
+                      style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+                ),
+              ],
+            ),
+          ),
+          ...List.generate(_history.length, (i) {
+            final item = _history[i];
+            return ListTile(
+              leading: const Icon(Icons.history, color: AppTheme.textSecondary, size: 20),
+              title: Text(item, style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+              trailing: GestureDetector(
+                onTap: () => _removeHistory(item),
+                child: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
+              ),
+              dense: true,
+              onTap: () => _selectHistory(item),
+            );
+          }),
+        ],
       ],
     );
   }

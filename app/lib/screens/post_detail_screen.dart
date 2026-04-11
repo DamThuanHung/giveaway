@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/post.dart';
 import '../services/api_service.dart';
+import '../services/viewed_posts_service.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
@@ -41,6 +42,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     super.initState();
     localIsFavorite = widget.isFavorite;
     _checkFavoriteStatus();
+    ViewedPostsService.save(widget.post);
   }
 
   Future<void> _checkFavoriteStatus() async {
