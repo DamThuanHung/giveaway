@@ -24,6 +24,7 @@ export class PostService {
     limit?: number;
     search?: string;
     province?: string;
+    provinces?: string[]; // filter theo nhiều tỉnh (Toàn miền X)
     listingType?: string;
     itemCategory?: string;
     minPrice?: number;
@@ -64,7 +65,11 @@ export class PostService {
       const ids = matchingIds.map(r => r.id);
       where.id = { in: ids.length > 0 ? ids : ['__no_match__'] };
     }
-    if (query.province) where.province = { contains: query.province, mode: 'insensitive' };
+    if (query.provinces && query.provinces.length > 0) {
+      where.province = { in: query.provinces };
+    } else if (query.province) {
+      where.province = { contains: query.province, mode: 'insensitive' };
+    }
     if (query.listingType) where.listingType = query.listingType;
     if (query.itemCategory) where.itemCategory = query.itemCategory;
     if (query.minPrice !== undefined) where.price = { ...where.price, gte: query.minPrice };

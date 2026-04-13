@@ -11,6 +11,7 @@ class AuthProvider with ChangeNotifier {
   String? _userRole;
   bool _isPhoneVerified = false;
   bool _isLoading = true;
+  bool _isNewUser = false;
 
   bool get isAuth => _isAuthenticated;
   bool get isLoading => _isLoading;
@@ -20,6 +21,7 @@ class AuthProvider with ChangeNotifier {
   String? get userAvatar => _userAvatar;
   String? get userRole => _userRole;
   bool get isPhoneVerified => _isPhoneVerified;
+  bool get isNewUser => _isNewUser;
 
   AuthProvider() {
     _tryAutoLogin();
@@ -64,6 +66,7 @@ class AuthProvider with ChangeNotifier {
       _userAvatar = user['avatar'];
       _userRole = user['role'];
       _isPhoneVerified = user['isPhoneVerified'] == true;
+      _isNewUser = user['isNewUser'] == true;
       _isAuthenticated = true;
       notifyListeners();
       return null;

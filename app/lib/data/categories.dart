@@ -1,20 +1,20 @@
 class AppCategories {
   static const List<Map<String, String>> list = [
-    {'value': 'electronics', 'label': 'Điện tử & Công nghệ'},
-    {'value': 'furniture', 'label': 'Nội thất & Trang trí'},
-    {'value': 'clothing', 'label': 'Thời trang & Phụ kiện'},
-    {'value': 'kitchen', 'label': 'Nhà bếp & Gia dụng'},
-    {'value': 'books', 'label': 'Sách & Văn phòng phẩm'},
-    {'value': 'toys', 'label': 'Đồ chơi & Trẻ em'},
-    {'value': 'sports', 'label': 'Thể thao & Dã ngoại'},
-    {'value': 'vehicles', 'label': 'Xe cộ & Phụ tùng'},
-    {'value': 'beauty', 'label': 'Mỹ phẩm & Làm đẹp'},
-    {'value': 'pets', 'label': 'Thú cưng & Phụ kiện'},
-    {'value': 'tools', 'label': 'Dụng cụ & Đồ nghề'},
-    {'value': 'food', 'label': 'Thực phẩm & Đồ uống'},
-    {'value': 'baby', 'label': 'Mẹ & Bé'},
-    {'value': 'music', 'label': 'Nhạc cụ & Âm thanh'},
-    {'value': 'other', 'label': 'Khác'},
+    {'value': 'electronics', 'label': 'Điện tử',    'icon': 'assets/icons/categories/electronics.png'},
+    {'value': 'furniture',   'label': 'Nội thất',   'icon': 'assets/icons/categories/furniture.png'},
+    {'value': 'clothing',    'label': 'Thời trang', 'icon': 'assets/icons/categories/clothing.png'},
+    {'value': 'kitchen',     'label': 'Gia dụng',   'icon': 'assets/icons/categories/kitchen.png'},
+    {'value': 'books',       'label': 'Sách',        'icon': 'assets/icons/categories/books.png'},
+    {'value': 'toys',        'label': 'Đồ chơi',    'icon': 'assets/icons/categories/toys.png'},
+    {'value': 'sports',      'label': 'Thể thao',   'icon': 'assets/icons/categories/sports.png'},
+    {'value': 'vehicles',    'label': 'Xe cộ',      'icon': 'assets/icons/categories/vehicles.png'},
+    {'value': 'beauty',      'label': 'Làm đẹp',    'icon': 'assets/icons/categories/beauty.png'},
+    {'value': 'pets',        'label': 'Thú cưng',   'icon': 'assets/icons/categories/pets.png'},
+    {'value': 'tools',       'label': 'Đồ nghề',    'icon': 'assets/icons/categories/tools.png'},
+    {'value': 'food',        'label': 'Thực phẩm',  'icon': 'assets/icons/categories/food.png'},
+    {'value': 'baby',        'label': 'Mẹ & Bé',    'icon': 'assets/icons/categories/baby.png'},
+    {'value': 'music',       'label': 'Nhạc cụ',    'icon': 'assets/icons/categories/music.png'},
+    {'value': 'other',       'label': 'Khác',        'icon': 'assets/icons/categories/other.png'},
   ];
 
   static String labelOf(String value) {
@@ -22,5 +22,12 @@ class AppCategories {
       (c) => c['value'] == value,
       orElse: () => {'label': value},
     )['label']!;
+  }
+
+  static String iconOf(String value) {
+    return list.firstWhere(
+      (c) => c['value'] == value,
+      orElse: () => {'icon': 'assets/icons/categories/other.png'},
+    )['icon']!;
   }
 }

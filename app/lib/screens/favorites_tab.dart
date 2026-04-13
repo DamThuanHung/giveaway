@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/post_card.dart';
 import 'post_detail_screen.dart';
-import 'auth/login_screen.dart';
+import 'auth/phone_login_screen.dart';
 
 class FavoritesTab extends StatefulWidget {
   const FavoritesTab({super.key});
@@ -62,7 +62,7 @@ class FavoritesTabState extends State<FavoritesTab> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const LoginScreen())),
+                MaterialPageRoute(builder: (_) => const PhoneLoginScreen())),
             child: const Text('Đăng nhập'),
           ),
         ])),

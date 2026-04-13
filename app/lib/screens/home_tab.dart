@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../providers/post_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
@@ -53,6 +54,28 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   int _selectedChip = 0;
   static final _categories = AppCategories.list;
 
+  static const _regionProvinces = {
+    'Toàn miền Bắc': [
+      'Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Hải Dương', 'Hưng Yên',
+      'Thái Bình', 'Nam Định', 'Ninh Bình', 'Hà Nam', 'Bắc Ninh',
+      'Vĩnh Phúc', 'Phú Thọ', 'Thái Nguyên', 'Bắc Giang', 'Lạng Sơn',
+      'Cao Bằng', 'Bắc Kạn', 'Tuyên Quang', 'Hà Giang', 'Yên Bái',
+      'Lào Cai', 'Điện Biên', 'Lai Châu', 'Sơn La', 'Hòa Bình',
+    ],
+    'Toàn miền Trung': [
+      'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Bình', 'Quảng Trị',
+      'Thừa Thiên Huế', 'Đà Nẵng', 'Quảng Nam', 'Quảng Ngãi', 'Bình Định',
+      'Phú Yên', 'Khánh Hòa', 'Ninh Thuận', 'Bình Thuận',
+      'Kon Tum', 'Gia Lai', 'Đắk Lắk', 'Đắk Nông', 'Lâm Đồng',
+    ],
+    'Toàn miền Nam': [
+      'TP. Hồ Chí Minh', 'Bình Dương', 'Đồng Nai', 'Bà Rịa - Vũng Tàu',
+      'Tây Ninh', 'Bình Phước', 'Long An', 'Tiền Giang', 'Bến Tre',
+      'Trà Vinh', 'Vĩnh Long', 'Đồng Tháp', 'An Giang', 'Kiên Giang',
+      'Cần Thơ', 'Hậu Giang', 'Sóc Trăng', 'Bạc Liêu', 'Cà Mau',
+    ],
+  };
+
   @override
   void initState() {
     super.initState();
@@ -73,11 +96,19 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         desiredAccuracy: LocationAccuracy.low,
       ).timeout(const Duration(seconds: 8));
 
-      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
-      if (placemarks.isEmpty || !mounted) return;
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=${pos.latitude}&lon=${pos.longitude}'
+        '&format=json&addressdetails=1&accept-language=vi',
+      );
+      final res = await http.get(uri, headers: {'User-Agent': 'ChoVaTangApp/1.0'})
+          .timeout(const Duration(seconds: 6));
+      if (!mounted) return;
 
-      final admin = placemarks.first.administrativeArea ?? '';
-      if (admin.isEmpty) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>? ?? {};
+      final province = (addr['city'] ?? addr['state'] ?? '').toString().trim();
+      if (province.isEmpty) return;
 
       String normalize(String s) => s
           .toLowerCase()
@@ -86,12 +117,12 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
           .replaceAll('thành phố ', '')
           .trim();
 
-      final adminNorm = normalize(admin);
+      final provinceNorm = normalize(province);
       final matched = AppProvinces.list.firstWhere(
         (p) {
           if (p == 'Toàn quốc') return false;
           final pNorm = normalize(p);
-          return adminNorm.contains(pNorm) || pNorm.contains(adminNorm);
+          return provinceNorm.contains(pNorm) || pNorm.contains(provinceNorm);
         },
         orElse: () => '',
       );
@@ -103,11 +134,18 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     } catch (_) {}
   }
 
+  // Filter 1 tỉnh cụ thể
   String? get _provinceFilter {
     if (_radiusResult != null) return null;
     if (_selectedProvince == 'Toàn quốc') return null;
-    if (_selectedProvince.startsWith('Toàn miền')) return null;
+    if (_regionProvinces.containsKey(_selectedProvince)) return null;
     return _selectedProvince;
+  }
+
+  // Filter theo vùng miền (danh sách tỉnh)
+  List<String>? get _provincesFilter {
+    if (_radiusResult != null) return null;
+    return _regionProvinces[_selectedProvince];
   }
 
   void _refetch() {
@@ -117,13 +155,14 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     final radius = _radiusResult?.radius;
 
     if (_selectedChip == 0) {
-      postProv.fetchPosts(province: _provinceFilter, lat: lat, lng: lng, radius: radius);
+      postProv.fetchPosts(province: _provinceFilter, provinces: _provincesFilter, lat: lat, lng: lng, radius: radius);
     } else if (_selectedChip == 1) {
-      postProv.fetchPosts(listingType: 'give', province: _provinceFilter, lat: lat, lng: lng, radius: radius);
+      postProv.fetchPosts(listingType: 'give', province: _provinceFilter, provinces: _provincesFilter, lat: lat, lng: lng, radius: radius);
     } else {
       postProv.fetchPosts(
         itemCategory: _categories[_selectedChip - 2]['value'],
         province: _provinceFilter,
+        provinces: _provincesFilter,
         lat: lat, lng: lng, radius: radius,
       );
     }
@@ -196,21 +235,26 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surface,
         elevation: 0.5,
         title: Row(
           children: [
-            GestureDetector(
-              onTap: _showProvincePicker,
-              child: Row(children: [
-                const Icon(Icons.location_on, color: AppTheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  _selectedProvince,
-                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
-              ]),
+            Flexible(
+              child: GestureDetector(
+                onTap: _showProvincePicker,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.location_on_outlined, color: AppTheme.primary, size: 18),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      _selectedProvince,
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
+                ]),
+              ),
             ),
             const Spacer(),
             IconButton(
@@ -226,17 +270,26 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         children: [
           // ── Chip filter ──────────────────────────────────
           Container(
-            color: Colors.white,
+            color: AppTheme.surface,
             padding: const EdgeInsets.symmetric(vertical: 10),
-            child: SingleChildScrollView(
+            child: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Colors.white, Colors.white, Colors.transparent],
+                stops: [0.0, 0.82, 1.0],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ).createShader(bounds),
+              blendMode: BlendMode.dstIn,
+              child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  _FilterChip(label: 'Tất cả', selected: _selectedChip == 0, onTap: () => _onChipTap(0)),
+                  _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0, onTap: () => _onChipTap(0)),
                   const SizedBox(width: 8),
                   _FilterChip(
-                    label: '🎁 Miễn phí',
+                    label: 'Miễn phí',
+                    emoji: '🎁',
                     selected: _selectedChip == 1,
                     onTap: () => _onChipTap(1),
                   ),
@@ -246,6 +299,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                       padding: const EdgeInsets.only(left: 8),
                       child: _FilterChip(
                         label: e.value['label']!,
+                        iconAsset: e.value['icon'],
                         selected: _selectedChip == idx,
                         onTap: () => _onChipTap(idx),
                       ),
@@ -253,6 +307,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                   }),
                 ],
               ),
+            ),
             ),
           ),
 
@@ -283,14 +338,35 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
 
   Widget _buildGridView(List<Post> posts, PostProvider postProv) {
     if (posts.isEmpty && !postProv.isLoading) {
-      return const Center(
-        child: Text('Không có tin đăng nào', style: TextStyle(color: AppTheme.textSecondary)),
+      return RefreshIndicator(
+        color: AppTheme.primary,
+        onRefresh: () async => _refetch(),
+        child: LayoutBuilder(
+          builder: (ctx, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: constraints.maxHeight,
+              child: Center(
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.inbox_outlined, size: 56, color: AppTheme.textSecondary),
+                  const SizedBox(height: 12),
+                  const Text('Không có tin đăng nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () { setState(() => _selectedChip = 0); _refetch(); },
+                    child: const Text('Xem tất cả', style: TextStyle(color: AppTheme.primary)),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        ),
       );
     }
 
     return RefreshIndicator(
       color: AppTheme.primary,
-      onRefresh: () => postProv.fetchPosts(),
+      onRefresh: () async => _refetch(),
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
           if (notification is ScrollEndNotification &&
@@ -303,18 +379,29 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         },
         child: CustomScrollView(
           slivers: [
-            // Banner "Hàng miễn phí" — chỉ hiện ở tab Tất cả
+            // Banner Miễn phí — chỉ hiện ở tab Tất cả
             if (_selectedChip == 0)
               SliverToBoxAdapter(child: _buildGiveBanner()),
 
+            if (postProv.total > 0)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  child: Text(
+                    '${postProv.total} tin đăng',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                ),
+              ),
+
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 0.62,
+                  childAspectRatio: 0.58,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => PostCard(
@@ -334,7 +421,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                           });
                         },
                       ),
-                    )),
+                    )).then((_) => _loadFavorites()),
                     onToggleFavorite: () => _toggleFavorite(posts[i].id),
                   ),
                   childCount: posts.length,
@@ -368,21 +455,21 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+            colors: [AppTheme.primaryDark, AppTheme.primary],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
+          boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
         ),
         child: Row(children: [
           const Text('🎁', style: TextStyle(fontSize: 28)),
           const SizedBox(width: 12),
           const Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Hàng miễn phí', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              Text('Miễn phí', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
               SizedBox(height: 2),
-              Text('Đồ miễn phí gần bạn — khám phá ngay!', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Khám phá đồ miễn phí gần bạn!', style: TextStyle(color: Colors.white70, fontSize: 12)),
             ]),
           ),
           Container(
@@ -400,8 +487,16 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final String? emoji;
+  final String? iconAsset;
 
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.emoji,
+    this.iconAsset,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -409,21 +504,31 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primary : Colors.white,
+          color: selected ? AppTheme.primary : AppTheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? AppTheme.primary : AppTheme.border,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-            color: selected ? Colors.white : AppTheme.textSecondary,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (iconAsset != null)
+              Image.asset(iconAsset!, width: 26, height: 26)
+            else if (emoji != null)
+              Text(emoji!, style: const TextStyle(fontSize: 18)),
+            if (iconAsset != null || emoji != null) const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? Colors.white : AppTheme.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -444,7 +549,7 @@ class _BellButton extends StatelessWidget {
               top: -4, right: -4,
               child: Container(
                 padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: AppTheme.error, shape: BoxShape.circle),
                 constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
                 child: Text(
                   unreadCount > 99 ? '99+' : '$unreadCount',

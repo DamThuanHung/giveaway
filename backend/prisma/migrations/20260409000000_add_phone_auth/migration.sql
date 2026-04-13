@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isPhoneVerified" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ALTER COLUMN "email" DROP NOT NULL;
+ALTER TABLE "User" ALTER COLUMN "password" DROP NOT NULL;
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone");

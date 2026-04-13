@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import 'register_screen.dart';
 import 'phone_login_screen.dart';
+import '../app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,6 +45,12 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: AppTheme.error,
         behavior: SnackBarBehavior.floating,
       ));
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AppShell()),
+        (_) => false,
+      );
     }
   }
 

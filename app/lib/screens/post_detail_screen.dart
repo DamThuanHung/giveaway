@@ -11,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/post_card.dart';
 import 'chat_screen.dart';
-import 'auth/login_screen.dart';
+import 'auth/phone_login_screen.dart';
 import 'profile/user_profile_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -60,7 +60,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _openChat() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
       return;
     }
     if (widget.post.authorId == null) return;
@@ -200,7 +200,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (isUpdatingFavorite) return;
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth || auth.userId == null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
       return;
     }
     final oldValue = localIsFavorite;
@@ -228,7 +228,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _requestDeal() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
       return;
     }
 

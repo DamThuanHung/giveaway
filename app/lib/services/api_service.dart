@@ -62,7 +62,10 @@ class ApiService {
         await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
         await prefs.setString('user_role', d['user']['role'] ?? 'user');
         await prefs.setBool('is_phone_verified', d['user']['isPhoneVerified'] == true);
-        return d['user'];
+        return {
+          ...Map<String, dynamic>.from(d['user']),
+          'isNewUser': d['isNewUser'] == true,
+        };
       }
       return null;
     } catch (e) {
@@ -164,6 +167,7 @@ class ApiService {
     int limit = 20,
     String? search,
     String? province,
+    List<String>? provinces,
     String? listingType,
     String? itemCategory,
     int? minPrice,
@@ -178,6 +182,7 @@ class ApiService {
         'limit': limit.toString(),
         if (search != null && search.isNotEmpty) 'search': search,
         if (province != null && province.isNotEmpty) 'province': province,
+        if (provinces != null && provinces.isNotEmpty) 'provinces': provinces.join(','),
         if (listingType != null) 'listingType': listingType,
         if (itemCategory != null) 'itemCategory': itemCategory,
         if (minPrice != null) 'minPrice': minPrice.toString(),

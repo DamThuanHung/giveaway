@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import 'onboarding_screen.dart';
 import 'app_shell.dart';
-import 'auth/login_screen.dart';
+import 'auth/phone_login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -89,12 +89,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
 
     final auth = context.read<AuthProvider>();
-    if (auth.isLoading) await Future.delayed(const Duration(milliseconds: 500));
+    while (auth.isLoading) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
     if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
-      _fadeRoute(auth.isAuth ? const AppShell() : const LoginScreen()),
+      _fadeRoute(auth.isAuth ? const AppShell() : const PhoneLoginScreen()),
     );
   }
 

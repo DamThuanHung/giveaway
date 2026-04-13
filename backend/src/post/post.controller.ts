@@ -31,6 +31,7 @@ export class PostController {
       limit: query.limit ? Math.min(parseInt(query.limit), 50) : 20,
       search: query.search,
       province: query.province,
+      provinces: query.provinces ? (query.provinces as string).split(',') : undefined,
       listingType: query.listingType,
       itemCategory: query.itemCategory,
       minPrice: query.minPrice ? parseInt(query.minPrice) : undefined,

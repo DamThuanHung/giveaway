@@ -13,6 +13,7 @@ class PostProvider with ChangeNotifier {
   String? _listingType;
   String? _itemCategory;
   String? _province;
+  List<String>? _provinces;
   double? _lat;
   double? _lng;
   double? _radius;
@@ -33,6 +34,7 @@ class PostProvider with ChangeNotifier {
     String? listingType,
     String? itemCategory,
     String? province,
+    List<String>? provinces,
     double? lat,
     double? lng,
     double? radius,
@@ -42,7 +44,8 @@ class PostProvider with ChangeNotifier {
       _hasMore = true;
       _listingType = listingType;
       _itemCategory = itemCategory;
-      if (province != null) _province = province == 'Toàn quốc' ? null : province;
+      _province = province;
+      _provinces = provinces;
       _lat = lat;
       _lng = lng;
       _radius = radius;
@@ -62,6 +65,7 @@ class PostProvider with ChangeNotifier {
         listingType: _listingType,
         itemCategory: _itemCategory,
         province: isRadiusMode ? null : _province,
+        provinces: isRadiusMode ? null : _provinces,
         lat: _lat,
         lng: _lng,
         radius: _radius,
@@ -95,6 +99,7 @@ class PostProvider with ChangeNotifier {
         listingType: _listingType,
         itemCategory: _itemCategory,
         province: _province,
+        provinces: _provinces,
         lat: _lat,
         lng: _lng,
         radius: _radius,

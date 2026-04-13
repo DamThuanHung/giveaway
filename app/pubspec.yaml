@@ -21,8 +21,6 @@ dependencies:
   provider: ^6.1.1
 
   # --- BẢN ĐỒ & VỊ TRÍ ---
-  google_maps_flutter: ^2.6.1
-  geocoding: ^3.0.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^12.0.0
@@ -48,6 +46,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icons/categories/
 
 flutter_icons:
   android: true

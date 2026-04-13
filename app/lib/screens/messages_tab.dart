@@ -5,7 +5,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import 'chat_screen.dart';
-import 'auth/login_screen.dart';
+import 'auth/phone_login_screen.dart';
 
 String _formatRoomTime(dynamic raw) {
   if (raw == null) return '';
@@ -63,7 +63,7 @@ class _MessagesTabState extends State<MessagesTab> {
           const Text('Đăng nhập để xem tin nhắn', style: TextStyle(color: AppTheme.textSecondary)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen())),
             child: const Text('Đăng nhập'),
           ),
         ])),

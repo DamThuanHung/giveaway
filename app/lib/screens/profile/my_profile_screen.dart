@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
-import '../auth/login_screen.dart';
+import '../auth/phone_login_screen.dart';
 import 'edit_profile_screen.dart';
 import '../post/my_posts_screen.dart';
 import '../deal/deals_screen.dart';
@@ -62,7 +62,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 const Text('Đăng nhập để xem hồ sơ', style: TextStyle(color: AppTheme.textSecondary)),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen())),
                   child: const Text('Đăng nhập'),
                 ),
               ],

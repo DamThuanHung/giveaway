@@ -601,7 +601,7 @@ class _SearchTabState extends State<SearchTab> {
             ),
           ),
           SizedBox(
-            height: 140,
+            height: 155,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),

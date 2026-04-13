@@ -16,40 +16,40 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log('👤 Tạo users...');
-  const hash = await bcrypt.hash('password123', 10);
+  const hash = await bcrypt.hash('123456', 10);
 
   const [admin, lan, minh, hoa, duc, mai, long, thu] = await Promise.all([
     prisma.user.create({ data: {
-      email: 'admin@chovatang.vn', name: 'Admin Hệ thống', password: hash,
+      email: 'admin@test.com', name: 'Admin', password: hash,
       role: 'admin',
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Admin',
     }}),
     prisma.user.create({ data: {
-      email: 'nguyen.thi.lan@gmail.com', name: 'Nguyễn Thị Lan', password: hash,
+      email: 'lan@test.com', name: 'Lan', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Lan',
     }}),
     prisma.user.create({ data: {
-      email: 'tran.van.minh@gmail.com', name: 'Trần Văn Minh', password: hash,
+      email: 'minh@test.com', name: 'Minh', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Minh',
     }}),
     prisma.user.create({ data: {
-      email: 'le.thi.hoa@gmail.com', name: 'Lê Thị Hoa', password: hash,
+      email: 'hoa@test.com', name: 'Hoa', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Hoa',
     }}),
     prisma.user.create({ data: {
-      email: 'pham.van.duc@gmail.com', name: 'Phạm Văn Đức', password: hash,
+      email: 'duc@test.com', name: 'Duc', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Duc',
     }}),
     prisma.user.create({ data: {
-      email: 'hoang.thi.mai@gmail.com', name: 'Hoàng Thị Mai', password: hash,
+      email: 'mai@test.com', name: 'Mai', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Mai',
     }}),
     prisma.user.create({ data: {
-      email: 'dao.van.long@gmail.com', name: 'Đào Văn Long', password: hash,
+      email: 'long@test.com', name: 'Long', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Long',
     }}),
     prisma.user.create({ data: {
-      email: 'bui.thi.thu@gmail.com', name: 'Bùi Thị Thu', password: hash,
+      email: 'thu@test.com', name: 'Thu', password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Thu',
     }}),
   ]);
@@ -469,7 +469,7 @@ async function main() {
   // ─── SUMMARY ───────────────────────────────────────
   console.log('\n🎉 Seed hoàn thành!');
   console.log('─────────────────────────────────────────');
-  console.log(`👤 Users   : 8 (tất cả dùng password: password123)`);
+  console.log(`👤 Users   : 8 (tất cả dùng password: 123456)`);
   console.log(`📦 Posts   : ${createdPosts.length}`);
   console.log(`❤️  Favorites: 9`);
   console.log(`🤝 Deals   : 6 (2 pending, 1 accepted, 2 completed, 1 rejected)`);
@@ -486,7 +486,7 @@ async function main() {
   console.log('   hoang.thi.mai@gmail.com   (user)');
   console.log('   dao.van.long@gmail.com    (user)');
   console.log('   bui.thi.thu@gmail.com     (user)');
-  console.log('   🔑 Password: password123');
+  console.log('   🔑 Password: 123456');
 }
 
 main()

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   // ─── Colors ───────────────────────────────────────────
   static const Color primary       = Color(0xFF2E7D32);
+  static const Color primaryDark   = Color(0xFF1B5E20); // gradient darker shade
   static const Color primaryLight  = Color(0xFFE8F5E9);
   static const Color background    = Color(0xFFF2F3F5);
   static const Color surface       = Color(0xFFFFFFFF);

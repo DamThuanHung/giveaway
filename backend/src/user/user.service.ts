@@ -137,6 +137,7 @@ export class UserService {
 
     // Tìm hoặc tạo user theo SĐT
     let user = await this.prisma.user.findUnique({ where: { phone } });
+    const isNewUser = !user;
     if (!user) {
       user = await this.prisma.user.create({
         data: {
@@ -158,6 +159,7 @@ export class UserService {
     return {
       message: 'Đăng nhập thành công',
       accessToken,
+      isNewUser,
       user: { id: user.id, phone: user.phone, name: user.name, avatar: user.avatar, role: user.role, isPhoneVerified: user.isPhoneVerified },
     };
   }
