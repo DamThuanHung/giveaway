@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.108:3800';
+  static const String baseUrl = 'http://192.168.0.108:40945';
 
   static Future<String?> _getToken() async {
     final p = await SharedPreferences.getInstance();
@@ -175,6 +175,7 @@ class ApiService {
     double? lat,
     double? lng,
     double? radius,
+    String? sortBy,
   }) async {
     try {
       final params = <String, String>{
@@ -190,13 +191,14 @@ class ApiService {
         if (lat != null) 'lat': lat.toString(),
         if (lng != null) 'lng': lng.toString(),
         if (radius != null) 'radius': radius.toString(),
+        if (sortBy != null) 'sortBy': sortBy,
       };
       final uri = Uri.parse('$baseUrl/post').replace(queryParameters: params);
       final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) return jsonDecode(res.body);
       return {'data': [], 'meta': {'total': 0}};
     } catch (e) {
-      return {'data': [], 'meta': {'total': 0}};
+      return {'data': [], 'meta': {'total': 0}, '_isError': true};
     }
   }
 

@@ -22,6 +22,8 @@ class Post {
   final String? authorId;
   final String? authorName;
   final String? authorAvatar;
+  final DateTime? createdAt;
+  final int viewCount;
 
   Post({
     required this.id,
@@ -42,18 +44,36 @@ class Post {
     this.authorId,
     this.authorName,
     this.authorAvatar,
+    this.createdAt,
+    this.viewCount = 0,
   });
+
+  /// Format ngày đăng — dùng trong card kết quả: "09/04/2026"
+  String get formattedDate {
+    if (createdAt == null) return '';
+    final d = createdAt!;
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
+  /// Format ngày giờ đăng — dùng trong chi tiết: "09/04/2026 14:30"
+  String get formattedDateTime {
+    if (createdAt == null) return '';
+    final d = createdAt!;
+    final time = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} $time';
+  }
 
   // TẠO LỐI TẮT: Giúp các màn hình cũ dùng "imageUrl" vẫn không bị lỗi
   String? get imageUrl => (images != null && images!.isNotEmpty) ? images![0] : null;
 
-  bool get isFree => listingType == 'free';
+  bool get isFree => listingType == 'give' || listingType == 'free';
   bool get isAvailable => status == 'available';
   bool get isReserved => status == 'reserved';
   bool get isDone => status == 'done';
 
   String get listingTypeLabel {
     switch (listingType) {
+      case 'give':
       case 'free': return 'Tặng miễn phí';
       case 'sell': return 'Thanh lý';
       default: return 'Khác';
@@ -145,6 +165,8 @@ class Post {
       authorId: json['authorId']?.toString() ?? author?['id']?.toString(),
       authorName: author?['name']?.toString(),
       authorAvatar: author?['avatar']?.toString(),
+      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
     );
   }
 }

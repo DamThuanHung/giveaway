@@ -19,7 +19,7 @@ class PostCard extends StatelessWidget {
   });
 
   static String formatPrice(int price, String listingType) {
-    if (listingType == 'give' || price == 0) return 'Miễn phí';
+    if (listingType == 'give' || listingType == 'free' || price == 0) return 'Miễn phí';
     if (price >= 1000000) {
       final tr = price / 1000000;
       final s = tr == tr.roundToDouble()
@@ -192,9 +192,9 @@ class PostCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
 
-                    // Vị trí
-                    if (location.isNotEmpty)
-                      Row(children: [
+                    // Vị trí + thời gian
+                    Row(children: [
+                      if (location.isNotEmpty) ...[
                         const Icon(Icons.location_on_outlined, size: 11, color: AppTheme.textSecondary),
                         const SizedBox(width: 2),
                         Expanded(
@@ -205,7 +205,13 @@ class PostCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ]),
+                      ],
+                      if (post.createdAt != null)
+                        Text(
+                          post.formattedDate,
+                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                        ),
+                    ]),
                   ],
                 ),
               ),

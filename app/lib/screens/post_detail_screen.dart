@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -36,13 +37,26 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _isChatLoading = false;
   bool _isDealLoading = false;
   int _currentImageIndex = 0;
+  late Post _post;
 
   @override
   void initState() {
     super.initState();
+    _post = widget.post;
     localIsFavorite = widget.isFavorite;
     _checkFavoriteStatus();
     ViewedPostsService.save(widget.post);
+    _fetchLatestPost();
+  }
+
+  Future<void> _fetchLatestPost() async {
+    try {
+      final data = await ApiService.getPostById(widget.post.id);
+      if (!mounted || data == null) return;
+      setState(() => _post = Post.fromJson(data));
+    } catch (e) {
+      debugPrint('❌ PostDetailScreen._fetchLatestPost: $e');
+    }
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -52,7 +66,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (!mounted) return;
     final isFav = favs.any((f) {
       final id = f['postId']?.toString() ?? f['post']?['id']?.toString();
-      return id == widget.post.id;
+      return id == _post.id;
     });
     if (isFav != localIsFavorite) setState(() => localIsFavorite = isFav);
   }
@@ -63,8 +77,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
       return;
     }
-    if (widget.post.authorId == null) return;
-    if (widget.post.authorId == auth.userId) {
+    if (_post.authorId == null) return;
+    if (_post.authorId == auth.userId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đây là bài đăng của bạn'), behavior: SnackBarBehavior.floating),
       );
@@ -72,7 +86,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
 
     setState(() => _isChatLoading = true);
-    final room = await ApiService.getOrCreateRoom(widget.post.id, widget.post.authorId!);
+    final room = await ApiService.getOrCreateRoom(_post.id, _post.authorId!);
     if (!mounted) return;
     setState(() => _isChatLoading = false);
 
@@ -86,8 +100,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => ChatScreen(
         roomId: room['id'],
-        otherUserName: widget.post.authorName ?? 'Người đăng',
-        postTitle: widget.post.title,
+        otherUserName: _post.authorName ?? 'Người đăng',
+        postTitle: _post.title,
       ),
     ));
   }
@@ -109,7 +123,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           const Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
           const SizedBox(height: 12),
           Text(
-            widget.post.itemCategoryLabel,
+            _post.itemCategoryLabel,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6B7280)),
           ),
         ],
@@ -118,7 +132,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   void _showBlockDialog(BuildContext context) {
-    final authorName = widget.post.authorName ?? 'người này';
+    final authorName = _post.authorName ?? 'người này';
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -130,8 +144,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(context);
-              if (widget.post.authorId == null) return;
-              final ok = await ApiService.blockUser(widget.post.authorId!);
+              if (_post.authorId == null) return;
+              final ok = await ApiService.blockUser(_post.authorId!);
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(ok ? 'Đã chặn $authorName' : 'Có lỗi xảy ra'),
@@ -177,7 +191,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
               onPressed: () async {
                 try {
-                  await ApiService.reportPost(postId: widget.post.id, reason: selectedReason);
+                  await ApiService.reportPost(postId: _post.id, reason: selectedReason);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã gửi báo cáo')));
@@ -210,9 +224,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     });
     try {
       if (oldValue) {
-        await ApiService.removeFavorite(auth.userId!, widget.post.id);
+        await ApiService.removeFavorite(auth.userId!, _post.id);
       } else {
-        await ApiService.addFavorite(auth.userId!, widget.post.id);
+        await ApiService.addFavorite(auth.userId!, _post.id);
       }
       // Notify parent list to refresh (no-op callbacks are fine here)
       await widget.onToggleFavorite();
@@ -238,16 +252,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(widget.post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
-        content: Form(
+        title: Text(_post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
+        content: SingleChildScrollView(
+          child: Form(
           key: formKey,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(widget.post.title,
+            Text(_post.title,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Text(
-              widget.post.listingType == 'give'
+              _post.listingType == 'give'
                   ? 'Hãy nhắn một lời để người đăng biết bạn muốn nhận nhé!'
                   : 'Hãy nhắn một lời để người bán biết bạn quan tâm nhé!',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
@@ -257,7 +272,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               controller: msgCtrl,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: widget.post.listingType == 'give'
+                hintText: _post.listingType == 'give'
                     ? 'VD: Chào bạn, mình muốn nhận món này...'
                     : 'VD: Chào bạn, mình quan tâm đến món này...',
                 border: const OutlineInputBorder(),
@@ -267,6 +282,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập lời nhắn' : null,
             ),
           ]),
+        ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
@@ -283,7 +299,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (confirm != true) return;
 
     setState(() => _isDealLoading = true);
-    final result = await ApiService.createDeal(widget.post.id, message: msgCtrl.text.trim());
+    final result = await ApiService.createDeal(_post.id, message: msgCtrl.text.trim());
     if (!mounted) return;
     setState(() => _isDealLoading = false);
 
@@ -293,9 +309,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => ChatScreen(
             roomId: roomId,
-            otherUserName: widget.post.authorName ?? 'Người đăng',
-            postTitle: widget.post.title,
-            postImageLabel: widget.post.imageLabel,
+            otherUserName: _post.authorName ?? 'Người đăng',
+            postTitle: _post.title,
+            postImageLabel: _post.imageLabel,
           ),
         ));
       }
@@ -309,8 +325,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildBottomBar(AuthProvider auth) {
-    final isOwn = auth.isAuth && auth.userId == widget.post.authorId;
-    final isAvailable = widget.post.status == 'available';
+    final isOwn = auth.isAuth && auth.userId == _post.authorId;
+    final isAvailable = _post.status == 'available';
+    final isReserved = _post.status == 'reserved';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -356,9 +373,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.handshake_outlined, color: Colors.white, size: 18),
                     label: Text(
-                      !isAvailable
-                          ? (widget.post.listingType == 'give' ? 'Đã được nhận' : 'Đã bán')
-                          : (widget.post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
+                      isReserved
+                          ? 'Đang được giữ'
+                          : !isAvailable
+                              ? (_post.listingType == 'give' ? 'Đã được nhận' : 'Đã bán')
+                              : (_post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -378,12 +397,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final auth = context.watch<AuthProvider>();
     // Thu thập toàn bộ ảnh hợp lệ
     List<String> validImages = [];
-    if (widget.post.images != null && widget.post.images!.isNotEmpty) {
-      validImages = widget.post.images!.map((e) => _getCleanImageUrl(e)).where((e) => e.isNotEmpty).toList();
-    } else if (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty) {
-      validImages.add(_getCleanImageUrl(widget.post.imageUrl!));
-    } else if (widget.post.imageLabel.isNotEmpty) {
-      validImages.add('${ApiService.baseUrl}/uploads/${widget.post.imageLabel}');
+    if (_post.images != null && _post.images!.isNotEmpty) {
+      validImages = _post.images!.map((e) => _getCleanImageUrl(e)).where((e) => e.isNotEmpty).toList();
+    } else if (_post.imageUrl != null && _post.imageUrl!.isNotEmpty) {
+      validImages.add(_getCleanImageUrl(_post.imageUrl!));
+    } else if (_post.imageLabel.isNotEmpty) {
+      validImages.add('${ApiService.baseUrl}/uploads/${_post.imageLabel}');
     }
 
     return Scaffold(
@@ -396,16 +415,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black87),
             onPressed: () {
-              final price = PostCard.formatPrice(widget.post.price, widget.post.listingType);
-              final text = '${widget.post.title}\n$price\n\nTìm thấy trên Cho và Tặng!';
-              Share.share(text, subject: widget.post.title);
+              final price = PostCard.formatPrice(_post.price, _post.listingType);
+              final text = '${_post.title}\n$price\n\nTìm thấy trên Cho và Tặng!';
+              Share.share(text, subject: _post.title);
             },
           ),
           IconButton(
             onPressed: isUpdatingFavorite ? null : handleFavoriteTap,
             icon: Icon(localIsFavorite ? Icons.favorite : Icons.favorite_border, color: localIsFavorite ? Colors.red : Colors.black87),
           ),
-          if (context.read<AuthProvider>().userId != widget.post.authorId)
+          if (auth.userId != _post.authorId)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.black87),
               onSelected: (value) {
@@ -471,13 +490,31 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: Text(widget.post.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 1.3))),
+                    Expanded(child: Text(_post.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 1.3))),
                     const SizedBox(width: 8),
-                    _StatusBadge(status: widget.post.status, label: widget.post.statusLabel),
+                    _StatusBadge(status: _post.status, label: _post.statusLabel),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(PostCard.formatPrice(widget.post.price, widget.post.listingType), style: TextStyle(fontSize: 22, color: (widget.post.listingType == 'give' || widget.post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold)),
+                Text(PostCard.formatPrice(_post.price, _post.listingType), style: TextStyle(fontSize: 22, color: (_post.listingType == 'give' || _post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, size: 13, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      _post.formattedDateTime.isNotEmpty ? _post.formattedDateTime : '—',
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(width: 16),
+                    const Icon(Icons.visibility_outlined, size: 13, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_post.viewCount} lượt xem',
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 const Divider(color: Color(0xFFF3F4F6), thickness: 2),
 
@@ -489,18 +526,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   children: [
                     const Icon(Icons.location_on, color: Colors.grey, size: 20),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(widget.post.fullAddress, style: const TextStyle(fontSize: 15, color: Colors.black87))),
+                    Expanded(child: Text(_post.fullAddress, style: const TextStyle(fontSize: 15, color: Colors.black87))),
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (widget.post.latitude != 0.0 && widget.post.longitude != 0.0)
+                if (_post.latitude != 0.0 && _post.longitude != 0.0)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: SizedBox(
                       height: 160,
                       child: FlutterMap(
                         options: MapOptions(
-                          initialCenter: LatLng(widget.post.latitude, widget.post.longitude),
+                          initialCenter: LatLng(_post.latitude, _post.longitude),
                           initialZoom: 15,
                           interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
                         ),
@@ -511,7 +548,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           ),
                           MarkerLayer(markers: [
                             Marker(
-                              point: LatLng(widget.post.latitude, widget.post.longitude),
+                              point: LatLng(_post.latitude, _post.longitude),
                               child: const Icon(Icons.location_pin, color: Colors.red, size: 36),
                             ),
                           ]),
@@ -527,7 +564,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const SizedBox(height: 16),
                 const Text('Mô tả chi tiết', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                Text(widget.post.description.isEmpty ? 'Chưa có mô tả' : widget.post.description, style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87)),
+                Text(_post.description.isEmpty ? 'Chưa có mô tả' : _post.description, style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87)),
 
                 const SizedBox(height: 16),
                 const Divider(color: Color(0xFFF3F4F6), thickness: 2),
@@ -537,11 +574,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const Text('Người đăng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: widget.post.authorId != null
+                  onTap: _post.authorId != null
                       ? () => Navigator.push(context, MaterialPageRoute(
                             builder: (_) => UserProfileScreen(
-                              userId: widget.post.authorId!,
-                              userName: widget.post.authorName,
+                              userId: _post.authorId!,
+                              userName: _post.authorName,
                             ),
                           ))
                       : null,
@@ -550,17 +587,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       CircleAvatar(
                         radius: 24,
                         backgroundColor: AppTheme.primaryLight,
-                        backgroundImage: (widget.post.authorAvatar != null && widget.post.authorAvatar!.isNotEmpty)
-                            ? NetworkImage(widget.post.authorAvatar!) : null,
-                        child: (widget.post.authorAvatar == null || widget.post.authorAvatar!.isEmpty)
-                            ? Text((widget.post.authorName ?? 'U')[0].toUpperCase(),
+                        backgroundImage: (_post.authorAvatar != null && _post.authorAvatar!.isNotEmpty)
+                            ? CachedNetworkImageProvider(_post.authorAvatar!) : null,
+                        child: (_post.authorAvatar == null || _post.authorAvatar!.isEmpty)
+                            ? Text((_post.authorName ?? 'U')[0].toUpperCase(),
                                 style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))
                             : null,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(widget.post.authorName ?? 'Người đăng',
+                          Text(_post.authorName ?? 'Người đăng',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           const Text('Xem trang cá nhân →',
                               style: TextStyle(fontSize: 12, color: AppTheme.primary)),
@@ -588,7 +625,11 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color = status == 'available' ? Colors.green : Colors.orange;
+    final Color color = status == 'available'
+        ? AppTheme.success
+        : status == 'reserved'
+            ? AppTheme.warning
+            : AppTheme.textSecondary; // done
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),

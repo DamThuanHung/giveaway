@@ -103,6 +103,7 @@
 - Badge giá/miễn phí: overlay phía dưới-trái ảnh
 - Tap vào card → navigate đến `PostDetailScreen`
 - Long-press → không có action (tránh nhầm)
+- Thời gian đăng: dùng `post.formattedDate` (dd/MM/yyyy) — **KHÔNG dùng relative time** ("x phút trước")
 
 ### 4.2 Button
 ```dart

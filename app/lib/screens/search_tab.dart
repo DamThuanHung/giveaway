@@ -11,6 +11,7 @@ import '../data/categories.dart';
 import '../widgets/province_picker_sheet.dart';
 import '../widgets/post_card.dart';
 import '../widgets/app_image.dart';
+import '../widgets/skeleton.dart';
 import 'post_detail_screen.dart';
 
 class SearchTab extends StatefulWidget {
@@ -42,6 +43,13 @@ class _SearchTabState extends State<SearchTab> {
   RadiusMapResult? _radiusResult;
 
   List<Map<String, dynamic>> _viewedPosts = [];
+  int _searchVersion = 0;
+  int _page = 1;
+  int _totalResults = 0;
+  bool _isLoadingMore = false;
+  bool _hasMorePages = false;
+  bool _hasError = false;
+  final _scrollCtrl = ScrollController();
 
   static const _historyKey = 'search_history';
   static const _maxHistory = 12;
@@ -51,6 +59,72 @@ class _SearchTabState extends State<SearchTab> {
     super.initState();
     _loadHistory();
     _loadViewedPosts();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 300 &&
+        !_isLoadingMore && !_isLoading && _hasMorePages) {
+      _loadMorePosts();
+    }
+  }
+
+  Future<void> _loadMorePosts() async {
+    if (_isLoadingMore || !_hasMorePages || _isLoading) return;
+    final version = _searchVersion; // capture để detect search mới
+    setState(() { _isLoadingMore = true; _page++; });
+
+    try {
+      final result = await ApiService.getPosts(
+        search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+        listingType: _selectedType,
+        itemCategory: _selectedCategory,
+        province: _radiusResult != null ? null : _selectedProvince,
+        minPrice: _isPriceFiltered ? _priceRange.start.toInt() : null,
+        maxPrice: _priceRange.end < _maxPrice ? _priceRange.end.toInt() : null,
+        lat: _radiusResult?.lat,
+        lng: _radiusResult?.lng,
+        radius: _radiusResult?.radius,
+        sortBy: _radiusResult != null ? null : (_sortBy == 'newest' ? null : _sortBy),
+        page: _page,
+        limit: 20,
+      );
+
+      if (!mounted || version != _searchVersion) return;
+
+      final more = ((result['data'] ?? []) as List).map((j) => Post.fromJson(j)).toList();
+
+      // Trang này rỗng hoặc ít hơn limit → hết dữ liệu
+      final nowHasMore = more.length >= 20;
+
+      if (more.isEmpty) {
+        setState(() { _hasMorePages = false; });
+        return;
+      }
+
+      final combined = [..._results, ...more];
+      // GPS mode: re-sort toàn bộ list sau khi append page mới
+      if (_radiusResult != null) {
+        combined.sort((a, b) {
+          final da = Geolocator.distanceBetween(_radiusResult!.lat, _radiusResult!.lng, a.latitude, a.longitude);
+          final db = Geolocator.distanceBetween(_radiusResult!.lat, _radiusResult!.lng, b.latitude, b.longitude);
+          return da.compareTo(db);
+        });
+      }
+      setState(() {
+        _results = combined;
+        _hasMorePages = nowHasMore;
+      });
+    } catch (e) {
+      if (!mounted || version != _searchVersion) return;
+      debugPrint('❌ SearchTab._loadMorePosts error: $e');
+      setState(() { _hasMorePages = false; _page--; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể tải thêm. Thử lại sau.'), behavior: SnackBarBehavior.floating),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
   }
 
   Future<void> _loadViewedPosts() async {
@@ -64,6 +138,7 @@ class _SearchTabState extends State<SearchTab> {
     _searchCtrl.dispose();
     _focusNode.dispose();
     _debounce?.cancel();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -111,12 +186,14 @@ class _SearchTabState extends State<SearchTab> {
   Future<void> _search(String query) async {
     _debounce?.cancel();
     if (query.trim().isEmpty && _selectedType == null && _selectedCategory == null && _selectedProvince == null && _radiusResult == null) {
-      setState(() { _hasSearched = false; _results = []; });
+      setState(() { _hasSearched = false; _results = []; _hasError = false; });
       return;
     }
-    setState(() { _isLoading = true; _hasSearched = true; });
+    final version = ++_searchVersion;
+    setState(() { _isLoading = true; _hasSearched = true; _hasError = false; });
     if (query.trim().isNotEmpty) await _saveHistory(query.trim());
 
+    _page = 1;
     final result = await ApiService.getPosts(
       search: query.trim().isEmpty ? null : query.trim(),
       listingType: _selectedType,
@@ -127,41 +204,52 @@ class _SearchTabState extends State<SearchTab> {
       lat: _radiusResult?.lat,
       lng: _radiusResult?.lng,
       radius: _radiusResult?.radius,
-      limit: 50,
+      sortBy: _radiusResult != null ? null : (_sortBy == 'newest' ? null : _sortBy),
+      page: 1,
+      limit: 20,
     );
-    if (!mounted) return;
-    List<Post> posts = ((result['data'] ?? []) as List).map((j) => Post.fromJson(j)).toList();
+    if (!mounted || version != _searchVersion) return;
 
-    // Sort client-side
+    // Phát hiện lỗi mạng / server
+    if (result['_isError'] == true) {
+      debugPrint('❌ SearchTab._search error: query="$query" filters=[type:$_selectedType, cat:$_selectedCategory, province:$_selectedProvince]');
+      setState(() { _isLoading = false; _hasError = true; });
+      return;
+    }
+
+    List<Post> posts = ((result['data'] ?? []) as List).map((j) => Post.fromJson(j)).toList();
+    final total = (result['meta']?['total'] as int?) ?? posts.length;
+
+    // GPS mode: sort by distance client-side
     if (_radiusResult != null) {
       posts.sort((a, b) {
         final da = Geolocator.distanceBetween(_radiusResult!.lat, _radiusResult!.lng, a.latitude, a.longitude);
         final db = Geolocator.distanceBetween(_radiusResult!.lat, _radiusResult!.lng, b.latitude, b.longitude);
         return da.compareTo(db);
       });
-    } else if (_sortBy == 'price_asc') {
-      posts.sort((a, b) => a.price.compareTo(b.price));
-    } else if (_sortBy == 'price_desc') {
-      posts.sort((a, b) => b.price.compareTo(a.price));
+      // Gợi ý mở rộng nếu ít kết quả (chỉ khi có ít nhất 1 kết quả)
+      if (posts.isNotEmpty && posts.length < 5 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Chỉ tìm thấy ${posts.length} kết quả trong ${_radiusResult!.radius.toInt()}km. Thử mở rộng bán kính?'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
 
-    // Fallback: GPS < 5 kết quả → gợi ý mở rộng
-    if (_radiusResult != null && posts.length < 5 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Chỉ tìm thấy ${posts.length} kết quả trong ${_radiusResult!.radius.toInt()}km. Thử mở rộng bán kính?'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-
-    setState(() { _results = posts; _isLoading = false; });
+    setState(() {
+      _results = posts;
+      _totalResults = total;
+      _hasMorePages = posts.length >= 20;
+      _isLoading = false;
+    });
   }
 
   void _onChanged(String val) {
     setState(() {});
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 600), () => _search(val));
+    _debounce = Timer(const Duration(milliseconds: 400), () => _search(val));
   }
 
   void _selectHistory(String item) {
@@ -173,8 +261,9 @@ class _SearchTabState extends State<SearchTab> {
 
   void _clearSearch() {
     _searchCtrl.clear();
-    setState(() { _hasSearched = false; _results = []; });
     _focusNode.requestFocus();
+    // Nếu còn filter active → search lại theo filter; nếu không → về history
+    _search('');
   }
 
   // ── Filter active count ──────────────────────────
@@ -199,6 +288,7 @@ class _SearchTabState extends State<SearchTab> {
     String? tmpProvince = _selectedProvince;
     String tmpSort = _sortBy;
     RangeValues tmpPrice = _priceRange;
+    RadiusMapResult? tmpRadius = _radiusResult;
 
     showModalBottomSheet(
       context: context,
@@ -228,7 +318,9 @@ class _SearchTabState extends State<SearchTab> {
                     const Spacer(),
                     TextButton(
                       onPressed: () => setSheet(() {
-                        tmpType = null; tmpCat = null; tmpProvince = null; tmpSort = 'newest';
+                        tmpType = null; tmpCat = null; tmpProvince = null;
+                        tmpSort = 'newest'; tmpPrice = const RangeValues(0, _maxPrice);
+                        tmpRadius = null;
                       }),
                       child: const Text('Đặt lại', style: TextStyle(color: AppTheme.textSecondary)),
                     ),
@@ -326,60 +418,49 @@ class _SearchTabState extends State<SearchTab> {
                       const Text('Khu vực', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 10),
 
-                      // Province picker — tab Bản đồ bên trong đã có GPS
+                      // Province picker — mở trên filter sheet (không đóng sheet trước)
                       GestureDetector(
                         onTap: () {
-                          Navigator.pop(context);
-                          Future.delayed(const Duration(milliseconds: 300), () {
-                            if (!mounted) return;
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (_) => ProvincePickerSheet(
-                                selected: _selectedProvince,
-                                radiusResult: _radiusResult,
-                                onConfirm: (val) {
-                                  setState(() {
-                                    _selectedProvince = val;
-                                    _radiusResult = null;
-                                  });
-                                  _search(_searchCtrl.text);
-                                },
-                                onRadiusConfirm: (result) {
-                                  setState(() {
-                                    _radiusResult = result;
-                                    _selectedProvince = null;
-                                  });
-                                  _search(_searchCtrl.text);
-                                },
-                              ),
-                            );
-                          });
+                          showModalBottomSheet(
+                            context: context,
+                            useRootNavigator: true,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => ProvincePickerSheet(
+                              selected: tmpProvince,
+                              radiusResult: tmpRadius,
+                              onConfirm: (val) {
+                                setSheet(() { tmpProvince = val; tmpRadius = null; });
+                              },
+                              onRadiusConfirm: (result) {
+                                setSheet(() { tmpRadius = result; tmpProvince = null; });
+                              },
+                            ),
+                          );
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                           decoration: BoxDecoration(
-                            border: Border.all(color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary : AppTheme.border),
+                            border: Border.all(color: (tmpProvince != null || tmpRadius != null) ? AppTheme.primary : AppTheme.border),
                             borderRadius: BorderRadius.circular(10),
-                            color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary.withOpacity(0.04) : Colors.white,
+                            color: (tmpProvince != null || tmpRadius != null) ? AppTheme.primary.withOpacity(0.04) : Colors.white,
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                _radiusResult != null ? Icons.near_me : Icons.location_on_outlined,
-                                color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary : AppTheme.textSecondary,
+                                tmpRadius != null ? Icons.near_me : Icons.location_on_outlined,
+                                color: (tmpProvince != null || tmpRadius != null) ? AppTheme.primary : AppTheme.textSecondary,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
                               Expanded(child: Text(
-                                _radiusResult != null
-                                    ? '${_radiusResult!.label} • ${_radiusResult!.radius.toInt()}km'
-                                    : (_selectedProvince ?? 'Toàn quốc'),
+                                tmpRadius != null
+                                    ? '${tmpRadius!.label} • ${tmpRadius!.radius.toInt()}km'
+                                    : (tmpProvince ?? 'Toàn quốc'),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: (_selectedProvince != null || _radiusResult != null) ? AppTheme.primary : AppTheme.textSecondary,
-                                  fontWeight: (_selectedProvince != null || _radiusResult != null) ? FontWeight.w600 : FontWeight.normal,
+                                  color: (tmpProvince != null || tmpRadius != null) ? AppTheme.primary : AppTheme.textSecondary,
+                                  fontWeight: (tmpProvince != null || tmpRadius != null) ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               )),
                               Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 18),
@@ -409,6 +490,7 @@ class _SearchTabState extends State<SearchTab> {
                         _selectedCategory = tmpCat;
                         _selectedProvince = tmpProvince;
                         _sortBy = tmpSort;
+                        _radiusResult = tmpRadius;
                         _priceRange = tmpType == 'give'
                             ? const RangeValues(0, _maxPrice)
                             : tmpPrice;
@@ -443,16 +525,18 @@ class _SearchTabState extends State<SearchTab> {
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F2),
+                  color: AppTheme.background,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: TextField(
                   controller: _searchCtrl,
                   focusNode: _focusNode,
                   textInputAction: TextInputAction.search,
+                  maxLength: 100,
                   onSubmitted: _search,
                   onChanged: _onChanged,
                   decoration: InputDecoration(
+                    counterText: '',
                     hintText: 'Tìm kiếm đồ dùng...',
                     hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                     border: InputBorder.none,
@@ -469,29 +553,32 @@ class _SearchTabState extends State<SearchTab> {
               ),
             ),
             const SizedBox(width: 8),
-            // Nút filter
-            GestureDetector(
-              onTap: _openFilterSheet,
-              child: Container(
-                height: 40, width: 40,
-                decoration: BoxDecoration(
-                  color: hasActiveFilter ? AppTheme.primary : const Color(0xFFF2F2F2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(Icons.tune_rounded,
-                        color: hasActiveFilter ? Colors.white : Colors.grey, size: 22),
-                    if (hasActiveFilter)
-                      Positioned(
-                        top: 6, right: 6,
-                        child: Container(
-                          width: 8, height: 8,
-                          decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+            // Nút filter — 48×48 tap target, có Tooltip cho accessibility
+            Tooltip(
+              message: 'Bộ lọc',
+              child: GestureDetector(
+                onTap: _openFilterSheet,
+                child: Container(
+                  height: 48, width: 48,
+                  decoration: BoxDecoration(
+                    color: hasActiveFilter ? AppTheme.primary : const Color(0xFFF2F2F2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(Icons.tune_rounded,
+                          color: hasActiveFilter ? Colors.white : Colors.grey, size: 22),
+                      if (hasActiveFilter)
+                        Positioned(
+                          top: 6, right: 6,
+                          child: Container(
+                            width: 12, height: 12,
+                            decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -548,12 +635,14 @@ class _SearchTabState extends State<SearchTab> {
           // Nội dung
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-                : !_hasSearched
-                    ? _buildHistory()
-                    : _results.isEmpty
-                        ? _buildEmpty()
-                        : _buildResults(),
+                ? const SearchListSkeleton()
+                : _hasError
+                    ? _buildError()
+                    : !_hasSearched
+                        ? _buildHistory()
+                        : _results.isEmpty
+                            ? _buildEmpty()
+                            : _buildResults(),
           ),
         ],
       ),
@@ -708,6 +797,28 @@ class _SearchTabState extends State<SearchTab> {
     );
   }
 
+  Widget _buildError() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.wifi_off, size: 64, color: AppTheme.border),
+          const SizedBox(height: 12),
+          const Text('Không thể kết nối. Kiểm tra mạng và thử lại.',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () => _search(_searchCtrl.text),
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Thử lại'),
+            style: OutlinedButton.styleFrom(foregroundColor: AppTheme.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmpty() {
     return Center(
       child: Column(
@@ -722,6 +833,25 @@ class _SearchTabState extends State<SearchTab> {
             style: const TextStyle(color: AppTheme.textSecondary),
             textAlign: TextAlign.center,
           ),
+          if (_activeFilterCount > 0) ...[
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedType = null;
+                  _selectedCategory = null;
+                  _selectedProvince = null;
+                  _sortBy = 'newest';
+                  _priceRange = const RangeValues(0, _maxPrice);
+                  _radiusResult = null;
+                });
+                _search(_searchCtrl.text);
+              },
+              icon: const Icon(Icons.filter_alt_off, size: 16),
+              label: const Text('Xóa bộ lọc'),
+              style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+            ),
+          ],
         ],
       ),
     );
@@ -733,84 +863,150 @@ class _SearchTabState extends State<SearchTab> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Text('${_results.length} kết quả',
-              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+          child: Text(
+            _radiusResult != null
+                ? '${_results.length} kết quả'
+                : (_totalResults > 0 ? '$_totalResults kết quả' : '${_results.length} kết quả'),
+            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+          ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            itemCount: _results.length,
-            itemBuilder: (ctx, i) {
-              final post = _results[i];
-              final imgUrl = post.imageLabel.isNotEmpty
-                  ? '${ApiService.baseUrl}/uploads/${post.imageLabel}'
-                  : '';
-              return GestureDetector(
-                onTap: () {
-                  _focusNode.unfocus();
-                  Navigator.push(ctx, MaterialPageRoute(
-                    builder: (_) => PostDetailScreen(post: post, isFavorite: false, onToggleFavorite: () async {}),
-                  ));
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.border),
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: SizedBox(
-                          width: 72, height: 72,
-                          child: imgUrl.isNotEmpty
-                              ? Image.network(imgUrl, fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(color: AppTheme.border))
-                              : Container(color: AppTheme.border,
-                                  child: const Icon(Icons.image_outlined, color: AppTheme.textSecondary)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+          child: RefreshIndicator(
+            color: AppTheme.primary,
+            onRefresh: () => _search(_searchCtrl.text),
+            child: ListView.builder(
+              controller: _scrollCtrl,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              itemCount: _results.length + (_hasMorePages ? 1 : 0),
+              itemBuilder: (ctx, i) {
+                // Footer load more
+                if (i == _results.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: _isLoadingMore
+                        ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)))
+                        : TextButton(
+                            onPressed: _loadMorePosts,
+                            child: const Text('Xem thêm'),
+                          ),
+                  );
+                }
+                final post = _results[i];
+                String imgUrl = '';
+                if (post.images != null && post.images!.isNotEmpty) {
+                  imgUrl = post.images!.first;
+                } else if (post.imageLabel.isNotEmpty) {
+                  imgUrl = '${ApiService.baseUrl}/uploads/${post.imageLabel}';
+                }
+                return GestureDetector(
+                  onTap: () {
+                    _focusNode.unfocus();
+                    Navigator.push(ctx, MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(post: post, isFavorite: false, onToggleFavorite: () async {}),
+                    )).then((_) => _loadViewedPosts());
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Row(
+                      children: [
+                        // Ảnh + badge trạng thái
+                        Stack(
                           children: [
-                            Text(post.title,
-                                maxLines: 2, overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            const SizedBox(height: 6),
-                            Text(
-                                PostCard.formatPrice(post.price, post.listingType),
-                                style: TextStyle(
-                                  color: (post.listingType == 'give' || post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor,
-                                  fontWeight: FontWeight.bold, fontSize: 14,
-                                )),
-                            const SizedBox(height: 4),
-                            Row(children: [
-                              const Icon(Icons.location_on_outlined, size: 12, color: AppTheme.textSecondary),
-                              const SizedBox(width: 2),
-                              Expanded(child: Text(
-                                post.province.isNotEmpty ? post.province : 'Chưa cập nhật',
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                              )),
-                              if (_radiusResult != null && _formatDistance(post).isNotEmpty) ...[
-                                const SizedBox(width: 4),
-                                Text('• ${_formatDistance(post)}',
-                                  style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500)),
-                              ],
-                            ]),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: AppImage(url: imgUrl, width: 90, height: 90),
+                            ),
+                            // Overlay "Đã bán/Tặng"
+                            if (post.isDone)
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text('Đã xong',
+                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            // Badge "Đang giữ"
+                            if (post.isReserved)
+                              Positioned(
+                                bottom: 0, left: 0, right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.warning.withOpacity(0.88),
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(8),
+                                      bottomRight: Radius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Center(
+                                    child: Text('Đang giữ',
+                                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(post.title,
+                                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: post.isDone ? AppTheme.textSecondary : AppTheme.textPrimary,
+                                  )),
+                              const SizedBox(height: 6),
+                              Text(
+                                  PostCard.formatPrice(post.price, post.listingType),
+                                  style: TextStyle(
+                                    color: post.isFree ? AppTheme.freeColor : AppTheme.priceColor,
+                                    fontWeight: FontWeight.bold, fontSize: 14,
+                                  )),
+                              const SizedBox(height: 4),
+                              Row(children: [
+                                const Icon(Icons.location_on_outlined, size: 12, color: AppTheme.textSecondary),
+                                const SizedBox(width: 2),
+                                Expanded(child: Text(
+                                  post.province.isNotEmpty ? post.province : 'Chưa cập nhật',
+                                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                )),
+                                if (_radiusResult != null && _formatDistance(post).isNotEmpty) ...[
+                                  const SizedBox(width: 4),
+                                  Text('• ${_formatDistance(post)}',
+                                    style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+                                ],
+                              ]),
+                              if (post.formattedDate.isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  post.formattedDate,
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ],

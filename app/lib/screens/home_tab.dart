@@ -17,6 +17,7 @@ import '../data/provinces.dart';
 import '../widgets/province_picker_sheet.dart';
 import 'post_detail_screen.dart';
 import 'map_view_screen.dart';
+import 'auth/phone_login_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -315,6 +316,8 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
           Expanded(
             child: Consumer<PostProvider>(
               builder: (ctx, postProv, _) {
+                // Watch auth để react khi logout (xóa favorites)
+                final auth = context.watch<AuthProvider>();
                 if (postProv.isLoading && postProv.posts.isEmpty) {
                   return const PostGridSkeleton();
                 }
@@ -324,10 +327,10 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                     const SizedBox(height: 12),
                     const Text('Không thể tải dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
                     const SizedBox(height: 16),
-                    OutlinedButton(onPressed: () => postProv.fetchPosts(), child: const Text('Thử lại')),
+                    OutlinedButton(onPressed: _refetch, child: const Text('Thử lại')),
                   ]));
                 }
-                return _buildGridView(postProv.posts, postProv);
+                return _buildGridView(postProv.posts, postProv, auth.isAuth);
               },
             ),
           ),
@@ -336,7 +339,24 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     );
   }
 
-  Widget _buildGridView(List<Post> posts, PostProvider postProv) {
+  void _showLoginPrompt() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Vui lòng đăng nhập để sử dụng tính năng này'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        action: SnackBarAction(
+          label: 'Đăng nhập',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridView(List<Post> posts, PostProvider postProv, bool isAuth) {
     if (posts.isEmpty && !postProv.isLoading) {
       return RefreshIndicator(
         color: AppTheme.primary,
@@ -406,23 +426,20 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => PostCard(
                     post: posts[i],
-                    isFavorite: _favoriteIds.contains(posts[i].id),
+                    // BUG FIX: khi logout, không hiện tim đỏ
+                    isFavorite: isAuth && _favoriteIds.contains(posts[i].id),
                     onTap: () => Navigator.push(ctx, MaterialPageRoute(
                       builder: (_) => PostDetailScreen(
                         post: posts[i],
-                        isFavorite: _favoriteIds.contains(posts[i].id),
-                        onToggleFavorite: () async {
-                          setState(() {
-                            if (_favoriteIds.contains(posts[i].id)) {
-                              _favoriteIds.remove(posts[i].id);
-                            } else {
-                              _favoriteIds.add(posts[i].id);
-                            }
-                          });
-                        },
+                        isFavorite: isAuth && _favoriteIds.contains(posts[i].id),
+                        // BUG FIX: gọi _toggleFavorite để thực sự gọi API
+                        onToggleFavorite: () async => _toggleFavorite(posts[i].id),
                       ),
                     )).then((_) => _loadFavorites()),
-                    onToggleFavorite: () => _toggleFavorite(posts[i].id),
+                    // BUG FIX: user chưa đăng nhập → hiện login prompt thay vì silent fail
+                    onToggleFavorite: () => isAuth
+                        ? _toggleFavorite(posts[i].id)
+                        : _showLoginPrompt(),
                   ),
                   childCount: posts.length,
                 ),

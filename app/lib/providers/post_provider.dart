@@ -10,6 +10,9 @@ class PostProvider with ChangeNotifier {
   bool _hasMore = true;
   int _total = 0;
 
+  // Version counter — hủy kết quả fetch cũ khi có fetch mới
+  int _fetchVersion = 0;
+
   String? _listingType;
   String? _itemCategory;
   String? _province;
@@ -42,6 +45,7 @@ class PostProvider with ChangeNotifier {
     if (refresh) {
       _currentPage = 1;
       _hasMore = true;
+      _fetchVersion++; // invalidate any in-flight fetch
       _listingType = listingType;
       _itemCategory = itemCategory;
       _province = province;
@@ -49,9 +53,12 @@ class PostProvider with ChangeNotifier {
       _lat = lat;
       _lng = lng;
       _radius = radius;
-    } else if (!_hasMore || _isLoading) {
-      return;
+    } else {
+      if (!_hasMore || _isLoading) return;
+      _currentPage++; // increment TRƯỚC khi fetch — tránh load page 1 lại
     }
+
+    final myVersion = _fetchVersion;
 
     _isLoading = true;
     _hasError = false;
@@ -70,6 +77,10 @@ class PostProvider with ChangeNotifier {
         lng: _lng,
         radius: _radius,
       );
+
+      // Fetch mới hơn đã được kích hoạt — bỏ kết quả này
+      if (myVersion != _fetchVersion) return;
+
       final List<dynamic> data = result['data'] ?? [];
       final meta = result['meta'] ?? {};
 
@@ -83,16 +94,30 @@ class PostProvider with ChangeNotifier {
         _posts = newPosts;
       } else {
         _posts = [..._posts, ...newPosts];
-        _currentPage++;
       }
     } catch (e) {
+      if (myVersion != _fetchVersion) return;
       _hasError = true;
       debugPrint('❌ PostProvider error: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (myVersion == _fetchVersion) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
+
+  /// Fetch lại với cùng filter params hiện tại — dùng sau khi đăng bài mới
+  Future<void> refresh() => fetchPosts(
+        refresh: true,
+        listingType: _listingType,
+        itemCategory: _itemCategory,
+        province: _province,
+        provinces: _provinces,
+        lat: _lat,
+        lng: _lng,
+        radius: _radius,
+      );
 
   Future<void> loadMore() => fetchPosts(
         refresh: false,

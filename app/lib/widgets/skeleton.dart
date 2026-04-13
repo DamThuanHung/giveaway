@@ -90,6 +90,54 @@ class PostGridSkeleton extends StatelessWidget {
   }
 }
 
+// Skeleton dòng kết quả tìm kiếm (list item ngang)
+class SearchResultSkeleton extends StatelessWidget {
+  const SearchResultSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE5E7EB),
+      highlightColor: const Color(0xFFF9FAFB),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(children: [
+          Container(width: 72, height: 72, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(height: 14, color: Colors.white),
+            const SizedBox(height: 6),
+            Container(height: 14, width: 120, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(height: 18, width: 80, color: Colors.white),
+            const SizedBox(height: 6),
+            Container(height: 12, width: 100, color: Colors.white),
+          ])),
+        ]),
+      ),
+    );
+  }
+}
+
+class SearchListSkeleton extends StatelessWidget {
+  const SearchListSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 6,
+      itemBuilder: (_, __) => const SearchResultSkeleton(),
+    );
+  }
+}
+
 // Skeleton dòng chat
 class ChatRoomSkeleton extends StatelessWidget {
   const ChatRoomSkeleton({super.key});

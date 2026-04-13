@@ -34,12 +34,13 @@ export class PostService {
     lat?: number;
     lng?: number;
     radius?: number; // km
+    sortBy?: string; // newest | price_asc | price_desc
   }) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = { status: query.status || 'available' };
+    const where: any = { status: query.status ?? { in: ['available', 'reserved'] } };
 
     // Lọc bài của người bị chặn bởi viewer
     if (query.viewerId) {
@@ -84,12 +85,17 @@ export class PostService {
       where.longitude = { gte: query.lng - lngDelta, lte: query.lng + lngDelta };
     }
 
+    const orderBy: any =
+      query.sortBy === 'price_asc' ? { price: 'asc' } :
+      query.sortBy === 'price_desc' ? { price: 'desc' } :
+      { createdAt: 'desc' };
+
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: { author: { select: { id: true, name: true, avatar: true } } },
       }),
       this.prisma.post.count({ where }),
@@ -113,7 +119,7 @@ export class PostService {
     const resultPosts = (query.lat !== undefined && query.radius) ? filtered : posts;
     return {
       data: resultPosts.map(formatPost),
-      meta: { page, limit, total: resultPosts.length, totalPages: Math.ceil(resultPosts.length / limit) },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 

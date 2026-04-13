@@ -41,6 +41,7 @@ export class PostController {
       lat: query.lat ? parseFloat(query.lat) : undefined,
       lng: query.lng ? parseFloat(query.lng) : undefined,
       radius: query.radius ? parseFloat(query.radius) : undefined,
+      sortBy: query.sortBy,
     });
   }
 

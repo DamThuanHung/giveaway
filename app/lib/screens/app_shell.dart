@@ -66,7 +66,8 @@ class _AppShellState extends State<AppShell> {
       );
       if (result == true) {
         if (!mounted) return;
-        context.read<PostProvider>().fetchPosts();
+        // BUG FIX: dùng refresh() để giữ nguyên filter province/category của HomeTab
+        context.read<PostProvider>().refresh();
         setState(() => _selectedIndex = 0);
       }
     } else {
