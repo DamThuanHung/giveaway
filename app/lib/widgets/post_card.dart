@@ -19,7 +19,8 @@ class PostCard extends StatelessWidget {
   });
 
   static String formatPrice(int price, String listingType) {
-    if (listingType == 'give' || listingType == 'free' || price == 0) return 'Miễn phí';
+    if (listingType == 'give' || listingType == 'free') return 'Miễn phí';
+    if (price == 0) return 'Thương lượng';
     if (price >= 1000000) {
       final tr = price / 1000000;
       final s = tr == tr.roundToDouble()
@@ -181,20 +182,35 @@ class PostCard extends StatelessWidget {
                     ),
                     const Spacer(),
 
-                    // Giá
-                    Text(
-                      formatPrice(post.price, post.listingType),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
-                      ),
+                    // Giá + ngày đăng cùng hàng
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            formatPrice(post.price, post.listingType),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (post.createdAt != null) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            post.formattedDate,
+                            style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 3),
 
-                    // Vị trí + thời gian
-                    Row(children: [
-                      if (location.isNotEmpty) ...[
+                    // Vị trí (full width)
+                    if (location.isNotEmpty)
+                      Row(children: [
                         const Icon(Icons.location_on_outlined, size: 11, color: AppTheme.textSecondary),
                         const SizedBox(width: 2),
                         Expanded(
@@ -205,13 +221,7 @@ class PostCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
-                      if (post.createdAt != null)
-                        Text(
-                          post.formattedDate,
-                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
-                        ),
-                    ]),
+                      ]),
                   ],
                 ),
               ),

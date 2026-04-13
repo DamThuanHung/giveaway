@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'map_picker_screen.dart';
 import '../../data/categories.dart';
@@ -41,22 +41,80 @@ class _CreatePostTabState extends State<CreatePostTab> {
     super.dispose();
   }
 
+  bool get _hasUnsavedData =>
+      _titleController.text.isNotEmpty ||
+      _descController.text.isNotEmpty ||
+      _priceController.text.isNotEmpty ||
+      _selectedImages.isNotEmpty ||
+      _lat != null;
+
+  Future<void> _confirmLeave() async {
+    if (_isSubmitting) return;
+    if (!_hasUnsavedData) { Navigator.pop(context); return; }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Thoát khỏi bài đăng?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Thông tin bạn đã nhập sẽ không được lưu.'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Tiếp tục soạn', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Hủy bài đăng', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirm == true && mounted) Navigator.pop(context);
+  }
+
   Future<void> _pickImage() async {
     if (_selectedImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tối đa 5 ảnh')),
+        const SnackBar(
+          content: Text('Bạn đã chọn đủ 5 ảnh rồi nhé'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 75,
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedImages.add(picked);
-        _imageByteFutures.add(picked.readAsBytes());
-      });
+    final remaining = 5 - _selectedImages.length;
+    final picked = await ImagePicker().pickMultiImage(imageQuality: 75, limit: remaining);
+    if (picked.isEmpty) return;
+    final limited = picked.take(remaining).toList();
+    setState(() {
+      _selectedImages.addAll(limited);
+      _imageByteFutures.addAll(limited.map((f) => f.readAsBytes()));
+    });
+    if (picked.length > remaining && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bạn chỉ có thể thêm $remaining ảnh nữa (tối đa 5 ảnh mỗi bài)'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -71,7 +129,21 @@ class _CreatePostTabState extends State<CreatePostTab> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn ít nhất 1 ảnh')),
+        const SnackBar(
+          content: Text('Vui lòng chọn ít nhất 1 ảnh'),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (_lat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn vị trí bài đăng'),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -84,7 +156,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
       'price': _listingType == 'give' ? '0' : (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()),
       'listingType': _listingType,
       'itemCategory': _itemCategory,
-      'province': _selectedProvince.isNotEmpty ? _selectedProvince : 'Toàn quốc',
+      'province': _selectedProvince,
       'district': _selectedDistrict,
       'ward': _selectedWard,
       'addressDetail': _selectedAddress,
@@ -110,6 +182,9 @@ class _CreatePostTabState extends State<CreatePostTab> {
           _lat = null;
           _lng = null;
           _selectedAddress = '';
+          _selectedProvince = '';
+          _selectedDistrict = '';
+          _selectedWard = '';
           _listingType = 'sell';
           _itemCategory = 'electronics';
         });
@@ -122,6 +197,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
         ));
       }
     } catch (e) {
+      debugPrint('❌ CreatePostTab._submit error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Lỗi kết nối server'),
@@ -136,14 +212,24 @@ class _CreatePostTabState extends State<CreatePostTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        if (_isSubmitting) return;
+        if (!_hasUnsavedData) { Navigator.pop(context); return; }
+        await _confirmLeave();
+      },
+      child: Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Đăng tin mới'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: _isSubmitting
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => _confirmLeave(),
+              ),
       ),
       body: _isSubmitting
           ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -162,12 +248,15 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     const SizedBox(height: 20),
                     _buildTypeSelector(),
                     const SizedBox(height: 16),
-                    _buildCategoryDropdown(),
-                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _titleController,
                       decoration: const InputDecoration(labelText: 'Tiêu đề *', border: OutlineInputBorder()),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Nhập tiêu đề' : null,
+                      textInputAction: TextInputAction.next,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Vui lòng nhập tiêu đề';
+                        if (v.trim().length < 5) return 'Tiêu đề quá ngắn (tối thiểu 5 ký tự)';
+                        return null;
+                      },
                       maxLength: 100,
                     ),
                     const SizedBox(height: 16),
@@ -180,13 +269,28 @@ class _CreatePostTabState extends State<CreatePostTab> {
                           hintText: 'Để trống nếu muốn thương lượng',
                         ),
                         keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.next,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(12),
+                        ],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final price = int.tryParse(v.trim());
+                          if (price == null || price < 0) return 'Vui lòng kiểm tra lại — giá không hợp lệ';
+                          if (price > 999999999999) return 'Vui lòng kiểm tra lại — giá quá lớn';
+                          return null;
+                        },
                       ),
                     if (_listingType != 'give') const SizedBox(height: 16),
+                    _buildCategoryDropdown(),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _descController,
                       decoration: const InputDecoration(labelText: 'Mô tả chi tiết', border: OutlineInputBorder()),
                       maxLines: 4,
                       maxLength: 1000,
+                      textInputAction: TextInputAction.done,
                     ),
                     const SizedBox(height: 16),
                     _buildLocationTile(),
@@ -208,6 +312,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                 ),
               ),
             ),
+      ),
     );
   }
 
@@ -222,25 +327,30 @@ class _CreatePostTabState extends State<CreatePostTab> {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              // Nút thêm ảnh
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  width: 90, height: 90,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border, width: 1.5),
+              // Nút thêm ảnh — ẩn khi đủ 5
+              if (_selectedImages.length < 5)
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: 90, height: 90,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.border, width: 1.5),
+                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.add_photo_alternate_outlined, color: AppTheme.primary, size: 28),
+                      const SizedBox(height: 4),
+                      const Text('Thêm ảnh', style: TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 2),
+                      Text(
+                        'còn ${5 - _selectedImages.length} chỗ',
+                        style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                      ),
+                    ]),
                   ),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.add_photo_alternate_outlined, color: AppTheme.primary, size: 28),
-                    const SizedBox(height: 4),
-                    Text('${_selectedImages.length}/5',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                  ]),
                 ),
-              ),
               // Ảnh đã chọn
               ...List.generate(_selectedImages.length, (i) => Stack(
                 children: [
@@ -255,6 +365,14 @@ class _CreatePostTabState extends State<CreatePostTab> {
                             borderRadius: BorderRadius.circular(10),
                             child: Image.memory(snap.data!, fit: BoxFit.cover),
                           ),
+                        );
+                      }
+                      if (snap.hasError) {
+                        return Container(
+                          width: 90, height: 90,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(10)),
+                          child: const Center(child: Icon(Icons.broken_image_outlined, color: AppTheme.textSecondary)),
                         );
                       }
                       return Container(
@@ -333,23 +451,34 @@ class _CreatePostTabState extends State<CreatePostTab> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _lat != null ? AppTheme.primary.withOpacity(0.05) : Colors.orange.withOpacity(0.05),
+          color: _lat != null ? AppTheme.primary.withOpacity(0.05) : AppTheme.warning.withOpacity(0.05),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _lat != null ? AppTheme.primary.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+          border: Border.all(color: _lat != null ? AppTheme.primary.withOpacity(0.3) : AppTheme.warning.withOpacity(0.3)),
         ),
         child: Row(children: [
-          Icon(Icons.location_on_outlined, color: _lat != null ? AppTheme.primary : Colors.orange),
+          Icon(Icons.location_on_outlined, color: _lat != null ? AppTheme.primary : AppTheme.warning),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-              _lat != null ? 'Đã chọn vị trí' : 'Chọn vị trí (tuỳ chọn)',
+              _lat != null ? 'Đã chọn vị trí' : 'Chọn vị trí *',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: _lat != null ? AppTheme.primary : Colors.orange,
+                color: _lat != null ? AppTheme.primary : AppTheme.warning,
               ),
             ),
-            if (_selectedAddress.isNotEmpty)
-              Text(_selectedAddress, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (_lat != null) ...[
+              Text(
+                [
+                  if (_selectedAddress.isNotEmpty) _selectedAddress,
+                  if (_selectedWard.isNotEmpty) _selectedWard,
+                  if (_selectedDistrict.isNotEmpty) _selectedDistrict,
+                  if (_selectedProvince.isNotEmpty) _selectedProvince,
+                ].join(', '),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ])),
           Icon(Icons.chevron_right, color: AppTheme.textSecondary),
         ]),

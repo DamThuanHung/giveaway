@@ -8,6 +8,7 @@ import 'search_tab.dart';
 import 'profile_tab.dart';
 import 'post/create_post_tab.dart';
 import 'notifications_screen.dart';
+import 'auth/phone_login_screen.dart';
 import '../providers/post_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
@@ -60,6 +61,11 @@ class _AppShellState extends State<AppShell> {
 
   void _onItemTapped(int index) async {
     if (index == 2) {
+      final auth = context.read<AuthProvider>();
+      if (!auth.isAuth) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+        return;
+      }
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const CreatePostTab()),

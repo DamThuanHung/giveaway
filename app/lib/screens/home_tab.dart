@@ -238,34 +238,30 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
       appBar: AppBar(
         backgroundColor: AppTheme.surface,
         elevation: 0.5,
-        title: Row(
-          children: [
+        centerTitle: false,
+        titleSpacing: 12,
+        title: GestureDetector(
+          onTap: _showProvincePicker,
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.location_on_outlined, color: AppTheme.primary, size: 18),
+            const SizedBox(width: 4),
             Flexible(
-              child: GestureDetector(
-                onTap: _showProvincePicker,
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.location_on_outlined, color: AppTheme.primary, size: 18),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      _selectedProvince,
-                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
-                ]),
+              child: Text(
+                _selectedProvince,
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.map_outlined, color: AppTheme.textSecondary),
-              tooltip: 'Xem bản đồ',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapViewScreen())),
-            ),
-            _BellButton(),
-          ],
+            const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
+          ]),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.map_outlined, color: AppTheme.textSecondary),
+            tooltip: 'Xem bản đồ',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapViewScreen())),
+          ),
+          _BellButton(),
+        ],
       ),
       body: Column(
         children: [
