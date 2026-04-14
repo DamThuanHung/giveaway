@@ -27,6 +27,8 @@ class AuthProvider with ChangeNotifier {
     _tryAutoLogin();
   }
 
+  Future<void> loadFromPrefs() => _tryAutoLogin();
+
   Future<void> _tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');

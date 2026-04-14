@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart' as app_auth;
 import '../../theme/app_theme.dart';
 import '../app_shell.dart';
 import 'complete_profile_screen.dart';
+import 'email_login_screen.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
   const PhoneLoginScreen({super.key});
@@ -307,6 +308,18 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         ),
                 ),
               ),
+
+              // Link đăng nhập email dự phòng
+              if (!_otpSent) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmailLoginScreen())),
+                    child: Text('Dùng email dự phòng',
+                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                  ),
+                ),
+              ],
 
               // Gửi lại / Đổi số
               if (_otpSent) ...[

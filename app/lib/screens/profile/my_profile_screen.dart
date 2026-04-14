@@ -11,6 +11,7 @@ import 'seller_stats_screen.dart';
 import 'my_reviews_screen.dart';
 import 'blocked_users_screen.dart';
 import 'change_password_screen.dart';
+import 'link_email_screen.dart';
 import '../favorites_tab.dart';
 import '../admin/admin_dashboard_screen.dart';
 // Alias để tránh conflict
@@ -25,6 +26,8 @@ class MyProfileScreen extends StatefulWidget {
 
 class _MyProfileScreenState extends State<MyProfileScreen> {
   Map<String, dynamic>? _trustData;
+  bool _trustLoading = true;
+  bool _trustError = false;
 
   @override
   void initState() {
@@ -35,9 +38,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   Future<void> _loadTrust() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth || auth.userId == null) return;
-    final data = await ApiService.getUserById(auth.userId!);
-    if (!mounted) return;
-    setState(() => _trustData = data);
+    setState(() { _trustLoading = true; _trustError = false; });
+    try {
+      final data = await ApiService.getUserById(auth.userId!);
+      if (!mounted) return;
+      setState(() { _trustData = data; _trustLoading = false; });
+    } catch (e) {
+      debugPrint('❌ _loadTrust error: $e');
+      if (!mounted) return;
+      setState(() { _trustLoading = false; _trustError = true; });
+    }
   }
 
   String _formatMemberSince(dynamic createdAt) {
@@ -71,6 +81,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         );
       }
 
+      final hasPassword = auth.userEmail != null && auth.userEmail!.isNotEmpty;
+      final phone = _trustData?['phone']?.toString() ?? '';
+      final subtitle = auth.userEmail?.isNotEmpty == true
+          ? auth.userEmail!
+          : phone;
+
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
@@ -83,10 +99,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             ),
           ],
         ),
-        body: ListView(
+        body: RefreshIndicator(
+          onRefresh: _loadTrust,
+          color: AppTheme.primary,
+          child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Avatar + tên + email
+            // Avatar + tên + email/SĐT
             Center(
               child: Column(
                 children: [
@@ -96,6 +115,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     backgroundImage: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
                         ? NetworkImage(auth.userAvatar!)
                         : null,
+                    onBackgroundImageError: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
+                        ? (_, __) {}
+                        : null,
                     child: (auth.userAvatar == null || auth.userAvatar!.isEmpty)
                         ? const Icon(Icons.person, size: 44, color: AppTheme.primary)
                         : null,
@@ -104,21 +126,30 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   Text(auth.userName ?? 'Người dùng',
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                   const SizedBox(height: 4),
-                  Text(auth.userEmail ?? '', style: const TextStyle(color: AppTheme.textSecondary)),
+                  if (subtitle.isNotEmpty)
+                    Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary)),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
             // Trust badges
-            if (_trustData != null)
+            if (_trustLoading)
+              const SizedBox(height: 32, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary)))
+            else if (_trustError)
+              TextButton.icon(
+                onPressed: _loadTrust,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Tải lại thông tin'),
+              )
+            else if (_trustData != null)
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   if (_trustData!['isPhoneVerified'] == true)
-                    _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: Colors.blue),
+                    _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: AppTheme.primary),
                   _TrustBadge(
                     icon: Icons.handshake_outlined,
                     label: '${_trustData!['completedDeals'] ?? 0} deal thành công',
@@ -139,7 +170,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               _MenuItem(
                 icon: Icons.admin_panel_settings_outlined,
                 label: 'Quản trị hệ thống',
-                color: Colors.purple,
+                color: AppTheme.primary,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
               ),
             _MenuItem(
@@ -174,10 +205,20 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             ),
             const Divider(height: 32),
             _MenuItem(
-              icon: Icons.lock_outline,
-              label: 'Đổi mật khẩu',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+              icon: Icons.email_outlined,
+              label: _trustData?['email'] != null ? 'Email dự phòng (đã liên kết)' : 'Liên kết email dự phòng',
+              color: _trustData?['email'] != null ? AppTheme.success : AppTheme.textPrimary,
+              onTap: _trustData?['email'] != null ? () {} : () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LinkEmailScreen()),
+              ).then((ok) { if (ok == true) _loadTrust(); }),
             ),
+            if (hasPassword)
+              _MenuItem(
+                icon: Icons.lock_outline,
+                label: 'Đổi mật khẩu',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+              ),
             _MenuItem(
               icon: Icons.logout,
               label: 'Đăng xuất',
@@ -204,6 +245,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               },
             ),
           ],
+        ),
         ),
       );
     });

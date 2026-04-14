@@ -45,6 +45,78 @@ class ApiService {
     }
   }
 
+  // ─── Email OTP Login ──────────────────────────────────────────────────────
+
+  static Future<String?> sendEmailLoginOtp(String email) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/email-login/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      final d = jsonDecode(res.body);
+      return d['message'] ?? 'Đã xảy ra lỗi';
+    } catch (_) {
+      return 'Không thể kết nối máy chủ';
+    }
+  }
+
+  static Future<Map<String, dynamic>?> verifyEmailLoginOtp(String email, String otp) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/email-login/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final d = jsonDecode(res.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await prefs.setString('user_id', d['user']['id'] ?? '');
+        await prefs.setString('user_name', d['user']['name'] ?? '');
+        await prefs.setString('user_email', d['user']['email'] ?? '');
+        await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
+        await prefs.setString('user_role', d['user']['role'] ?? 'user');
+        await prefs.setBool('is_phone_verified', d['user']['isPhoneVerified'] == true);
+        return Map<String, dynamic>.from(d['user']);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<String?> sendLinkEmailOtp(String email) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/link-email/send'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'email': email}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      final d = jsonDecode(res.body);
+      return d['message'] ?? 'Đã xảy ra lỗi';
+    } catch (_) {
+      return 'Không thể kết nối máy chủ';
+    }
+  }
+
+  static Future<String?> confirmLinkEmail(String email, String otp) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/link-email/confirm'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'email': email, 'otp': otp}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      final d = jsonDecode(res.body);
+      return d['message'] ?? 'Đã xảy ra lỗi';
+    } catch (_) {
+      return 'Không thể kết nối máy chủ';
+    }
+  }
+
   static Future<Map<String, dynamic>?> phoneLogin(String idToken) async {
     try {
       final res = await http.post(

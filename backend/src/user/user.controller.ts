@@ -93,6 +93,30 @@ export class UserController {
     return this.userService.getBlockedUsers(req.user.id);
   }
 
+  // ─── Email OTP Login ──────────────────────────────────────────────────────
+  @Post('email-login/send')
+  sendEmailLoginOtp(@Body() body: { email: string }) {
+    return this.userService.sendEmailLoginOtp(body.email);
+  }
+
+  @Post('email-login/verify')
+  verifyEmailLoginOtp(@Body() body: { email: string; otp: string }) {
+    return this.userService.verifyEmailLoginOtp(body.email, body.otp);
+  }
+
+  // ─── Liên kết email dự phòng ──────────────────────────────────────────────
+  @Post('link-email/send')
+  @UseGuards(JwtAuthGuard)
+  sendLinkEmailOtp(@Request() req, @Body() body: { email: string }) {
+    return this.userService.sendLinkEmailOtp(req.user.id, body.email);
+  }
+
+  @Post('link-email/confirm')
+  @UseGuards(JwtAuthGuard)
+  confirmLinkEmail(@Request() req, @Body() body: { email: string; otp: string }) {
+    return this.userService.confirmLinkEmail(req.user.id, body.email, body.otp);
+  }
+
   @Get('block/check/:targetId')
   @UseGuards(JwtAuthGuard)
   checkBlocked(@Request() req, @Param('targetId') targetId: string) {
