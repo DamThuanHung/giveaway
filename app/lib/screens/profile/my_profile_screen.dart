@@ -228,15 +228,24 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   context: context,
                   builder: (_) => AlertDialog(
                     title: const Text('Đăng xuất'),
-                    content: const Text('Bạn có chắc muốn đăng xuất không?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Đăng xuất', style: TextStyle(color: Colors.white)),
-                      ),
-                    ],
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Bạn có chắc muốn đăng xuất không?'),
+                        const SizedBox(height: 20),
+                        SizedBox(width: double.infinity, child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Đăng xuất'),
+                        )),
+                        const SizedBox(height: 8),
+                        SizedBox(width: double.infinity, child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Hủy'),
+                        )),
+                      ],
+                    ),
                   ),
                 );
                 if (confirm == true && context.mounted) {
