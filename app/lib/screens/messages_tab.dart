@@ -20,8 +20,10 @@ String _formatRoomTime(dynamic raw) {
   } else if (diff.inDays < 7) {
     const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
     return days[dt.weekday - 1];
-  } else {
+  } else if (diff.inDays < 365) {
     return '${dt.day}/${dt.month}';
+  } else {
+    return '${dt.day}/${dt.month}/${dt.year % 100}';
   }
 }
 
@@ -35,6 +37,7 @@ class MessagesTab extends StatefulWidget {
 class _MessagesTabState extends State<MessagesTab> {
   List<dynamic> _rooms = [];
   bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -43,10 +46,16 @@ class _MessagesTabState extends State<MessagesTab> {
   }
 
   Future<void> _loadRooms() async {
-    setState(() => _isLoading = true);
-    final rooms = await ApiService.getMyRooms();
-    if (!mounted) return;
-    setState(() { _rooms = rooms; _isLoading = false; });
+    setState(() { _isLoading = true; _hasError = false; });
+    try {
+      final rooms = await ApiService.getMyRooms();
+      if (!mounted) return;
+      setState(() { _rooms = rooms; _isLoading = false; });
+    } catch (e) {
+      debugPrint('❌ MessagesTab._loadRooms error: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasError = true; });
+    }
   }
 
   @override
@@ -75,12 +84,44 @@ class _MessagesTabState extends State<MessagesTab> {
       appBar: AppBar(title: const Text('Tin nhắn')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-          : _rooms.isEmpty
-              ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.chat_bubble_outline, size: 64, color: AppTheme.border),
-                  SizedBox(height: 12),
-                  Text('Chưa có cuộc trò chuyện nào', style: TextStyle(color: AppTheme.textSecondary)),
-                ]))
+          : _hasError
+              ? RefreshIndicator(
+                  onRefresh: _loadRooms,
+                  child: LayoutBuilder(
+                    builder: (ctx, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: constraints.maxHeight,
+                        child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          const Icon(Icons.wifi_off, size: 56, color: AppTheme.textSecondary),
+                          const SizedBox(height: 12),
+                          const Text('Không thể tải tin nhắn', style: TextStyle(color: AppTheme.textSecondary)),
+                          const SizedBox(height: 16),
+                          OutlinedButton(onPressed: _loadRooms, child: const Text('Thử lại')),
+                        ])),
+                      ),
+                    ),
+                  ),
+                )
+              : _rooms.isEmpty
+              ? RefreshIndicator(
+                  onRefresh: _loadRooms,
+                  child: LayoutBuilder(
+                    builder: (ctx, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: constraints.maxHeight,
+                        child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: const [
+                          Icon(Icons.chat_bubble_outline, size: 64, color: AppTheme.border),
+                          SizedBox(height: 12),
+                          Text('Chưa có cuộc trò chuyện nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+                          SizedBox(height: 6),
+                          Text('Tìm đồ và liên hệ người đăng để bắt đầu', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                        ])),
+                      ),
+                    ),
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _loadRooms,
                   child: ListView.separated(
@@ -91,12 +132,16 @@ class _MessagesTabState extends State<MessagesTab> {
                       final room = _rooms[i];
                       final other = room['buyerId'] == auth.userId ? room['seller'] : room['buyer'];
                       final msgs = room['messages'] as List? ?? [];
-                      final lastMsg = msgs.isNotEmpty ? msgs[0]['text'] ?? '' : 'Bắt đầu cuộc trò chuyện';
+                      final lastMsg = msgs.isNotEmpty
+                          ? (msgs[0]['text']?.toString().isNotEmpty == true
+                              ? msgs[0]['text'].toString()
+                              : 'Yêu cầu nhận đồ')
+                          : 'Bắt đầu cuộc trò chuyện';
                       final lastMsgTime = msgs.isNotEmpty ? msgs[0]['createdAt'] : null;
                       final post = room['post'] as Map? ?? {};
                       final postTitle = post['title']?.toString() ?? '';
                       final postImageLabel = post['imageLabel']?.toString() ?? '';
-                      final unread = (room['unreadCount'] as int? ?? 0) > 0;
+                      final unread = ((room['unreadCount'] as num?)?.toInt() ?? 0) > 0;
                       final avatarUrl = other?['avatar']?.toString() ?? '';
 
                       return InkWell(
@@ -117,6 +162,9 @@ class _MessagesTabState extends State<MessagesTab> {
                               radius: 24,
                               backgroundColor: AppTheme.primaryLight,
                               backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                              onBackgroundImageError: avatarUrl.isNotEmpty
+                                  ? (_, __) {}
+                                  : null,
                               child: avatarUrl.isEmpty
                                   ? const Icon(Icons.person, color: AppTheme.primary)
                                   : null,
@@ -129,9 +177,9 @@ class _MessagesTabState extends State<MessagesTab> {
                                   child: Text(
                                     other?['name'] ?? 'Người dùng',
                                     style: TextStyle(
-                                      fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
+                                      fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
                                       fontSize: 15,
-                                      color: unread ? AppTheme.textPrimary : AppTheme.textPrimary,
+                                      color: unread ? AppTheme.textPrimary : AppTheme.textSecondary,
                                     ),
                                   ),
                                 ),

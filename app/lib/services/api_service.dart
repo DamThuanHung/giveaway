@@ -358,16 +358,12 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getMyRooms() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/chat/rooms'),
-        headers: await _authHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body);
-      return [];
-    } catch (e) {
-      return [];
-    }
+    final res = await http.get(
+      Uri.parse('$baseUrl/chat/rooms'),
+      headers: await _authHeaders(),
+    ).timeout(const Duration(seconds: 10));
+    if (res.statusCode == 200) return jsonDecode(res.body);
+    return [];
   }
 
   static Future<Map<String, dynamic>?> getRoomById(String roomId) async {

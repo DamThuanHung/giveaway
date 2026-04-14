@@ -32,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollCtrl = ScrollController();
   List<dynamic> _messages = [];
   bool _isLoading = true;
+  bool _hasError = false;
   bool _showSafetyBanner = true;
   late IO.Socket _socket;
   String? _myId;
@@ -45,13 +46,19 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final msgs = await ApiService.getMessages(widget.roomId);
-    if (!mounted) return;
-    setState(() { _messages = msgs; _isLoading = false; });
-    _scrollToBottom();
-    // Đánh dấu đã đọc & cập nhật badge
-    ApiService.markRoomAsRead(widget.roomId);
-    if (mounted) context.read<NotificationProvider>().refresh();
+    setState(() { _isLoading = true; _hasError = false; });
+    try {
+      final msgs = await ApiService.getMessages(widget.roomId);
+      if (!mounted) return;
+      setState(() { _messages = msgs; _isLoading = false; });
+      _scrollToBottom();
+      ApiService.markRoomAsRead(widget.roomId);
+      if (mounted) context.read<NotificationProvider>().refresh();
+    } catch (e) {
+      debugPrint('❌ ChatScreen._loadHistory error: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasError = true; });
+    }
   }
 
   void _connectSocket() {
@@ -71,9 +78,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() => _messages.add(data));
       _scrollToBottom();
-      // Đang xem chat này → mark as read ngay
       ApiService.markRoomAsRead(widget.roomId);
-      context.read<NotificationProvider>().refresh();
+      if (mounted) context.read<NotificationProvider>().refresh();
     });
   }
 
@@ -123,19 +129,19 @@ class _ChatScreenState extends State<ChatScreen> {
           if (_showSafetyBanner)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: const Color(0xFFFFF8E1),
+              color: AppTheme.warning.withOpacity(0.12),
               child: Row(children: [
-                const Icon(Icons.shield_outlined, size: 16, color: Color(0xFFF59E0B)),
+                Icon(Icons.shield_outlined, size: 16, color: AppTheme.warning),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Gợi ý: Gặp ở nơi công cộng, ban ngày. Không chuyển tiền trước khi nhận hàng.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.warning.withOpacity(0.85)),
                   ),
                 ),
                 GestureDetector(
                   onTap: () => setState(() => _showSafetyBanner = false),
-                  child: const Icon(Icons.close, size: 16, color: Color(0xFFF59E0B)),
+                  child: Icon(Icons.close, size: 16, color: AppTheme.warning),
                 ),
               ]),
             ),
@@ -167,6 +173,14 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                : _hasError
+                    ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 56, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Không thể tải tin nhắn', style: TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: _loadHistory, child: const Text('Thử lại')),
+                      ]))
                 : _messages.isEmpty
                     ? const Center(child: Text('Hãy bắt đầu cuộc trò chuyện', style: TextStyle(color: AppTheme.textSecondary)))
                     : ListView.builder(
@@ -407,7 +421,8 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        left: 16, right: 8, top: 10, bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+        left: 16, right: 8, top: 10,
+        bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
