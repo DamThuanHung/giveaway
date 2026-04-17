@@ -9,6 +9,8 @@ import 'providers/post_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/splash_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/deal/deals_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
@@ -17,12 +19,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
+// Lưu message khi app cold-start từ notification
+class PendingFcmMessage {
+  static RemoteMessage? value;
+}
+
+final _navigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (!kIsWeb) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Cold start: lưu lại message để AppShell xử lý sau
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      PendingFcmMessage.value = initialMessage;
+    }
   }
 
   runApp(
@@ -76,6 +91,11 @@ class _MyAppState extends State<MyApp> {
       _trySendToken();
     }
 
+    // Background → foreground: user tap vào notification
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _handleFcmNavigation(message);
+    });
+
     // In-app banner khi app đang mở và nhận notification
     FirebaseMessaging.onMessage.listen((message) {
       final title = message.notification?.title ?? '';
@@ -127,6 +147,43 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  Future<void> _handleFcmNavigation(RemoteMessage message) async {
+    final data = message.data;
+    final type = data['type']?.toString() ?? '';
+    final roomId = data['roomId']?.toString();
+
+    final nav = _navigatorKey.currentState;
+    if (nav == null) return;
+
+    if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+      // Fetch room info để lấy tên người dùng và thông tin bài đăng
+      try {
+        final room = await ApiService.getRoomById(roomId);
+        if (room == null) return;
+
+        final ctx = nav.context;
+        final auth = ctx.read<AuthProvider>();
+        final myId = auth.userId;
+        final other = room['buyerId'] == myId ? room['seller'] : room['buyer'];
+        final post = room['post'] as Map? ?? {};
+
+        nav.push(MaterialPageRoute(builder: (_) => ChatScreen(
+          roomId: roomId,
+          otherUserName: other?['name']?.toString() ?? 'Người dùng',
+          postTitle: post['title']?.toString() ?? '',
+          postImageLabel: post['imageLabel']?.toString() ?? '',
+          postId: post['id']?.toString(),
+        )));
+      } catch (_) {}
+      return;
+    }
+
+    if (type == 'deal' || type == 'review') {
+      nav.push(MaterialPageRoute(builder: (_) => const DealsScreen()));
+      return;
+    }
+  }
+
   void _trySendToken() {
     if (_pendingFcmToken == null) return;
     final auth = context.read<AuthProvider>();
@@ -143,6 +200,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       scaffoldMessengerKey: _messengerKey,
+      navigatorKey: _navigatorKey,
       home: const SplashScreen(),
     );
   }

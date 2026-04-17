@@ -8,12 +8,15 @@ import 'search_tab.dart';
 import 'profile_tab.dart';
 import 'post/create_post_tab.dart';
 import 'notifications_screen.dart';
+import 'chat_screen.dart';
+import 'deal/deals_screen.dart';
 import 'auth/phone_login_screen.dart';
 import '../providers/post_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show PendingFcmMessage;
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -35,14 +38,50 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    // Bắt đầu polling thông báo sau khi widget mount
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       if (auth.isAuth && auth.userId != null) {
         context.read<NotificationProvider>().start(auth.userId!);
         _registerFcmToken();
       }
+      // Cold-start: xử lý pending FCM message
+      _handlePendingFcmMessage();
     });
+  }
+
+  Future<void> _handlePendingFcmMessage() async {
+    final message = PendingFcmMessage.value;
+    if (message == null) return;
+    PendingFcmMessage.value = null;
+
+    final data = message.data;
+    final type = data['type']?.toString() ?? '';
+    final roomId = data['roomId']?.toString();
+
+    if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+      await _openChatFromRoomId(roomId);
+      return;
+    }
+    if (type == 'deal' || type == 'review') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
+    }
+  }
+
+  Future<void> _openChatFromRoomId(String roomId) async {
+    try {
+      final room = await ApiService.getRoomById(roomId);
+      if (!mounted || room == null) return;
+      final myId = context.read<AuthProvider>().userId;
+      final other = room['buyerId'] == myId ? room['seller'] : room['buyer'];
+      final post = room['post'] as Map? ?? {};
+      Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+        roomId: roomId,
+        otherUserName: other?['name']?.toString() ?? 'Người dùng',
+        postTitle: post['title']?.toString() ?? '',
+        postImageLabel: post['imageLabel']?.toString() ?? '',
+        postId: post['id']?.toString(),
+      )));
+    } catch (_) {}
   }
 
   Future<void> _registerFcmToken() async {
