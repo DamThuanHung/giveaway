@@ -178,7 +178,7 @@ export class NotificationController {
         'Đất nền 100m2 khu dân cư Bình Dương', 'Phòng thuê full nội thất Q.3 TPHCM',
         'Chung cư mini 38m2 Thanh Xuân HN', 'Shop 50m2 mặt tiền đường lớn',
         'Nhà phố 5 tầng gần hồ Tây HN', 'Penthouse view sông Hàn Đà Nẵng',
-      ], prices: [3000000, 4200000000, 12000000, 18000000, 850000000, 5500000, 1800000000, 25000000, 8500000000, 6500000000] }],
+      ], prices: [3000000, 420000000, 12000000, 18000000, 850000000, 5500000, 180000000, 25000000, 950000000, 650000000] }],
       service: [{ titles: [
         'Sửa điện nước tận nhà 24/7', 'Dọn dẹp nhà cửa chuyên nghiệp',
         'Thiết kế logo và nhận diện thương hiệu', 'Gia sư Toán Lý Hóa lớp 10-12',
