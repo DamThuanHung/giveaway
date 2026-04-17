@@ -29,7 +29,8 @@ export class ChatGateway implements OnGatewayConnection {
     @MessageBody() data: { roomId: string; senderId: string; text: string },
   ) {
     const message = await this.chatService.sendMessage(data.roomId, data.senderId, data.text);
-    this.server.to(data.roomId).emit('receive_message', message);
+    // Chỉ gửi cho người kia, người gửi tự add local
+    client.to(data.roomId).emit('receive_message', message);
     // Khi gửi tin nhắn → tự động dừng typing
     client.to(data.roomId).emit('stop_typing', { senderId: data.senderId });
     return message;
