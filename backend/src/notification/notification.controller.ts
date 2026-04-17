@@ -44,9 +44,16 @@ export class NotificationController {
     return { ok: true };
   }
 
+  private checkDevSecret(secret?: string) {
+    const expected = process.env.DEV_SECRET;
+    if (!expected || secret !== expected) return false;
+    return true;
+  }
+
   // Endpoint test — chỉ dùng trong development/debug
   @Post('test-push')
-  async testPush(@Body() body: { userId: string; title: string; message: string }) {
+  async testPush(@Body() body: { userId: string; title: string; message: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     if (!body.userId) return { error: 'userId required' };
     const user = await this.prisma.user.findUnique({
       where: { id: body.userId },
@@ -64,7 +71,8 @@ export class NotificationController {
 
   // Seed bài đăng test cho tất cả category
   @Post('dev/seed-posts')
-  async seedPosts(@Body() body: { authorId: string }) {
+  async seedPosts(@Body() body: { authorId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     const authorId = body.authorId;
     if (!authorId) return { error: 'authorId required' };
 
@@ -231,7 +239,8 @@ export class NotificationController {
 
   // Tạo dữ liệu test chat cho một userId
   @Post('dev/seed-chat')
-  async seedChat(@Body() body: { userId: string }) {
+  async seedChat(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     const userId = body.userId;
     if (!userId) return { error: 'userId required' };
 
@@ -313,7 +322,8 @@ export class NotificationController {
 
   // Xóa toàn bộ thông báo của một userId (dùng để dọn dữ liệu test)
   @Post('dev/clear-notifications')
-  async clearNotifications(@Body() body: { userId: string }) {
+  async clearNotifications(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     if (!body.userId) return { error: 'userId required' };
     const { count } = await this.prisma.notification.deleteMany({ where: { userId: body.userId } });
     return { ok: true, deleted: count };
