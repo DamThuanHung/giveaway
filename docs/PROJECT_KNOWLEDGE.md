@@ -4,69 +4,82 @@
 
 | Tên | Ý nghĩa |
 |---|---|
-| **Cho và Tặng** | Tên chính thức của dự án (tên package: `cho_va_tang`) |
-| **Jimoty Clone VN** | Tên nội bộ khi phát triển, lấy cảm hứng từ app Jimoty của Nhật Bản |
-| **SERVER JIMOTY** | Tên server backend xuất hiện trong log khi khởi động |
+| **Trao Tay** | Tên thương hiệu (domain: traotay.com.vn) |
+| **Cho và Tặng** | Tên nội bộ / package name (`cho_va_tang`) |
+| **Jimoty Clone VN** | Tên dev ban đầu, lấy cảm hứng từ Jimoty Nhật Bản |
 
 ---
 
 ## Thuật ngữ nghiệp vụ
 
 ### Bài đăng (Post)
-- Là đơn vị nội dung trung tâm của ứng dụng
-- Một bài đăng có thể là: **bán đồ** (`listingType: sell`) hoặc **tặng miễn phí** (`listingType: give`)
-- Mỗi bài đăng có tối đa **5 ảnh**
-- Giá = `0` thường tương đương "tặng miễn phí"
+- Đơn vị nội dung trung tâm
+- `listingType: give` = tặng miễn phí, `price = 0`
+- `listingType: sell` = bán có giá
+- `status: available` = còn → `status: done` = đã trao tặng/bán xong
+- `postType: item` = đồ vật thông thường (default)
+- `postType: realestate` = bất động sản (thêm fields: area, bedrooms, subType, priceUnit)
+- `postType: service` = dịch vụ/thợ (thêm fields: priceUnit, serviceArea)
+- Tối đa 5 ảnh/bài, lưu URL Cloudinary
+- `imageLabel` = URL ảnh thumbnail đại diện (dùng trong chat banner, notification)
 
 ### Người dùng (User)
-- Xác thực bằng email + mật khẩu (bcrypt)
-- JWT token có hiệu lực **7 ngày**
-- Token lưu phía client trong `SharedPreferences` với key `auth_token`
+- Đăng nhập bằng **SĐT** (Firebase OTP) — flow chính
+- Đăng nhập bằng **email + password** — flow dự phòng
+- Đăng nhập bằng **email OTP** — không cần nhớ mật khẩu
+- Token JWT có hiệu lực **7 ngày**, lưu `SharedPreferences` key `auth_token`
+- User phone-only không có `email/password`, chỉ có `phone`
 
-### Yêu thích (Favorite)
-- User có thể lưu bài đăng vào danh sách yêu thích
-- Logic nghiệp vụ nằm trong `FavoriteService` nhưng **chưa có DB schema**
+### Chat (ChatRoom + Message)
+- Chat **1-1** theo room, mỗi cặp `[buyerId, sellerId]` chỉ có 1 room duy nhất
+- "buyer" = người hỏi/xin nhận, "seller" = người đăng bài
+- Room gắn với 1 `postId` (bài đăng đang hỏi)
+- Tin nhắn lưu vào DB, có trạng thái `isRead`
+- Push notification khi nhận tin nhắn mới (FCM)
+- Notification body: `Bạn nhận được tin nhắn mới từ "{tên}" về bài viết "{tiêu đề}"`
 
-### Báo cáo (Report)
-- User báo cáo bài đăng vi phạm
-- Hiện tại chỉ ghi log, **chưa lưu vào DB** và chưa có luồng xử lý
+### Deal (Giao dịch)
+- Flow xin nhận đồ qua chat (không phải nút riêng)
+- `status`: `pending` → `accepted` / `rejected` → `done`
+- Sau `done` → có thể để lại `Review` (đánh giá 1–5 sao)
 
-### Chat
-- Nhắn tin realtime qua **Socket.io WebSocket**
-- Hiện tại là **broadcast toàn bộ** (gửi 1 người, tất cả nhận được)
-- Chưa có tính năng chat 1-1 thực sự (chưa lưu DB)
+### Notification
+- `type: "chat"` — tin nhắn mới
+- `type: "deal"` — cập nhật deal
+- `type: "system"` — thông báo hệ thống
+- `data` = JSON string chứa context: `{ roomId, postTitle, postImageLabel }`
+- Tap notification → navigate đến màn hình tương ứng
+
+### Follow
+- User có thể follow user khác
+- Feed riêng chứa bài đăng từ người đang follow (`GET /follow/feed`)
 
 ---
 
 ## Business Rules quan trọng
 
 ### Upload ảnh
-- Ảnh được lưu vật lý trên server tại thư mục `backend/uploads/`
-- Trong DB, chỉ lưu **filename** (vd: `images-1234567890-123456789.jpg`)
-- Để hiển thị ảnh: ghép `baseUrl + '/uploads/' + filename`
-- Thư mục `uploads/` được tạo tự động khi server khởi động nếu chưa tồn tại
+- Ảnh upload lên **Cloudinary CDN** (không lưu local)
+- Trong DB lưu **URL đầy đủ** (`https://res.cloudinary.com/...`)
+- `imageLabel` = URL ảnh đầu tiên, dùng cho thumbnail
 
-### JWT Authentication
-- Secret key: `cho_va_tang_dev_secret` (hardcode cho dev, nên đổi trước khi production)
-- Token expiry: `7d` (7 ngày)
-- Header format: `Authorization: Bearer {token}`
+### Xác thực
+- Header: `Authorization: Bearer {token}`
+- Dev endpoints: header `x-dev-secret: {DEV_SECRET}`
 
-### Địa chỉ mạng nội bộ
-- Backend lắng nghe tại `0.0.0.0:3800`
-- IP hiện tại: `192.168.0.108` — **đây là IP máy tính dev, thay đổi theo mạng WiFi**
-- Khi đổi mạng: cần cập nhật `baseUrl` trong `app/lib/services/api_service.dart`
-
-### Loại bài đăng (listingType)
-| Giá trị | Ý nghĩa |
+### Trạng thái bài đăng
+| Status | Hiển thị |
 |---|---|
-| `sell` | Bán (có giá) |
-| `give` | Tặng miễn phí |
+| `available` | Bình thường, có thể nhắn tin |
+| `done` | Hiển thị badge "Đã trao tặng", nút nhắn tin bị disable |
 
-### Danh mục sản phẩm (itemCategory)
-| Giá trị | Ý nghĩa |
-|---|---|
-| `other` | Khác (default) |
-| *(chưa đầy đủ)* | Cần xác nhận thêm với owner |
+### Danh mục (itemCategory)
+`electronics`, `furniture`, `clothing`, `kitchen`, `books`, `toys`, `sports`, `vehicles`, `beauty`, `pets`, `tools`, `food`, `baby`, `music`, `realestate`, `service`, `other` (17 danh mục)
+
+### Test accounts
+- Email: `1@test.com` → `10@test.com`
+- Password: `123456`
+- Tạo lại bằng: `POST /notification/dev/reset-test-data` (header `x-dev-secret`)
 
 ---
 
@@ -74,33 +87,33 @@
 
 ```
 [App khởi động]
-    │
-    ├── AuthProvider.isAuth == true → HomeTab
-    └── AuthProvider.isAuth == false → LoginScreen
+    ├── Lần đầu → OnboardingScreen → PhoneLoginScreen
+    └── Đã login → AppShell (5 tabs)
 
 [Đăng nhập]
-    POST /user/login → nhận access_token → lưu SharedPreferences
+    SĐT: nhập số → Firebase OTP → POST /user/phone-login → JWT
+    Email: POST /user/login (email + password) → JWT
 
 [Xem bài đăng]
-    GET /post → danh sách → PostCard → PostDetailScreen
+    GET /post (filter) → HomeTab → PostDetailScreen
 
-[Đăng bài mới]
-    Chọn ảnh (ImagePicker) → điền form → POST /post (multipart) → upload ảnh
+[Nhắn tin]
+    PostDetailScreen → "Nhắn tin" → POST /chat/room → ChatScreen (WebSocket)
 
-[Chat]
-    Kết nối WebSocket → emit 'sendMessage' → nhận 'receive_message'
+[Deal flow]
+    Thỏa thuận trong chat → owner đổi status bài thành "done"
+
+[Thông báo]
+    FCM push (background) + in-app NotificationsScreen
 ```
 
 ---
 
-## Những điểm cần phát triển tiếp (Known TODOs)
+## Deployment
 
-| # | Vấn đề | Ưu tiên |
-|---|---|---|
-| 1 | Thêm cột địa chỉ vào Prisma schema (province, district, ward, addressDetail, itemCategory, listingType) | Cao |
-| 2 | Tạo model `Favorite` trong Prisma schema | Cao |
-| 3 | Lưu tin nhắn chat vào DB | Trung bình |
-| 4 | Implement chat 1-1 (hiện đang broadcast) | Trung bình |
-| 5 | Tạo model `Report` và lưu vào DB | Thấp |
-| 6 | Chuyển JWT secret sang biến môi trường `.env` | Cao (bảo mật) |
-| 7 | Auth middleware / Guard cho các route cần login | Cao |
+| Môi trường | URL |
+|---|---|
+| Production backend | `https://giveaway-production-e88c.up.railway.app` |
+| Production DB | Railway PostgreSQL |
+| CDN ảnh | Cloudinary (`traotay/` folder) |
+| Domain (tương lai) | `traotay.com.vn` (đăng ký tại TenTen.vn) |

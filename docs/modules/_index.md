@@ -4,8 +4,8 @@
 
 | File | Mục đích |
 |---|---|
-| [CORE_FRAMEWORK.md](../CORE_FRAMEWORK.md) | Kiến trúc, API, conventions |
-| [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) | Schema DB |
+| [CORE_FRAMEWORK.md](../CORE_FRAMEWORK.md) | Kiến trúc, API endpoints, conventions |
+| [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) | Schema DB đầy đủ |
 | [PROJECT_KNOWLEDGE.md](../PROJECT_KNOWLEDGE.md) | Thuật ngữ & business rules |
 | [UI_DESIGN_SYSTEM.md](../UI_DESIGN_SYSTEM.md) | Màu sắc, typography, components |
 | [UX_PATTERNS.md](../UX_PATTERNS.md) | Luồng UX, patterns tương tác |
@@ -17,20 +17,33 @@
 
 | Module | File tài liệu | Trạng thái | Mô tả |
 |---|---|---|---|
-| User | [user.md](user.md) | Có tài liệu | Đăng ký, đăng nhập, quản lý tài khoản |
-| Post | [post.md](post.md) | Có tài liệu | Đăng tin, xem tin, upload ảnh |
-| Favorite | [favorite.md](favorite.md) | Có tài liệu | Yêu thích bài đăng |
-| Report | [report.md](report.md) | Có tài liệu | Báo cáo bài đăng vi phạm |
-| Chat | [chat.md](chat.md) | Có tài liệu | Nhắn tin realtime qua WebSocket |
-| Prisma | *(trong CORE_FRAMEWORK.md)* | — | Database ORM service |
+| Auth | *(trong CORE_FRAMEWORK.md)* | — | JwtAuthGuard, JwtStrategy |
+| User | [user.md](user.md) | Cần cập nhật | Đăng ký, đăng nhập, profile, block, link-email |
+| Post | [post.md](post.md) | Cần cập nhật | Bài đăng (CRUD, Cloudinary upload) |
+| Chat | [chat.md](chat.md) | Cần cập nhật | WebSocket Gateway + REST rooms + messages |
+| Notification | *(chưa có)* | Thiếu | FCM push + in-app notifications + /dev endpoints |
+| Favorite | [favorite.md](favorite.md) | Cần cập nhật | Yêu thích bài đăng |
+| Follow | *(chưa có)* | Thiếu | Follow user, feed |
+| Deal | *(chưa có)* | Thiếu | Giao dịch xin nhận đồ |
+| Review | *(chưa có)* | Thiếu | Đánh giá sau deal |
+| Report | [report.md](report.md) | Cần cập nhật | Báo cáo bài đăng vi phạm |
+| Cloudinary | *(chưa có)* | Thiếu | Upload ảnh lên Cloudinary CDN |
+| FCM | *(chưa có)* | Thiếu | Firebase Cloud Messaging service |
+| Admin | *(chưa có)* | Thiếu | Quản trị hệ thống |
+| Prisma | *(trong DATABASE_SCHEMA.md)* | — | Database ORM service |
 
 ## Flutter Modules (Screens & Providers)
 
-| Module | Màn hình chính | Mô tả |
-|---|---|---|
-| Auth | `login_screen.dart` | Đăng nhập / xác thực |
-| Home | `home_tab.dart` | Trang chủ — danh sách bài đăng |
-| Post Detail | `post_detail_screen.dart` | Xem chi tiết bài đăng |
-| Favorites | `favorites_tab.dart` | Danh sách yêu thích |
-| Messages | `messages_tab.dart`, `chat_screen.dart` | Tin nhắn |
-| Profile | `profile_tab.dart` | Hồ sơ người dùng |
+| Module | Màn hình chính | Trạng thái | Mô tả |
+|---|---|---|---|
+| Onboarding | `onboarding_screen.dart` | Done | Màn hình giới thiệu lần đầu |
+| Auth | `phone_login_screen.dart`, `login_screen.dart`, `register_screen.dart` | Done | Đăng nhập SĐT + email |
+| Home | `home_tab.dart` | Done | Trang chủ — danh sách + filter category |
+| Search | `search_tab.dart` | Done | Tìm kiếm bài đăng |
+| Post Detail | `post_detail_screen.dart` | Done | Chi tiết bài đăng |
+| Post Create | `post_create_screen.dart` | Done | Đăng bài mới |
+| Favorites | `favorites_tab.dart` | Done | Danh sách yêu thích |
+| Messages | `messages_tab.dart`, `chat_screen.dart` | Done | Danh sách chat + chat 1-1 |
+| Notifications | `notifications_screen.dart` | Done | Thông báo in-app |
+| Profile | `profile_tab.dart` | Done | Hồ sơ cá nhân |
+| User Profile | `user_profile_screen.dart` | Done | Hồ sơ user khác |
