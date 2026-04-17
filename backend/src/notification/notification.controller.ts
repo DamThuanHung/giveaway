@@ -296,9 +296,9 @@ export class NotificationController {
     await this.notificationService.createNotification(
       userId,
       'chat',
-      'Tin nhắn mới',
-      'Còn bạn nhé! Bạn có muốn nhận không?',
-      JSON.stringify({ roomId: room.id }),
+      `Tin nhắn mới từ ${buyerId === userId ? 'Nguyễn Văn Test' : 'người bán'}`,
+      `Bạn nhận được tin nhắn từ "${buyerId === userId ? 'Nguyễn Văn Test' : 'người bán'}" về bài viết "${post.title}"`,
+      JSON.stringify({ roomId: room.id, postTitle: post.title }),
     );
 
     return { ok: true, roomId: room.id, postTitle: post.title };

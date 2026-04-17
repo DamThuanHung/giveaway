@@ -76,12 +76,16 @@ export class ChatService {
     // Tạo notification + gửi FCM push cho người nhận
     const recipientId = room.buyerId === senderId ? room.sellerId : room.buyerId;
     const senderName = (message.sender as any)?.name ?? 'Ai đó';
+    const postTitle = (room as any).post?.title ?? '';
+    const notifBody = postTitle
+      ? `Bạn nhận được tin nhắn từ "${senderName}" về bài viết "${postTitle}"`
+      : `Bạn nhận được tin nhắn mới từ "${senderName}"`;
     await this.notificationService.createNotification(
       recipientId,
       'chat',
       `Tin nhắn mới từ ${senderName}`,
-      text.length > 60 ? text.substring(0, 60) + '...' : text,
-      JSON.stringify({ roomId, postTitle: (room as any).post?.title }),
+      notifBody,
+      JSON.stringify({ roomId, postTitle }),
     );
 
     return message;
