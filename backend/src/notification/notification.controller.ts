@@ -235,39 +235,68 @@ export class NotificationController {
     const userId = body.userId;
     if (!userId) return { error: 'userId required' };
 
-    // Tìm post có ảnh, không phải của user này
-    const post = await this.prisma.post.findFirst({
+    // Tìm post có ảnh — ưu tiên post của người khác (userId là buyer)
+    // Nếu không có → dùng post của chính userId (tạo buyer giả, userId là seller)
+    let post = await this.prisma.post.findFirst({
       where: { authorId: { not: userId }, status: 'available', imageLabel: { not: '' } },
       orderBy: { createdAt: 'desc' },
       select: { id: true, title: true, authorId: true },
     });
-    if (!post) return { error: 'Không tìm thấy bài đăng nào để test' };
+
+    let buyerId = userId;
+    let sellerId: string;
+
+    if (!post) {
+      // Tất cả posts đều của userId — tạo buyer giả để demo
+      post = await this.prisma.post.findFirst({
+        where: { authorId: userId, status: 'available', imageLabel: { not: '' } },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, title: true, authorId: true },
+      });
+      if (!post) return { error: 'Không tìm thấy bài đăng nào để test' };
+
+      // Tạo hoặc lấy user test buyer
+      let testBuyer = await this.prisma.user.findFirst({ where: { phone: '+840000000000' } });
+      if (!testBuyer) {
+        testBuyer = await this.prisma.user.create({
+          data: {
+            phone: '+840000000000',
+            name: 'Nguyễn Văn Test',
+            avatar: 'https://picsum.photos/seed/testbuyer/100/100',
+          },
+        });
+      }
+      buyerId = testBuyer.id;
+      sellerId = userId;
+    } else {
+      sellerId = post.authorId;
+    }
 
     // Tạo hoặc lấy chat room
     let room = await this.prisma.chatRoom.findFirst({
-      where: { postId: post.id, buyerId: userId },
+      where: { postId: post.id, buyerId },
     });
     if (!room) {
       room = await this.prisma.chatRoom.create({
-        data: { postId: post.id, buyerId: userId, sellerId: post.authorId },
+        data: { postId: post.id, buyerId, sellerId },
       });
     }
 
     // Thêm tin nhắn test
     await this.prisma.message.createMany({
       data: [
-        { roomId: room.id, senderId: post.authorId, text: 'Xin chào! Bạn cần hỗ trợ gì không?', isRead: true },
-        { roomId: room.id, senderId: userId, text: 'Bạn ơi, món này còn không ạ?', isRead: true },
-        { roomId: room.id, senderId: post.authorId, text: 'Còn bạn nhé! Bạn có muốn nhận không?', isRead: false },
+        { roomId: room.id, senderId: sellerId, text: 'Xin chào! Bạn cần hỗ trợ gì không?', isRead: true },
+        { roomId: room.id, senderId: buyerId, text: 'Bạn ơi, món này còn không ạ?', isRead: true },
+        { roomId: room.id, senderId: sellerId, text: 'Còn bạn nhé! Bạn có muốn nhận không?', isRead: false },
       ],
       skipDuplicates: false,
     });
 
-    // Gửi notification với roomId để test deep link
+    // Gửi notification với roomId để test deep link (gửi cho userId - người dùng đang test)
     await this.notificationService.createNotification(
       userId,
       'chat',
-      'Tin nhắn mới từ người bán',
+      'Tin nhắn mới',
       'Còn bạn nhé! Bạn có muốn nhận không?',
       JSON.stringify({ roomId: room.id }),
     );
