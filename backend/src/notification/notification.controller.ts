@@ -48,12 +48,17 @@ export class NotificationController {
   @Post('test-push')
   async testPush(@Body() body: { userId: string; title: string; message: string }) {
     if (!body.userId) return { error: 'userId required' };
+    const user = await this.prisma.user.findUnique({
+      where: { id: body.userId },
+      select: { fcmToken: true, name: true },
+    });
+    if (!user?.fcmToken) return { error: 'no_fcm_token', name: user?.name };
     await this.notificationService.createNotification(
       body.userId,
       'deal',
       body.title || 'Thông báo test',
       body.message || 'Đây là thông báo test từ server.',
     );
-    return { ok: true };
+    return { ok: true, tokenPreview: user.fcmToken.substring(0, 30) + '...' };
   }
 }
