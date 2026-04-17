@@ -9,15 +9,28 @@ export class FcmService implements OnModuleInit {
 
   onModuleInit() {
     if (admin.apps.length > 0) return;
+
+    // Ưu tiên 1: env var FCM_SERVICE_ACCOUNT (dùng trên Railway)
+    const envJson = process.env.FCM_SERVICE_ACCOUNT;
+    if (envJson) {
+      try {
+        const serviceAccount = JSON.parse(envJson);
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+        this.logger.log('Firebase Admin initialized from env var');
+        return;
+      } catch (e) {
+        this.logger.error('FCM_SERVICE_ACCOUNT parse error: ' + e.message);
+      }
+    }
+
+    // Ưu tiên 2: file local (dùng khi dev)
     const keyPath = join(process.cwd(), 'firebase-service-account.json');
     if (!fs.existsSync(keyPath)) {
       this.logger.warn('firebase-service-account.json not found — FCM disabled');
       return;
     }
-    admin.initializeApp({
-      credential: admin.credential.cert(keyPath),
-    });
-    this.logger.log('Firebase Admin initialized');
+    admin.initializeApp({ credential: admin.credential.cert(keyPath) });
+    this.logger.log('Firebase Admin initialized from file');
   }
 
   async sendToToken(token: string, title: string, body: string, data?: Record<string, string>) {
