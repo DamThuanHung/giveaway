@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../providers/auth_provider.dart';
+import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'chat_screen.dart';
@@ -29,8 +30,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final data = await ApiService.getNotifications();
     if (!mounted) return;
     setState(() { _notifications = data; _isLoading = false; });
-    // Đánh dấu tất cả đã đọc
-    ApiService.markAllNotificationsRead();
+    // Không mark-read tự động — chỉ mark khi user tap từng item
   }
 
   Future<void> _navigateToTarget(Map n) async {
@@ -114,11 +114,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: AppBar(
         title: const Text('Thông báo'),
         actions: [
-          if (_notifications.isNotEmpty)
+          if (_notifications.any((n) => n['isRead'] != true))
             TextButton(
               onPressed: () async {
                 await ApiService.markAllNotificationsRead();
-                _load();
+                setState(() {
+                  for (final n in _notifications) n['isRead'] = true;
+                });
+                if (mounted) context.read<NotificationProvider>().clearBadge();
               },
               child: const Text('Đọc tất cả', style: TextStyle(color: AppTheme.primary)),
             ),
@@ -149,8 +152,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                       return InkWell(
                         onTap: () async {
-                          await ApiService.markNotificationRead(n['id']);
-                          setState(() => n['isRead'] = true);
+                          if (n['isRead'] != true) {
+                            await ApiService.markNotificationRead(n['id']);
+                            setState(() => n['isRead'] = true);
+                            // Nếu không còn thông báo chưa đọc → clear badge
+                            if (_notifications.every((x) => x['isRead'] == true) && mounted) {
+                              context.read<NotificationProvider>().clearBadge();
+                            }
+                          }
                           await _navigateToTarget(n);
                         },
                         child: Container(

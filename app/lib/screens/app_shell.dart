@@ -100,6 +100,7 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: _BottomBar(
         selectedIndex: _selectedIndex,
         unreadMsgCount: unreadMsgCount,
+        unreadNotifCount: unreadCount,
         onTap: _onItemTapped,
       ),
     );
@@ -116,8 +117,9 @@ class _NavItem {
 class _BottomBar extends StatefulWidget {
   final int selectedIndex;
   final int unreadMsgCount;
+  final int unreadNotifCount;
   final void Function(int) onTap;
-  const _BottomBar({required this.selectedIndex, required this.unreadMsgCount, required this.onTap});
+  const _BottomBar({required this.selectedIndex, required this.unreadMsgCount, required this.unreadNotifCount, required this.onTap});
 
   @override
   State<_BottomBar> createState() => _BottomBarState();
@@ -200,6 +202,7 @@ class _BottomBarState extends State<_BottomBar> with TickerProviderStateMixin {
                                 color: selected ? AppTheme.primary : Colors.grey,
                                 size: 24,
                               ),
+                              // Badge tin nhắn (tab Tin nhắn)
                               if (i == 3 && widget.unreadMsgCount > 0)
                                 Positioned(
                                   top: -4, right: -6,
@@ -209,6 +212,21 @@ class _BottomBarState extends State<_BottomBar> with TickerProviderStateMixin {
                                     constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                                     child: Text(
                                       widget.unreadMsgCount > 99 ? '99+' : '${widget.unreadMsgCount}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              // Badge thông báo (tab Trang chủ)
+                              if (i == 0 && widget.unreadNotifCount > 0)
+                                Positioned(
+                                  top: -4, right: -6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                    child: Text(
+                                      widget.unreadNotifCount > 99 ? '99+' : '${widget.unreadNotifCount}',
                                       style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                                       textAlign: TextAlign.center,
                                     ),

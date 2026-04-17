@@ -43,4 +43,17 @@ export class NotificationController {
     });
     return { ok: true };
   }
+
+  // Endpoint test — chỉ dùng trong development/debug
+  @Post('test-push')
+  async testPush(@Body() body: { userId: string; title: string; message: string }) {
+    if (!body.userId) return { error: 'userId required' };
+    await this.notificationService.createNotification(
+      body.userId,
+      'deal',
+      body.title || 'Thông báo test',
+      body.message || 'Đây là thông báo test từ server.',
+    );
+    return { ok: true };
+  }
 }

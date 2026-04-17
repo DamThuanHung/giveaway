@@ -47,6 +47,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String? _pendingFcmToken;
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
@@ -64,7 +65,6 @@ class _MyAppState extends State<MyApp> {
 
     await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-    // Lưu token tạm, gửi lên server sau khi auth load xong
     messaging.onTokenRefresh.listen((token) {
       _pendingFcmToken = token;
       _trySendToken();
@@ -76,7 +76,55 @@ class _MyAppState extends State<MyApp> {
       _trySendToken();
     }
 
-    FirebaseMessaging.onMessage.listen((_) {});
+    // In-app banner khi app đang mở và nhận notification
+    FirebaseMessaging.onMessage.listen((message) {
+      final title = message.notification?.title ?? '';
+      final body = message.notification?.body ?? '';
+      if (title.isEmpty && body.isEmpty) return;
+
+      // Refresh unread count
+      if (mounted) {
+        context.read<NotificationProvider>().refresh();
+      }
+
+      // Hiện banner trượt xuống
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          backgroundColor: Colors.white,
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+          content: Row(children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.notifications_rounded, color: AppTheme.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (title.isNotEmpty)
+                  Text(title, style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary,
+                  )),
+                if (body.isNotEmpty)
+                  Text(body, style: const TextStyle(
+                    fontSize: 12, color: AppTheme.textSecondary,
+                  ), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            )),
+          ]),
+        ),
+      );
+    });
   }
 
   void _trySendToken() {
@@ -86,7 +134,6 @@ class _MyAppState extends State<MyApp> {
       ApiService.saveFcmToken(_pendingFcmToken!);
       _pendingFcmToken = null;
     }
-    // Nếu chưa auth → sẽ được gọi lại khi auth thay đổi (xem build bên dưới)
   }
 
   @override
@@ -95,6 +142,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Trao Tay',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      scaffoldMessengerKey: _messengerKey,
       home: const SplashScreen(),
     );
   }
