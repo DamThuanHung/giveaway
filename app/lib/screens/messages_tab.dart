@@ -229,7 +229,7 @@ class _MessagesTabState extends State<MessagesTab> {
                                       width: 28, height: 28,
                                       child: AppImage(
                                         url: postImageLabel.isNotEmpty
-                                            ? '${ApiService.baseUrl}/uploads/$postImageLabel'
+                                            ? (postImageLabel.startsWith('http') ? postImageLabel : '${ApiService.baseUrl}/uploads/$postImageLabel')
                                             : '',
                                       ),
                                     ),

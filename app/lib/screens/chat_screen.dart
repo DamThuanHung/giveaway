@@ -265,8 +265,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: SizedBox(
-                      width: 40, height: 40,
-                      child: AppImage(url: '${ApiService.baseUrl}/uploads/${widget.postImageLabel}'),
+                      width: 44, height: 44,
+                      child: AppImage(url: widget.postImageLabel.startsWith('http')
+                          ? widget.postImageLabel
+                          : '${ApiService.baseUrl}/uploads/${widget.postImageLabel}'),
                     ),
                   ),
                 if (widget.postImageLabel.isNotEmpty) const SizedBox(width: 10),
