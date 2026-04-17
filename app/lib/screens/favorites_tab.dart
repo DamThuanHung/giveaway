@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/post_card.dart';
+import '../widgets/empty_state.dart';
 import 'post_detail_screen.dart';
 import 'auth/phone_login_screen.dart';
 
@@ -121,16 +122,10 @@ class FavoritesTabState extends State<FavoritesTab> {
                   onRefresh: load,
                   child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(height: c.maxHeight, child: Center(
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.favorite_border, size: 72, color: AppTheme.border.withOpacity(0.5)),
-                        const SizedBox(height: 16),
-                        const Text('Chưa có tin đăng nào được lưu',
-                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-                        const SizedBox(height: 8),
-                        const Text('Bấm ♡ trên bài đăng để lưu vào đây',
-                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                      ]),
+                    child: SizedBox(height: c.maxHeight, child: EmptyState(
+                      icon: Icons.favorite_border,
+                      message: 'Chưa có tin đăng nào được lưu',
+                      subMessage: 'Bấm ♡ trên bài đăng để lưu vào đây',
                     )),
                   )),
                 )

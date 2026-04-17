@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
 
 class MyReviewsScreen extends StatefulWidget {
   const MyReviewsScreen({super.key});
@@ -69,14 +70,10 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                   onRefresh: _load,
                   child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(height: c.maxHeight, child: Center(
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.star_outline_rounded, size: 72, color: AppTheme.border.withOpacity(0.5)),
-                        const SizedBox(height: 16),
-                        const Text('Chưa có đánh giá nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-                        const SizedBox(height: 8),
-                        const Text('Hoàn thành giao dịch để nhận đánh giá', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                      ]),
+                    child: SizedBox(height: c.maxHeight, child: EmptyState(
+                      icon: Icons.star_outline_rounded,
+                      message: 'Chưa có đánh giá nào',
+                      subMessage: 'Hoàn thành giao dịch để nhận đánh giá',
                     )),
                   )),
                 )

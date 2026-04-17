@@ -132,15 +132,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: _isLoading
           ? const NotificationListSkeleton()
           : _notifications.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
-                      const SizedBox(height: 16),
-                      const Text('Chưa có thông báo nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
-                    ],
-                  ),
+              ? const EmptyState(
+                  icon: Icons.notifications_off_outlined,
+                  message: 'Chưa có thông báo nào',
                 )
               : RefreshIndicator(
                   onRefresh: _load,

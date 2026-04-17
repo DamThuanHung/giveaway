@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/empty_state.dart';
 import 'chat_screen.dart';
 import 'auth/phone_login_screen.dart';
 
@@ -115,13 +116,11 @@ class _MessagesTabState extends State<MessagesTab> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: SizedBox(
                         height: constraints.maxHeight,
-                        child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: const [
-                          Icon(Icons.chat_bubble_outline, size: 64, color: AppTheme.border),
-                          SizedBox(height: 12),
-                          Text('Chưa có cuộc trò chuyện nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-                          SizedBox(height: 6),
-                          Text('Tìm đồ và liên hệ người đăng để bắt đầu', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                        ])),
+                        child: EmptyState(
+                          icon: Icons.chat_bubble_outline,
+                          message: 'Chưa có cuộc trò chuyện nào',
+                          subMessage: 'Tìm đồ và liên hệ người đăng để bắt đầu',
+                        ),
                       ),
                     ),
                   ),
