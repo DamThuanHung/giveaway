@@ -78,7 +78,7 @@ export class ChatService {
     const senderName = (message.sender as any)?.name ?? 'Ai đó';
     const postTitle = (room as any).post?.title ?? '';
     const notifBody = postTitle
-      ? `Bạn nhận được tin nhắn từ "${senderName}" về bài viết "${postTitle}"`
+      ? `Bạn nhận được tin nhắn mới từ "${senderName}" về bài viết "${postTitle}"`
       : `Bạn nhận được tin nhắn mới từ "${senderName}"`;
     await this.notificationService.createNotification(
       recipientId,

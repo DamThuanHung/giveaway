@@ -272,6 +272,13 @@ export class NotificationController {
       sellerId = post.authorId;
     }
 
+    // Lấy tên người gửi tin nhắn cuối (sellerId gửi tin cuối)
+    const senderUser = await this.prisma.user.findUnique({
+      where: { id: sellerId },
+      select: { name: true },
+    });
+    const senderName = senderUser?.name ?? 'Người dùng';
+
     // Tạo hoặc lấy chat room
     let room = await this.prisma.chatRoom.findFirst({
       where: { postId: post.id, buyerId },
@@ -296,8 +303,8 @@ export class NotificationController {
     await this.notificationService.createNotification(
       userId,
       'chat',
-      `Tin nhắn mới từ ${buyerId === userId ? 'Nguyễn Văn Test' : 'người bán'}`,
-      `Bạn nhận được tin nhắn từ "${buyerId === userId ? 'Nguyễn Văn Test' : 'người bán'}" về bài viết "${post.title}"`,
+      `Tin nhắn mới từ ${senderName}`,
+      `Bạn nhận được tin nhắn mới từ "${senderName}" về bài viết "${post.title}"`,
       JSON.stringify({ roomId: room.id, postTitle: post.title }),
     );
 
