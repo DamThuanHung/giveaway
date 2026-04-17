@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from './notification.service';
+import * as bcrypt from 'bcrypt';
 
 @Controller('notification')
 export class NotificationController {
@@ -409,7 +410,7 @@ export class NotificationController {
 
     // 1. Xóa các test user cũ (phone bắt đầu bằng +8400000000 hoặc +84111)
     const oldTestUsers = await this.prisma.user.findMany({
-      where: { OR: [{ phone: { startsWith: '+8400000000' } }, { phone: '+841111111111' }] },
+      where: { OR: [{ phone: { startsWith: '+8490000000' } }, { phone: { startsWith: '+8400000000' } }, { email: { endsWith: '@test.com' } }] },
       select: { id: true },
     });
     const oldIds = oldTestUsers.map(u => u.id);
@@ -449,13 +450,18 @@ export class NotificationController {
     let totalPosts = 0;
     const createdUsers: { name: string; phone: string; posts: number }[] = [];
 
+    const hashedPassword = await bcrypt.hash('123456', 10);
+
     for (let i = 0; i < 10; i++) {
-      const phone = `+840000000${String(i + 1).padStart(2, '0')}`;
-      const name = `${i + 1}@test.com`;
+      const phone = `+8490000000${i + 1}`;
+      const email = `${i + 1}@test.com`;
+      const name = `Test User ${i + 1}`;
       const user = await this.prisma.user.create({
         data: {
           phone,
+          email,
           name,
+          password: hashedPassword,
           avatar: `https://picsum.photos/seed/testuser${i + 1}/100/100`,
         },
       });
@@ -484,9 +490,9 @@ export class NotificationController {
         totalPosts++;
       }
 
-      createdUsers.push({ name, phone, posts: catPerUser[i].length });
+      createdUsers.push({ email, phone, posts: catPerUser[i].length });
     }
 
-    return { ok: true, users: createdUsers.length, totalPosts, accounts: createdUsers };
+    return { ok: true, users: createdUsers.length, totalPosts, password: '123456', accounts: createdUsers };
   }
 }
