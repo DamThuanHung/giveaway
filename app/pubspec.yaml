@@ -1,5 +1,5 @@
-name: cho_va_tang
-description: "Dự án trao đổi đồ cũ chuẩn Jimoty VN"
+name: traotay
+description: "Trao Tay — Ứng dụng mua bán & trao tặng đồ cũ cộng đồng"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -37,6 +37,8 @@ dependencies:
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
   share_plus: ^10.0.0
+  photo_view: ^0.15.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -54,5 +56,5 @@ flutter_icons:
   android: true
   ios: false
   image_path: "assets/icon/app_icon.png"
-  adaptive_icon_background: "#2E7D32"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icon/app_icon.png"

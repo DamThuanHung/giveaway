@@ -12,6 +12,7 @@ class SellerStatsScreen extends StatefulWidget {
 class _SellerStatsScreenState extends State<SellerStatsScreen> {
   Map<String, dynamic>? _stats;
   bool _isLoading = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -20,9 +21,16 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
   }
 
   Future<void> _load() async {
-    final data = await ApiService.getMyStats();
-    if (!mounted) return;
-    setState(() { _stats = data; _isLoading = false; });
+    setState(() { _isLoading = true; _error = false; });
+    try {
+      final data = await ApiService.getMyStats();
+      if (!mounted) return;
+      setState(() { _stats = data; _isLoading = false; });
+    } catch (e) {
+      debugPrint('❌ SellerStatsScreen._load error: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _error = true; });
+    }
   }
 
   @override
@@ -32,8 +40,22 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
       appBar: AppBar(title: const Text('Thống kê của tôi')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-          : _stats == null
-              ? const Center(child: Text('Không thể tải thống kê'))
+          : (_error || _stats == null)
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Không tải được thống kê', style: TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
+                      ]),
+                    )),
+                  )),
+                )
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
@@ -54,7 +76,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                           icon: Icons.favorite_border,
                           label: 'Lượt lưu',
                           value: _fmt(_stats!['totalFavorites']),
-                          color: const Color(0xFFEF4444),
+                          color: AppTheme.error,
                         ),
                       ]),
                       const SizedBox(height: 12),
@@ -102,7 +124,10 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
   String _fmt(dynamic val) {
     if (val == null) return '0';
     final n = val is int ? val : int.tryParse(val.toString()) ?? 0;
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    if (n >= 1000) {
+      final k = n / 1000;
+      return k == k.roundToDouble() ? '${k.round()}k' : '${k.toStringAsFixed(1)}k';
+    }
     return n.toString();
   }
 }

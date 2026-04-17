@@ -99,7 +99,7 @@ class _RadiusMapPickerState extends State<RadiusMapPicker> {
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.chovatang.app',
+                    userAgentPackageName: 'vn.traotay.app',
                   ),
                   // Vòng tròn bán kính
                   CircleLayer(

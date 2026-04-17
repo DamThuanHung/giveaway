@@ -9,62 +9,60 @@ datasource db {
   extensions = [unaccent]
 }
 
-// ─── USER ────────────────────────────────────────────────
 model User {
-  id              String   @id @default(cuid())
-  email           String?  @unique
-  phone           String?  @unique
-  name            String?
-  password        String?
-  isPhoneVerified Boolean  @default(false)
-  avatar          String?
-  role            String   @default("user")   // "user" | "moderator" | "admin"
-  fcmToken        String?
-  isBanned        Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  posts            Post[]
-  favorites        Favorite[]
-  reports          Report[]
-  notifications    Notification[]
+  id               String         @id @default(cuid())
+  email            String?        @unique
+  name             String?
+  createdAt        DateTime       @default(now())
+  password         String?
+  avatar           String?
+  fcmToken         String?
+  isBanned         Boolean        @default(false)
+  role             String         @default("user")
+  updatedAt        DateTime       @updatedAt
+  phone            String?        @unique
+  isPhoneVerified  Boolean        @default(false)
+  blockedByUsers   BlockedUser[]  @relation("BlockedRelation")
+  blockedUsers     BlockedUser[]  @relation("BlockerRelation")
+  followers        Follow[]       @relation("FollowingRelation")
+  following        Follow[]       @relation("FollowerRelation")
   chatAsBuyer      ChatRoom[]     @relation("BuyerRooms")
   chatAsSeller     ChatRoom[]     @relation("SellerRooms")
-  sentMessages     Message[]      @relation("MessageSender")
-  dealsAsRequester Deal[]         @relation("DealRequester")
   dealsAsOwner     Deal[]         @relation("DealOwner")
-  reviewsGiven     Review[]       @relation("ReviewGiven")
+  dealsAsRequester Deal[]         @relation("DealRequester")
+  favorites        Favorite[]
+  sentMessages     Message[]      @relation("MessageSender")
+  notifications    Notification[]
+  posts            Post[]
+  reports          Report[]
   reviewsReceived  Review[]       @relation("ReviewReceived")
-  blockedUsers     BlockedUser[]  @relation("BlockerRelation")
-  blockedByUsers   BlockedUser[]  @relation("BlockedRelation")
+  reviewsGiven     Review[]       @relation("ReviewGiven")
 }
 
-// ─── POST ────────────────────────────────────────────────
 model Post {
-  id            String   @id @default(cuid())
   title         String
   description   String
-  price         Int      @default(0)
-  latitude      Float    @default(0.0)
-  longitude     Float    @default(0.0)
-  province      String   @default("")
-  district      String   @default("")
-  ward          String   @default("")
-  addressDetail String   @default("")
-  listingType   String   @default("sell")      // "sell" | "give"
-  itemCategory  String   @default("other")
-  imageLabel    String   @default("")
-  status        String   @default("available") // "available" | "reserved" | "done"
-  viewCount     Int      @default(0)
+  price         Int        @default(0)
+  createdAt     DateTime   @default(now())
+  addressDetail String     @default("")
+  district      String     @default("")
+  imageLabel    String     @default("")
+  itemCategory  String     @default("other")
+  listingType   String     @default("sell")
+  province      String     @default("")
+  status        String     @default("available")
+  ward          String     @default("")
+  id            String     @id @default(cuid())
+  latitude      Float      @default(0.0)
+  longitude     Float      @default(0.0)
   authorId      String?
-  author        User?    @relation(fields: [authorId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  favorites Favorite[]
-  chatRooms ChatRoom[]
-  reports   Report[]
-  deals     Deal[]
+  updatedAt     DateTime   @updatedAt
+  viewCount     Int        @default(0)
+  chatRooms     ChatRoom[]
+  deals         Deal[]
+  favorites     Favorite[]
+  author        User?      @relation(fields: [authorId], references: [id])
+  reports       Report[]
 
   @@index([status])
   @@index([province])
@@ -76,132 +74,129 @@ model Post {
   @@index([status, itemCategory])
 }
 
-// ─── FAVORITE ────────────────────────────────────────────
 model Favorite {
   id        String   @id @default(cuid())
   userId    String
   postId    String
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@index([userId])
 }
 
-// ─── REPORT ──────────────────────────────────────────────
 model Report {
   id        String   @id @default(cuid())
   postId    String
   userId    String
   reason    String
-  status    String   @default("pending") // "pending" | "resolved" | "dismissed"
+  status    String   @default("pending")
   createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
 }
 
-// ─── CHAT ROOM ───────────────────────────────────────────
 model ChatRoom {
   id        String    @id @default(cuid())
-  postId    String
   buyerId   String
+  postId    String
   sellerId  String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  buyer     User      @relation("BuyerRooms", fields: [buyerId], references: [id])
+  post      Post      @relation(fields: [postId], references: [id])
+  seller    User      @relation("SellerRooms", fields: [sellerId], references: [id])
+  messages  Message[]
 
-  post     Post      @relation(fields: [postId], references: [id])
-  buyer    User      @relation("BuyerRooms",  fields: [buyerId],  references: [id])
-  seller   User      @relation("SellerRooms", fields: [sellerId], references: [id])
-  messages Message[]
-
-  @@unique([postId, buyerId])
+  @@unique([buyerId, sellerId])
 }
 
-// ─── MESSAGE ─────────────────────────────────────────────
 model Message {
   id        String   @id @default(cuid())
-  text      String
-  senderId  String
   roomId    String
-  metadata  String?  // JSON: { type:'deal', dealId, status, userMessage, postTitle }
-  isRead    Boolean  @default(false)
+  text      String
   createdAt DateTime @default(now())
-
-  sender User     @relation("MessageSender", fields: [senderId], references: [id])
-  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId  String
+  isRead    Boolean  @default(false)
+  metadata  String?
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
 
   @@index([roomId])
   @@index([roomId, createdAt])
 }
 
-// ─── NOTIFICATION ─────────────────────────────────────────
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // "chat" | "deal" | "review" | "system"
+  type      String
   title     String
   body      String
-  data      String?  // JSON string cho deep link
+  data      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, isRead])
 }
 
-// ─── DEAL ────────────────────────────────────────────────
 model Deal {
   id          String   @id @default(cuid())
   postId      String
   requesterId String
   ownerId     String
-  status      String   @default("pending") // "pending"|"accepted"|"rejected"|"completed"|"cancelled"
+  status      String   @default("pending")
   message     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  post      Post     @relation(fields: [postId],      references: [id])
-  requester User     @relation("DealRequester", fields: [requesterId], references: [id])
-  owner     User     @relation("DealOwner",     fields: [ownerId],     references: [id])
-  reviews   Review[]
+  owner       User     @relation("DealOwner", fields: [ownerId], references: [id])
+  post        Post     @relation(fields: [postId], references: [id])
+  requester   User     @relation("DealRequester", fields: [requesterId], references: [id])
+  reviews     Review[]
 
   @@index([requesterId])
   @@index([ownerId])
   @@index([status])
 }
 
-// ─── REVIEW ──────────────────────────────────────────────
 model Review {
   id         String   @id @default(cuid())
   dealId     String
   reviewerId String
   revieweeId String
-  rating     Int      // 1-5
+  rating     Int
   comment    String?
   createdAt  DateTime @default(now())
-
-  deal     Deal @relation(fields: [dealId],     references: [id])
-  reviewer User @relation("ReviewGiven",    fields: [reviewerId], references: [id])
-  reviewee User @relation("ReviewReceived", fields: [revieweeId], references: [id])
+  deal       Deal     @relation(fields: [dealId], references: [id])
+  reviewee   User     @relation("ReviewReceived", fields: [revieweeId], references: [id])
+  reviewer   User     @relation("ReviewGiven", fields: [reviewerId], references: [id])
 
   @@unique([dealId, reviewerId])
 }
 
-// ─── BLOCKED USER ─────────────────────────────────────────
 model BlockedUser {
   id        String   @id @default(cuid())
   blockerId String
   blockedId String
   createdAt DateTime @default(now())
-
-  blocker User @relation("BlockerRelation", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked User @relation("BlockedRelation", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlockedRelation", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User     @relation("BlockerRelation", fields: [blockerId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
   @@index([blockerId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("FollowerRelation", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowingRelation", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }

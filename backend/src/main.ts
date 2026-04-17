@@ -29,11 +29,11 @@ async function bootstrap() {
   app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
 
   const port = process.env.PORT || 3800;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port);
 
   console.log(`\n==========================================`);
   console.log(`✅ SERVER JIMOTY ĐÃ SẴN SÀNG`);
-  console.log(`   http://0.0.0.0:${port}`);
+  console.log(`   http://192.168.0.108:${port}`);
   console.log(`==========================================\n`);
 }
 bootstrap();

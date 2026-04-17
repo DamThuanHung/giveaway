@@ -39,9 +39,9 @@ export class UserService {
     });
 
     await transporter.sendMail({
-      from: `"Cho và Tặng" <${smtpUser}>`,
+      from: `"Trao Tay" <${smtpUser}>`,
       to: email,
-      subject: 'Mã xác nhận OTP - Cho và Tặng',
+      subject: 'Mã xác nhận OTP - Trao Tay',
       html: `
         <div style="font-family:sans-serif;max-width:400px;margin:auto">
           <h2 style="color:#10B981">Mã xác nhận của bạn</h2>
@@ -266,6 +266,36 @@ export class UserService {
       isNewUser: false,
       user: { id: user.id, phone: user.phone, email: user.email, name: user.name, avatar: user.avatar, role: user.role, isPhoneVerified: user.isPhoneVerified },
     };
+  }
+
+  // ─── Quên mật khẩu ───────────────────────────────────────────────────────
+
+  async sendForgotPasswordOtp(email: string) {
+    const emailLower = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
+    if (!user) throw new BadRequestException('Email này chưa được đăng ký');
+    if (!user.password) throw new BadRequestException('Tài khoản này đăng nhập bằng SĐT, không có mật khẩu để đặt lại');
+
+    const otp = this.generateOtp();
+    this.otpStore.set(`reset:${emailLower}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    await this.sendEmailOtp(emailLower, otp);
+    return { message: 'Đã gửi mã OTP đến email' };
+  }
+
+  async resetPassword(email: string, otp: string, newPassword: string) {
+    const emailLower = email.trim().toLowerCase();
+    const stored = this.otpStore.get(`reset:${emailLower}`);
+    if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+      throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+    }
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('Mật khẩu mới phải có ít nhất 6 ký tự');
+    }
+    this.otpStore.delete(`reset:${emailLower}`);
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { email: emailLower }, data: { password: hashedPassword } });
+    return { message: 'Đặt lại mật khẩu thành công' };
   }
 
   // ─── Liên kết email dự phòng (user đã đăng nhập) ─────────────────────────

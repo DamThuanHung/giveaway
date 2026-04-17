@@ -34,7 +34,7 @@ export class DealService {
 
     // Tạo hoặc lấy chat room
     let room = await this.prisma.chatRoom.findUnique({
-      where: { postId_buyerId: { postId, buyerId: requesterId } },
+      where: { buyerId_sellerId: { buyerId: requesterId, sellerId: ownerId } },
     });
     if (!room) {
       room = await this.prisma.chatRoom.create({

@@ -112,7 +112,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'vn.chovatang.app',
+                userAgentPackageName: 'vn.traotay.app',
               ),
               MarkerLayer(
                 markers: [

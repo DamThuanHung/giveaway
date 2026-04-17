@@ -41,6 +41,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (picked != null) setState(() => _pickedImage = File(picked.path));
   }
 
+  void _showSnackBar(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: isError ? AppTheme.error : AppTheme.success,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ));
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
@@ -48,33 +57,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isLoading = true);
 
-    // Upload avatar nếu có chọn ảnh mới
-    if (_pickedImage != null) {
-      final avatarUrl = await ApiService.uploadAvatar(_pickedImage!.path);
-      if (avatarUrl != null && mounted) {
-        auth.updateAvatar(avatarUrl);
+    try {
+      // Upload avatar nếu có chọn ảnh mới
+      if (_pickedImage != null) {
+        final avatarUrl = await ApiService.uploadAvatar(_pickedImage!.path);
+        if (!mounted) return;
+        if (avatarUrl != null) {
+          auth.updateAvatar(avatarUrl);
+        } else {
+          _showSnackBar('Không tải được ảnh đại diện, chỉ cập nhật tên', isError: true);
+        }
       }
-    }
 
-    // Cập nhật tên
-    final ok = await ApiService.updateUser(auth.userId!, {'name': _nameCtrl.text.trim()});
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      // Cập nhật tên
+      final ok = await ApiService.updateUser(auth.userId!, {'name': _nameCtrl.text.trim()});
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (ok) {
-      auth.updateName(_nameCtrl.text.trim());
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Đã cập nhật hồ sơ'),
-        backgroundColor: AppTheme.success,
-        behavior: SnackBarBehavior.floating,
-      ));
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Cập nhật thất bại'),
-        backgroundColor: AppTheme.error,
-        behavior: SnackBarBehavior.floating,
-      ));
+      if (ok) {
+        auth.updateName(_nameCtrl.text.trim());
+        _showSnackBar('Đã cập nhật hồ sơ');
+        Navigator.pop(context);
+      } else {
+        _showSnackBar('Cập nhật thất bại, thử lại sau', isError: true);
+      }
+    } catch (e) {
+      debugPrint('❌ EditProfileScreen._save error: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showSnackBar('Có lỗi xảy ra, thử lại sau', isError: true);
     }
   }
 
@@ -93,8 +104,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             children: [
               // Avatar
-              GestureDetector(
+              InkWell(
                 onTap: _pickImage,
+                borderRadius: BorderRadius.circular(52),
                 child: Stack(
                   children: [
                     CircleAvatar(
@@ -129,11 +141,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _nameCtrl,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
+                onFieldSubmitted: (_) => _save(),
+                decoration: InputDecoration(
                   labelText: 'Họ và tên',
-                  prefixIcon: Icon(Icons.person_outlined),
+                  prefixIcon: const Icon(Icons.person_outlined),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
                 ),
-                validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên' : null,
+                validator: (v) {
+                  final t = v?.trim() ?? '';
+                  if (t.isEmpty) return 'Vui lòng nhập tên';
+                  if (t.length < 2) return 'Tên quá ngắn (tối thiểu 2 ký tự)';
+                  return null;
+                },
               ),
               const SizedBox(height: 32),
 
@@ -142,6 +165,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                   child: _isLoading
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Text('Lưu thay đổi'),

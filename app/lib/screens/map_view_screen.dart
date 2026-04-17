@@ -139,7 +139,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
                   children: [
                     TileLayer(
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'vn.chovatang.app',
+                      userAgentPackageName: 'vn.traotay.app',
                     ),
                     MarkerLayer(
                       markers: posts.map((post) {

@@ -74,6 +74,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       otherUserName: other?['name']?.toString() ?? 'Người dùng',
       postTitle: post['title']?.toString() ?? '',
       postImageLabel: post['imageLabel']?.toString() ?? '',
+      postId: post['id']?.toString(),
     )));
   }
 

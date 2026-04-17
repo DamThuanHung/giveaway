@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ─── Colors ───────────────────────────────────────────
-  static const Color primary       = Color(0xFF2E7D32);
-  static const Color primaryDark   = Color(0xFF1B5E20); // gradient darker shade
-  static const Color primaryLight  = Color(0xFFE8F5E9);
+  static const Color primary       = Color(0xFF10B981); // Emerald
+  static const Color primaryDark   = Color(0xFF059669); // Emerald darker
+  static const Color primaryLight  = Color(0xFFD1FAE5); // Emerald tint
   static const Color background    = Color(0xFFF2F3F5);
   static const Color surface       = Color(0xFFFFFFFF);
   static const Color border        = Color(0xFFE2E5EA);
@@ -16,27 +17,29 @@ class AppTheme {
 
   // ─── Semantic colors (VN marketplace) ────────────────
   static const Color priceColor    = Color(0xFFE53935); // Giá bán — đỏ cam nổi bật
-  static const Color freeColor     = Color(0xFF2E7D32); // Miễn phí — xanh lá
+  static const Color freeColor     = Color(0xFF10B981); // Miễn phí — Emerald
   static const Color soldColor     = Color(0xFF9E9E9E); // Đã bán — xám
   static const Color ctaOrange     = Color(0xFFF57C00); // Nút CTA nổi bật
 
   // ─── Theme ────────────────────────────────────────────
   static ThemeData get light {
+    final beVietnamPro = GoogleFonts.beVietnamProTextTheme();
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: primary),
       scaffoldBackgroundColor: background,
       useMaterial3: true,
-      appBarTheme: const AppBarTheme(
+      textTheme: beVietnamPro,
+      appBarTheme: AppBarTheme(
         backgroundColor: surface,
         elevation: 0,
         scrolledUnderElevation: 1,
         centerTitle: true,
-        titleTextStyle: TextStyle(
+        titleTextStyle: GoogleFonts.beVietnamPro(
           color: textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: const IconThemeData(color: textPrimary),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,

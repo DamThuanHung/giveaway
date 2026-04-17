@@ -9,9 +9,9 @@ export class ChatService {
     private notificationService: NotificationService,
   ) {}
 
-  async getRoom(postId: string, buyerId: string) {
+  async getRoomByBuyerSeller(buyerId: string, sellerId: string) {
     return this.prisma.chatRoom.findUnique({
-      where: { postId_buyerId: { postId, buyerId } },
+      where: { buyerId_sellerId: { buyerId, sellerId } },
       include: {
         post: { select: { id: true, title: true, imageLabel: true } },
         buyer: { select: { id: true, name: true, avatar: true } },
@@ -28,6 +28,13 @@ export class ChatService {
         buyer: { select: { id: true, name: true, avatar: true } },
         seller: { select: { id: true, name: true, avatar: true } },
       },
+    });
+  }
+
+  async sendSystemMessage(roomId: string, text: string, systemUserId: string) {
+    return this.prisma.message.create({
+      data: { roomId, senderId: systemUserId, text, isRead: true, metadata: 'system' },
+      include: { sender: { select: { id: true, name: true, avatar: true } } },
     });
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_image.dart';
 import 'edit_post_screen.dart';
 
 class MyPostsScreen extends StatefulWidget {
@@ -32,22 +33,32 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('❌ MyPostsScreen._loadPosts error: $e');
       if (!mounted) return;
       setState(() { _error = 'Không tải được danh sách'; _isLoading = false; });
     }
+  }
+
+  void _showSnackBar(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: isError ? AppTheme.error : AppTheme.success,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ));
   }
 
   Future<void> _markStatus(String id, String status) async {
     final ok = await ApiService.updatePostStatus(id, status);
     if (!mounted) return;
     if (ok) {
-      final label = status == 'done' ? 'Đã đánh dấu hoàn thành' : 'Đã mở lại tin đăng';
-      _loadPosts();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(label),
-        backgroundColor: AppTheme.success,
-        behavior: SnackBarBehavior.floating,
-      ));
+      setState(() {
+        final idx = _posts.indexWhere((p) => p.id == id);
+        if (idx != -1) _posts[idx] = _posts[idx].copyWith(status: status);
+      });
+      _showSnackBar(status == 'done' ? 'Đã đánh dấu hoàn thành' : 'Đã mở lại tin đăng');
+    } else {
+      _showSnackBar('Không thể cập nhật trạng thái, thử lại sau', isError: true);
     }
   }
 
@@ -56,15 +67,24 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Xóa bài đăng'),
-        content: const Text('Bài đăng sẽ bị xóa vĩnh viễn. Bạn có chắc không?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Bài đăng sẽ bị xóa vĩnh viễn. Bạn có chắc không?'),
+            const SizedBox(height: 20),
+            SizedBox(width: double.infinity, child: OutlinedButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            )),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Xóa bài đăng'),
+            )),
+          ],
+        ),
       ),
     );
     if (confirm != true) return;
@@ -72,11 +92,9 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     if (!mounted) return;
     if (ok) {
       setState(() => _posts.removeWhere((p) => p.id == id));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Đã xóa bài đăng'),
-        backgroundColor: AppTheme.success,
-        behavior: SnackBarBehavior.floating,
-      ));
+      _showSnackBar('Đã xóa bài đăng');
+    } else {
+      _showSnackBar('Không thể xóa bài đăng, thử lại sau', isError: true);
     }
   }
 
@@ -88,19 +106,46 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : _error != null
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: AppTheme.textSecondary)),
-                  const SizedBox(height: 16),
-                  OutlinedButton(onPressed: _loadPosts, child: const Text('Thử lại')),
-                ]))
+              ? RefreshIndicator(
+                  onRefresh: _loadPosts,
+                  child: LayoutBuilder(builder: (ctx, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: constraints.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        Text(_error!, style: const TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: _loadPosts, child: const Text('Thử lại')),
+                      ]),
+                    )),
+                  )),
+                )
               : _posts.isEmpty
-                  ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.inbox_outlined, size: 64, color: AppTheme.border),
-                      SizedBox(height: 12),
-                      Text('Bạn chưa đăng tin nào', style: TextStyle(color: AppTheme.textSecondary)),
-                    ]))
+                  ? RefreshIndicator(
+                      onRefresh: _loadPosts,
+                      child: LayoutBuilder(builder: (ctx, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(height: constraints.maxHeight, child: Center(
+                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const Icon(Icons.inbox_outlined, size: 64, color: AppTheme.border),
+                            const SizedBox(height: 12),
+                            const Text('Bạn chưa đăng tin nào', style: TextStyle(color: AppTheme.textSecondary)),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Đăng tin ngay'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ]),
+                        )),
+                      )),
+                    )
                   : RefreshIndicator(
                       onRefresh: _loadPosts,
                       child: ListView.separated(
@@ -150,13 +195,10 @@ class _PostItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
               width: 72, height: 72,
-              child: post.imageLabel.isNotEmpty
-                  ? Image.network(
-                      '${ApiService.baseUrl}/uploads/${post.imageLabel}',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: AppTheme.border, child: const Icon(Icons.image_outlined, color: AppTheme.textSecondary)),
-                    )
-                  : Container(color: AppTheme.border, child: const Icon(Icons.image_outlined, color: AppTheme.textSecondary)),
+              child: AppImage(
+                url: post.imageLabel.isNotEmpty ? '${ApiService.baseUrl}/uploads/${post.imageLabel}' : '',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 12),

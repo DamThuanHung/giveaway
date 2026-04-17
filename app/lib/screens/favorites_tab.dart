@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/skeleton.dart';
 import '../widgets/post_card.dart';
 import 'post_detail_screen.dart';
 import 'auth/phone_login_screen.dart';
@@ -19,6 +20,7 @@ class FavoritesTab extends StatefulWidget {
 class FavoritesTabState extends State<FavoritesTab> {
   List<Post> _posts = [];
   bool _isLoading = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -32,18 +34,25 @@ class FavoritesTabState extends State<FavoritesTab> {
       setState(() => _isLoading = false);
       return;
     }
-    setState(() => _isLoading = true);
-    final data = await ApiService.getFavorites(auth.userId!);
-    if (!mounted) return;
-    setState(() {
-      _posts = data.map((item) => Post.fromJson(item['post'] ?? item)).toList();
-      _isLoading = false;
-    });
+    setState(() { _isLoading = true; _error = false; });
+    try {
+      final data = await ApiService.getFavorites(auth.userId!);
+      if (!mounted) return;
+      setState(() {
+        _posts = data.map((item) => Post.fromJson(item['post'] ?? item)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ FavoritesTab.load error: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _error = true; });
+    }
   }
 
   Future<void> _removeAndReload(String userId, String postId) async {
+    // Xóa local ngay lập tức cho cảm giác nhanh
+    setState(() => _posts.removeWhere((p) => p.id == postId));
     await ApiService.removeFavorite(userId, postId);
-    load();
   }
 
   @override
@@ -85,17 +94,46 @@ class FavoritesTabState extends State<FavoritesTab> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: 5,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, __) => const FavoriteItemSkeleton(),
+            )
+          : _error
+              ? RefreshIndicator(
+                  onRefresh: load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Không tải được danh sách', style: TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: load, child: const Text('Thử lại')),
+                      ]),
+                    )),
+                  )),
+                )
           : _posts.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.favorite_border, size: 72, color: AppTheme.border.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  const Text('Chưa có tin đăng nào được lưu',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-                  const SizedBox(height: 8),
-                  const Text('Bấm ♡ trên bài đăng để lưu vào đây',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                ]))
+              ? RefreshIndicator(
+                  onRefresh: load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.favorite_border, size: 72, color: AppTheme.border.withOpacity(0.5)),
+                        const SizedBox(height: 16),
+                        const Text('Chưa có tin đăng nào được lưu',
+                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+                        const SizedBox(height: 8),
+                        const Text('Bấm ♡ trên bài đăng để lưu vào đây',
+                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                      ]),
+                    )),
+                  )),
+                )
               : RefreshIndicator(
                   onRefresh: load,
                   child: ListView.separated(
@@ -194,10 +232,11 @@ class _FavoriteItem extends StatelessWidget {
               ),
             ),
             // Nút bỏ yêu thích
-            IconButton(
-              onPressed: onRemove,
-              icon: const Icon(Icons.favorite, color: Colors.red, size: 22),
-              tooltip: 'Bỏ yêu thích',
+            FavoriteButton(
+              isFavorite: true,
+              onTap: onRemove,
+              iconSize: 20,
+              buttonSize: 36,
             ),
           ],
         ),

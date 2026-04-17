@@ -30,7 +30,7 @@ android {
     sourceSets { main.java.srcDirs += 'src/main/kotlin' }
 
     defaultConfig {
-        applicationId "vn.chovatang.app"
+        applicationId "vn.traotay.app"
         minSdkVersion 21
         targetSdkVersion flutter.targetSdkVersion
         versionCode 1

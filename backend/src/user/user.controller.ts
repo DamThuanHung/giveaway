@@ -104,6 +104,17 @@ export class UserController {
     return this.userService.verifyEmailLoginOtp(body.email, body.otp);
   }
 
+  // ─── Quên mật khẩu ───────────────────────────────────────────────────────
+  @Post('forgot-password/send')
+  sendForgotPasswordOtp(@Body() body: { email: string }) {
+    return this.userService.sendForgotPasswordOtp(body.email);
+  }
+
+  @Post('forgot-password/reset')
+  resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
+    return this.userService.resetPassword(body.email, body.otp, body.newPassword);
+  }
+
   // ─── Liên kết email dự phòng ──────────────────────────────────────────────
   @Post('link-email/send')
   @UseGuards(JwtAuthGuard)

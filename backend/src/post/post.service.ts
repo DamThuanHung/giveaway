@@ -173,6 +173,7 @@ export class PostService {
     if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
     if (post.authorId !== userId) throw new ForbiddenException('Không có quyền sửa bài này');
 
+    const validStatuses = ['available', 'reserved', 'done'];
     return this.prisma.post.update({
       where: { id },
       data: {
@@ -185,6 +186,7 @@ export class PostService {
         ...(data.addressDetail && { addressDetail: data.addressDetail }),
         ...(data.listingType && { listingType: data.listingType }),
         ...(data.itemCategory && { itemCategory: data.itemCategory }),
+        ...(data.status && validStatuses.includes(data.status) && { status: data.status }),
       },
     }).then(formatPost);
   }

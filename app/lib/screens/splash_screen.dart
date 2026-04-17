@@ -274,7 +274,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       child: FadeTransition(
                         opacity: _titleFade,
                         child: const Text(
-                          'Cho và Tặng',
+                          'Trao Tay',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,

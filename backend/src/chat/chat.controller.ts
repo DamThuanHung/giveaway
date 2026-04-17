@@ -6,18 +6,49 @@ import { ChatService } from './chat.service';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  /** Lấy hoặc tạo room chat giữa buyer và seller cho 1 bài đăng */
+  /** Lấy hoặc tạo room chat giữa buyer và seller — 1 phòng/cặp người dùng */
   @Post('room')
   @UseGuards(JwtAuthGuard)
   async getOrCreateRoom(
     @Request() req,
-    @Body() body: { postId: string; sellerId: string },
+    @Body() body: {
+      postId: string;
+      sellerId: string;
+      postTitle?: string;
+      extraPosts?: { id: string; title: string }[];
+    },
   ) {
     const buyerId = req.user.id;
-    let room = await this.chatService.getRoom(body.postId, buyerId);
+    const hasExtra = body.extraPosts && body.extraPosts.length > 0;
+
+    // Tìm phòng đã có giữa buyer-seller
+    let room = await this.chatService.getRoomByBuyerSeller(buyerId, body.sellerId);
+
     if (!room) {
+      // Chưa có → tạo mới
       room = await this.chatService.createRoom(body.postId, buyerId, body.sellerId);
     }
+
+    if (hasExtra) {
+      // Hỏi về nhiều sản phẩm cùng lúc → gửi tin hệ thống liệt kê tất cả
+      const allTitles = [
+        body.postTitle ?? 'Sản phẩm',
+        ...body.extraPosts!.map((p) => p.title),
+      ].join(', ');
+      await this.chatService.sendSystemMessage(
+        room.id,
+        `📦 Đang hỏi về: ${allTitles}`,
+        buyerId,
+      );
+    } else if (room.postId !== body.postId && body.postTitle) {
+      // Đã có phòng, hỏi về 1 sản phẩm khác → gửi tin hệ thống
+      await this.chatService.sendSystemMessage(
+        room.id,
+        `📦 Đang hỏi về: ${body.postTitle}`,
+        buyerId,
+      );
+    }
+
     return room;
   }
 

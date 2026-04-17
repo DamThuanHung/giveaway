@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,9 @@ import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/skeleton.dart';
+import '../models/post.dart';
+import 'post_detail_screen.dart';
 import 'review/write_review_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -14,6 +18,8 @@ class ChatScreen extends StatefulWidget {
   final String otherUserName;
   final String postTitle;
   final String postImageLabel;
+  final String? postId;
+  final String? listingType;
 
   const ChatScreen({
     super.key,
@@ -21,6 +27,8 @@ class ChatScreen extends StatefulWidget {
     required this.otherUserName,
     required this.postTitle,
     this.postImageLabel = '',
+    this.postId,
+    this.listingType,
   });
 
   @override
@@ -36,6 +44,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _showSafetyBanner = true;
   late IO.Socket _socket;
   String? _myId;
+  bool _otherIsTyping = false;
+  Timer? _typingTimer;
 
   @override
   void initState() {
@@ -61,6 +71,20 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _openPost() async {
+    if (widget.postId == null) return;
+    try {
+      final data = await ApiService.getPostById(widget.postId!);
+      if (!mounted || data == null) return;
+      final post = Post.fromJson(data);
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => PostDetailScreen(post: post, isFavorite: false, onToggleFavorite: () async {}),
+      ));
+    } catch (e) {
+      debugPrint('❌ _openPost error: $e');
+    }
+  }
+
   void _connectSocket() {
     _socket = IO.io(
       ApiService.baseUrl,
@@ -81,10 +105,40 @@ class _ChatScreenState extends State<ChatScreen> {
       ApiService.markRoomAsRead(widget.roomId);
       if (mounted) context.read<NotificationProvider>().refresh();
     });
+
+    _socket.on('typing', (data) {
+      if (!mounted) return;
+      if (data['senderId'] != _myId) {
+        setState(() => _otherIsTyping = true);
+        _scrollToBottom();
+      }
+    });
+
+    _socket.on('stop_typing', (data) {
+      if (!mounted) return;
+      if (data['senderId'] != _myId) {
+        setState(() => _otherIsTyping = false);
+      }
+    });
+  }
+
+  void _onTextChanged(String text) {
+    if (_myId == null) return;
+    if (text.isNotEmpty) {
+      _socket.emit('typing', {'roomId': widget.roomId, 'senderId': _myId});
+      _typingTimer?.cancel();
+      _typingTimer = Timer(const Duration(seconds: 2), () {
+        _socket.emit('stop_typing', {'roomId': widget.roomId, 'senderId': _myId});
+      });
+    } else {
+      _typingTimer?.cancel();
+      _socket.emit('stop_typing', {'roomId': widget.roomId, 'senderId': _myId});
+    }
   }
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     _socket.disconnect();
@@ -103,10 +157,29 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  List<String> _quickReplies() {
+    if (widget.listingType == 'give') {
+      return [
+        'Bạn ơi, món này còn không ạ?',
+        'Mình rất muốn nhận món này bạn ơi!',
+        'Bạn cho mình hỏi tình trạng sản phẩm với ạ?',
+        'Bạn có thể giao đến địa chỉ mình không ạ?',
+        'Mình có thể đến lấy trực tiếp không bạn?',
+      ];
+    }
+    return [
+      'Bạn ơi, món này còn không ạ?',
+      'Bạn cho mình hỏi tình trạng sản phẩm với ạ?',
+      'Bạn có thể giảm giá được không ạ?',
+      'Bạn cho mình xem thêm ảnh thực tế được không ạ?',
+    ];
+  }
+
   void _sendMessage() {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _myId == null) return;
 
+    _typingTimer?.cancel();
     _socket.emit('sendMessage', {
       'roomId': widget.roomId,
       'senderId': _myId,
@@ -148,7 +221,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Banner sản phẩm
           if (widget.postTitle.isNotEmpty)
-            Container(
+            InkWell(
+              onTap: widget.postId != null ? _openPost : null,
+              child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               color: AppTheme.primary.withOpacity(0.06),
               child: Row(children: [
@@ -168,11 +243,13 @@ class _ChatScreenState extends State<ChatScreen> {
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500)),
                 ),
+                if (widget.postId != null)
+                  const Icon(Icons.chevron_right, size: 16, color: AppTheme.primary),
               ]),
-            ),
+            )),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? const ChatMessagesSkeleton()
                 : _hasError
                     ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                         const Icon(Icons.wifi_off, size: 56, color: AppTheme.textSecondary),
@@ -192,6 +269,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           final isMe = msg['senderId'] == _myId;
                           // Detect deal card
                           final metaStr = msg['metadata']?.toString();
+                          // Tin nhắn hệ thống (đổi sản phẩm hỏi)
+                          if (metaStr == 'system') {
+                            return _SystemMessage(text: msg['text']?.toString() ?? '');
+                          }
                           if (metaStr != null && metaStr.isNotEmpty) {
                             try {
                               final meta = jsonDecode(metaStr) as Map;
@@ -213,8 +294,34 @@ class _ChatScreenState extends State<ChatScreen> {
                         },
                       ),
           ),
-          _InputBar(controller: _msgCtrl, onSend: _sendMessage),
+          if (_otherIsTyping) _TypingBubble(name: widget.otherUserName),
+          _InputBar(
+            controller: _msgCtrl,
+            onSend: _sendMessage,
+            onChanged: _onTextChanged,
+            quickReplies: (!_isLoading && _messages.isEmpty) ? _quickReplies() : const [],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _SystemMessage extends StatelessWidget {
+  final String text;
+  const _SystemMessage({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryLight,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(text, style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -415,41 +522,167 @@ class _DealCardState extends State<_DealCard> {
 class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
-  const _InputBar({required this.controller, required this.onSend});
+  final ValueChanged<String>? onChanged;
+  final List<String> quickReplies;
+
+  const _InputBar({
+    required this.controller,
+    required this.onSend,
+    this.onChanged,
+    this.quickReplies = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(
-        left: 16, right: 8, top: 10,
-        bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 10,
-      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, -2))],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: 'Nhập tin nhắn...',
-                filled: true,
-                fillColor: AppTheme.background,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          // Hàng mẫu tin nhắn nhanh
+          if (quickReplies.isNotEmpty)
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                scrollDirection: Axis.horizontal,
+                itemCount: quickReplies.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => GestureDetector(
+                  onTap: () {
+                    controller.text = quickReplies[i];
+                    controller.selection = TextSelection.fromPosition(
+                      TextPosition(offset: controller.text.length),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryLight,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      quickReplies[i],
+                      style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
               ),
             ),
+          // Ô nhập tin nhắn
+          Padding(
+            padding: EdgeInsets.only(
+              left: 16, right: 8, top: 6,
+              bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 10,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => onSend(),
+                    onChanged: onChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Nhập tin nhắn...',
+                      filled: true,
+                      fillColor: AppTheme.background,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: AppTheme.primary,
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                    onPressed: onSend,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: AppTheme.primary,
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 18),
-              onPressed: onSend,
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Typing bubble — 3 chấm nhảy ─────────────────────────────────────────────
+
+class _TypingBubble extends StatefulWidget {
+  final String name;
+  const _TypingBubble({required this.name});
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble> with TickerProviderStateMixin {
+  late final List<AnimationController> _controllers;
+  late final List<Animation<double>> _animations;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(3, (i) => AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    ));
+    _animations = _controllers.map((c) =>
+      Tween<double>(begin: 0, end: -6).animate(CurvedAnimation(parent: c, curve: Curves.easeInOut))
+    ).toList();
+
+    for (int i = 0; i < 3; i++) {
+      Future.delayed(Duration(milliseconds: i * 150), () {
+        if (mounted) _controllers[i].repeat(reverse: true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, bottom: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+                bottomLeft: Radius.circular(4),
+              ),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4, offset: const Offset(0, 2))],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (i) => AnimatedBuilder(
+                animation: _animations[i],
+                builder: (_, __) => Transform.translate(
+                  offset: Offset(0, _animations[i].value),
+                  child: Container(
+                    margin: EdgeInsets.only(left: i > 0 ? 4 : 0),
+                    width: 7, height: 7,
+                    decoration: BoxDecoration(color: AppTheme.textSecondary, shape: BoxShape.circle),
+                  ),
+                ),
+              )),
             ),
           ),
         ],

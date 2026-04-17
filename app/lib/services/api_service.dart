@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.108:40945';
+  static const String baseUrl = 'http://192.168.0.108:4000';
 
   static Future<String?> _getToken() async {
     final p = await SharedPreferences.getInstance();
@@ -415,12 +415,22 @@ class ApiService {
   }
 
   // ─── CHAT ────────────────────────────────────────────
-  static Future<Map<String, dynamic>?> getOrCreateRoom(String postId, String sellerId) async {
+  static Future<Map<String, dynamic>?> getOrCreateRoom(
+    String postId,
+    String sellerId, {
+    String? postTitle,
+    List<Map<String, String>>? extraPosts,
+  }) async {
     try {
       final res = await http.post(
         Uri.parse('$baseUrl/chat/room'),
         headers: await _authHeaders(),
-        body: jsonEncode({'postId': postId, 'sellerId': sellerId}),
+        body: jsonEncode({
+          'postId': postId,
+          'sellerId': sellerId,
+          if (postTitle != null) 'postTitle': postTitle,
+          if (extraPosts != null && extraPosts.isNotEmpty) 'extraPosts': extraPosts,
+        }),
       ).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200 || res.statusCode == 201) return jsonDecode(res.body);
       return null;
@@ -720,6 +730,36 @@ class ApiService {
     } catch (_) {}
   }
 
+  static Future<String?> sendForgotPasswordOtp(String email) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/forgot-password/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      ).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200 || res.statusCode == 201) return null; // null = success
+      final body = jsonDecode(res.body);
+      return body['message'] ?? 'Không gửi được OTP';
+    } catch (_) {
+      return 'Không kết nối được server';
+    }
+  }
+
+  static Future<String?> resetPassword(String email, String otp, String newPassword) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/forgot-password/reset'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp, 'newPassword': newPassword}),
+      ).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200 || res.statusCode == 201) return null; // null = success
+      final body = jsonDecode(res.body);
+      return body['message'] ?? 'Đặt lại mật khẩu thất bại';
+    } catch (_) {
+      return 'Không kết nối được server';
+    }
+  }
+
   static Future<bool> changePassword(String oldPassword, String newPassword) async {
     try {
       final res = await http.post(
@@ -729,6 +769,27 @@ class ApiService {
       );
       return res.statusCode == 200 || res.statusCode == 201;
     } catch (_) { return false; }
+  }
+
+  static Future<List<dynamic>> getSimilarPosts(String postId, {String? category, String? province}) async {
+    try {
+      final params = <String, String>{
+        'limit': '6',
+        if (category != null && category.isNotEmpty) 'itemCategory': category,
+        if (province != null && province.isNotEmpty) 'province': province,
+        'exclude': postId,
+      };
+      final uri = Uri.parse('$baseUrl/post').replace(queryParameters: params);
+      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final list = data['data'] ?? data;
+        if (list is List) return list.where((p) => p['id'] != postId).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<List<dynamic>> getUserPosts(String userId) async {
@@ -781,5 +842,83 @@ class ApiService {
       }
       return false;
     } catch (_) { return false; }
+  }
+
+  // ─── FOLLOW ──────────────────────────────────────────
+  static Future<bool> followUser(String userId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/follow/$userId'),
+        headers: await _authHeaders(),
+      );
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) { return false; }
+  }
+
+  static Future<bool> unfollowUser(String userId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/follow/$userId'),
+        headers: await _authHeaders(),
+      );
+      return res.statusCode == 200 || res.statusCode == 204;
+    } catch (_) { return false; }
+  }
+
+  static Future<bool> getFollowStatus(String userId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/follow/$userId/status'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body)['isFollowing'] == true;
+      }
+      return false;
+    } catch (_) { return false; }
+  }
+
+  static Future<Map<String, dynamic>> getFollowCounts(String userId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/follow/$userId/counts'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return {'followersCount': 0, 'followingCount': 0};
+    } catch (_) { return {'followersCount': 0, 'followingCount': 0}; }
+  }
+
+  static Future<List<dynamic>> getFollowers(String userId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/follow/$userId/followers'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (_) { return []; }
+  }
+
+  static Future<List<dynamic>> getFollowing(String userId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/follow/$userId/following'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (_) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> getFollowFeed({int page = 1, int limit = 20}) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/follow/feed?page=$page&limit=$limit'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return {'data': [], 'total': 0};
+    } catch (_) { return {'data': [], 'total': 0}; }
   }
 }

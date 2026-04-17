@@ -119,6 +119,19 @@ class Post {
 
   String get displayPrice => listingType == 'free' ? 'Miễn phí' : '${price}đ';
 
+  Post copyWith({String? status}) {
+    return Post(
+      id: id, title: title, description: description, price: price,
+      province: province, district: district, ward: ward, addressDetail: addressDetail,
+      listingType: listingType, itemCategory: itemCategory,
+      status: status ?? this.status,
+      imageLabel: imageLabel, images: images,
+      latitude: latitude, longitude: longitude,
+      authorId: authorId, authorName: authorName, authorAvatar: authorAvatar,
+      createdAt: createdAt, viewCount: viewCount,
+    );
+  }
+
   factory Post.fromJson(Map<String, dynamic> json) {
     // Xử lý giá
     final rawPrice = json['price'];

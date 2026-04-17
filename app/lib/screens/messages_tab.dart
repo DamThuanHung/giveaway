@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/skeleton.dart';
 import 'chat_screen.dart';
 import 'auth/phone_login_screen.dart';
 
@@ -83,7 +84,10 @@ class _MessagesTabState extends State<MessagesTab> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('Tin nhắn')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? ListView.builder(
+              itemCount: 6,
+              itemBuilder: (_, __) => const ChatRoomSkeleton(),
+            )
           : _hasError
               ? RefreshIndicator(
                   onRefresh: _loadRooms,
@@ -152,6 +156,7 @@ class _MessagesTabState extends State<MessagesTab> {
                             otherUserName: other?['name'] ?? 'Người dùng',
                             postTitle: postTitle,
                             postImageLabel: postImageLabel,
+                            postId: post['id']?.toString(),
                           )),
                         ).then((_) => _loadRooms()),
                         child: Padding(

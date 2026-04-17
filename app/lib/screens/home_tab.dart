@@ -51,9 +51,13 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   String _selectedProvince = 'Toàn quốc';
   RadiusMapResult? _radiusResult;
 
-  // 0 = Tất cả, 1 = Miễn phí, 2..N = categories
+  // -1 = Đang theo dõi, 0 = Tất cả, 1 = Miễn phí, 2..N = categories
   int _selectedChip = 0;
   static final _categories = AppCategories.list;
+
+  // Feed riêng cho tab "Đang theo dõi"
+  List<Post> _followFeed = [];
+  bool _followFeedLoading = false;
 
   static const _regionProvinces = {
     'Toàn miền Bắc': [
@@ -172,7 +176,22 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   void _onChipTap(int index) {
     if (_selectedChip == index) return;
     setState(() => _selectedChip = index);
-    _refetch();
+    if (index == -1) {
+      _loadFollowFeed();
+    } else {
+      _refetch();
+    }
+  }
+
+  Future<void> _loadFollowFeed() async {
+    setState(() => _followFeedLoading = true);
+    final result = await ApiService.getFollowFeed();
+    if (!mounted) return;
+    final raw = result['data'] as List<dynamic>? ?? [];
+    setState(() {
+      _followFeed = raw.map((e) => Post.fromJson(e as Map<String, dynamic>)).toList();
+      _followFeedLoading = false;
+    });
   }
 
   void _showProvincePicker() {
@@ -282,6 +301,15 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
+                  _FilterChip(label: 'Đang theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
+                    final auth = context.read<AuthProvider>();
+                    if (!auth.isAuth) {
+                      _showLoginPrompt();
+                      return;
+                    }
+                    _onChipTap(-1);
+                  }),
+                  const SizedBox(width: 8),
                   _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0, onTap: () => _onChipTap(0)),
                   const SizedBox(width: 8),
                   _FilterChip(
@@ -310,25 +338,26 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
 
           // ── Feed ─────────────────────────────────────────
           Expanded(
-            child: Consumer<PostProvider>(
-              builder: (ctx, postProv, _) {
-                // Watch auth để react khi logout (xóa favorites)
-                final auth = context.watch<AuthProvider>();
-                if (postProv.isLoading && postProv.posts.isEmpty) {
-                  return const PostGridSkeleton();
-                }
-                if (postProv.hasError && postProv.posts.isEmpty) {
-                  return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
-                    const SizedBox(height: 12),
-                    const Text('Không thể tải dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
-                    const SizedBox(height: 16),
-                    OutlinedButton(onPressed: _refetch, child: const Text('Thử lại')),
-                  ]));
-                }
-                return _buildGridView(postProv.posts, postProv, auth.isAuth);
-              },
-            ),
+            child: _selectedChip == -1
+                ? _buildFollowFeed()
+                : Consumer<PostProvider>(
+                    builder: (ctx, postProv, _) {
+                      final auth = context.watch<AuthProvider>();
+                      if (postProv.isLoading && postProv.posts.isEmpty) {
+                        return const PostGridSkeleton();
+                      }
+                      if (postProv.hasError && postProv.posts.isEmpty) {
+                        return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                          const SizedBox(height: 12),
+                          const Text('Không thể tải dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
+                          const SizedBox(height: 16),
+                          OutlinedButton(onPressed: _refetch, child: const Text('Thử lại')),
+                        ]));
+                      }
+                      return _buildGridView(postProv.posts, postProv, auth.isAuth);
+                    },
+                  ),
           ),
         ],
       ),
@@ -348,6 +377,84 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
             MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFollowFeed() {
+    if (_followFeedLoading) return const PostGridSkeleton();
+    if (_followFeed.isEmpty) {
+      return RefreshIndicator(
+        color: AppTheme.primary,
+        onRefresh: _loadFollowFeed,
+        child: LayoutBuilder(
+          builder: (_, c) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: c.maxHeight,
+              child: Center(
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
+                  const SizedBox(height: 12),
+                  const Text('Bạn chưa theo dõi ai', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Hãy theo dõi một số người để xem\nbài đăng mới của họ tại đây',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      color: AppTheme.primary,
+      onRefresh: _loadFollowFeed,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(10),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: _followFeed.length,
+        itemBuilder: (ctx, i) {
+          final post = _followFeed[i];
+          final isFav = _favoriteIds.contains(post.id);
+          final auth = context.read<AuthProvider>();
+          return PostCard(
+            post: post,
+            isFavorite: isFav,
+            onToggleFavorite: () async {
+              if (isFav) {
+                await ApiService.removeFavorite(auth.userId!, post.id);
+                setState(() => _favoriteIds.remove(post.id));
+              } else {
+                await ApiService.addFavorite(auth.userId!, post.id);
+                setState(() => _favoriteIds.add(post.id));
+              }
+            },
+            onTap: () => Navigator.push(ctx, MaterialPageRoute(
+              builder: (_) => PostDetailScreen(
+                post: post,
+                isFavorite: isFav,
+                onToggleFavorite: () async {
+                  if (isFav) {
+                    await ApiService.removeFavorite(auth.userId!, post.id);
+                    setState(() => _favoriteIds.remove(post.id));
+                  } else {
+                    await ApiService.addFavorite(auth.userId!, post.id);
+                    setState(() => _favoriteIds.add(post.id));
+                  }
+                },
+              ),
+            )),
+          );
+        },
       ),
     );
   }

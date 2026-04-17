@@ -14,6 +14,7 @@ class MyReviewsScreen extends StatefulWidget {
 class _MyReviewsScreenState extends State<MyReviewsScreen> {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -24,10 +25,16 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
   Future<void> _load() async {
     final userId = context.read<AuthProvider>().userId;
     if (userId == null) return;
-    setState(() => _isLoading = true);
-    final data = await ApiService.getUserReviews(userId);
-    if (!mounted) return;
-    setState(() { _data = data; _isLoading = false; });
+    setState(() { _isLoading = true; _error = false; });
+    try {
+      final data = await ApiService.getUserReviews(userId);
+      if (!mounted) return;
+      setState(() { _data = data; _isLoading = false; });
+    } catch (e) {
+      debugPrint('❌ MyReviewsScreen._load error: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _error = true; });
+    }
   }
 
   @override
@@ -41,14 +48,38 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
       appBar: AppBar(title: const Text('Đánh giá của tôi')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : _error
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Không tải được đánh giá', style: TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
+                      ]),
+                    )),
+                  )),
+                )
           : reviews.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.star_outline_rounded, size: 72, color: AppTheme.border.withOpacity(0.5)),
-                  const SizedBox(height: 16),
-                  const Text('Chưa có đánh giá nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-                  const SizedBox(height: 8),
-                  const Text('Hoàn thành giao dịch để nhận đánh giá', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                ]))
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.star_outline_rounded, size: 72, color: AppTheme.border.withOpacity(0.5)),
+                        const SizedBox(height: 16),
+                        const Text('Chưa có đánh giá nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+                        const SizedBox(height: 8),
+                        const Text('Hoàn thành giao dịch để nhận đánh giá', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                      ]),
+                    )),
+                  )),
+                )
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
@@ -85,15 +116,11 @@ class _ReviewTile extends StatelessWidget {
   final dynamic review;
   const _ReviewTile({required this.review});
 
-  String _timeAgo(String? createdAt) {
+  String _formatDate(String? createdAt) {
     if (createdAt == null) return '';
     final dt = DateTime.tryParse(createdAt);
     if (dt == null) return '';
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
-    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
-    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
-    return '${dt.day}/${dt.month}/${dt.year}';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }
 
   @override
@@ -112,14 +139,14 @@ class _ReviewTile extends StatelessWidget {
             radius: 18,
             backgroundColor: AppTheme.primaryLight,
             child: Text(
-              reviewerName[0].toUpperCase(),
+              reviewerName.isNotEmpty ? reviewerName[0].toUpperCase() : '?',
               style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(reviewerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            Text(_timeAgo(review['createdAt']?.toString()),
+            Text(_formatDate(review['createdAt']?.toString()),
                 style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
           ])),
           Row(children: List.generate(5, (i) => Icon(

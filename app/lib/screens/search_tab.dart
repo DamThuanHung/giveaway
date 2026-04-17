@@ -93,9 +93,8 @@ class _SearchTabState extends State<SearchTab> {
       if (!mounted || version != _searchVersion) return;
 
       final more = ((result['data'] ?? []) as List).map((j) => Post.fromJson(j)).toList();
-
-      // Trang này rỗng hoặc ít hơn limit → hết dữ liệu
-      final nowHasMore = more.length >= 20;
+      final totalPages = (result['meta']?['totalPages'] as int?) ?? 1;
+      final nowHasMore = _page < totalPages;
 
       if (more.isEmpty) {
         setState(() { _hasMorePages = false; });
@@ -238,10 +237,11 @@ class _SearchTabState extends State<SearchTab> {
       }
     }
 
+    final totalPages = (result['meta']?['totalPages'] as int?) ?? 1;
     setState(() {
       _results = posts;
       _totalResults = total;
-      _hasMorePages = posts.length >= 20;
+      _hasMorePages = _page < totalPages;
       _isLoading = false;
     });
   }
@@ -786,9 +786,12 @@ class _SearchTabState extends State<SearchTab> {
               title: Text(item, style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
               trailing: GestureDetector(
                 onTap: () => _removeHistory(item),
-                child: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
+                ),
               ),
-              dense: true,
+              dense: false,
               onTap: () => _selectHistory(item),
             );
           }),

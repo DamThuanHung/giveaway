@@ -30,6 +30,24 @@ export class ChatGateway implements OnGatewayConnection {
   ) {
     const message = await this.chatService.sendMessage(data.roomId, data.senderId, data.text);
     this.server.to(data.roomId).emit('receive_message', message);
+    // Khi gửi tin nhắn → tự động dừng typing
+    client.to(data.roomId).emit('stop_typing', { senderId: data.senderId });
     return message;
+  }
+
+  @SubscribeMessage('typing')
+  handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; senderId: string },
+  ) {
+    client.to(data.roomId).emit('typing', { senderId: data.senderId });
+  }
+
+  @SubscribeMessage('stop_typing')
+  handleStopTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; senderId: string },
+  ) {
+    client.to(data.roomId).emit('stop_typing', { senderId: data.senderId });
   }
 }

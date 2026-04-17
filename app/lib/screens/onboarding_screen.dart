@@ -16,7 +16,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _slides = [
     _Slide(
       emoji: '🤝',
-      title: 'Cho và Tặng',
+      title: 'Trao Tay',
       subtitle: 'Nơi kết nối những trái tim\nmuốn chia sẻ với cộng đồng',
       color: Color(0xFF4CAF50),
     ),

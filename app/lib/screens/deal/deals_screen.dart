@@ -14,6 +14,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
   List<dynamic> _incoming = [];
   List<dynamic> _outgoing = [];
   bool _loading = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -29,28 +30,47 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final results = await Future.wait([
-      ApiService.getIncomingDeals(),
-      ApiService.getOutgoingDeals(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _incoming = results[0];
-      _outgoing = results[1];
-      _loading = false;
-    });
+    setState(() { _loading = true; _error = false; });
+    try {
+      final results = await Future.wait([
+        ApiService.getIncomingDeals(),
+        ApiService.getOutgoingDeals(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _incoming = results[0];
+        _outgoing = results[1];
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ DealsScreen._load error: $e');
+      if (!mounted) return;
+      setState(() { _loading = false; _error = true; });
+    }
   }
 
   Future<void> _updateStatus(String dealId, String status) async {
     final ok = await ApiService.updateDealStatus(dealId, status);
     if (!mounted) return;
     if (ok) {
-      _load();
+      setState(() {
+        final iIdx = _incoming.indexWhere((d) => d['id'] == dealId);
+        if (iIdx != -1) _incoming[iIdx] = {..._incoming[iIdx], 'status': status};
+        final oIdx = _outgoing.indexWhere((d) => d['id'] == dealId);
+        if (oIdx != -1) _outgoing[oIdx] = {..._outgoing[oIdx], 'status': status};
+      });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(_statusMessage(status)),
         backgroundColor: AppTheme.success,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Không thể cập nhật, thử lại sau'),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ));
     }
   }
@@ -63,6 +83,34 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
       case 'cancelled': return 'Đã huỷ yêu cầu';
       default: return 'Đã cập nhật';
     }
+  }
+
+  Future<void> _confirmReject(String dealId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Từ chối yêu cầu'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Bạn có chắc muốn từ chối yêu cầu này không?'),
+            const SizedBox(height: 20),
+            SizedBox(width: double.infinity, child: OutlinedButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            )),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Từ chối'),
+            )),
+          ],
+        ),
+      ),
+    );
+    if (confirm == true) _updateStatus(dealId, 'rejected');
   }
 
   @override
@@ -84,18 +132,42 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-          : TabBarView(
-              controller: _tab,
-              children: [
-                _buildIncomingList(),
-                _buildOutgoingList(),
-              ],
-            ),
+          : _error
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Không tải được dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
+                      ]),
+                    )),
+                  )),
+                )
+              : TabBarView(
+                  controller: _tab,
+                  children: [
+                    _buildIncomingList(),
+                    _buildOutgoingList(),
+                  ],
+                ),
     );
   }
 
   Widget _buildIncomingList() {
-    if (_incoming.isEmpty) return _emptyState('Chưa có ai gửi yêu cầu');
+    if (_incoming.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(height: c.maxHeight, child: _emptyState('Chưa có ai gửi yêu cầu')),
+        )),
+      );
+    }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
@@ -105,7 +177,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
         itemBuilder: (_, i) => _IncomingCard(
           deal: _incoming[i],
           onAccept: () => _updateStatus(_incoming[i]['id'], 'accepted'),
-          onReject: () => _updateStatus(_incoming[i]['id'], 'rejected'),
+          onReject: () => _confirmReject(_incoming[i]['id']),
           onComplete: () => _updateStatus(_incoming[i]['id'], 'completed'),
         ),
       ),
@@ -113,7 +185,15 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
   }
 
   Widget _buildOutgoingList() {
-    if (_outgoing.isEmpty) return _emptyState('Bạn chưa gửi yêu cầu nào');
+    if (_outgoing.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(height: c.maxHeight, child: _emptyState('Bạn chưa gửi yêu cầu nào')),
+        )),
+      );
+    }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
@@ -222,7 +302,7 @@ class _IncomingCard extends StatelessWidget {
 
   Color _borderColor(String status) {
     switch (status) {
-      case 'pending': return Colors.orange.shade200;
+      case 'pending': return AppTheme.warning.withOpacity(0.4);
       case 'accepted': return AppTheme.primary.withOpacity(0.4);
       case 'completed': return AppTheme.success.withOpacity(0.4);
       default: return AppTheme.border;
@@ -269,8 +349,12 @@ class _OutgoingCard extends StatelessWidget {
         ]),
         if (message != null && message.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text('"$message"',
-              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontStyle: FontStyle.italic)),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(8)),
+            child: Text('"$message"',
+                style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontStyle: FontStyle.italic)),
+          ),
         ],
         if (onCancel != null) ...[
           const SizedBox(height: 12),

@@ -250,7 +250,14 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _titleController,
-                      decoration: const InputDecoration(labelText: 'Tiêu đề *', border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                        labelText: 'Tiêu đề *',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
+                      ),
                       textInputAction: TextInputAction.next,
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Vui lòng nhập tiêu đề';
@@ -263,10 +270,14 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     if (_listingType != 'give')
                       TextFormField(
                         controller: _priceController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Giá (VNĐ)',
-                          border: OutlineInputBorder(),
                           hintText: 'Để trống nếu muốn thương lượng',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
                         ),
                         keyboardType: TextInputType.number,
                         textInputAction: TextInputAction.next,
@@ -287,7 +298,14 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _descController,
-                      decoration: const InputDecoration(labelText: 'Mô tả chi tiết', border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                        labelText: 'Mô tả chi tiết',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
+                      ),
                       maxLines: 4,
                       maxLength: 1000,
                       textInputAction: TextInputAction.done,
@@ -304,7 +322,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: _submit,
-                        child: const Text('ĐĂNG TIN', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text('Đăng tin', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -384,13 +402,16 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     },
                   ),
                   Positioned(
-                    top: 2, right: 10,
+                    top: 0, right: 6,
                     child: GestureDetector(
                       onTap: () => _removeImage(i),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                        child: const Icon(Icons.close, color: Colors.white, size: 14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          child: const Icon(Icons.close, color: Colors.white, size: 14),
+                        ),
                       ),
                     ),
                   ),
@@ -421,7 +442,14 @@ class _CreatePostTabState extends State<CreatePostTab> {
   Widget _buildCategoryDropdown() {
     return DropdownButtonFormField<String>(
       value: _itemCategory,
-      decoration: const InputDecoration(labelText: 'Danh mục *', border: OutlineInputBorder()),
+      decoration: InputDecoration(
+        labelText: 'Danh mục *',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
+      ),
       items: AppCategories.list.map((c) => DropdownMenuItem(value: c['value'], child: Text(c['label']!))).toList(),
       onChanged: (v) => setState(() => _itemCategory = v!),
     );
@@ -497,19 +525,23 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppTheme.primary : AppTheme.border),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primary : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? AppTheme.primary : AppTheme.border),
+          ),
+          child: Text(label, style: TextStyle(
+            color: selected ? Colors.white : AppTheme.textSecondary,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          )),
         ),
-        child: Text(label, style: TextStyle(
-          color: selected ? Colors.white : AppTheme.textSecondary,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-        )),
       ),
     );
   }

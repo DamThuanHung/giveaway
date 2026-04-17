@@ -12,6 +12,7 @@ class BlockedUsersScreen extends StatefulWidget {
 class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   List<dynamic> _blocked = [];
   bool _isLoading = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -20,13 +21,14 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() { _isLoading = true; _error = false; });
     try {
       final res = await ApiService.getBlockedUsers();
       if (!mounted) return;
       setState(() { _blocked = res; _isLoading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('❌ BlockedUsersScreen._load error: $e');
+      if (mounted) setState(() { _isLoading = false; _error = true; });
     }
   }
 
@@ -35,14 +37,23 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Bỏ chặn'),
-        content: Text('Bỏ chặn $name? Bài đăng của họ sẽ hiển thị lại.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Bỏ chặn'),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bài đăng của $name sẽ hiển thị lại với bạn.'),
+            const SizedBox(height: 20),
+            SizedBox(width: double.infinity, child: OutlinedButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            )),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Bỏ chặn'),
+            )),
+          ],
+        ),
       ),
     );
     if (confirm != true) return;
@@ -53,8 +64,9 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
       content: Text(ok ? 'Đã bỏ chặn $name' : 'Có lỗi xảy ra'),
       backgroundColor: ok ? AppTheme.success : AppTheme.error,
       behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ));
-    if (ok) _load();
+    if (ok) setState(() => _blocked.removeWhere((b) => b['blocked']?['id']?.toString() == userId));
   }
 
   @override
@@ -64,12 +76,36 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
       appBar: AppBar(title: const Text('Danh sách đã chặn')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : _error
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Không tải được danh sách', style: TextStyle(color: AppTheme.textSecondary)),
+                        const SizedBox(height: 16),
+                        OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
+                      ]),
+                    )),
+                  )),
+                )
           : _blocked.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.block, size: 64, color: AppTheme.border),
-                  const SizedBox(height: 12),
-                  const Text('Bạn chưa chặn ai', style: TextStyle(color: AppTheme.textSecondary)),
-                ]))
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(height: c.maxHeight, child: const Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.block, size: 64, color: AppTheme.border),
+                        SizedBox(height: 12),
+                        Text('Bạn chưa chặn ai', style: TextStyle(color: AppTheme.textSecondary)),
+                      ]),
+                    )),
+                  )),
+                )
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView.separated(

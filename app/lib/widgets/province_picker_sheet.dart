@@ -138,7 +138,7 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
               height: 44,
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F0F0),
+                color: AppTheme.background,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -189,7 +189,7 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
 
                           for (final region in _regions) ...[
                             Container(
-                              color: const Color(0xFFF5F5F5),
+                              color: AppTheme.background,
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               child: Text(
                                 region['label'] as String,

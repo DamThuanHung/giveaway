@@ -1,4 +1,4 @@
-package com.example.cho_va_tang
+package vn.traotay.app
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,7 +16,7 @@ class MainActivity: FlutterActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "high_importance_channel",
-                "Thông báo Cho và Tặng",
+                "Thông báo Trao Tay",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Thông báo chat, deal và đánh giá"

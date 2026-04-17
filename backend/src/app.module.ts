@@ -15,6 +15,8 @@ import { DealController } from './deal/deal.controller';
 import { DealService } from './deal/deal.service';
 import { FavoriteController } from './favorite/favorite.controller';
 import { FavoriteService } from './favorite/favorite.service';
+import { FollowController } from './follow/follow.controller';
+import { FollowService } from './follow/follow.service';
 import { FcmService } from './fcm/fcm.service';
 import { NotificationController } from './notification/notification.controller';
 import { NotificationGateway } from './notification/notification.gateway';
@@ -50,6 +52,7 @@ import { UserService } from './user/user.service';
     PostController,
     ReportController,
     FavoriteController,
+    FollowController,
     DealController,
     ReviewController,
     NotificationController,
@@ -63,6 +66,7 @@ import { UserService } from './user/user.service';
     PostService,
     ReportService,
     FavoriteService,
+    FollowService,
     DealService,
     ReviewService,
     NotificationService,

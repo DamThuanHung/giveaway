@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import '../theme/app_theme.dart';
 
 class AppImage extends StatelessWidget {
   final String url;
@@ -28,8 +29,8 @@ class AppImage extends StatelessWidget {
       height: height,
       fit: fit,
       placeholder: (context, url) => Shimmer.fromColors(
-        baseColor: const Color(0xFFE5E7EB),
-        highlightColor: const Color(0xFFF9FAFB),
+        baseColor: AppTheme.border,
+        highlightColor: AppTheme.background,
         child: Container(
           width: width,
           height: height,
@@ -48,7 +49,7 @@ class AppImage extends StatelessWidget {
   Widget _placeholder() => Container(
     width: width,
     height: height,
-    color: const Color(0xFFF3F4F6),
-    child: const Icon(Icons.image_outlined, color: Color(0xFFD1D5DB)),
+    color: AppTheme.background,
+    child: const Icon(Icons.image_outlined, color: AppTheme.border),
   );
 }
