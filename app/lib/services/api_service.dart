@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.108:4000';
+  static const String baseUrl = 'https://giveaway-production-605c.up.railway.app';
 
   static Future<String?> _getToken() async {
     final p = await SharedPreferences.getInstance();
