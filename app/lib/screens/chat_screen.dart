@@ -45,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
   late IO.Socket _socket;
   String? _myId;
   bool _otherIsTyping = false;
+  bool _otherHasRead = false;
   Timer? _typingTimer;
 
   @override
@@ -60,7 +61,17 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final msgs = await ApiService.getMessages(widget.roomId);
       if (!mounted) return;
-      setState(() { _messages = msgs; _isLoading = false; });
+      // Kiểm tra xem người kia đã đọc tin nhắn của mình chưa
+      final myLastSent = msgs.lastWhere(
+        (m) => m['senderId'] == _myId,
+        orElse: () => null,
+      );
+      final alreadyRead = myLastSent != null && myLastSent['isRead'] == true;
+      setState(() {
+        _messages = msgs;
+        _isLoading = false;
+        _otherHasRead = alreadyRead;
+      });
       _scrollToBottom();
       ApiService.markRoomAsRead(widget.roomId);
       if (mounted) context.read<NotificationProvider>().refresh();
@@ -96,14 +107,32 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _socket.onConnect((_) {
       _socket.emit('joinRoom', {'roomId': widget.roomId});
+      // Thông báo cho người kia biết mình đã đọc
+      if (_myId != null) {
+        _socket.emit('markRead', {'roomId': widget.roomId, 'userId': _myId});
+      }
     });
 
     _socket.on('receive_message', (data) {
       if (!mounted) return;
-      setState(() => _messages.add(data));
+      setState(() {
+        _messages.add(data);
+        // Khi nhận tin nhắn mới từ người kia → reset trạng thái đã xem của mình
+        if (data['senderId'] != _myId) _otherHasRead = false;
+      });
       _scrollToBottom();
+      // Đánh dấu đã đọc và thông báo cho người kia
       ApiService.markRoomAsRead(widget.roomId);
+      if (_myId != null) {
+        _socket.emit('markRead', {'roomId': widget.roomId, 'userId': _myId});
+      }
       if (mounted) context.read<NotificationProvider>().refresh();
+    });
+
+    _socket.on('messages_read', (data) {
+      if (!mounted) return;
+      // Người kia vừa đọc tin nhắn của mình
+      setState(() => _otherHasRead = true);
     });
 
     _socket.on('typing', (data) {
@@ -295,7 +324,13 @@ class _ChatScreenState extends State<ChatScreen> {
                               }
                             } catch (_) {}
                           }
-                          return _MessageBubble(message: msg, isMe: isMe);
+                          final isLastMyMsg = isMe &&
+                              i == _messages.lastIndexWhere((m) => m['senderId'] == _myId);
+                          return _MessageBubble(
+                            message: msg,
+                            isMe: isMe,
+                            showRead: isLastMyMsg && _otherHasRead,
+                          );
                         },
                       ),
           ),
@@ -335,30 +370,50 @@ class _SystemMessage extends StatelessWidget {
 class _MessageBubble extends StatelessWidget {
   final dynamic message;
   final bool isMe;
-  const _MessageBubble({required this.message, required this.isMe});
+  final bool showRead;
+  const _MessageBubble({required this.message, required this.isMe, this.showRead = false});
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-        decoration: BoxDecoration(
-          color: isMe ? AppTheme.primary : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 16),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+            decoration: BoxDecoration(
+              color: isMe ? AppTheme.primary : Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(16),
+                topRight: const Radius.circular(16),
+                bottomLeft: Radius.circular(isMe ? 16 : 4),
+                bottomRight: Radius.circular(isMe ? 4 : 16),
+              ),
+              border: isMe ? null : Border.all(color: AppTheme.border),
+            ),
+            child: Text(
+              message['text'] ?? '',
+              style: TextStyle(color: isMe ? Colors.white : AppTheme.textPrimary, fontSize: 14),
+            ),
           ),
-          border: isMe ? null : Border.all(color: AppTheme.border),
-        ),
-        child: Text(
-          message['text'] ?? '',
-          style: TextStyle(color: isMe ? Colors.white : AppTheme.textPrimary, fontSize: 14),
-        ),
+          if (showRead)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6, right: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.done_all, size: 13, color: AppTheme.primary),
+                  SizedBox(width: 3),
+                  Text('Đã xem', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                ],
+              ),
+            )
+          else
+            const SizedBox(height: 6),
+        ],
       ),
     );
   }

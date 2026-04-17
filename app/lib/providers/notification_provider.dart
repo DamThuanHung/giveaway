@@ -42,6 +42,7 @@ class NotificationProvider extends ChangeNotifier {
       final count = (data['count'] as num?)?.toInt() ?? 0;
       if (count != _unreadCount) {
         _unreadCount = count;
+
         notifyListeners();
       }
     });
@@ -80,6 +81,7 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   void refresh() => _fetchUnread();
+
 
   @override
   void dispose() {

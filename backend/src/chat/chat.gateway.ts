@@ -51,4 +51,14 @@ export class ChatGateway implements OnGatewayConnection {
   ) {
     client.to(data.roomId).emit('stop_typing', { senderId: data.senderId });
   }
+
+  @SubscribeMessage('markRead')
+  async handleMarkRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; userId: string },
+  ) {
+    await this.chatService.markRoomAsRead(data.roomId, data.userId);
+    // Thông báo cho người gửi biết tin nhắn đã được đọc
+    client.to(data.roomId).emit('messages_read', { roomId: data.roomId, readBy: data.userId });
+  }
 }
