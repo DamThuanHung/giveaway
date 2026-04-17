@@ -69,7 +69,7 @@ export class ChatService {
       this.prisma.chatRoom.update({
         where: { id: roomId },
         data: { updatedAt: new Date() },
-        include: { post: { select: { title: true } } },
+        include: { post: { select: { title: true, imageLabel: true } } },
       }),
     ]);
 
@@ -77,6 +77,7 @@ export class ChatService {
     const recipientId = room.buyerId === senderId ? room.sellerId : room.buyerId;
     const senderName = (message.sender as any)?.name ?? 'Ai đó';
     const postTitle = (room as any).post?.title ?? '';
+    const postImageLabel = (room as any).post?.imageLabel ?? '';
     const notifBody = postTitle
       ? `Bạn nhận được tin nhắn mới từ "${senderName}" về bài viết "${postTitle}"`
       : `Bạn nhận được tin nhắn mới từ "${senderName}"`;
@@ -85,7 +86,7 @@ export class ChatService {
       'chat',
       `Tin nhắn mới từ ${senderName}`,
       notifBody,
-      JSON.stringify({ roomId, postTitle }),
+      JSON.stringify({ roomId, postTitle, postImageLabel }),
     );
 
     return message;

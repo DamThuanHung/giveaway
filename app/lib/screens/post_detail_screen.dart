@@ -236,8 +236,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: const Text('Hủy'),
             )),
             const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+            SizedBox(width: double.infinity, child: TextButton(
+              style: TextButton.styleFrom(foregroundColor: AppTheme.error),
               onPressed: () async {
                 Navigator.pop(context);
                 if (_post.authorId == null) return;
@@ -486,7 +486,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _buildBottomBar(AuthProvider auth) {
     final isOwn = auth.isAuth && auth.userId == _post.authorId;
     final isAvailable = _post.status == 'available';
-    final isReserved = _post.status == 'reserved';
+    final isDone = _post.status == 'done';
+    final isGive = _post.listingType == 'give';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -496,7 +497,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
       child: SafeArea(
         child: isOwn
-            // Bài của mình: chỉ hiện nút chat (disabled)
             ? ElevatedButton.icon(
                 onPressed: null,
                 icon: const Icon(Icons.storefront_outlined),
@@ -507,6 +507,53 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               )
+            : isDone
+            ? ElevatedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Đã trao tặng', style: TextStyle(fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.border,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              )
+            // Bài cho tặng còn hàng → 2 nút: Nhắn tin + Yêu cầu nhận
+            : isGive && isAvailable
+            ? Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isChatLoading ? null : _openChat,
+                    icon: _isChatLoading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.chat_outlined, size: 18),
+                    label: const Text('Nhắn tin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 50),
+                      side: const BorderSide(color: AppTheme.primary),
+                      foregroundColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: _isDealLoading ? null : _requestDeal,
+                    icon: _isDealLoading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.volunteer_activism_outlined, size: 18, color: Colors.white),
+                    label: const Text('Yêu cầu nhận', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.success,
+                      minimumSize: const Size(0, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ])
+            // Bài bán hoặc đã được đặt → chỉ nút Nhắn tin
             : ElevatedButton.icon(
                 onPressed: _isChatLoading ? null : _openChat,
                 icon: _isChatLoading

@@ -52,8 +52,9 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   String _selectedProvince = 'Toàn quốc';
   RadiusMapResult? _radiusResult;
 
-  // -1 = Đang theo dõi, 0 = Tất cả, 1 = Miễn phí, 2..N = categories
+  // -1 = Đang theo dõi, 0 = Tất cả, 1 = Miễn phí
   int _selectedChip = 0;
+  String? _selectedCategory; // null = không lọc theo danh mục
   static final _categories = AppCategories.list;
 
   // Feed riêng cho tab "Đang theo dõi"
@@ -160,28 +161,29 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     final lng = _radiusResult?.lng;
     final radius = _radiusResult?.radius;
 
-    if (_selectedChip == 0) {
-      postProv.fetchPosts(province: _provinceFilter, provinces: _provincesFilter, lat: lat, lng: lng, radius: radius);
-    } else if (_selectedChip == 1) {
-      postProv.fetchPosts(listingType: 'give', province: _provinceFilter, provinces: _provincesFilter, lat: lat, lng: lng, radius: radius);
-    } else {
-      postProv.fetchPosts(
-        itemCategory: _categories[_selectedChip - 2]['value'],
-        province: _provinceFilter,
-        provinces: _provincesFilter,
-        lat: lat, lng: lng, radius: radius,
-      );
-    }
+    postProv.fetchPosts(
+      listingType: _selectedChip == 1 ? 'give' : null,
+      itemCategory: _selectedCategory,
+      province: _provinceFilter,
+      provinces: _provincesFilter,
+      lat: lat, lng: lng, radius: radius,
+    );
   }
 
   void _onChipTap(int index) {
-    if (_selectedChip == index) return;
-    setState(() => _selectedChip = index);
+    if (_selectedChip == index && _selectedCategory == null) return;
+    setState(() { _selectedChip = index; _selectedCategory = null; });
     if (index == -1) {
       _loadFollowFeed();
     } else {
       _refetch();
     }
+  }
+
+  void _onCategoryTap(String value) {
+    final newCat = _selectedCategory == value ? null : value;
+    setState(() { _selectedCategory = newCat; _selectedChip = 0; });
+    _refetch();
   }
 
   Future<void> _loadFollowFeed() async {
@@ -285,57 +287,86 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
       ),
       body: Column(
         children: [
-          // ── Chip filter ──────────────────────────────────
+          // ── Chip filter (trạng thái) ──────────────────────
           Container(
             color: AppTheme.surface,
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            child: Row(
+              children: [
+                _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0 && _selectedCategory == null, onTap: () => _onChipTap(0)),
+                const SizedBox(width: 8),
+                _FilterChip(label: 'Miễn phí', emoji: '🎁', selected: _selectedChip == 1, onTap: () => _onChipTap(1)),
+                const SizedBox(width: 8),
+                _FilterChip(label: 'Theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
+                  final auth = context.read<AuthProvider>();
+                  if (!auth.isAuth) { _showLoginPrompt(); return; }
+                  _onChipTap(-1);
+                }),
+              ],
+            ),
+          ),
+
+          // ── Hàng icon danh mục ────────────────────────────
+          Container(
+            color: AppTheme.surface,
+            padding: const EdgeInsets.only(bottom: 10),
             child: ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
                 colors: [Colors.white, Colors.white, Colors.transparent],
-                stops: [0.0, 0.82, 1.0],
+                stops: [0.0, 0.88, 1.0],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ).createShader(bounds),
               blendMode: BlendMode.dstIn,
               child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0, onTap: () => _onChipTap(0)),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Miễn phí',
-                    emoji: '🎁',
-                    selected: _selectedChip == 1,
-                    onTap: () => _onChipTap(1),
-                  ),
-                  ..._categories.asMap().entries.map((e) {
-                    final idx = e.key + 2;
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: _FilterChip(
-                        label: e.value['label']!,
-                        iconAsset: e.value['icon'],
-                        selected: _selectedChip == idx,
-                        onTap: () => _onChipTap(idx),
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: _categories.map((cat) {
+                    final isSelected = _selectedCategory == cat['value'];
+                    return GestureDetector(
+                      onTap: () => _onCategoryTap(cat['value']!),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        width: 60,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 48, height: 48,
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppTheme.primary.withOpacity(0.12) : AppTheme.background,
+                                borderRadius: BorderRadius.circular(14),
+                                border: isSelected ? Border.all(color: AppTheme.primary, width: 1.5) : null,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Image.asset(cat['icon']!, fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.category_outlined, size: 22, color: AppTheme.textSecondary)),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              cat['label']!,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
-                  }),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Đang theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
-                    final auth = context.read<AuthProvider>();
-                    if (!auth.isAuth) {
-                      _showLoginPrompt();
-                      return;
-                    }
-                    _onChipTap(-1);
-                  }),
-                ],
+                  }).toList(),
+                ),
               ),
             ),
-            ),
           ),
+          const Divider(height: 1),
 
           // ── Feed ─────────────────────────────────────────
           Expanded(

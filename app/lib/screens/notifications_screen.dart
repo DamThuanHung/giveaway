@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_image.dart';
 import 'chat_screen.dart';
 import 'deal/deals_screen.dart';
 import 'package:provider/provider.dart';
@@ -150,12 +151,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final isRead = n['isRead'] == true;
                       final type = n['type'] ?? 'system';
 
+                      // Parse data field để lấy ảnh bài đăng
+                      String postImageLabel = '';
+                      final dataStr = n['data']?.toString();
+                      if (dataStr != null && dataStr.isNotEmpty) {
+                        try {
+                          final parsed = jsonDecode(dataStr) as Map;
+                          postImageLabel = parsed['postImageLabel']?.toString() ?? '';
+                        } catch (_) {}
+                      }
+                      final imageUrl = postImageLabel.isNotEmpty
+                          ? (postImageLabel.startsWith('http') ? postImageLabel : '${ApiService.baseUrl}/uploads/$postImageLabel')
+                          : '';
+
                       return InkWell(
                         onTap: () async {
                           if (n['isRead'] != true) {
                             await ApiService.markNotificationRead(n['id']);
                             setState(() => n['isRead'] = true);
-                            // Nếu không còn thông báo chưa đọc → clear badge
                             if (_notifications.every((x) => x['isRead'] == true) && mounted) {
                               context.read<NotificationProvider>().clearBadge();
                             }
@@ -168,16 +181,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Icon loại thông báo
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: _colorFor(type).withOpacity(0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(_iconFor(type), color: _colorFor(type), size: 22),
-                              ),
+                              // Ảnh bài đăng (nếu có) hoặc icon loại thông báo
+                              imageUrl.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: SizedBox(
+                                        width: 48, height: 48,
+                                        child: AppImage(url: imageUrl),
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 48, height: 48,
+                                      decoration: BoxDecoration(
+                                        color: _colorFor(type).withOpacity(0.12),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(_iconFor(type), color: _colorFor(type), size: 24),
+                                    ),
                               const SizedBox(width: 12),
                               // Nội dung
                               Expanded(
