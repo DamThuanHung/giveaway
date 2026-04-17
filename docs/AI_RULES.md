@@ -88,7 +88,13 @@ Gõ "lưu" để tôi cập nhật tự động.
 > Section này được AI tự cập nhật sau khi user xác nhận một pattern mới.
 > Format: `[Ngày xác nhận] Pattern — Nguồn`
 
-*(Chưa có pattern nào được xác nhận — sẽ cập nhật theo thời gian)*
+[17/04/2026] Cuối mỗi session PHẢI cập nhật docs + roadmap + memory trước khi kết thúc — Xác nhận bởi user
+[17/04/2026] Đầu mỗi session PHẢI đọc CLAUDE.md + toàn bộ docs theo thứ tự quy định — Xác nhận bởi user
+[17/04/2026] Không tự ý làm bất cứ điều gì khi chưa được user đồng ý — Xác nhận bởi user
+[17/04/2026] Không dùng thuật ngữ kỹ thuật tiếng Anh khi giao tiếp với user — Xác nhận bởi user
+[17/04/2026] Luôn đề xuất trước, không hỏi ngược — Xác nhận bởi user
+[17/04/2026] Deal flow diễn ra trong chat, không có nút "Yêu cầu nhận" riêng — Xác nhận bởi user
+[17/04/2026] Không hoàn thành giai đoạn sau khi chưa xong giai đoạn trước trong roadmap — Xác nhận bởi user
 
 ---
 
@@ -98,7 +104,9 @@ Gõ "lưu" để tôi cập nhật tự động.
 
 | Ngày | Quyết định | Lý do | Người xác nhận |
 |---|---|---|---|
-| *(Chưa có)* | | | |
+| 17/04/2026 | Không có nút "Yêu cầu nhận" trong chi tiết bài đăng | Deal flow diễn ra trong chat | user |
+| 17/04/2026 | Roadmap phải theo mục tiêu vận hành, không phải logic kỹ thuật | User cần app vận hành được, không chỉ feature complete | user |
+| 17/04/2026 | Không làm giai đoạn sau khi chưa xong giai đoạn trước | Đảm bảo chất lượng từng bước | user |
 
 ---
 
