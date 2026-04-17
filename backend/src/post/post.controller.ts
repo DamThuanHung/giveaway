@@ -3,25 +3,20 @@ import {
   Query, Request, UploadedFiles, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { PostService } from './post.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
-const multerOptions = {
-  storage: diskStorage({
-    destination: './uploads',
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-    },
-  }),
-};
+const multerOptions = { storage: memoryStorage() };
 
 @Controller('post')
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Get()
   @UseGuards(OptionalJwtGuard)
@@ -70,8 +65,11 @@ export class PostController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 5, multerOptions))
-  createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
-    return this.postService.createPost(body, files, req.user.id);
+  async createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
+    const imageUrls = files && files.length > 0
+      ? await Promise.all(files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts')))
+      : [];
+    return this.postService.createPost(body, imageUrls, req.user.id);
   }
 
   @Patch(':id')

@@ -3,14 +3,17 @@ import {
   UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post()
   createUser(@Body() body: any) {
@@ -56,17 +59,10 @@ export class UserController {
 
   @Post('avatar')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('avatar', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const suffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, `avatar-${suffix}${extname(file.originalname)}`);
-      },
-    }),
-  }))
-  uploadAvatar(@Request() req, @UploadedFile() file: any) {
-    return this.userService.uploadAvatar(req.user.id, file.filename);
+  @UseInterceptors(FileInterceptor('avatar', { storage: memoryStorage() }))
+  async uploadAvatar(@Request() req, @UploadedFile() file: any) {
+    const url = await this.cloudinaryService.uploadBuffer(file.buffer, 'traotay/avatars');
+    return this.userService.uploadAvatar(req.user.id, url);
   }
 
   @Get()

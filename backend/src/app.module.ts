@@ -18,6 +18,7 @@ import { FavoriteService } from './favorite/favorite.service';
 import { FollowController } from './follow/follow.controller';
 import { FollowService } from './follow/follow.service';
 import { FcmService } from './fcm/fcm.service';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { NotificationController } from './notification/notification.controller';
 import { NotificationGateway } from './notification/notification.gateway';
 import { NotificationService } from './notification/notification.service';
@@ -44,6 +45,7 @@ import { UserService } from './user/user.service';
       signOptions: { expiresIn: '7d' },
     }),
     ChatModule,
+    CloudinaryModule,
   ],
   controllers: [
     AppController,

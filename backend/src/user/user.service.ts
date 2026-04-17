@@ -148,8 +148,7 @@ export class UserService {
     return { message: 'Đổi mật khẩu thành công' };
   }
 
-  async uploadAvatar(userId: string, filename: string) {
-    const avatarUrl = `${process.env.BASE_URL ?? ''}/uploads/${filename}`;
+  async uploadAvatar(userId: string, avatarUrl: string) {
     return this.prisma.user.update({
       where: { id: userId },
       data: { avatar: avatarUrl },

@@ -5,6 +5,8 @@ const BASE_URL = process.env.BASE_URL ?? '';
 
 function buildImageUrl(imageLabel: string): string | null {
   if (!imageLabel) return null;
+  // Nếu đã là URL đầy đủ (Cloudinary) thì trả về luôn
+  if (imageLabel.startsWith('http')) return imageLabel;
   return `${BASE_URL}/uploads/${imageLabel}`;
 }
 
@@ -143,10 +145,10 @@ export class PostService {
     return posts.map(formatPost);
   }
 
-  async createPost(data: any, files: any[], userId?: string) {
+  async createPost(data: any, imageUrls: string[], userId?: string) {
     const priceStr = data.price ? data.price.toString().replace(/[^\d]/g, '') : '0';
     const parsedPrice = parseInt(priceStr, 10) || 0;
-    const imageFilenames = files ? files.map((f) => f.filename) : [];
+    const imageFilenames = imageUrls || [];
 
     return this.prisma.post.create({
       data: {
