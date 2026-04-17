@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/skeleton.dart';
 
 class DealsScreen extends StatefulWidget {
   const DealsScreen({super.key});
@@ -131,7 +132,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const DealListSkeleton()
           : _error
               ? RefreshIndicator(
                   onRefresh: _load,

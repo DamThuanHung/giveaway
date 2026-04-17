@@ -5,6 +5,7 @@ import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/skeleton.dart';
 import 'chat_screen.dart';
 import 'deal/deals_screen.dart';
 import 'package:provider/provider.dart';
@@ -129,7 +130,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const NotificationListSkeleton()
           : _notifications.isEmpty
               ? Center(
                   child: Column(

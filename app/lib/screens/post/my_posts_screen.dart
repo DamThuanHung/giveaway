@@ -3,6 +3,7 @@ import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_image.dart';
+import '../../widgets/skeleton.dart';
 import 'edit_post_screen.dart';
 
 class MyPostsScreen extends StatefulWidget {
@@ -104,7 +105,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('Bài đăng của tôi')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const PostGridSkeleton()
           : _error != null
               ? RefreshIndicator(
                   onRefresh: _loadPosts,

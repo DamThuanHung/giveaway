@@ -292,3 +292,86 @@ class ChatRoomSkeleton extends StatelessWidget {
     );
   }
 }
+
+// Skeleton dòng thông báo
+class NotificationItemSkeleton extends StatelessWidget {
+  const NotificationItemSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppTheme.border,
+      highlightColor: AppTheme.background,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(children: [
+          Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(height: 13, color: Colors.white),
+            const SizedBox(height: 6),
+            Container(height: 13, width: 200, color: Colors.white),
+            const SizedBox(height: 5),
+            Container(height: 11, width: 80, color: Colors.white),
+          ])),
+        ]),
+      ),
+    );
+  }
+}
+
+class NotificationListSkeleton extends StatelessWidget {
+  const NotificationListSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 8,
+      separatorBuilder: (_, __) => const Divider(height: 1, indent: 76),
+      itemBuilder: (_, __) => const NotificationItemSkeleton(),
+    );
+  }
+}
+
+// Skeleton dòng deal
+class DealItemSkeleton extends StatelessWidget {
+  const DealItemSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppTheme.border,
+      highlightColor: AppTheme.background,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Row(children: [
+          Container(width: 64, height: 64, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(8))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(height: 13, color: AppTheme.border),
+            const SizedBox(height: 6),
+            Container(height: 13, width: 150, color: AppTheme.border),
+            const SizedBox(height: 8),
+            Container(height: 24, width: 80, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(12))),
+          ])),
+        ]),
+      ),
+    );
+  }
+}
+
+class DealListSkeleton extends StatelessWidget {
+  const DealListSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 6,
+      itemBuilder: (_, __) => const DealItemSkeleton(),
+    );
+  }
+}
