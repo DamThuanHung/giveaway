@@ -61,4 +61,49 @@ export class NotificationController {
     );
     return { ok: true, tokenPreview: user.fcmToken.substring(0, 30) + '...' };
   }
+
+  // Tạo dữ liệu test chat cho một userId
+  @Post('dev/seed-chat')
+  async seedChat(@Body() body: { userId: string }) {
+    const userId = body.userId;
+    if (!userId) return { error: 'userId required' };
+
+    // Tìm post không phải của user này
+    const post = await this.prisma.post.findFirst({
+      where: { authorId: { not: userId }, status: 'available' },
+      select: { id: true, title: true, authorId: true },
+    });
+    if (!post) return { error: 'Không tìm thấy bài đăng nào để test' };
+
+    // Tạo hoặc lấy chat room
+    let room = await this.prisma.chatRoom.findFirst({
+      where: { postId: post.id, buyerId: userId },
+    });
+    if (!room) {
+      room = await this.prisma.chatRoom.create({
+        data: { postId: post.id, buyerId: userId, sellerId: post.authorId },
+      });
+    }
+
+    // Thêm tin nhắn test
+    await this.prisma.message.createMany({
+      data: [
+        { roomId: room.id, senderId: post.authorId, text: 'Xin chào! Bạn cần hỗ trợ gì không?', isRead: true },
+        { roomId: room.id, senderId: userId, text: 'Bạn ơi, món này còn không ạ?', isRead: true },
+        { roomId: room.id, senderId: post.authorId, text: 'Còn bạn nhé! Bạn có muốn nhận không?', isRead: false },
+      ],
+      skipDuplicates: false,
+    });
+
+    // Gửi notification với roomId để test deep link
+    await this.notificationService.createNotification(
+      userId,
+      'chat',
+      'Tin nhắn mới từ người bán',
+      'Còn bạn nhé! Bạn có muốn nhận không?',
+      JSON.stringify({ roomId: room.id }),
+    );
+
+    return { ok: true, roomId: room.id, postTitle: post.title };
+  }
 }
