@@ -448,7 +448,7 @@ export class NotificationController {
     categories.forEach((cat, i) => catPerUser[i % 10].push(cat));
 
     let totalPosts = 0;
-    const createdUsers: { name: string; phone: string; posts: number }[] = [];
+    const createdUsers: { email: string; phone: string; posts: number }[] = [];
 
     const hashedPassword = await bcrypt.hash('123456', 10);
 
