@@ -235,9 +235,10 @@ export class NotificationController {
     const userId = body.userId;
     if (!userId) return { error: 'userId required' };
 
-    // Tìm post không phải của user này
+    // Tìm post có ảnh, không phải của user này
     const post = await this.prisma.post.findFirst({
-      where: { authorId: { not: userId }, status: 'available' },
+      where: { authorId: { not: userId }, status: 'available', imageLabel: { not: '' } },
+      orderBy: { createdAt: 'desc' },
       select: { id: true, title: true, authorId: true },
     });
     if (!post) return { error: 'Không tìm thấy bài đăng nào để test' };
