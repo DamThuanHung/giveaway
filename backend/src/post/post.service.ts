@@ -11,9 +11,13 @@ function buildImageUrl(imageLabel: string): string | null {
 }
 
 function formatPost(post: any) {
+  const images = post.images && post.images.length > 0
+    ? post.images
+    : (post.imageLabel ? [buildImageUrl(post.imageLabel)].filter(Boolean) : []);
   return {
     ...post,
-    imageUrl: buildImageUrl(post.imageLabel),
+    imageUrl: images[0] ?? buildImageUrl(post.imageLabel),
+    images,
   };
 }
 
@@ -148,7 +152,7 @@ export class PostService {
   async createPost(data: any, imageUrls: string[], userId?: string) {
     const priceStr = data.price ? data.price.toString().replace(/[^\d]/g, '') : '0';
     const parsedPrice = parseInt(priceStr, 10) || 0;
-    const imageFilenames = imageUrls || [];
+    const urls = imageUrls || [];
 
     return this.prisma.post.create({
       data: {
@@ -163,7 +167,8 @@ export class PostService {
         ward: data.ward || '',
         addressDetail: data.addressDetail || '',
         listingType: data.listingType || 'sell',
-        imageLabel: imageFilenames[0] || '',
+        imageLabel: urls[0] || '',
+        images: urls,
         status: 'available',
         ...(userId ? { authorId: userId } : {}),
       },

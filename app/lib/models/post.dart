@@ -156,6 +156,16 @@ class Post {
     if (json['images'] != null && json['images'] is List) {
       imageList = List<String>.from(json['images']);
     }
+    // Fallback: dùng imageUrl hoặc imageLabel nếu images rỗng
+    if (imageList.isEmpty) {
+      final url = json['imageUrl']?.toString() ?? '';
+      if (url.isNotEmpty) {
+        imageList = [url];
+      } else {
+        final label = json['imageLabel']?.toString() ?? '';
+        if (label.startsWith('http')) imageList = [label];
+      }
+    }
 
     final author = json['author'];
 

@@ -47,6 +47,7 @@ model Post {
   addressDetail String     @default("")
   district      String     @default("")
   imageLabel    String     @default("")
+  images        String[]
   itemCategory  String     @default("other")
   listingType   String     @default("sell")
   province      String     @default("")
