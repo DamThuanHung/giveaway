@@ -27,6 +27,7 @@ async function bootstrap() {
   }));
 
   app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   const port = process.env.PORT || 3800;
   await app.listen(port);
