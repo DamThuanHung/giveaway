@@ -13,11 +13,14 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# 👉 QUAN TRỌNG: generate Prisma trong môi trường Linux
-RUN npx prisma generate
+# Build app
+RUN npm run build
+
+# 👉 generate Prisma không cần DB thật
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3800
 
-# Start app
-CMD ["npm", "run", "start:dev"]
+# Start app: migrate DB rồi mới start
+CMD npx prisma migrate deploy && node dist/src/main.js
