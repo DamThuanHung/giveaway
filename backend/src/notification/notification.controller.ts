@@ -320,6 +320,79 @@ export class NotificationController {
     return { ok: true, roomId: room.id, postTitle: post.title };
   }
 
+  // Setup toàn bộ dữ liệu test: tạo seller giả, seed bài, tạo chat rooms cho userId
+  @Post('dev/setup-test')
+  async setupTest(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    const { userId } = body;
+    if (!userId) return { error: 'userId required' };
+
+    // Tạo hoặc lấy test seller
+    let testSeller = await this.prisma.user.findFirst({ where: { phone: '+841111111111' } });
+    if (!testSeller) {
+      testSeller = await this.prisma.user.create({
+        data: {
+          phone: '+841111111111',
+          name: 'Trần Thị Test',
+          avatar: 'https://picsum.photos/seed/testseller/100/100',
+        },
+      });
+    }
+
+    // Seed 5 bài từ test seller với ảnh
+    const categories = ['electronics', 'clothing', 'furniture', 'books', 'toys'];
+    const titles = [
+      'iPhone 13 Pro Max 256GB còn BH',
+      'Váy hoa vintage size M mới 90%',
+      'Bàn làm việc gỗ tự nhiên',
+      'Bộ sách kỹ năng mềm 10 cuốn',
+      'Đồ chơi Lego City 500 miếng',
+    ];
+    const createdPosts: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const img = `https://picsum.photos/seed/seller${i + 10}/400/300`;
+      const post = await this.prisma.post.create({
+        data: {
+          title: titles[i],
+          description: `${titles[i]} — tình trạng tốt, có thể xem hàng trực tiếp.`,
+          price: i === 0 ? 8500000 : i === 2 ? 1200000 : 0,
+          listingType: i === 0 || i === 2 ? 'sell' : 'give',
+          itemCategory: categories[i],
+          status: 'available',
+          authorId: testSeller.id,
+          imageLabel: img,
+          images: [img, `https://picsum.photos/seed/seller${i + 20}/400/300`],
+          province: 'Hồ Chí Minh',
+        },
+      });
+      createdPosts.push(post.id);
+    }
+
+    // Tạo 3 chat room cho userId với 3 bài đầu
+    const rooms: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      let room = await this.prisma.chatRoom.findFirst({
+        where: { postId: createdPosts[i], buyerId: userId },
+      });
+      if (!room) {
+        room = await this.prisma.chatRoom.create({
+          data: { postId: createdPosts[i], buyerId: userId, sellerId: testSeller.id },
+        });
+      }
+      await this.prisma.message.createMany({
+        data: [
+          { roomId: room.id, senderId: testSeller.id, text: 'Xin chào! Bạn muốn hỏi gì không ạ?', isRead: true },
+          { roomId: room.id, senderId: userId, text: 'Bạn ơi, món này còn không?', isRead: true },
+          { roomId: room.id, senderId: testSeller.id, text: 'Còn bạn nhé! Bạn muốn nhận không?', isRead: false },
+        ],
+        skipDuplicates: false,
+      });
+      rooms.push(room.id);
+    }
+
+    return { ok: true, sellerId: testSeller.id, posts: createdPosts.length, rooms: rooms.length };
+  }
+
   // Xóa toàn bộ thông báo của một userId (dùng để dọn dữ liệu test)
   @Post('dev/clear-notifications')
   async clearNotifications(@Body() body: { userId: string; secret?: string }) {

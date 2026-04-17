@@ -520,39 +520,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               )
             // Bài cho tặng còn hàng → 2 nút: Nhắn tin + Yêu cầu nhận
             : isGive && isAvailable
-            ? Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isChatLoading ? null : _openChat,
-                    icon: _isChatLoading
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.chat_outlined, size: 18),
-                    label: const Text('Nhắn tin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 50),
-                      side: const BorderSide(color: AppTheme.primary),
-                      foregroundColor: AppTheme.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
+            ? ElevatedButton.icon(
+                onPressed: _isChatLoading ? null : _openChat,
+                icon: _isChatLoading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.chat_outlined, size: 18, color: Colors.white),
+                label: const Text('Nhắn tin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: _isDealLoading ? null : _requestDeal,
-                    icon: _isDealLoading
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.volunteer_activism_outlined, size: 18, color: Colors.white),
-                    label: const Text('Yêu cầu nhận', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.success,
-                      minimumSize: const Size(0, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
-              ])
+              )
             // Bài bán hoặc đã được đặt → chỉ nút Nhắn tin
             : ElevatedButton.icon(
                 onPressed: _isChatLoading ? null : _openChat,
