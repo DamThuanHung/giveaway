@@ -186,6 +186,11 @@ class _ChatScreenState extends State<ChatScreen> {
       'text': text,
     });
 
+    // Thêm tin nhắn vào list ngay, không chờ server echo lại
+    setState(() {
+      _messages.add({'text': text, 'senderId': _myId, 'createdAt': DateTime.now().toIso8601String()});
+    });
+    _scrollToBottom();
     _msgCtrl.clear();
   }
 

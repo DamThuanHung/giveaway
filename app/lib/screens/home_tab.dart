@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -301,15 +302,6 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  _FilterChip(label: 'Đang theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
-                    final auth = context.read<AuthProvider>();
-                    if (!auth.isAuth) {
-                      _showLoginPrompt();
-                      return;
-                    }
-                    _onChipTap(-1);
-                  }),
-                  const SizedBox(width: 8),
                   _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0, onTap: () => _onChipTap(0)),
                   const SizedBox(width: 8),
                   _FilterChip(
@@ -329,6 +321,15 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                         onTap: () => _onChipTap(idx),
                       ),
                     );
+                  }),
+                  const SizedBox(width: 8),
+                  _FilterChip(label: 'Đang theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
+                    final auth = context.read<AuthProvider>();
+                    if (!auth.isAuth) {
+                      _showLoginPrompt();
+                      return;
+                    }
+                    _onChipTap(-1);
                   }),
                 ],
               ),
@@ -655,15 +656,58 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _BellButton extends StatelessWidget {
+class _BellButton extends StatefulWidget {
+  @override
+  State<_BellButton> createState() => _BellButtonState();
+}
+
+class _BellButtonState extends State<_BellButton> with SingleTickerProviderStateMixin {
+  late AnimationController _shakeCtrl;
+  late Animation<double> _shakeAnim;
+  int _lastCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _shakeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _shakeCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _shakeCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final unreadCount = context.watch<NotificationProvider>().unreadCount;
+    if (unreadCount > _lastCount) {
+      _lastCount = unreadCount;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        for (int i = 0; i < 3; i++) {
+          await _shakeCtrl.forward(from: 0);
+          await _shakeCtrl.reverse();
+          await Future.delayed(const Duration(milliseconds: 80));
+        }
+      });
+    } else if (unreadCount == 0) {
+      _lastCount = 0;
+    }
+
     return IconButton(
-      icon: Stack(
+      icon: AnimatedBuilder(
+        animation: _shakeAnim,
+        builder: (_, child) {
+          final angle = math.sin(_shakeAnim.value * math.pi * 6) * 0.3;
+          return Transform.rotate(angle: angle, child: child);
+        },
+        child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(Icons.notifications_outlined, color: AppTheme.textSecondary),
+          Icon(unreadCount > 0 ? Icons.notifications : Icons.notifications_outlined, color: unreadCount > 0 ? AppTheme.primary : AppTheme.textSecondary),
           if (unreadCount > 0)
             Positioned(
               top: -4, right: -4,
@@ -679,6 +723,7 @@ class _BellButton extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
       onPressed: () {
         context.read<NotificationProvider>().clearBadge();

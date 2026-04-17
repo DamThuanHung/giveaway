@@ -83,6 +83,7 @@ class PostCard extends StatelessWidget {
                     url: imgUrl,
                     width: double.infinity,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                    thumbnail: true,
                   ),
                 ),
 

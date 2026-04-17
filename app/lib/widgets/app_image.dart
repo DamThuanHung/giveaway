@@ -9,6 +9,7 @@ class AppImage extends StatelessWidget {
   final double? height;
   final BoxFit fit;
   final BorderRadius? borderRadius;
+  final bool thumbnail;
 
   const AppImage({
     super.key,
@@ -17,14 +18,21 @@ class AppImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
+    this.thumbnail = false,
   });
+
+  String _optimizeUrl(String raw) {
+    if (!raw.contains('cloudinary.com') || !raw.contains('/upload/')) return raw;
+    final params = thumbnail ? 'w_400,q_auto,f_auto' : 'w_800,q_auto,f_auto';
+    return raw.replaceFirst('/upload/', '/upload/$params/');
+  }
 
   @override
   Widget build(BuildContext context) {
     if (url.isEmpty) return _placeholder();
 
     final image = CachedNetworkImage(
-      imageUrl: url,
+      imageUrl: _optimizeUrl(url),
       width: width,
       height: height,
       fit: fit,
