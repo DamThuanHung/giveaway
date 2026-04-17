@@ -401,4 +401,92 @@ export class NotificationController {
     const { count } = await this.prisma.notification.deleteMany({ where: { userId: body.userId } });
     return { ok: true, deleted: count };
   }
+
+  // Dọn sạch toàn bộ dữ liệu test + tạo 10 acc test + bài đăng đủ category
+  @Post('dev/reset-test-data')
+  async resetTestData(@Body() body: { secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+
+    // 1. Xóa các test user cũ (phone bắt đầu bằng +8400000000 hoặc +84111)
+    const oldTestUsers = await this.prisma.user.findMany({
+      where: { OR: [{ phone: { startsWith: '+8400000000' } }, { phone: '+841111111111' }] },
+      select: { id: true },
+    });
+    const oldIds = oldTestUsers.map(u => u.id);
+    if (oldIds.length > 0) {
+      // Xóa messages, chatrooms, notifications, posts, favorites của các user này
+      await this.prisma.message.deleteMany({ where: { senderId: { in: oldIds } } });
+      await this.prisma.chatRoom.deleteMany({ where: { OR: [{ buyerId: { in: oldIds } }, { sellerId: { in: oldIds } }] } });
+      await this.prisma.notification.deleteMany({ where: { userId: { in: oldIds } } });
+      await this.prisma.post.deleteMany({ where: { authorId: { in: oldIds } } });
+      await this.prisma.user.deleteMany({ where: { id: { in: oldIds } } });
+    }
+
+    // Xóa bài picsum của bất kỳ user nào (là bài seeded cũ)
+    await this.prisma.post.deleteMany({ where: { imageLabel: { startsWith: 'https://picsum.photos' } } });
+
+    // 2. Tạo 10 acc test
+    const categories = [
+      'electronics', 'furniture', 'clothing', 'kitchen', 'books',
+      'toys', 'sports', 'vehicles', 'beauty', 'pets',
+      'tools', 'food', 'baby', 'music', 'realestate', 'service', 'other',
+    ];
+    const catLabels: Record<string, string> = {
+      electronics: 'Điện tử', furniture: 'Nội thất', clothing: 'Thời trang',
+      kitchen: 'Gia dụng', books: 'Sách', toys: 'Đồ chơi',
+      sports: 'Thể thao', vehicles: 'Xe cộ', beauty: 'Làm đẹp',
+      pets: 'Thú cưng', tools: 'Đồ nghề', food: 'Thực phẩm',
+      baby: 'Mẹ & Bé', music: 'Nhạc cụ', realestate: 'Bất động sản',
+      service: 'Rao dịch vụ', other: 'Khác',
+    };
+    const provinces = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
+                       'Huế', 'Nha Trang', 'Vũng Tàu', 'Đà Lạt', 'Cần Thơ'];
+
+    // Chia 17 category cho 10 user (user 8,9,10 nhận thêm)
+    const catPerUser: string[][] = Array.from({ length: 10 }, () => []);
+    categories.forEach((cat, i) => catPerUser[i % 10].push(cat));
+
+    let totalPosts = 0;
+    const createdUsers: { name: string; phone: string; posts: number }[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      const phone = `+840000000${String(i + 1).padStart(2, '0')}`;
+      const name = `${i + 1}@test.com`;
+      const user = await this.prisma.user.create({
+        data: {
+          phone,
+          name,
+          avatar: `https://picsum.photos/seed/testuser${i + 1}/100/100`,
+        },
+      });
+
+      for (let j = 0; j < catPerUser[i].length; j++) {
+        const cat = catPerUser[i][j];
+        const seed = (i + 1) * 100 + j;
+        const isGive = (i + j) % 3 !== 0;
+        await this.prisma.post.create({
+          data: {
+            title: `${catLabels[cat]} cần tìm chỗ mới — acc ${name}`,
+            description: `Đồ ${catLabels[cat].toLowerCase()} còn tốt, dùng ít. Liên hệ qua chat.`,
+            price: isGive ? 0 : (i + 1) * 150000,
+            listingType: isGive ? 'give' : 'sell',
+            itemCategory: cat,
+            status: 'available',
+            authorId: user.id,
+            province: provinces[i],
+            imageLabel: `https://picsum.photos/seed/${seed}/400/300`,
+            images: [
+              `https://picsum.photos/seed/${seed}/400/300`,
+              `https://picsum.photos/seed/${seed + 50}/400/300`,
+            ],
+          },
+        });
+        totalPosts++;
+      }
+
+      createdUsers.push({ name, phone, posts: catPerUser[i].length });
+    }
+
+    return { ok: true, users: createdUsers.length, totalPosts, accounts: createdUsers };
+  }
 }
