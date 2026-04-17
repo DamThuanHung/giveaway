@@ -14,6 +14,8 @@ class AppCategories {
     {'value': 'food',        'label': 'Thực phẩm',  'icon': 'assets/icons/categories/food.png'},
     {'value': 'baby',        'label': 'Mẹ & Bé',    'icon': 'assets/icons/categories/baby.png'},
     {'value': 'music',       'label': 'Nhạc cụ',    'icon': 'assets/icons/categories/music.png'},
+    {'value': 'realestate',  'label': 'Bất động sản','icon': 'assets/icons/categories/realestate.png'},
+    {'value': 'service',     'label': 'Rao dịch vụ',  'icon': 'assets/icons/categories/service.png'},
     {'value': 'other',       'label': 'Khác',        'icon': 'assets/icons/categories/other.png'},
   ];
 

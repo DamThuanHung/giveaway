@@ -25,6 +25,14 @@ class Post {
   final DateTime? createdAt;
   final int viewCount;
 
+  // BĐS & Dịch vụ
+  final String postType;      // item | realestate | service
+  final String? subType;      // rent | sell (BĐS)
+  final double? area;         // m²
+  final int? bedrooms;
+  final String? priceUnit;    // month | total | sqm | hour | day
+  final String? serviceArea;
+
   Post({
     required this.id,
     required this.title,
@@ -46,6 +54,12 @@ class Post {
     this.authorAvatar,
     this.createdAt,
     this.viewCount = 0,
+    this.postType = 'item',
+    this.subType,
+    this.area,
+    this.bedrooms,
+    this.priceUnit,
+    this.serviceArea,
   });
 
   /// Format ngày đăng — dùng trong card kết quả: "09/04/2026"
@@ -65,6 +79,28 @@ class Post {
 
   // TẠO LỐI TẮT: Giúp các màn hình cũ dùng "imageUrl" vẫn không bị lỗi
   String? get imageUrl => (images != null && images!.isNotEmpty) ? images![0] : null;
+
+  bool get isRealestate => postType == 'realestate';
+  bool get isService => postType == 'service';
+
+  String get subTypeLabel {
+    switch (subType) {
+      case 'rent': return 'Cho thuê';
+      case 'sell': return 'Bán';
+      default: return '';
+    }
+  }
+
+  String get priceUnitLabel {
+    switch (priceUnit) {
+      case 'month': return '/tháng';
+      case 'total': return '';
+      case 'sqm': return '/m²';
+      case 'hour': return '/giờ';
+      case 'day': return '/ngày';
+      default: return '';
+    }
+  }
 
   bool get isFree => listingType == 'give' || listingType == 'free';
   bool get isAvailable => status == 'available';
@@ -129,6 +165,8 @@ class Post {
       latitude: latitude, longitude: longitude,
       authorId: authorId, authorName: authorName, authorAvatar: authorAvatar,
       createdAt: createdAt, viewCount: viewCount,
+      postType: postType, subType: subType, area: area, bedrooms: bedrooms,
+      priceUnit: priceUnit, serviceArea: serviceArea,
     );
   }
 
@@ -190,6 +228,12 @@ class Post {
       authorAvatar: author?['avatar']?.toString(),
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
+      postType: json['postType']?.toString().isNotEmpty == true ? json['postType'] : 'item',
+      subType: json['subType']?.toString(),
+      area: (json['area'] as num?)?.toDouble(),
+      bedrooms: (json['bedrooms'] as num?)?.toInt(),
+      priceUnit: json['priceUnit']?.toString(),
+      serviceArea: json['serviceArea']?.toString(),
     );
   }
 }

@@ -29,6 +29,7 @@ export class PostController {
       provinces: query.provinces ? (query.provinces as string).split(',') : undefined,
       listingType: query.listingType,
       itemCategory: query.itemCategory,
+      postType: query.postType,
       minPrice: query.minPrice ? parseInt(query.minPrice) : undefined,
       maxPrice: query.maxPrice ? parseInt(query.maxPrice) : undefined,
       status: query.status,
@@ -64,7 +65,7 @@ export class PostController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('images', 5, multerOptions))
+  @UseInterceptors(FilesInterceptor('images', 10, multerOptions))
   async createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
     const imageUrls = files && files.length > 0
       ? await Promise.all(files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts')))

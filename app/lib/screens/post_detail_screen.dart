@@ -650,7 +650,46 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(PostCard.formatPrice(_post.price, _post.listingType), style: TextStyle(fontSize: 22, color: (_post.listingType == 'give' || _post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      PostCard.formatPrice(_post.price, _post.listingType),
+                      style: TextStyle(fontSize: 22, color: (_post.listingType == 'give' || _post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold),
+                    ),
+                    if (_post.priceUnit != null && _post.priceUnit!.isNotEmpty && _post.priceUnitLabel.isNotEmpty)
+                      Text(
+                        _post.priceUnitLabel,
+                        style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                      ),
+                  ],
+                ),
+                // BĐS: subType + area + bedrooms
+                if (_post.isRealestate) ...[
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 6, children: [
+                    if (_post.subTypeLabel.isNotEmpty)
+                      _InfoChip(label: _post.subTypeLabel, icon: Icons.home_outlined, color: AppTheme.primary),
+                    if (_post.area != null)
+                      _InfoChip(label: '${_post.area!.toStringAsFixed(0)} m²', icon: Icons.straighten_outlined, color: AppTheme.textSecondary),
+                    if (_post.bedrooms != null)
+                      _InfoChip(
+                        label: _post.bedrooms == 0 ? 'Studio' : '${_post.bedrooms} phòng ngủ',
+                        icon: Icons.bed_outlined,
+                        color: AppTheme.textSecondary,
+                      ),
+                  ]),
+                ],
+                // Dịch vụ: serviceArea
+                if (_post.isService && _post.serviceArea != null && _post.serviceArea!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    const Icon(Icons.place_outlined, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text('Phạm vi: ${_post.serviceArea}', style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
+                  ]),
+                ],
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -1028,6 +1067,29 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
       child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _InfoChip({required this.label, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+      ]),
     );
   }
 }

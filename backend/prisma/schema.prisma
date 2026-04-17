@@ -59,6 +59,12 @@ model Post {
   authorId      String?
   updatedAt     DateTime   @updatedAt
   viewCount     Int        @default(0)
+  postType      String     @default("item")      // item | realestate | service
+  subType       String?                           // rent | sell (BĐS)
+  area          Float?                            // m² (BĐS)
+  bedrooms      Int?                              // số phòng ngủ (BĐS)
+  priceUnit     String?                           // month | total | sqm | hour | day
+  serviceArea   String?                           // phạm vi phục vụ (Dịch vụ & Thợ)
   chatRooms     ChatRoom[]
   deals         Deal[]
   favorites     Favorite[]
@@ -73,6 +79,7 @@ model Post {
   @@index([createdAt])
   @@index([status, listingType])
   @@index([status, itemCategory])
+  @@index([postType])
 }
 
 model Favorite {

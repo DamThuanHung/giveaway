@@ -33,11 +33,28 @@ class _CreatePostTabState extends State<CreatePostTab> {
   String _itemCategory = 'electronics';
   bool _isSubmitting = false;
 
+  // BĐS & Dịch vụ
+  String _subType = 'rent';          // rent | sell (BĐS)
+  final _areaController = TextEditingController();
+  int _bedrooms = 1;
+  String _priceUnit = 'month';       // month | total | sqm | hour | day
+  final _serviceAreaController = TextEditingController();
+
+  bool get _isRealestate => _itemCategory == 'realestate';
+  bool get _isService => _itemCategory == 'service';
+  String get _postType {
+    if (_isRealestate) return 'realestate';
+    if (_isService) return 'service';
+    return 'item';
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
     _priceController.dispose();
+    _areaController.dispose();
+    _serviceAreaController.dispose();
     super.dispose();
   }
 
@@ -45,6 +62,8 @@ class _CreatePostTabState extends State<CreatePostTab> {
       _titleController.text.isNotEmpty ||
       _descController.text.isNotEmpty ||
       _priceController.text.isNotEmpty ||
+      _areaController.text.isNotEmpty ||
+      _serviceAreaController.text.isNotEmpty ||
       _selectedImages.isNotEmpty ||
       _lat != null;
 
@@ -91,16 +110,16 @@ class _CreatePostTabState extends State<CreatePostTab> {
   }
 
   Future<void> _pickImage() async {
-    if (_selectedImages.length >= 5) {
+    if (_selectedImages.length >= 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Bạn đã chọn đủ 5 ảnh rồi nhé'),
+          content: Text('Bạn đã chọn đủ 10 ảnh rồi nhé'),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
-    final remaining = 5 - _selectedImages.length;
+    final remaining = 10 - _selectedImages.length;
     final picked = await ImagePicker().pickMultiImage(imageQuality: 75, limit: remaining);
     if (picked.isEmpty) return;
     final limited = picked.take(remaining).toList();
@@ -111,7 +130,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
     if (picked.length > remaining && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Bạn chỉ có thể thêm $remaining ảnh nữa (tối đa 5 ảnh mỗi bài)'),
+          content: Text('Bạn chỉ có thể thêm $remaining ảnh nữa (tối đa 10 ảnh mỗi bài)'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -154,14 +173,20 @@ class _CreatePostTabState extends State<CreatePostTab> {
       'title': _titleController.text.trim(),
       'description': _descController.text.trim(),
       'price': _listingType == 'give' ? '0' : (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()),
-      'listingType': _listingType,
+      'listingType': _isRealestate ? (_subType == 'rent' ? 'sell' : 'sell') : _listingType,
       'itemCategory': _itemCategory,
+      'postType': _postType,
       'province': _selectedProvince,
       'district': _selectedDistrict,
       'ward': _selectedWard,
       'addressDetail': _selectedAddress,
       if (_lat != null) 'latitude': _lat.toString(),
       if (_lng != null) 'longitude': _lng.toString(),
+      if (_isRealestate) 'subType': _subType,
+      if (_isRealestate && _areaController.text.isNotEmpty) 'area': _areaController.text.trim(),
+      if (_isRealestate) 'bedrooms': _bedrooms.toString(),
+      if (_isRealestate || _isService) 'priceUnit': _priceUnit,
+      if (_isService && _serviceAreaController.text.isNotEmpty) 'serviceArea': _serviceAreaController.text.trim(),
     };
 
     try {
@@ -176,6 +201,8 @@ class _CreatePostTabState extends State<CreatePostTab> {
         _titleController.clear();
         _descController.clear();
         _priceController.clear();
+        _areaController.clear();
+        _serviceAreaController.clear();
         setState(() {
           _selectedImages = [];
           _imageByteFutures = [];
@@ -187,6 +214,9 @@ class _CreatePostTabState extends State<CreatePostTab> {
           _selectedWard = '';
           _listingType = 'sell';
           _itemCategory = 'electronics';
+          _subType = 'rent';
+          _bedrooms = 1;
+          _priceUnit = 'month';
         });
         if (mounted) Navigator.pop(context, true);
       } else {
@@ -246,8 +276,12 @@ class _CreatePostTabState extends State<CreatePostTab> {
                   children: [
                     _buildImagePicker(),
                     const SizedBox(height: 20),
-                    _buildTypeSelector(),
+                    _buildCategoryDropdown(),
                     const SizedBox(height: 16),
+                    if (!_isRealestate && !_isService) ...[
+                      _buildTypeSelector(),
+                      const SizedBox(height: 16),
+                    ],
                     TextFormField(
                       controller: _titleController,
                       decoration: InputDecoration(
@@ -267,7 +301,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                       maxLength: 100,
                     ),
                     const SizedBox(height: 16),
-                    if (_listingType != 'give')
+                    if (!_isRealestate && !_isService && _listingType != 'give') ...[
                       TextFormField(
                         controller: _priceController,
                         decoration: InputDecoration(
@@ -293,9 +327,18 @@ class _CreatePostTabState extends State<CreatePostTab> {
                           return null;
                         },
                       ),
-                    if (_listingType != 'give') const SizedBox(height: 16),
-                    _buildCategoryDropdown(),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                    ],
+                    // --- BĐS fields ---
+                    if (_isRealestate) ...[
+                      _buildRealestateFields(),
+                      const SizedBox(height: 16),
+                    ],
+                    // --- Dịch vụ fields ---
+                    if (_isService) ...[
+                      _buildServiceFields(),
+                      const SizedBox(height: 16),
+                    ],
                     TextFormField(
                       controller: _descController,
                       decoration: InputDecoration(
@@ -334,6 +377,142 @@ class _CreatePostTabState extends State<CreatePostTab> {
     );
   }
 
+  Widget _buildRealestateFields() {
+    final inputDeco = InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Loại BĐS: Cho thuê / Bán
+        const Text('Loại tin *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        const SizedBox(height: 8),
+        Row(children: [
+          _TypeChip(label: 'Cho thuê', value: 'rent', selected: _subType == 'rent', onTap: () => setState(() { _subType = 'rent'; _priceUnit = 'month'; })),
+          const SizedBox(width: 8),
+          _TypeChip(label: 'Bán', value: 'sell', selected: _subType == 'sell', onTap: () => setState(() { _subType = 'sell'; _priceUnit = 'total'; })),
+        ]),
+        const SizedBox(height: 16),
+
+        // Giá + Đơn vị
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: _priceController,
+              decoration: inputDeco.copyWith(labelText: 'Giá (VNĐ)', hintText: 'Để trống = thương lượng'),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: DropdownButtonFormField<String>(
+              value: _priceUnit,
+              decoration: inputDeco.copyWith(labelText: 'Đơn vị'),
+              items: _subType == 'rent'
+                  ? const [
+                      DropdownMenuItem(value: 'month', child: Text('/tháng')),
+                      DropdownMenuItem(value: 'day', child: Text('/ngày')),
+                    ]
+                  : const [
+                      DropdownMenuItem(value: 'total', child: Text('Tổng')),
+                      DropdownMenuItem(value: 'sqm', child: Text('/m²')),
+                    ],
+              onChanged: (v) => setState(() => _priceUnit = v!),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 16),
+
+        // Diện tích + Phòng ngủ
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: TextFormField(
+              controller: _areaController,
+              decoration: inputDeco.copyWith(labelText: 'Diện tích (m²)', hintText: 'VD: 45'),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: DropdownButtonFormField<int>(
+              value: _bedrooms,
+              decoration: inputDeco.copyWith(labelText: 'Phòng ngủ'),
+              items: [0, 1, 2, 3, 4, 5].map((n) => DropdownMenuItem(
+                value: n,
+                child: Text(n == 0 ? 'Studio' : '$n phòng'),
+              )).toList(),
+              onChanged: (v) => setState(() => _bedrooms = v!),
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _buildServiceFields() {
+    final inputDeco = InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primary, width: 1.5)),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Giá + Đơn vị
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: _priceController,
+              decoration: inputDeco.copyWith(labelText: 'Giá (VNĐ)', hintText: 'Để trống = thương lượng'),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: DropdownButtonFormField<String>(
+              value: _priceUnit == 'month' || _priceUnit == 'total' || _priceUnit == 'sqm' ? 'hour' : _priceUnit,
+              decoration: inputDeco.copyWith(labelText: 'Đơn vị'),
+              items: const [
+                DropdownMenuItem(value: 'hour', child: Text('/giờ')),
+                DropdownMenuItem(value: 'day', child: Text('/ngày')),
+                DropdownMenuItem(value: 'total', child: Text('Trọn gói')),
+              ],
+              onChanged: (v) => setState(() => _priceUnit = v!),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 16),
+
+        // Phạm vi phục vụ
+        TextFormField(
+          controller: _serviceAreaController,
+          decoration: inputDeco.copyWith(
+            labelText: 'Phạm vi phục vụ',
+            hintText: 'VD: Quận 1, Quận 3, TP.HCM',
+            prefixIcon: const Icon(Icons.place_outlined),
+          ),
+          textInputAction: TextInputAction.next,
+          maxLength: 100,
+        ),
+      ],
+    );
+  }
+
   Widget _buildImagePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +525,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
             scrollDirection: Axis.horizontal,
             children: [
               // Nút thêm ảnh — ẩn khi đủ 5
-              if (_selectedImages.length < 5)
+              if (_selectedImages.length < 10)
                 GestureDetector(
                   onTap: _pickImage,
                   child: Container(
@@ -363,7 +542,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                       const Text('Thêm ảnh', style: TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 2),
                       Text(
-                        'còn ${5 - _selectedImages.length} chỗ',
+                        'còn ${10 - _selectedImages.length} chỗ',
                         style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
                       ),
                     ]),

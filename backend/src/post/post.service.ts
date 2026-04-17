@@ -33,6 +33,7 @@ export class PostService {
     provinces?: string[]; // filter theo nhiều tỉnh (Toàn miền X)
     listingType?: string;
     itemCategory?: string;
+    postType?: string; // item | realestate | service
     minPrice?: number;
     maxPrice?: number;
     status?: string;
@@ -79,6 +80,7 @@ export class PostService {
     }
     if (query.listingType) where.listingType = query.listingType;
     if (query.itemCategory) where.itemCategory = query.itemCategory;
+    if (query.postType) where.postType = query.postType;
     if (query.minPrice !== undefined) where.price = { ...where.price, gte: query.minPrice };
     if (query.maxPrice !== undefined) where.price = { ...where.price, lte: query.maxPrice };
 
@@ -170,6 +172,12 @@ export class PostService {
         imageLabel: urls[0] || '',
         images: urls,
         status: 'available',
+        postType: data.postType || 'item',
+        ...(data.subType && { subType: data.subType }),
+        ...(data.area !== undefined && data.area !== '' && { area: parseFloat(data.area) || null }),
+        ...(data.bedrooms !== undefined && data.bedrooms !== '' && { bedrooms: parseInt(data.bedrooms) || null }),
+        ...(data.priceUnit && { priceUnit: data.priceUnit }),
+        ...(data.serviceArea && { serviceArea: data.serviceArea }),
         ...(userId ? { authorId: userId } : {}),
       },
     }).then(formatPost);
