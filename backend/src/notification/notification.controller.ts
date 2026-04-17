@@ -303,4 +303,12 @@ export class NotificationController {
 
     return { ok: true, roomId: room.id, postTitle: post.title };
   }
+
+  // Xóa toàn bộ thông báo của một userId (dùng để dọn dữ liệu test)
+  @Post('dev/clear-notifications')
+  async clearNotifications(@Body() body: { userId: string }) {
+    if (!body.userId) return { error: 'userId required' };
+    const { count } = await this.prisma.notification.deleteMany({ where: { userId: body.userId } });
+    return { ok: true, deleted: count };
+  }
 }
