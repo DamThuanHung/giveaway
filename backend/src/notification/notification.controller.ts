@@ -53,8 +53,9 @@ export class NotificationController {
 
   @Get('dev/ping')
   devPing() {
-    const s = process.env.DEV_SECRET;
-    return { set: !!s, len: s?.length, preview: s ? s.substring(0, 5) + '...' : null };
+    const s = process.env.DEV_SECRET ?? '';
+    const test = 'traotay-dev-2024';
+    return { set: !!s, len: s.length, match: s === test, chars: [...s].map(c => c.charCodeAt(0)) };
   }
 
   // Endpoint test — chỉ dùng trong development/debug
