@@ -4,7 +4,7 @@ import { Readable } from 'stream';
 
 @Injectable()
 export class CloudinaryService {
-  constructor() {
+  private configure() {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
@@ -13,6 +13,7 @@ export class CloudinaryService {
   }
 
   async uploadBuffer(buffer: Buffer, folder: string): Promise<string> {
+    this.configure();
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
