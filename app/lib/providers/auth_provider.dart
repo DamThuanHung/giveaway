@@ -99,6 +99,19 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> deleteAccount() async {
+    final ok = await ApiService.deleteAccount();
+    if (ok) {
+      _isAuthenticated = false;
+      _userId = null;
+      _userName = null;
+      _userEmail = null;
+      _userAvatar = null;
+      notifyListeners();
+    }
+    return ok;
+  }
+
   void updateAvatar(String url) {
     _userAvatar = url;
     notifyListeners();

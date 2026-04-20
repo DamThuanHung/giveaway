@@ -233,6 +233,22 @@ export class UserService {
     return r !== null;
   }
 
+  async deleteAccount(userId: string) {
+    await this.prisma.$transaction([
+      this.prisma.notification.deleteMany({ where: { userId } }),
+      this.prisma.favorite.deleteMany({ where: { userId } }),
+      this.prisma.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followingId: userId }] } }),
+      this.prisma.blockedUser.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } }),
+      this.prisma.review.deleteMany({ where: { OR: [{ reviewerId: userId }, { revieweeId: userId }] } }),
+      this.prisma.deal.deleteMany({ where: { OR: [{ requesterId: userId }, { ownerId: userId }] } }),
+      this.prisma.message.deleteMany({ where: { senderId: userId } }),
+      this.prisma.chatRoom.deleteMany({ where: { OR: [{ buyerId: userId }, { sellerId: userId }] } }),
+      this.prisma.post.deleteMany({ where: { authorId: userId } }),
+      this.prisma.user.delete({ where: { id: userId } }),
+    ]);
+    return { message: 'Tài khoản đã được xóa thành công' };
+  }
+
   // ─── Email OTP Login (dùng email dự phòng) ───────────────────────────────
 
   async sendEmailLoginOtp(email: string) {

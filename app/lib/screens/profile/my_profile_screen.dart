@@ -368,6 +368,49 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 }
               },
             ),
+            _MenuItem(
+              icon: Icons.delete_forever_rounded,
+              label: 'Xóa tài khoản',
+              iconBgColor: const Color(0xFF7F1D1D),
+              labelColor: AppTheme.error,
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Xóa tài khoản'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn, bao gồm bài đăng, tin nhắn và giao dịch. Hành động này không thể hoàn tác.',
+                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(width: double.infinity, child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Xóa tài khoản'),
+                        )),
+                        const SizedBox(height: 8),
+                        SizedBox(width: double.infinity, child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Hủy'),
+                        )),
+                      ],
+                    ),
+                  ),
+                );
+                if (confirm == true && context.mounted) {
+                  final ok = await context.read<AuthProvider>().deleteAccount();
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Xóa tài khoản thất bại. Vui lòng thử lại.')),
+                    );
+                  }
+                }
+              },
+            ),
           ],
         ),
         ),

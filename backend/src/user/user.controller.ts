@@ -129,4 +129,10 @@ export class UserController {
   checkBlocked(@Request() req, @Param('targetId') targetId: string) {
     return this.userService.isBlocked(req.user.id, targetId).then(isBlocked => ({ isBlocked }));
   }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  deleteAccount(@Request() req) {
+    return this.userService.deleteAccount(req.user.id);
+  }
 }

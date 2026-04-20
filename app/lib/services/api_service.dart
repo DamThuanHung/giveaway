@@ -177,6 +177,22 @@ class ApiService {
     await prefs.remove('user_avatar');
   }
 
+  static Future<bool> deleteAccount() async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/user/me'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        await logout();
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ─── USER ────────────────────────────────────────────
   static Future<Map<String, dynamic>?> getMe() async {
     try {
