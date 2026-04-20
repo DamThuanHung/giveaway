@@ -991,6 +991,7 @@ class _SearchTabState extends State<SearchTab> {
                                 if (_radiusResult != null && _formatDistance(post).isNotEmpty) ...[
                                   const SizedBox(width: 4),
                                   Text('• ${_formatDistance(post)}',
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w500)),
                                 ],
                               ]),

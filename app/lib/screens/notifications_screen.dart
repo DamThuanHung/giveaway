@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/empty_state.dart';
 import 'chat_screen.dart';
 import 'deal/deals_screen.dart';
 import 'package:provider/provider.dart';

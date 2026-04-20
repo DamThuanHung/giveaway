@@ -155,10 +155,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
 
     setState(() => _isChatLoading = true);
-    final extraPostsList = _selectedExtraPostIds.map((id) {
-      final p = _sellerPosts.firstWhere((p) => p.id == id);
-      return {'id': id, 'title': p.title};
-    }).toList();
+    final extraPostsList = _selectedExtraPostIds
+        .map((id) {
+          try { return _sellerPosts.firstWhere((p) => p.id == id); } catch (_) { return null; }
+        })
+        .where((p) => p != null)
+        .map((p) => {'id': p!.id, 'title': p.title})
+        .toList();
     final room = await ApiService.getOrCreateRoom(
       _post.id,
       _post.authorId!,
@@ -721,9 +724,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   children: [
                     const Icon(Icons.calendar_today_outlined, size: 13, color: AppTheme.textSecondary),
                     const SizedBox(width: 4),
-                    Text(
-                      _post.formattedDateTime.isNotEmpty ? _post.formattedDateTime : '—',
-                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    Flexible(
+                      child: Text(
+                        _post.formattedDateTime.isNotEmpty ? _post.formattedDateTime : '—',
+                        style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     const Icon(Icons.visibility_outlined, size: 13, color: AppTheme.textSecondary),
@@ -892,9 +898,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Bài đăng khác của ${_post.authorName ?? 'người này'}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        Expanded(
+                          child: Text(
+                            'Bài đăng khác của ${_post.authorName ?? 'người này'}',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         if (_sellerPosts.length > 3 && _post.authorId != null)
                           GestureDetector(

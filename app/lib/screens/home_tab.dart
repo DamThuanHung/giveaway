@@ -291,18 +291,21 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
           Container(
             color: AppTheme.surface,
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-            child: Row(
-              children: [
-                _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0 && _selectedCategory == null, onTap: () => _onChipTap(0)),
-                const SizedBox(width: 8),
-                _FilterChip(label: 'Miễn phí', emoji: '🎁', selected: _selectedChip == 1, onTap: () => _onChipTap(1)),
-                const SizedBox(width: 8),
-                _FilterChip(label: 'Theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
-                  final auth = context.read<AuthProvider>();
-                  if (!auth.isAuth) { _showLoginPrompt(); return; }
-                  _onChipTap(-1);
-                }),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(label: 'Tất cả', emoji: '✨', selected: _selectedChip == 0 && _selectedCategory == null, onTap: () => _onChipTap(0)),
+                  const SizedBox(width: 8),
+                  _FilterChip(label: 'Miễn phí', emoji: '🎁', selected: _selectedChip == 1, onTap: () => _onChipTap(1)),
+                  const SizedBox(width: 8),
+                  _FilterChip(label: 'Theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
+                    final auth = context.read<AuthProvider>();
+                    if (!auth.isAuth) { _showLoginPrompt(); return; }
+                    _onChipTap(-1);
+                  }),
+                ],
+              ),
             ),
           ),
 

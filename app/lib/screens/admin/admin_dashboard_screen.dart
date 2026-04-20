@@ -193,15 +193,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 8),
             Row(children: [
-              _AdminBtn('Ẩn bài', Colors.orange, () async {
+              Expanded(child: _AdminBtn('Ẩn bài', Colors.orange, () async {
                 await ApiService.adminHidePost(p['id']);
                 _loadTab(1);
-              }),
+              })),
               const SizedBox(width: 8),
-              _AdminBtn('Xóa', Colors.red, () async {
+              Expanded(child: _AdminBtn('Xóa', Colors.red, () async {
                 final ok = await _confirm('Xóa bài đăng này?');
                 if (ok) { await ApiService.adminDeletePost(p['id']); _loadTab(1); }
-              }),
+              })),
             ]),
           ]),
         );
@@ -284,15 +284,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             if (isPending) ...[
               const SizedBox(height: 8),
               Row(children: [
-                _AdminBtn('Xử lý (ẩn bài)', Colors.orange, () async {
+                Expanded(child: _AdminBtn('Xử lý (ẩn bài)', Colors.orange, () async {
                   await ApiService.adminResolveReport(r['id'], 'resolved');
                   _loadTab(3);
-                }),
+                })),
                 const SizedBox(width: 8),
-                _AdminBtn('Bỏ qua', Colors.grey, () async {
+                Expanded(child: _AdminBtn('Bỏ qua', Colors.grey, () async {
                   await ApiService.adminResolveReport(r['id'], 'dismissed');
                   _loadTab(3);
-                }),
+                })),
               ]),
             ],
           ]),
@@ -427,9 +427,10 @@ class _AdminBtn extends StatelessWidget {
   @override Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6), border: Border.all(color: color.withOpacity(0.3))),
-      child: Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
+      child: Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
     ),
   );
 }
