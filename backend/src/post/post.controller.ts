@@ -73,12 +73,9 @@ export class PostController {
         imageUrls = await Promise.all(
           files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts'))
         );
-      } catch (e) {
-        const msg = e?.message ?? '';
-        if (msg.includes('cloud_name') || msg.includes('api_key') || msg.includes('Must supply')) {
-          throw new BadRequestException('Chưa cấu hình Cloudinary trên server. Liên hệ admin.');
-        }
-        throw new BadRequestException('Upload ảnh thất bại. Vui lòng thử lại.');
+      } catch (e: any) {
+        const msg = e?.message ?? e?.error?.message ?? JSON.stringify(e) ?? 'unknown';
+        throw new BadRequestException(`Upload ảnh thất bại: ${msg}`);
       }
     }
     return this.postService.createPost(body, imageUrls, req.user.id);
