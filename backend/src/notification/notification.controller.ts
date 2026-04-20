@@ -440,12 +440,8 @@ export class NotificationController {
       baby: 'Mẹ & Bé', music: 'Nhạc cụ', realestate: 'Bất động sản',
       service: 'Rao dịch vụ', other: 'Khác',
     };
-    const provinces = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
-                       'Huế', 'Nha Trang', 'Vũng Tàu', 'Đà Lạt', 'Cần Thơ'];
-
-    // Chia 17 category cho 10 user (user 8,9,10 nhận thêm)
-    const catPerUser: string[][] = Array.from({ length: 10 }, () => []);
-    categories.forEach((cat, i) => catPerUser[i % 10].push(cat));
+    const provinces = ['TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
+                       'Huế', 'Nha Trang', 'Vũng Tàu', 'Đà Lạt', 'Bình Dương'];
 
     let totalPosts = 0;
     const createdUsers: { email: string; phone: string; posts: number }[] = [];
@@ -458,17 +454,15 @@ export class NotificationController {
       const name = `Test User ${i + 1}`;
       const user = await this.prisma.user.create({
         data: {
-          phone,
-          email,
-          name,
-          password: hashedPassword,
+          phone, email, name, password: hashedPassword,
           avatar: `https://picsum.photos/seed/testuser${i + 1}/100/100`,
         },
       });
 
-      for (let j = 0; j < catPerUser[i].length; j++) {
-        const cat = catPerUser[i][j];
-        const seed = (i + 1) * 100 + j;
+      // Mỗi user có 1 bài cho MỖI trong 17 danh mục
+      for (let j = 0; j < categories.length; j++) {
+        const cat = categories[j];
+        const seed = (i + 1) * 100 + j * 7;
         const isGive = (i + j) % 3 !== 0;
         await this.prisma.post.create({
           data: {
@@ -490,7 +484,7 @@ export class NotificationController {
         totalPosts++;
       }
 
-      createdUsers.push({ email, phone, posts: catPerUser[i].length });
+      createdUsers.push({ email, phone, posts: categories.length });
     }
 
     return { ok: true, users: createdUsers.length, totalPosts, password: '123456', accounts: createdUsers };
