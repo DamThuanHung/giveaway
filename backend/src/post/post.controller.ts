@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Delete, Get, Param, Patch, Post,
+  BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post,
   Query, Request, UploadedFiles, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -76,9 +76,9 @@ export class PostController {
       } catch (e) {
         const msg = e?.message ?? '';
         if (msg.includes('cloud_name') || msg.includes('api_key') || msg.includes('Must supply')) {
-          throw new Error('Chưa cấu hình Cloudinary trên server. Liên hệ admin.');
+          throw new BadRequestException('Chưa cấu hình Cloudinary trên server. Liên hệ admin.');
         }
-        throw new Error('Upload ảnh thất bại. Vui lòng thử lại.');
+        throw new BadRequestException('Upload ảnh thất bại. Vui lòng thử lại.');
       }
     }
     return this.postService.createPost(body, imageUrls, req.user.id);
