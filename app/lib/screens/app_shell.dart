@@ -111,9 +111,13 @@ class _AppShellState extends State<AppShell> {
       );
       if (result == true) {
         if (!mounted) return;
-        // BUG FIX: dùng refresh() để giữ nguyên filter province/category của HomeTab
         context.read<PostProvider>().refresh();
         setState(() => _selectedIndex = 0);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Đăng tin thành công!'),
+          backgroundColor: AppTheme.success,
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     } else {
       setState(() => _selectedIndex = index);

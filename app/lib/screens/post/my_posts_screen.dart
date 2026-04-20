@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/skeleton.dart';
 import 'edit_post_screen.dart';
+import '../post_detail_screen.dart';
 
 class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
@@ -183,7 +184,15 @@ class _PostItem extends StatelessWidget {
   Widget build(BuildContext context) {
     Color statusColor = post.status == 'available' ? AppTheme.success : post.status == 'reserved' ? AppTheme.warning : AppTheme.textSecondary;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => PostDetailScreen(
+          post: post,
+          isFavorite: false,
+          onToggleFavorite: () async {},
+        ),
+      )),
+      child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -257,6 +266,7 @@ class _PostItem extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

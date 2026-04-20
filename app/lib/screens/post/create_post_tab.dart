@@ -190,14 +190,9 @@ class _CreatePostTabState extends State<CreatePostTab> {
     };
 
     try {
-      final ok = await ApiService.createPost(postData, _selectedImages);
+      final errMsg = await ApiService.createPost(postData, _selectedImages);
       if (!mounted) return;
-      if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Đăng tin thành công!'),
-          backgroundColor: AppTheme.success,
-          behavior: SnackBarBehavior.floating,
-        ));
+      if (errMsg == null) {
         _titleController.clear();
         _descController.clear();
         _priceController.clear();
@@ -220,8 +215,8 @@ class _CreatePostTabState extends State<CreatePostTab> {
         });
         if (mounted) Navigator.pop(context, true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Đăng tin thất bại. Vui lòng thử lại.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errMsg ?? 'Đăng tin thất bại. Vui lòng thử lại.'),
           backgroundColor: AppTheme.error,
           behavior: SnackBarBehavior.floating,
         ));

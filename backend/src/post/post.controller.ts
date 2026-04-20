@@ -67,9 +67,20 @@ export class PostController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 10, multerOptions))
   async createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
-    const imageUrls = files && files.length > 0
-      ? await Promise.all(files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts')))
-      : [];
+    let imageUrls: string[] = [];
+    if (files && files.length > 0) {
+      try {
+        imageUrls = await Promise.all(
+          files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts'))
+        );
+      } catch (e) {
+        const msg = e?.message ?? '';
+        if (msg.includes('cloud_name') || msg.includes('api_key') || msg.includes('Must supply')) {
+          throw new Error('Chưa cấu hình Cloudinary trên server. Liên hệ admin.');
+        }
+        throw new Error('Upload ảnh thất bại. Vui lòng thử lại.');
+      }
+    }
     return this.postService.createPost(body, imageUrls, req.user.id);
   }
 

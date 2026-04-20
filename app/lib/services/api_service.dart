@@ -315,7 +315,7 @@ class ApiService {
     }
   }
 
-  static Future<bool> createPost(Map<String, dynamic> data, List<XFile> images) async {
+  static Future<String?> createPost(Map<String, dynamic> data, List<XFile> images) async {
     try {
       final t = await _getToken();
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/post'));
@@ -332,9 +332,18 @@ class ApiService {
       }
 
       final resp = await request.send().timeout(const Duration(seconds: 45));
-      return resp.statusCode == 201 || resp.statusCode == 200;
+      if (resp.statusCode == 201 || resp.statusCode == 200) return null;
+      final body = await resp.stream.bytesToString();
+      try {
+        final d = jsonDecode(body);
+        final msg = d['message'];
+        if (msg is List) return msg.join(', ');
+        return msg?.toString() ?? 'Lỗi ${resp.statusCode}';
+      } catch (_) {
+        return 'Lỗi ${resp.statusCode}';
+      }
     } catch (e) {
-      return false;
+      return 'Không thể kết nối máy chủ';
     }
   }
 
