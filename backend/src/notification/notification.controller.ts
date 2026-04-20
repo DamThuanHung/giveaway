@@ -51,6 +51,12 @@ export class NotificationController {
     return true;
   }
 
+  @Get('dev/ping')
+  devPing() {
+    const s = process.env.DEV_SECRET;
+    return { set: !!s, len: s?.length, preview: s ? s.substring(0, 5) + '...' : null };
+  }
+
   // Endpoint test — chỉ dùng trong development/debug
   @Post('test-push')
   async testPush(@Body() body: { userId: string; title: string; message: string; secret?: string }) {
