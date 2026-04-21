@@ -45,7 +45,6 @@ export class FcmService implements OnModuleInit {
           priority: 'high',
           notification: {
             sound: 'default',
-            channelId: 'high_importance_channel',
           },
         },
         apns: {
