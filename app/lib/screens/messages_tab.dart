@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/user_avatar.dart';
 import 'chat_screen.dart';
 import 'auth/phone_login_screen.dart';
 
@@ -161,17 +162,10 @@ class _MessagesTabState extends State<MessagesTab> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           child: Row(children: [
-                            // Avatar người chat
-                            CircleAvatar(
+                            UserAvatar(
+                              imageUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
+                              name: other?['name']?.toString(),
                               radius: 24,
-                              backgroundColor: AppTheme.primaryLight,
-                              backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                              onBackgroundImageError: avatarUrl.isNotEmpty
-                                  ? (_, __) {}
-                                  : null,
-                              child: avatarUrl.isEmpty
-                                  ? const Icon(Icons.person, color: AppTheme.primary)
-                                  : null,
                             ),
                             const SizedBox(width: 12),
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

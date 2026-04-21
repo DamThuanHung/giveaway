@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/skeleton.dart';
+import '../../widgets/user_avatar.dart';
 
 class DealsScreen extends StatefulWidget {
   const DealsScreen({super.key});
@@ -252,13 +253,10 @@ class _IncomingCard extends StatelessWidget {
         ]),
         const Divider(height: 16),
         Row(children: [
-          CircleAvatar(
+          UserAvatar(
+            imageUrl: requester['avatar']?.toString(),
+            name: requester['name']?.toString(),
             radius: 16,
-            backgroundColor: AppTheme.primary.withOpacity(0.1),
-            child: Text(
-              (requester['name'] ?? 'U')[0].toUpperCase(),
-              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13),
-            ),
           ),
           const SizedBox(width: 8),
           Text(requester['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),

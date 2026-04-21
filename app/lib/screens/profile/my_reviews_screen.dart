@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/user_avatar.dart';
 
 class MyReviewsScreen extends StatefulWidget {
   const MyReviewsScreen({super.key});
@@ -132,14 +133,7 @@ class _ReviewTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppTheme.primaryLight,
-            child: Text(
-              reviewerName.isNotEmpty ? reviewerName[0].toUpperCase() : '?',
-              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
-            ),
-          ),
+          UserAvatar(name: reviewerName, radius: 18),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(reviewerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),

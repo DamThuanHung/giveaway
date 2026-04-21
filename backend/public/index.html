@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trao Tay — Cho đi & Nhận lại</title>
+  <meta name="description" content="Ứng dụng trao tặng và mua bán đồ cũ tại Việt Nam. Đăng bài miễn phí, kết nối cộng đồng, trao đi yêu thương." />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --primary-light: #D1FAE5;
+      --text: #1A1A2E;
+      --text-secondary: #6B7280;
+      --bg: #F7F8FA;
+      --white: #ffffff;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #E2E5EA;
+      padding: 0 24px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .nav-logo-text { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-link { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
+    .nav-link:hover { color: var(--primary); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 80px 24px 60px;
+      background: linear-gradient(160deg, #ECFDF5 0%, #F7F8FA 50%, #EFF6FF 100%);
+      text-align: center;
+    }
+    .hero-inner { max-width: 640px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 13px; font-weight: 600;
+      padding: 6px 14px; border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 52px);
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--primary); }
+    .hero p {
+      font-size: 18px; color: var(--text-secondary);
+      margin-bottom: 40px; line-height: 1.7;
+    }
+    .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary); color: white;
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 16px; font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 14px rgba(16,185,129,0.35);
+    }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; color: var(--text);
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 16px; font-weight: 600;
+      text-decoration: none; border: 1.5px solid #E2E5EA;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+
+    /* FEATURES */
+    .features {
+      padding: 80px 24px;
+      background: white;
+    }
+    .section-title {
+      text-align: center;
+      font-size: 28px; font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .section-sub {
+      text-align: center;
+      font-size: 16px; color: var(--text-secondary);
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      max-width: 960px; margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 28px 24px;
+      border: 1px solid #E2E5EA;
+    }
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* HOW IT WORKS */
+    .how {
+      padding: 80px 24px;
+      background: var(--bg);
+    }
+    .steps {
+      display: flex;
+      gap: 0;
+      max-width: 800px; margin: 0 auto;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .step {
+      flex: 1; min-width: 180px;
+      text-align: center;
+      padding: 24px 16px;
+      position: relative;
+    }
+    .step-number {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--primary);
+      color: white; font-size: 20px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .step h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 13px; color: var(--text-secondary); }
+
+    /* CTA */
+    .cta {
+      padding: 80px 24px;
+      background: linear-gradient(135deg, var(--primary) 0%, #059669 100%);
+      text-align: center;
+    }
+    .cta h2 { font-size: 32px; font-weight: 800; color: white; margin-bottom: 16px; }
+    .cta p { font-size: 17px; color: rgba(255,255,255,0.85); margin-bottom: 36px; }
+    .btn-white {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; color: var(--primary);
+      padding: 14px 32px; border-radius: 12px;
+      font-size: 16px; font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+      transition: transform 0.1s;
+    }
+    .btn-white:hover { transform: translateY(-2px); }
+
+    /* FOOTER */
+    footer {
+      background: var(--text);
+      color: rgba(255,255,255,0.6);
+      padding: 40px 24px;
+      text-align: center;
+      font-size: 14px;
+    }
+    footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
+    footer a:hover { color: white; }
+    .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 28px; }
+      .hero p { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-icon">🤝</div>
+      <span class="nav-logo-text">Trao Tay</span>
+    </a>
+    <a href="/privacy-policy.html" class="nav-link">Chính sách</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">🇻🇳 Ứng dụng Việt Nam</div>
+      <h1>Cho đi yêu thương,<br><span>Nhận lại niềm vui</span></h1>
+      <p>Trao Tay là nơi kết nối những người muốn cho đi với những người đang cần. Miễn phí, nhanh chóng, đáng tin cậy.</p>
+      <div class="hero-buttons">
+        <a href="#" class="btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.3.07 2.18.82 3.03.84.87-.06 2-.88 3.36-.75 1.37.13 2.47.67 3.24 1.68-2.73 1.75-2.28 5.78.37 6.97-.62 1.76-1.47 3.46-2 4.14zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          Tải trên App Store
+        </a>
+        <a href="#" class="btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.37.2.8.2 1.22-.02l12.2-7.04-2.85-2.87-10.57 9.93zm-1.85-19.6C1.12 4.6 1 5.1 1 5.7v12.6c0 .6.12 1.1.33 1.54l.08.08L8.7 12.5v-.18L1.41 4.08l-.08.08zm17.6 7.82l-2.28-1.32-3.18 3.18 3.18 3.18 2.3-1.33c.66-.38.66-1.33-.02-1.71zM4.4.24L16.6 7.28l-2.85 2.85L4.18.2c.42-.23.85-.22 1.22.04z"/></svg>
+          Tải trên Google Play
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <h2 class="section-title">Tại sao chọn Trao Tay?</h2>
+    <p class="section-sub">Đơn giản, nhanh chóng và hoàn toàn miễn phí</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Đăng bài dễ dàng</h3>
+        <p>Chụp ảnh, mô tả ngắn gọn và đăng trong vài phút. Không phức tạp, không mất phí.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Nhắn tin trực tiếp</h3>
+        <p>Liên hệ người đăng ngay trong app. Thỏa thuận nhanh, nhận đồ gọn.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📍</div>
+        <h3>Tìm theo khu vực</h3>
+        <p>Lọc theo tỉnh thành, tìm đồ gần nhà. Tiết kiệm thời gian và chi phí vận chuyển.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎁</div>
+        <h3>Tặng miễn phí</h3>
+        <p>Đồ không dùng nữa? Trao cho người cần thay vì bỏ đi. Tốt cho cả hai, tốt cho môi trường.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⭐</div>
+        <h3>Đánh giá uy tín</h3>
+        <p>Hệ thống đánh giá sau giao dịch giúp bạn yên tâm khi gặp người lạ.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Thông báo tức thì</h3>
+        <p>Nhận tin nhắn và cập nhật giao dịch ngay lập tức qua thông báo đẩy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <h2 class="section-title">Cách hoạt động</h2>
+    <p class="section-sub">Chỉ 3 bước đơn giản</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Đăng bài</h3>
+        <p>Chụp ảnh đồ vật, điền mô tả và chọn danh mục</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Nhắn tin</h3>
+        <p>Người quan tâm liên hệ trực tiếp qua chat trong app</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Trao tay</h3>
+        <p>Gặp gỡ, trao đổi và hoàn thành giao dịch</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Sẵn sàng trao đi?</h2>
+    <p>Tải app ngay hôm nay và bắt đầu kết nối cộng đồng</p>
+    <a href="#" class="btn-white">
+      Tải ứng dụng miễn phí
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-links">
+      <a href="/privacy-policy.html">Chính sách quyền riêng tư</a>
+      <a href="mailto:support@traotay.com.vn">Liên hệ hỗ trợ</a>
+    </div>
+    <p>© 2025 Trao Tay. Tất cả quyền được bảo lưu.</p>
+  </footer>
+
+</body>
+</html>

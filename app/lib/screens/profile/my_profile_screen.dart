@@ -16,6 +16,7 @@ import '../favorites_tab.dart';
 import '../admin/admin_dashboard_screen.dart';
 import 'user_profile_screen.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/user_avatar.dart';
 // Alias để tránh conflict
 typedef DealsScreenImport = DealsScreen;
 
@@ -246,38 +247,22 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             Center(
               child: Column(
                 children: [
-                  GestureDetector(
+                  UserAvatar(
+                    imageUrl: auth.userAvatar,
+                    name: auth.userName,
+                    radius: 44,
                     onTap: _avatarUploading ? null : _changeAvatar,
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 44,
-                          backgroundColor: AppTheme.primaryLight,
-                          backgroundImage: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
-                              ? NetworkImage(auth.userAvatar!)
-                              : null,
-                          onBackgroundImageError: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
-                              ? (_, __) {}
-                              : null,
-                          child: _avatarUploading
-                              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                              : (auth.userAvatar == null || auth.userAvatar!.isEmpty)
-                                  ? const Icon(Icons.person, size: 44, color: AppTheme.primary)
-                                  : null,
-                        ),
-                        Positioned(
-                          bottom: 0, right: 0,
-                          child: Container(
+                    badge: _avatarUploading
+                        ? Container(
+                            width: 24, height: 24,
+                            decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                            child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppTheme.primary,
-                              shape: BoxShape.circle,
-                            ),
+                            decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
                             child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
@@ -760,14 +745,7 @@ class _FollowListScreenState extends State<_FollowListScreen> {
                         ? (raw.startsWith('http') ? raw : '${ApiService.baseUrl}/$raw')
                         : null;
                     return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppTheme.primaryLight,
-                        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                        child: avatarUrl == null
-                            ? Text(name[0].toUpperCase(),
-                                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))
-                            : null,
-                      ),
+                      leading: UserAvatar(imageUrl: avatarUrl, name: name, radius: 20),
                       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
                       onTap: () => Navigator.push(ctx, MaterialPageRoute(
                         builder: (_) => UserProfileScreen(userId: u['id'], userName: name),

@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/user_avatar.dart';
 import '../post_detail_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -481,14 +482,7 @@ class _FollowListScreenState extends State<_FollowListScreen> {
                         ? (raw.startsWith('http') ? raw : '${ApiService.baseUrl}/$raw')
                         : null;
                     return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppTheme.primaryLight,
-                        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                        child: avatarUrl == null
-                            ? Text(name[0].toUpperCase(),
-                                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))
-                            : null,
-                      ),
+                      leading: UserAvatar(imageUrl: avatarUrl, name: name, radius: 20),
                       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
                       onTap: () => Navigator.push(ctx, MaterialPageRoute(
                         builder: (_) => UserProfileScreen(userId: u['id'], userName: name),
@@ -512,13 +506,9 @@ class _ReviewTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          CircleAvatar(
+          UserAvatar(
+            name: review['reviewer']?['name']?.toString(),
             radius: 16,
-            backgroundColor: AppTheme.primaryLight,
-            child: Text(
-              (review['reviewer']?['name'] ?? 'U')[0].toUpperCase(),
-              style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
-            ),
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(review['reviewer']?['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),

@@ -79,7 +79,10 @@ class ApiService {
         await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
         await prefs.setString('user_role', d['user']['role'] ?? 'user');
         await prefs.setBool('is_phone_verified', d['user']['isPhoneVerified'] == true);
-        return Map<String, dynamic>.from(d['user']);
+        return <String, dynamic>{
+          ...Map<String, dynamic>.from(d['user']),
+          'isNewUser': d['isNewUser'] == true,
+        };
       }
       return null;
     } catch (_) {

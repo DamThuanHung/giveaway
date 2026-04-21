@@ -70,6 +70,24 @@ class AuthProvider with ChangeNotifier {
     return 'Email hoặc mật khẩu không đúng';
   }
 
+  Future<String?> loginWithEmailOtp(String email, String otp) async {
+    final result = await ApiService.verifyEmailLoginOtp(email, otp);
+    if (result != null) {
+      _userId = result['id'];
+      _userName = result['name'];
+      _userEmail = result['email'];
+      _userAvatar = result['avatar'];
+      _userRole = result['role'];
+      _isPhoneVerified = result['isPhoneVerified'] == true;
+      _isNewUser = result['isNewUser'] == true;
+      _isAuthenticated = true;
+      notifyListeners();
+      _sendFcmToken();
+      return null;
+    }
+    return 'Mã OTP không đúng hoặc đã hết hạn';
+  }
+
   Future<String?> loginWithPhone(String idToken) async {
     final user = await ApiService.phoneLogin(idToken);
     if (user != null) {

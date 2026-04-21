@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/user_avatar.dart';
 
 class BlockedUsersScreen extends StatefulWidget {
   const BlockedUsersScreen({super.key});
@@ -124,14 +125,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                           border: Border.all(color: AppTheme.border),
                         ),
                         child: Row(children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: AppTheme.primary.withOpacity(0.1),
-                            child: Text(
-                              name[0].toUpperCase(),
-                              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                          UserAvatar(name: name, radius: 20),
                           const SizedBox(width: 12),
                           Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600))),
                           TextButton(
