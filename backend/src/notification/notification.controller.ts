@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from './notification.service';
+import { FcmService } from '../fcm/fcm.service';
 import * as bcrypt from 'bcrypt';
 
 @Controller('notification')
@@ -9,6 +10,7 @@ export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,
     private readonly prisma: PrismaService,
+    private readonly fcm: FcmService,
   ) {}
 
   @Get()
@@ -62,13 +64,13 @@ export class NotificationController {
       select: { fcmToken: true, name: true },
     });
     if (!user?.fcmToken) return { error: 'no_fcm_token', name: user?.name };
-    await this.notificationService.createNotification(
-      body.userId,
-      'deal',
+    const fcmReady = this.fcm.isReady();
+    const fcmResult = await this.fcm.sendToToken(
+      user.fcmToken,
       body.title || 'Thông báo test',
       body.message || 'Đây là thông báo test từ server.',
     );
-    return { ok: true, tokenPreview: user.fcmToken.substring(0, 30) + '...' };
+    return { fcmReady, fcmResult, tokenPreview: user.fcmToken.substring(0, 30) + '...' };
   }
 
   // Seed bài đăng test cho tất cả category

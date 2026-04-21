@@ -18,7 +18,7 @@ export class FcmService implements OnModuleInit {
         admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
         this.logger.log('Firebase Admin initialized from env var');
         return;
-      } catch (e) {
+      } catch (e: any) {
         this.logger.error('FCM_SERVICE_ACCOUNT parse error: ' + e.message);
       }
     }
@@ -33,8 +33,12 @@ export class FcmService implements OnModuleInit {
     this.logger.log('Firebase Admin initialized from file');
   }
 
-  async sendToToken(token: string, title: string, body: string, data?: Record<string, string>) {
-    if (admin.apps.length === 0) return;
+  isReady(): boolean {
+    return admin.apps.length > 0;
+  }
+
+  async sendToToken(token: string, title: string, body: string, data?: Record<string, string>): Promise<{ ok: boolean; error?: string }> {
+    if (admin.apps.length === 0) return { ok: false, error: 'FCM not initialized' };
     this.logger.log(`Sending FCM to token: ${token.substring(0, 20)}... title: "${title}"`);
     try {
       await admin.messaging().send({
@@ -52,8 +56,10 @@ export class FcmService implements OnModuleInit {
         },
       });
       this.logger.log(`FCM sent successfully`);
-    } catch (err) {
+      return { ok: true };
+    } catch (err: any) {
       this.logger.error(`FCM send failed: ${err.message}`);
+      return { ok: false, error: err.message };
     }
   }
 }
