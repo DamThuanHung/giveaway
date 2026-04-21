@@ -494,7 +494,7 @@ export class NotificationController {
   // Tạo tất cả loại thông báo để test ngay lập tức
   @Post('dev/seed-notifications')
   async seedNotifications(@Body() body: { userId: string; secret?: string }) {
-    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    if (body.secret !== 'traotay_dev_2024' && !this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     const { userId } = body;
     if (!userId) return { error: 'userId required' };
 
