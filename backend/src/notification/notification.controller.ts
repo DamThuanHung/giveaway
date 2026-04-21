@@ -490,4 +490,87 @@ export class NotificationController {
 
     return { ok: true, users: createdUsers.length, totalPosts, password: '123456', accounts: createdUsers };
   }
+
+  // Tạo tất cả loại thông báo để test ngay lập tức
+  @Post('dev/seed-notifications')
+  async seedNotifications(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    const { userId } = body;
+    if (!userId) return { error: 'userId required' };
+
+    const [user, otherUser] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } }),
+      this.prisma.user.findFirst({ where: { id: { not: userId } }, select: { id: true, name: true } }),
+    ]);
+    if (!user) return { error: 'user not found' };
+
+    const post = await this.prisma.post.findFirst({
+      where: { authorId: userId },
+      select: { id: true, title: true },
+    });
+
+    const created: string[] = [];
+
+    await this.notificationService.createNotification(
+      userId, 'follow', 'Người theo dõi mới',
+      `${otherUser?.name ?? 'Ai đó'} vừa bắt đầu theo dõi bạn`,
+      JSON.stringify({ followerId: otherUser?.id }),
+    );
+    created.push('follow');
+
+    if (post) {
+      await this.notificationService.createNotification(
+        userId, 'favorite', 'Có người thích bài của bạn',
+        `${otherUser?.name ?? 'Ai đó'} đã thêm "${post.title}" vào danh sách yêu thích`,
+        JSON.stringify({ postId: post.id }),
+      );
+      created.push('favorite');
+    }
+
+    if (otherUser) {
+      const otherPost = await this.prisma.post.findFirst({
+        where: { authorId: otherUser.id },
+        select: { id: true, title: true },
+      });
+      if (otherPost) {
+        await this.notificationService.createNotification(
+          userId, 'new_post', 'Bài đăng mới từ người bạn theo dõi',
+          `${otherUser.name ?? 'Ai đó'} vừa đăng: "${otherPost.title}"`,
+          JSON.stringify({ postId: otherPost.id }),
+        );
+        created.push('new_post');
+      }
+    }
+
+    if (post) {
+      await this.notificationService.createNotification(
+        userId, 'deal_reminder', 'Bạn có yêu cầu chưa xử lý',
+        `${otherUser?.name ?? 'Ai đó'} đang chờ phản hồi cho bài "${post.title}". Đừng để họ chờ lâu nhé!`,
+        JSON.stringify({ postId: post.id }),
+      );
+      created.push('deal_reminder');
+
+      await this.notificationService.createNotification(
+        userId, 'post_reminder', 'Bài đăng của bạn cần được chú ý',
+        `Bài "${post.title}" đã 7 ngày chưa có tương tác mới. Hãy cập nhật để thu hút người dùng hơn nhé!`,
+        JSON.stringify({ postId: post.id }),
+      );
+      created.push('post_reminder');
+    }
+
+    await this.notificationService.createNotification(
+      userId, 'welcome', 'Chào mừng bạn đến với Trao Tay! 🎉',
+      `Xin chào ${user.name ?? 'bạn'}! Hãy bắt đầu bằng cách đăng bài đầu tiên hoặc khám phá những món đồ thú vị gần bạn nhé.`,
+    );
+    created.push('welcome');
+
+    const todayCount = await this.prisma.post.count({ where: { status: 'available' } });
+    await this.notificationService.createNotification(
+      userId, 'daily_digest', 'Bản tin cuối ngày 📦',
+      `Hôm nay có ${todayCount} bài đăng mới trên Trao Tay. Khám phá ngay để không bỏ lỡ nhé!`,
+    );
+    created.push('daily_digest');
+
+    return { ok: true, created, total: created.length };
+  }
 }
