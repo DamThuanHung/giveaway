@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -40,9 +41,17 @@ class AuthProvider with ChangeNotifier {
       _userRole = prefs.getString('user_role');
       _isPhoneVerified = prefs.getBool('is_phone_verified') ?? false;
       _isAuthenticated = true;
+      _sendFcmToken();
     }
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> _sendFcmToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) await ApiService.saveFcmToken(token);
+    } catch (_) {}
   }
 
   Future<String?> login(String email, String password) async {
@@ -55,7 +64,8 @@ class AuthProvider with ChangeNotifier {
       _userRole = user['role'];
       _isAuthenticated = true;
       notifyListeners();
-      return null; // null = success
+      _sendFcmToken();
+      return null;
     }
     return 'Email hoặc mật khẩu không đúng';
   }
@@ -71,6 +81,7 @@ class AuthProvider with ChangeNotifier {
       _isNewUser = user['isNewUser'] == true;
       _isAuthenticated = true;
       notifyListeners();
+      _sendFcmToken();
       return null;
     }
     return 'Đăng nhập bằng SĐT thất bại. Vui lòng thử lại.';

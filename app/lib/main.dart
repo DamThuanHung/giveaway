@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
@@ -73,6 +74,18 @@ class _MyAppState extends State<MyApp> {
   Future<void> _setupFcm() async {
     if (kIsWeb) return;
     final messaging = FirebaseMessaging.instance;
+
+    // Tạo notification channel HIGH importance cho Android 8+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel',
+      'Thông báo quan trọng',
+      description: 'Kênh thông báo chính của Trao Tay',
+      importance: Importance.max,
+    );
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
 
     await messaging.setForegroundNotificationPresentationOptions(
       alert: true, badge: true, sound: true,
