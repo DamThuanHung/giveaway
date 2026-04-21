@@ -1,9 +1,13 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class FollowService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notification: NotificationService,
+  ) {}
 
   // Theo dõi user
   async follow(followerId: string, followingId: string) {
@@ -11,11 +15,23 @@ export class FollowService {
       throw new ForbiddenException('Bạn không thể tự theo dõi chính mình');
     }
     try {
-      return await this.prisma.follow.upsert({
+      const result = await this.prisma.follow.upsert({
         where: { followerId_followingId: { followerId, followingId } },
         update: {},
         create: { followerId, followingId },
       });
+
+      // Gửi thông báo cho người được follow
+      const follower = await this.prisma.user.findUnique({ where: { id: followerId }, select: { name: true } });
+      this.notification.createNotification(
+        followingId,
+        'follow',
+        'Người theo dõi mới',
+        `${follower?.name ?? 'Ai đó'} vừa bắt đầu theo dõi bạn`,
+        JSON.stringify({ followerId }),
+      ).catch(() => {});
+
+      return result;
     } catch {
       throw new BadRequestException('Không thể theo dõi người dùng này');
     }

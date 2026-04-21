@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AdminController } from './admin/admin.controller';
@@ -20,6 +21,7 @@ import { FollowService } from './follow/follow.service';
 import { FcmService } from './fcm/fcm.service';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { NotificationController } from './notification/notification.controller';
+import { NotificationCronService } from './notification/notification-cron.service';
 import { NotificationGateway } from './notification/notification.gateway';
 import { NotificationService } from './notification/notification.service';
 import { PostController } from './post/post.controller';
@@ -46,6 +48,7 @@ import { UserService } from './user/user.service';
     }),
     ChatModule,
     CloudinaryModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [
     AppController,
@@ -72,6 +75,7 @@ import { UserService } from './user/user.service';
     DealService,
     ReviewService,
     NotificationService,
+    NotificationCronService,
     NotificationGateway,
     FcmService,
     JwtStrategy,

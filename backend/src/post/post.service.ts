@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 
 const BASE_URL = process.env.BASE_URL ?? '';
 
@@ -23,7 +24,10 @@ function formatPost(post: any) {
 
 @Injectable()
 export class PostService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notification: NotificationService,
+  ) {}
 
   async getAllPosts(query: {
     page?: number;
@@ -156,7 +160,7 @@ export class PostService {
     const parsedPrice = parseInt(priceStr, 10) || 0;
     const urls = imageUrls || [];
 
-    return this.prisma.post.create({
+    const post = await this.prisma.post.create({
       data: {
         title: data.title || 'Không tiêu đề',
         description: data.description || '',
@@ -180,7 +184,27 @@ export class PostService {
         ...(data.serviceArea && { serviceArea: data.serviceArea }),
         ...(userId ? { authorId: userId } : {}),
       },
-    }).then(formatPost);
+    });
+
+    // Thông báo cho tất cả followers của tác giả
+    if (userId) {
+      this.prisma.follow.findMany({ where: { followingId: userId }, select: { followerId: true } })
+        .then(async (follows) => {
+          if (follows.length === 0) return;
+          const author = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+          await Promise.all(follows.map(f =>
+            this.notification.createNotification(
+              f.followerId,
+              'new_post',
+              'Bài đăng mới từ người bạn theo dõi',
+              `${author?.name ?? 'Ai đó'} vừa đăng: "${post.title}"`,
+              JSON.stringify({ postId: post.id }),
+            ).catch(() => {}),
+          ));
+        }).catch(() => {});
+    }
+
+    return formatPost(post);
   }
 
   async updatePost(id: string, userId: string, data: any) {

@@ -280,7 +280,7 @@ export class NotificationController {
       buyerId = testBuyer.id;
       sellerId = userId;
     } else {
-      sellerId = post.authorId;
+      sellerId = post.authorId ?? userId;
     }
 
     // Lấy tên người gửi tin nhắn cuối (sellerId gửi tin cuối)
