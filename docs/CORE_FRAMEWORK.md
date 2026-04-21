@@ -4,7 +4,7 @@
 
 **Tên dự án:** Trao Tay (Cho và Tặng)
 **Mô tả:** Ứng dụng trao tặng & mua bán đồ cũ tại Việt Nam
-**Trạng thái:** Đang phát triển — deployed trên Railway
+**Trạng thái:** Đang phát triển — deployed trên Railway (kế hoạch chuyển sang Koyeb + Neon)
 
 ---
 
@@ -41,7 +41,7 @@
 | Framework | NestJS v11 |
 | Ngôn ngữ | TypeScript |
 | Port | `process.env.PORT` (Railway tự set) |
-| Production URL | `https://giveaway-production-e88c.up.railway.app` |
+| Production URL | `https://giveaway-production-605c.up.railway.app` |
 | ORM | Prisma v6 |
 | Database | PostgreSQL (Railway) |
 | Auth | JWT (biến `JWT_SECRET`) + Firebase Phone Auth |
@@ -109,6 +109,7 @@ backend/src/
 | DELETE | `/user/block/:blockedId` | JWT | Bỏ chặn user |
 | GET | `/user/blocked/list` | JWT | Danh sách đã chặn |
 | GET | `/user/block/check/:targetId` | JWT | Kiểm tra có chặn không |
+| DELETE | `/user/me` | JWT | Xóa tài khoản (xóa toàn bộ dữ liệu liên quan) |
 
 ### Post — `/post`
 
@@ -226,7 +227,7 @@ backend/src/
 
 ```dart
 // app/lib/services/api_service.dart
-static const String baseUrl = 'https://giveaway-production-e88c.up.railway.app';
+static const String baseUrl = 'https://giveaway-production-605c.up.railway.app';
 ```
 
 ### Cấu trúc màn hình
