@@ -83,19 +83,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   IconData _iconFor(String type) {
     switch (type) {
-      case 'deal':   return Icons.swap_horiz_rounded;
-      case 'chat':   return Icons.chat_bubble_rounded;
-      case 'review': return Icons.star_rounded;
-      default:       return Icons.notifications_rounded;
+      case 'deal':
+      case 'deal_reminder':   return Icons.swap_horiz_rounded;
+      case 'chat':            return Icons.chat_bubble_rounded;
+      case 'review':          return Icons.star_rounded;
+      case 'follow':          return Icons.person_add_rounded;
+      case 'favorite':        return Icons.favorite_rounded;
+      case 'new_post':        return Icons.article_rounded;
+      case 'post_reminder':   return Icons.edit_note_rounded;
+      case 'welcome':         return Icons.waving_hand_rounded;
+      case 'daily_digest':    return Icons.newspaper_rounded;
+      default:                return Icons.notifications_rounded;
     }
   }
 
   Color _colorFor(String type) {
     switch (type) {
-      case 'deal':   return AppTheme.success;
-      case 'chat':   return AppTheme.primary;
-      case 'review': return AppTheme.warning;
-      default:       return AppTheme.textSecondary;
+      case 'deal':
+      case 'deal_reminder':   return AppTheme.success;
+      case 'chat':            return AppTheme.primary;
+      case 'review':          return AppTheme.warning;
+      case 'follow':          return const Color(0xFF9C27B0);
+      case 'favorite':        return const Color(0xFFE91E63);
+      case 'new_post':        return const Color(0xFF2196F3);
+      case 'post_reminder':   return AppTheme.warning;
+      case 'welcome':         return AppTheme.primary;
+      case 'daily_digest':    return const Color(0xFF2196F3);
+      default:                return AppTheme.textSecondary;
     }
   }
 

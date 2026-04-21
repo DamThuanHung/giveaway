@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../auth/phone_login_screen.dart';
-import 'edit_profile_screen.dart';
 import '../post/my_posts_screen.dart';
 import '../deal/deals_screen.dart';
 import 'seller_stats_screen.dart';
@@ -32,11 +32,82 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   bool _trustError = false;
   int _followersCount = 0;
   int _followingCount = 0;
+  bool _avatarUploading = false;
 
   @override
   void initState() {
     super.initState();
     _loadTrust();
+  }
+
+  Future<void> _changeAvatar() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 512);
+    if (picked == null || !mounted) return;
+    setState(() => _avatarUploading = true);
+    try {
+      final url = await ApiService.uploadAvatar(picked.path);
+      if (!mounted) return;
+      if (url != null) {
+        context.read<AuthProvider>().updateAvatar(url);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Đã cập nhật ảnh đại diện'),
+          backgroundColor: AppTheme.success,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Cập nhật ảnh thất bại'),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _avatarUploading = false);
+    }
+  }
+
+  Future<void> _editName() async {
+    final auth = context.read<AuthProvider>();
+    final ctrl = TextEditingController(text: auth.userName ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đổi tên hiển thị'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Nhập tên mới'),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Huỷ')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (result == null || result.isEmpty || result == auth.userName) return;
+    try {
+      await ApiService.updateUser(auth.userId!, {'name': result});
+      if (!mounted) return;
+      auth.updateName(result);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Đã cập nhật tên'),
+        backgroundColor: AppTheme.success,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Cập nhật tên thất bại'),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Future<void> _loadTrust() async {
@@ -164,13 +235,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: const Text('Hồ sơ của tôi'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()))
-                  .then((_) => _loadTrust()),
-            ),
-          ],
         ),
         body: RefreshIndicator(
           onRefresh: _loadTrust,
@@ -182,22 +246,52 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 44,
-                    backgroundColor: AppTheme.primaryLight,
-                    backgroundImage: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
-                        ? NetworkImage(auth.userAvatar!)
-                        : null,
-                    onBackgroundImageError: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
-                        ? (_, __) {}
-                        : null,
-                    child: (auth.userAvatar == null || auth.userAvatar!.isEmpty)
-                        ? const Icon(Icons.person, size: 44, color: AppTheme.primary)
-                        : null,
+                  GestureDetector(
+                    onTap: _avatarUploading ? null : _changeAvatar,
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundColor: AppTheme.primaryLight,
+                          backgroundImage: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
+                              ? NetworkImage(auth.userAvatar!)
+                              : null,
+                          onBackgroundImageError: (auth.userAvatar != null && auth.userAvatar!.isNotEmpty)
+                              ? (_, __) {}
+                              : null,
+                          child: _avatarUploading
+                              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                              : (auth.userAvatar == null || auth.userAvatar!.isEmpty)
+                                  ? const Icon(Icons.person, size: 44, color: AppTheme.primary)
+                                  : null,
+                        ),
+                        Positioned(
+                          bottom: 0, right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppTheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  Text(auth.userName ?? 'Người dùng',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  GestureDetector(
+                    onTap: _editName,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(auth.userName ?? 'Người dùng',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.edit, size: 16, color: AppTheme.textSecondary),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   if (subtitle.isNotEmpty)
                     Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary)),
@@ -277,37 +371,37 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               _MenuItem(
                 icon: Icons.admin_panel_settings_outlined,
                 label: 'Quản trị hệ thống',
-                iconBgColor: const Color(0xFFFF8C00),
+                iconBgColor: AppTheme.primary,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
               ),
             _MenuItem(
               icon: Icons.list_alt_outlined,
               label: 'Bài đăng của tôi',
-              iconBgColor: const Color(0xFF2196F3),
+              iconBgColor: AppTheme.primary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPostsScreen())),
             ),
             _MenuItem(
               icon: Icons.bar_chart_outlined,
               label: 'Thống kê của tôi',
-              iconBgColor: const Color(0xFF9C27B0),
+              iconBgColor: AppTheme.primary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SellerStatsScreen())),
             ),
             _MenuItem(
               icon: Icons.favorite,
               label: 'Bài viết đã lưu',
-              iconBgColor: const Color(0xFFE91E63),
+              iconBgColor: AppTheme.primary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesTab())),
             ),
             _MenuItem(
               icon: Icons.swap_horiz_outlined,
               label: 'Giao dịch của tôi',
-              iconBgColor: const Color(0xFF4CAF50),
+              iconBgColor: AppTheme.primary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreenImport())),
             ),
             _MenuItem(
               icon: Icons.star_rounded,
               label: 'Đánh giá của tôi',
-              iconBgColor: const Color(0xFFFFC107),
+              iconBgColor: AppTheme.primary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen())),
             ),
             _MenuItem(
@@ -320,7 +414,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             _MenuItem(
               icon: Icons.email_rounded,
               label: _trustData?['email'] != null ? 'Email dự phòng (đã liên kết)' : 'Liên kết email dự phòng',
-              iconBgColor: _trustData?['email'] != null ? const Color(0xFF00BCD4) : const Color(0xFF00ACC1),
+              iconBgColor: const Color(0xFF9E9E9E),
               onTap: _trustData?['email'] != null ? () {} : () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const LinkEmailScreen()),
@@ -330,7 +424,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               _MenuItem(
                 icon: Icons.lock_rounded,
                 label: 'Đổi mật khẩu',
-                iconBgColor: const Color(0xFF009688),
+                iconBgColor: const Color(0xFF9E9E9E),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
               ),
             _MenuItem(

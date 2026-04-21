@@ -573,7 +573,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Chi tiết tin đăng', style: TextStyle(fontSize: 18)),
+        title: const Text('Chi tiết', style: TextStyle(fontSize: 18)),
         centerTitle: true,
         elevation: 0,
         actions: [
