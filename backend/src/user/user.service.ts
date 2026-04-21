@@ -253,9 +253,6 @@ export class UserService {
 
   async sendEmailLoginOtp(email: string) {
     const emailLower = email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
-    if (!user) throw new BadRequestException('Email này chưa được liên kết với tài khoản nào');
-
     const otp = this.generateOtp();
     this.otpStore.set(`login:${emailLower}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
     await this.sendEmailOtp(emailLower, otp);
@@ -270,15 +267,20 @@ export class UserService {
     }
     this.otpStore.delete(`login:${emailLower}`);
 
-    const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
-    if (!user) throw new NotFoundException('Tài khoản không tồn tại');
+    let user = await this.prisma.user.findUnique({ where: { email: emailLower } });
+    const isNewUser = !user;
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: { email: emailLower },
+      });
+    }
     if (user.isBanned) throw new UnauthorizedException('Tài khoản đã bị khóa');
 
     const accessToken = await this.signToken(user);
     return {
-      message: 'Đăng nhập thành công',
+      message: isNewUser ? 'Đăng ký thành công' : 'Đăng nhập thành công',
       accessToken,
-      isNewUser: false,
+      isNewUser,
       user: { id: user.id, phone: user.phone, email: user.email, name: user.name, avatar: user.avatar, role: user.role, isPhoneVerified: user.isPhoneVerified },
     };
   }
