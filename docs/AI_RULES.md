@@ -95,6 +95,16 @@ Gõ "lưu" để tôi cập nhật tự động.
 [17/04/2026] Luôn đề xuất trước, không hỏi ngược — Xác nhận bởi user
 [17/04/2026] Deal flow diễn ra trong chat, không có nút "Yêu cầu nhận" riêng — Xác nhận bởi user
 [17/04/2026] Không hoàn thành giai đoạn sau khi chưa xong giai đoạn trước trong roadmap — Xác nhận bởi user
+[21/04/2026] Trước khi viết bất kỳ dòng code nào phải đánh giá rủi ro và liệt kê các callers/side effects bị ảnh hưởng — Xác nhận bởi user
+[21/04/2026] Đánh giá dựa trên dữ liệu thực tế (grep/read file), không đoán hay suy luận khi chưa đủ cơ sở — Xác nhận bởi user
+[21/04/2026] `cloudinary.config()` phải gọi ngay trước mỗi lần upload (method `configure()`), không gọi trong constructor NestJS service — Xác nhận qua fix thực tế
+[21/04/2026] Trong NestJS controller phải dùng `BadRequestException` (từ `@nestjs/common`), không dùng `throw new Error()` — throw Error cho ra 500 thay vì 400 — Xác nhận qua fix thực tế
+[21/04/2026] SnackBar phải show từ parent Scaffold, không show rồi Navigator.pop ngay — pop sẽ xóa Scaffold trước khi SnackBar kịp hiển thị — Xác nhận qua fix thực tế
+[21/04/2026] Khi đổi return type của hàm API trong Flutter phải kiểm tra TẤT CẢ callers trước — Xác nhận bởi user (đã vi phạm, may chỉ có 1 caller)
+[21/04/2026] Railway "Redeploy" dùng config cũ, KHÔNG nhận variable mới — muốn variable mới có hiệu lực phải push commit mới lên GitHub hoặc dùng "Apply X changes"
+[21/04/2026] Railway Raw Editor: key=value KHÔNG được có dấu cách trước `=` (ví dụ `DEV_SECRET =value` sẽ tạo key `DEV_SECRET ` có space, không nhận được) — Xác nhận qua debug thực tế
+[21/04/2026] Railway "Apply X changes" áp dụng TẤT CẢ pending changes kể cả xóa service — nếu có service deletion trong queue thì sẽ hiện Destructive Changes dialog, phải gõ tên service để confirm — đây là flow đúng, không cần Cancel
+[21/04/2026] FCM token chỉ được lưu vào DB khi app đang chạy trên điện thoại thật + user đã đăng nhập + app đã build lại sau khi đổi server URL
 
 ---
 
@@ -107,6 +117,8 @@ Gõ "lưu" để tôi cập nhật tự động.
 | 17/04/2026 | Không có nút "Yêu cầu nhận" trong chi tiết bài đăng | Deal flow diễn ra trong chat | user |
 | 17/04/2026 | Roadmap phải theo mục tiêu vận hành, không phải logic kỹ thuật | User cần app vận hành được, không chỉ feature complete | user |
 | 17/04/2026 | Không làm giai đoạn sau khi chưa xong giai đoạn trước | Đảm bảo chất lượng từng bước | user |
+| 21/04/2026 | Tiếp tục dùng Railway cho đến khi hết credit, sau đó chuyển Koyeb + Neon | Railway vẫn còn credit, Koyeb+Neon là phương án miễn phí 100% | user |
+| 21/04/2026 | Backend không đặt `cloudinary.config()` trong constructor | Constructor NestJS không đảm bảo env vars loaded khi deploy Railway | code thực tế |
 
 ---
 
