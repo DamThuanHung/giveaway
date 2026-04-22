@@ -54,6 +54,24 @@ export class NotificationController {
   }
 
 
+  @Post('dev/user-debug')
+  async userDebug(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    const [notifications, keywordAlerts] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId: body.userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { type: true, title: true, createdAt: true, isRead: true },
+      }),
+      this.prisma.keywordAlert.findMany({
+        where: { userId: body.userId },
+        select: { keyword: true },
+      }),
+    ]);
+    return { notifications, keywordAlerts };
+  }
+
   @Post('dev/find-user')
   async findUser(@Body() body: { email?: string; phone?: string; secret?: string }) {
     if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
