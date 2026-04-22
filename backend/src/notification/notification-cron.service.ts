@@ -5,7 +5,7 @@ import { NotificationService } from './notification.service';
 
 const BATCH_SIZE = 50;
 
-async function runInBatches<T>(items: T[], fn: (item: T) => Promise<void>) {
+async function runInBatches(items: any[], fn: (item: any) => Promise<void>) {
   for (let i = 0; i < items.length; i += BATCH_SIZE) {
     await Promise.all(items.slice(i, i + BATCH_SIZE).map(fn));
   }
