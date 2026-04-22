@@ -465,6 +465,11 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
       if (isResend) for (final c in _otpCtrls) c.clear();
     });
     _startCountdown();
+    if (isResend && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Đã gửi lại mã OTP, vui lòng kiểm tra email'), duration: const Duration(seconds: 3)),
+      );
+    }
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) _otpFocuses[0].requestFocus();
     });

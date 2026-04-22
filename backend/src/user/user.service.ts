@@ -30,7 +30,7 @@ export class UserService {
     }
 
     const resend = new Resend(apiKey);
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'Trao Tay <onboarding@resend.dev>',
       to: email,
       subject: 'Mã xác nhận OTP - Trao Tay',
@@ -43,6 +43,7 @@ export class UserService {
         </div>
       `,
     });
+    if (error) throw new Error(`Resend error: ${error.message}`);
   }
 
   private signToken(user: { id: string; email?: string | null; phone?: string | null; name?: string | null }) {
