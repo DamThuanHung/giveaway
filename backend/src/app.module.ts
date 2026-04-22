@@ -33,6 +33,7 @@ import { ReviewController } from './review/review.controller';
 import { ReviewService } from './review/review.service';
 import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
+import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { UserService } from './user/user.service';
     }),
     ChatModule,
     CloudinaryModule,
+    KeywordAlertModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [

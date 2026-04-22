@@ -37,6 +37,7 @@ model User {
   reports          Report[]
   reviewsReceived  Review[]       @relation("ReviewReceived")
   reviewsGiven     Review[]       @relation("ReviewGiven")
+  keywordAlerts    KeywordAlert[]
 }
 
 model Post {
@@ -207,4 +208,15 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model KeywordAlert {
+  id        String   @id @default(cuid())
+  userId    String
+  keyword   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, keyword])
+  @@index([userId])
 }

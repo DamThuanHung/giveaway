@@ -958,4 +958,38 @@ class ApiService {
       return {'data': [], 'total': 0};
     } catch (_) { return {'data': [], 'total': 0}; }
   }
+
+  // ─── Keyword Alert ────────────────────────────────────────────────────────
+
+  static Future<List<dynamic>> getKeywordAlerts() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/keyword-alert'), headers: await _authHeaders())
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return [];
+    } catch (_) { return []; }
+  }
+
+  static Future<String?> subscribeKeyword(String keyword) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/keyword-alert'),
+        headers: {...await _authHeaders(), 'Content-Type': 'application/json'},
+        body: jsonEncode({'keyword': keyword}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      final d = jsonDecode(res.body);
+      return d['message'] ?? 'Đã xảy ra lỗi';
+    } catch (_) { return 'Không thể kết nối máy chủ'; }
+  }
+
+  static Future<void> unsubscribeKeyword(String keyword) async {
+    try {
+      await http.delete(
+        Uri.parse('$baseUrl/keyword-alert'),
+        headers: {...await _authHeaders(), 'Content-Type': 'application/json'},
+        body: jsonEncode({'keyword': keyword}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {}
+  }
 }

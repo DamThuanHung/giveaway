@@ -11,6 +11,7 @@ import 'seller_stats_screen.dart';
 import 'my_reviews_screen.dart';
 import 'blocked_users_screen.dart';
 import 'change_password_screen.dart';
+import 'keyword_alerts_screen.dart';
 import 'link_email_screen.dart';
 import '../favorites_tab.dart';
 import '../admin/admin_dashboard_screen.dart';
@@ -394,6 +395,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               label: 'Danh sách đã chặn',
               iconBgColor: const Color(0xFF9E9E9E),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedUsersScreen())),
+            ),
+            _MenuItem(
+              icon: Icons.notifications_active_outlined,
+              label: 'Từ khóa theo dõi',
+              iconBgColor: const Color(0xFF10B981),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KeywordAlertsScreen())),
             ),
             const Divider(height: 32),
             _MenuItem(

@@ -13,6 +13,7 @@ import '../widgets/post_card.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import 'post_detail_screen.dart';
+import 'profile/keyword_alerts_screen.dart';
 
 class SearchTab extends StatefulWidget {
   const SearchTab({super.key});
@@ -866,11 +867,19 @@ class _SearchTabState extends State<SearchTab> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Text(
-            _radiusResult != null
-                ? '${_results.length} kết quả'
-                : (_totalResults > 0 ? '$_totalResults kết quả' : '${_results.length} kết quả'),
-            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _radiusResult != null
+                      ? '${_results.length} kết quả'
+                      : (_totalResults > 0 ? '$_totalResults kết quả' : '${_results.length} kết quả'),
+                  style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                ),
+              ),
+              if (_searchCtrl.text.trim().isNotEmpty)
+                _KeywordFollowButton(keyword: _searchCtrl.text.trim()),
+            ],
           ),
         ),
         Expanded(
@@ -1075,6 +1084,101 @@ class _ActiveChip extends StatelessWidget {
             child: const Icon(Icons.close, size: 14, color: AppTheme.primary),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _KeywordFollowButton extends StatefulWidget {
+  final String keyword;
+  const _KeywordFollowButton({required this.keyword});
+
+  @override
+  State<_KeywordFollowButton> createState() => _KeywordFollowButtonState();
+}
+
+class _KeywordFollowButtonState extends State<_KeywordFollowButton> {
+  bool _following = false;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStatus();
+  }
+
+  @override
+  void didUpdateWidget(_KeywordFollowButton old) {
+    super.didUpdateWidget(old);
+    if (old.keyword != widget.keyword) _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    final list = await ApiService.getKeywordAlerts();
+    if (!mounted) return;
+    final kw = widget.keyword.trim().toLowerCase();
+    setState(() => _following = list.any((e) => e['keyword'] == kw));
+  }
+
+  Future<void> _toggle() async {
+    setState(() => _loading = true);
+    if (_following) {
+      await ApiService.unsubscribeKeyword(widget.keyword);
+      if (mounted) {
+        setState(() { _following = false; _loading = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã bỏ theo dõi từ khóa'), duration: Duration(seconds: 2)),
+        );
+      }
+    } else {
+      final err = await ApiService.subscribeKeyword(widget.keyword);
+      if (mounted) {
+        setState(() { _loading = false; });
+        if (err != null) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err), backgroundColor: AppTheme.error));
+        } else {
+          setState(() => _following = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đang theo dõi "${widget.keyword}"'),
+              duration: const Duration(seconds: 2),
+              action: SnackBarAction(
+                label: 'Quản lý',
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KeywordAlertsScreen())),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _loading ? null : _toggle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: _following ? AppTheme.primary.withOpacity(0.12) : AppTheme.surface,
+          border: Border.all(color: _following ? AppTheme.primary : AppTheme.border),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: _loading
+            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.5))
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(_following ? Icons.notifications_active : Icons.notifications_none,
+                    size: 14, color: _following ? AppTheme.primary : AppTheme.textSecondary),
+                const SizedBox(width: 4),
+                Text(
+                  _following ? 'Đang theo dõi' : 'Theo dõi',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _following ? AppTheme.primary : AppTheme.textSecondary,
+                    fontWeight: _following ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ]),
       ),
     );
   }

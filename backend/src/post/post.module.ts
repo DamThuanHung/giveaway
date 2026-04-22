@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { PostController } from './post.controller';
 import { PostService } from './post.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { KeywordAlertModule } from '../keyword-alert/keyword-alert.module';
 
 @Module({
+  imports: [KeywordAlertModule],
   controllers: [PostController],
   providers: [PostService, PrismaService],
 })

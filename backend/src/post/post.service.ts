@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { KeywordAlertService } from '../keyword-alert/keyword-alert.service';
 
 const BASE_URL = process.env.BASE_URL ?? '';
 
@@ -27,6 +28,7 @@ export class PostService {
   constructor(
     private prisma: PrismaService,
     private notification: NotificationService,
+    private keywordAlert: KeywordAlertService,
   ) {}
 
   async getAllPosts(query: {
@@ -203,6 +205,9 @@ export class PostService {
           ));
         }).catch(() => {});
     }
+
+    // Thông báo keyword alert
+    this.keywordAlert.notifyMatchingUsers(post.id, post.title, post.description, userId ?? '').catch(() => {});
 
     return formatPost(post);
   }
