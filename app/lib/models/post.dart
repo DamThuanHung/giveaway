@@ -25,6 +25,7 @@ class Post {
   final DateTime? createdAt;
   final int viewCount;
   final DateTime? bumpedAt;
+  final int boostTier; // 0=none 1=free-bump 2=plus 3=vip (PayOS sẽ fill khi done)
 
   // BĐS & Dịch vụ
   final String postType;      // item | realestate | service
@@ -56,6 +57,7 @@ class Post {
     this.createdAt,
     this.viewCount = 0,
     this.bumpedAt,
+    this.boostTier = 0,
     this.postType = 'item',
     this.subType,
     this.area,
@@ -119,6 +121,9 @@ class Post {
     if (bumpedAt == null) return false;
     return DateTime.now().difference(bumpedAt!).inHours < 24;
   }
+
+  /// Tier hiệu lực: ưu tiên boostTier từ API, fallback về free-bump
+  int get effectiveTier => boostTier > 0 ? boostTier : (isBoosted ? 1 : 0);
 
   /// null = có thể đẩy; non-null = đang cooldown, trả về chuỗi "Còn Xg Yp"
   String? get bumpCountdown {
@@ -194,6 +199,7 @@ class Post {
       authorId: authorId, authorName: authorName, authorAvatar: authorAvatar,
       createdAt: createdAt, viewCount: viewCount,
       bumpedAt: clearBumpedAt ? null : (bumpedAt ?? this.bumpedAt),
+      boostTier: boostTier,
       postType: postType, subType: subType, area: area, bedrooms: bedrooms,
       priceUnit: priceUnit, serviceArea: serviceArea,
     );
@@ -258,6 +264,7 @@ class Post {
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       bumpedAt: json['bumpedAt'] != null ? DateTime.tryParse(json['bumpedAt'].toString()) : null,
+      boostTier: (json['boostTier'] as num?)?.toInt() ?? 0,
       postType: json['postType']?.toString().isNotEmpty == true ? json['postType'] : 'item',
       subType: json['subType']?.toString(),
       area: (json['area'] as num?)?.toDouble(),

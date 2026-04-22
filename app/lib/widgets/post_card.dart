@@ -6,7 +6,12 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'app_image.dart';
 
-class PostCard extends StatelessWidget {
+// ─── Gold constants (shared giữa Tier 2 và Tier 3) ──────────────────────────
+const _kGoldDark  = Color(0xFFC9A84A);
+const _kGoldLight = Color(0xFFF4D36A);
+const _kGoldOrange= Color(0xFFFFa500);
+
+class PostCard extends StatefulWidget {
   final Post post;
   final bool isFavorite;
   final VoidCallback? onTap;
@@ -30,14 +35,38 @@ class PostCard extends StatelessWidget {
           : '${tr.toStringAsFixed(1)}tr';
       return s;
     }
-    if (price >= 1000) {
-      return '${(price / 1000).round()}k';
-    }
+    if (price >= 1000) return '${(price / 1000).round()}k';
     return '${price}đ';
   }
 
   @override
+  State<PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin {
+  AnimationController? _vipCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.post.effectiveTier == 3) {
+      _vipCtrl = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 3),
+      )..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _vipCtrl?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+    final tier = post.effectiveTier;
     final bool isFree = post.listingType == 'give' || post.price == 0;
     final bool isSold = post.status == 'done';
     final bool isReserved = post.status == 'reserved';
@@ -50,214 +79,388 @@ class PostCard extends StatelessWidget {
       imgUrl = '${ApiService.baseUrl}/uploads/${post.imageLabel}';
     }
 
-    final _locParts = <String>[];
+    final locParts = <String>[];
     for (final s in [post.ward, post.district, post.province]) {
-      if (s.isNotEmpty && (_locParts.isEmpty || _locParts.last != s)) _locParts.add(s);
+      if (s.isNotEmpty && (locParts.isEmpty || locParts.last != s)) locParts.add(s);
     }
-    final location = _locParts.join(', ');
+    final location = locParts.join(', ');
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ─── Ảnh ─────────────────────────────────────
-            Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.0,
-                  child: AppImage(
-                    url: imgUrl,
-                    width: double.infinity,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                    thumbnail: true,
+    // Decoration tuỳ tier
+    BoxDecoration cardDeco;
+    if (tier == 3) {
+      // VIP: shadow đậm hơn, border vẽ bằng CustomPainter ở ngoài
+      cardDeco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(color: _kGoldLight.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      );
+    } else if (tier == 2) {
+      // Plus: viền vàng tĩnh + shadow nhẹ vàng
+      cardDeco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _kGoldDark, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: _kGoldDark.withOpacity(0.18), blurRadius: 8, offset: const Offset(0, 3)),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      );
+    } else {
+      cardDeco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
+      );
+    }
+
+    Widget card = Container(
+      decoration: cardDeco,
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ─── Ảnh ────────────────────────────────────────
+          Stack(
+            children: [
+              AspectRatio(
+                aspectRatio: 1.0,
+                child: AppImage(
+                  url: imgUrl,
+                  width: double.infinity,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                  thumbnail: true,
+                ),
+              ),
+
+              // Overlay mờ khi đã bán
+              if (isSold)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.45),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.soldColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text('Đã bán / Đã tặng',
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ),
 
-                // Overlay mờ khi đã bán
-                if (isSold)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppTheme.soldColor,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text('Đã bán / Đã tặng',
-                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-
-                // Badge "Miễn phí" góc trên trái
-                if (isFree && !isSold)
-                  Positioned(
-                    top: 0, left: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.freeColor,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(10),
-                          bottomRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.card_giftcard, color: Colors.white, size: 12),
-                          SizedBox(width: 3),
-                          Text('Miễn phí', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Badge "Nổi bật" khi bài được đẩy (bumpedAt < 24h)
-                // Không hiện khi reserved vì "Đang giữ" badge cùng vị trí
-                if (post.isBoosted && !isSold && !isReserved)
-                  Positioned(
-                    top: 6, right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.rocket_launch, color: Colors.white, size: 10),
-                          SizedBox(width: 3),
-                          Text('Nổi bật', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Badge "Đang giữ" góc trên phải
-                if (isReserved && !isSold)
-                  Positioned(
-                    top: 6, right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warning,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text('Đang giữ',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-
-                // Badge thời gian + số ảnh — bottom-left
+              // Badge "Miễn phí" — góc trên trái
+              if (isFree && !isSold)
                 Positioned(
-                  bottom: 6, left: 6,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (post.timeAgo.isNotEmpty)
-                        _ImageBadge(post.timeAgo),
-                      if ((post.images?.length ?? 0) > 1) ...[
-                        const SizedBox(width: 4),
-                        _ImageBadge('${post.images!.length} 🖼'),
+                  top: 0, left: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.freeColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(10),
+                        bottomRight: Radius.circular(8),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.card_giftcard, color: Colors.white, size: 12),
+                        SizedBox(width: 3),
+                        Text('Miễn phí', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                       ],
-                    ],
+                    ),
                   ),
                 ),
 
-                // Nút yêu thích
-                if (onToggleFavorite != null)
-                  Positioned(
-                    bottom: 0, right: 0,
-                    child: FavoriteButton(
-                      isFavorite: isFavorite,
-                      onTap: onToggleFavorite!,
+              // Badges boost — góc trên phải (ẩn khi reserved vì "Đang giữ" chiếm slot đó)
+              if (tier >= 1 && !isSold && !isReserved)
+                Positioned(
+                  top: 0, right: 0,
+                  child: _BoostBadge(tier: tier),
+                ),
+
+              // Badge "Đang giữ" — góc trên phải
+              if (isReserved && !isSold)
+                Positioned(
+                  top: 6, right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warning,
+                      borderRadius: BorderRadius.circular(6),
                     ),
+                    child: const Text('Đang giữ',
+                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
-              ],
-            ),
+                ),
 
-            // ─── Nội dung ─────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Sparkles VIP — overlay trên ảnh
+              if (tier == 3 && _vipCtrl != null && !isSold)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: _SparklesOverlay(controller: _vipCtrl!),
+                  ),
+                ),
+
+              // Badge thời gian + số ảnh — bottom-left
+              Positioned(
+                bottom: 6, left: 6,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Tiêu đề
-                    Text(
-                      post.title,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.3),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-
-                    // Giá + ngày đăng cùng hàng
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            formatPrice(post.price, post.listingType),
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (post.createdAt != null) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            post.formattedDate,
-                            style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-
-                    // Vị trí (full width)
-                    if (location.isNotEmpty)
-                      Row(children: [
-                        const Icon(Icons.location_on_outlined, size: 11, color: AppTheme.textSecondary),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            location,
-                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ]),
+                    if (post.timeAgo.isNotEmpty) _ImageBadge(post.timeAgo),
+                    if ((post.images?.length ?? 0) > 1) ...[
+                      const SizedBox(width: 4),
+                      _ImageBadge('${post.images!.length} 🖼'),
+                    ],
                   ],
                 ),
               ),
+
+              // Nút yêu thích
+              if (widget.onToggleFavorite != null)
+                Positioned(
+                  bottom: 0, right: 0,
+                  child: FavoriteButton(
+                    isFavorite: widget.isFavorite,
+                    onTap: widget.onToggleFavorite!,
+                  ),
+                ),
+            ],
+          ),
+
+          // ─── Nội dung ──────────────────────────────────
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.title,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.3),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          PostCard.formatPrice(post.price, post.listingType),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (post.createdAt != null) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          post.formattedDate,
+                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+
+                  if (location.isNotEmpty)
+                    Row(children: [
+                      const Icon(Icons.location_on_outlined, size: 11, color: AppTheme.textSecondary),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          location,
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ]),
+                ],
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+
+    // VIP: bọc thêm lớp viền vàng chạy
+    if (tier == 3 && _vipCtrl != null) {
+      card = AnimatedBuilder(
+        animation: _vipCtrl!,
+        builder: (_, child) => CustomPaint(
+          painter: _VipBorderPainter(_vipCtrl!.value),
+          child: child,
+        ),
+        child: card,
+      );
+    }
+
+    return GestureDetector(onTap: widget.onTap, child: card);
+  }
+}
+
+// ── Boost Badge ──────────────────────────────────────────────────────────────
+
+class _BoostBadge extends StatelessWidget {
+  final int tier;
+  const _BoostBadge({required this.tier});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tier == 3) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(colors: [Color(0xFF2A2418), Color(0xFF1A1A1A)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.only(topRight: Radius.circular(10), bottomLeft: Radius.circular(8)),
+          border: Border(
+            left: BorderSide(color: _kGoldDark, width: 0.5),
+            bottom: BorderSide(color: _kGoldDark, width: 0.5),
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.workspace_premium, color: _kGoldLight, size: 12),
+            SizedBox(width: 3),
+            Text('VIP', style: TextStyle(color: _kGoldLight, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
           ],
+        ),
+      );
+    }
+    if (tier == 2) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFEF9E7),
+          borderRadius: BorderRadius.only(topRight: Radius.circular(10), bottomLeft: Radius.circular(8)),
+          border: Border(
+            left: BorderSide(color: _kGoldDark, width: 0.5),
+            bottom: BorderSide(color: _kGoldDark, width: 0.5),
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_rounded, color: _kGoldDark, size: 12),
+            SizedBox(width: 3),
+            Text('Plus', style: TextStyle(color: Color(0xFF854F0B), fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    }
+    // Tier 1 — free bump — đối xứng với "Miễn phí"
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: const BoxDecoration(
+        color: AppTheme.primary,
+        borderRadius: BorderRadius.only(topRight: Radius.circular(10), bottomLeft: Radius.circular(8)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.rocket_launch, color: Colors.white, size: 12),
+          SizedBox(width: 3),
+          Text('Nổi bật', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── VIP Animated Border Painter ──────────────────────────────────────────────
+
+class _VipBorderPainter extends CustomPainter {
+  final double t; // 0.0 → 1.0, repeating
+
+  const _VipBorderPainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const radius = 10.0;
+    const borderWidth = 2.0;
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(radius));
+
+    final shader = SweepGradient(
+      startAngle: t * 2 * pi,
+      endAngle: t * 2 * pi + 2 * pi,
+      colors: const [_kGoldLight, _kGoldOrange, _kGoldLight, _kGoldOrange, _kGoldLight],
+    ).createShader(rect);
+
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..shader = shader
+        ..strokeWidth = borderWidth
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_VipBorderPainter old) => old.t != t;
+}
+
+// ── Sparkles Overlay ─────────────────────────────────────────────────────────
+
+class _SparklesOverlay extends StatelessWidget {
+  final AnimationController controller;
+  const _SparklesOverlay({required this.controller});
+
+  static double _opacity(double t, double phase) {
+    final v = (t + phase) % 1.0;
+    return sin(v * pi).clamp(0.0, 1.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, __) {
+        final t = controller.value;
+        return Stack(
+          children: [
+            _spark(top: 0.18, left: 0.22, phase: 0.0, size: 10, t: t),
+            _spark(top: 0.60, left: 0.75, phase: 0.33, size: 10, t: t),
+            _spark(top: 0.35, left: 0.85, phase: 0.67, size: 8, t: t),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _spark({required double top, required double left, required double phase, required double size, required double t}) {
+    final opacity = _opacity(t, phase);
+    return Positioned.fill(
+      child: Align(
+        alignment: FractionalOffset(left, top),
+        child: Opacity(
+          opacity: opacity,
+          child: Transform.scale(
+            scale: 0.3 + opacity * 0.7,
+            child: Transform.rotate(
+              angle: opacity * pi,
+              child: Icon(Icons.star, color: Colors.white, size: size,
+                shadows: const [Shadow(color: _kGoldLight, blurRadius: 6)]),
+            ),
+          ),
         ),
       ),
     );
@@ -288,9 +491,7 @@ class _ImageBadge extends StatelessWidget {
 class FavoriteButton extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback onTap;
-  /// Kích thước icon bên trong (mặc định 18 cho PostCard, 22 cho AppBar)
   final double iconSize;
-  /// Kích thước vòng tròn nút (mặc định 34 cho PostCard, 38 cho AppBar)
   final double buttonSize;
 
   const FavoriteButton({
@@ -311,7 +512,7 @@ class _FavoriteButtonState extends State<FavoriteButton>
   late final AnimationController _burstCtrl;
 
   late final Animation<double> _scale;
-  late final Animation<double> _bgFlash; // 0→1→0, chỉ khi like
+  late final Animation<double> _bgFlash;
   late final Animation<double> _burstProgress;
   late final Animation<double> _rippleProgress;
 
@@ -319,7 +520,6 @@ class _FavoriteButtonState extends State<FavoriteButton>
   void initState() {
     super.initState();
 
-    // Bounce: compress → phồng to → rung nhẹ → settle
     _bounceCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
     _scale = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.68), weight: 12),
@@ -329,13 +529,11 @@ class _FavoriteButtonState extends State<FavoriteButton>
       TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0), weight: 12),
     ]).animate(CurvedAnimation(parent: _bounceCtrl, curve: Curves.easeOut));
 
-    // Flash nền trắng → hồng nhạt → trắng
     _bgFlash = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 25),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 75),
     ]).animate(_bounceCtrl);
 
-    // Burst: particles + ripple
     _burstCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
     _burstProgress = Tween(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _burstCtrl, curve: Curves.easeOut),
@@ -355,9 +553,7 @@ class _FavoriteButtonState extends State<FavoriteButton>
   void _handleTap() {
     HapticFeedback.mediumImpact();
     _bounceCtrl.forward(from: 0);
-    if (!widget.isFavorite) {
-      _burstCtrl.forward(from: 0);
-    }
+    if (!widget.isFavorite) _burstCtrl.forward(from: 0);
     widget.onTap();
   }
 
@@ -371,7 +567,6 @@ class _FavoriteButtonState extends State<FavoriteButton>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Vòng ripple lan ra
             AnimatedBuilder(
               animation: _rippleProgress,
               builder: (_, __) {
@@ -390,7 +585,6 @@ class _FavoriteButtonState extends State<FavoriteButton>
                 );
               },
             ),
-            // Particle burst
             AnimatedBuilder(
               animation: _burstProgress,
               builder: (_, __) => CustomPaint(
@@ -402,7 +596,6 @@ class _FavoriteButtonState extends State<FavoriteButton>
                 ),
               ),
             ),
-            // Nút chính
             AnimatedBuilder(
               animation: _bgFlash,
               builder: (_, child) => ScaleTransition(
@@ -458,14 +651,11 @@ class _BurstPainter extends CustomPainter {
 
     for (int i = 0; i < _count; i++) {
       final angle = (2 * pi / _count) * i - pi / 8;
-      // Nửa đầu: hạt nhỏ bắn ra; nửa sau: fade out
       final dist = 14.0 + progress * 16.0;
       final opacity = progress < 0.45
           ? (progress / 0.45).clamp(0.0, 1.0)
           : (1 - (progress - 0.45) / 0.55).clamp(0.0, 1.0);
       final radius = (2.8 * (1 - progress * 0.5)).clamp(0.8, 2.8);
-
-      // Xen kẽ 2 màu: đỏ và hồng nhạt
       final dotColor = i.isEven ? color : Colors.pinkAccent.shade100;
       paint.color = dotColor.withOpacity(opacity * 0.95);
       canvas.drawCircle(
