@@ -24,9 +24,10 @@
 | Notification | *(chưa có)* | Thiếu | FCM push + in-app notifications + /dev endpoints |
 | Favorite | [favorite.md](favorite.md) | Cần cập nhật | Yêu thích bài đăng |
 | Follow | *(chưa có)* | Thiếu | Follow user, feed |
-| Deal | *(chưa có)* | Thiếu | Giao dịch xin nhận đồ |
-| Review | *(chưa có)* | Thiếu | Đánh giá sau deal |
+| Deal | *(chưa có)* | Thiếu | Giao dịch xin nhận đồ (deal card trong chat) |
+| Review | *(chưa có)* | Thiếu | Đánh giá sau deal completed |
 | Report | [report.md](report.md) | Cần cập nhật | Báo cáo bài đăng vi phạm |
+| KeywordAlert | *(chưa có)* | Thiếu | Theo dõi từ khóa, nhận FCM khi có bài mới khớp |
 | Cloudinary | *(chưa có)* | Thiếu | Upload ảnh lên Cloudinary CDN |
 | FCM | *(chưa có)* | Thiếu | Firebase Cloud Messaging service |
 | Admin | *(chưa có)* | Thiếu | Quản trị hệ thống |
@@ -36,14 +37,15 @@
 
 | Module | Màn hình chính | Trạng thái | Mô tả |
 |---|---|---|---|
-| Onboarding | `onboarding_screen.dart` | Done | Màn hình giới thiệu lần đầu |
-| Auth | `phone_login_screen.dart`, `login_screen.dart`, `register_screen.dart` | Done | Đăng nhập SĐT + email |
+| Splash | `splash_screen.dart` | Done | Kiểm tra token, điều hướng vào app |
+| Auth | `auth/phone_login_screen.dart`, `auth/email_login_screen.dart` | Done | Đăng nhập OTP SĐT + Email |
 | Home | `home_tab.dart` | Done | Trang chủ — danh sách + filter category |
 | Search | `search_tab.dart` | Done | Tìm kiếm bài đăng |
 | Post Detail | `post_detail_screen.dart` | Done | Chi tiết bài đăng |
-| Post Create | `post_create_screen.dart` | Done | Đăng bài mới |
-| Favorites | `favorites_tab.dart` | Done | Danh sách yêu thích |
+| Post Create | `post/create_post_tab.dart` | Done | Đăng bài mới |
 | Messages | `messages_tab.dart`, `chat_screen.dart` | Done | Danh sách chat + chat 1-1 |
-| Notifications | `notifications_screen.dart` | Done | Thông báo in-app |
+| Notifications | `notifications_screen.dart` | Done | Thông báo in-app (grouped by date) |
 | Profile | `profile_tab.dart` | Done | Hồ sơ cá nhân |
+| My Reviews | `profile/my_reviews_screen.dart` | Done | Đánh giá nhận được |
+| Deals | `deal/deals_screen.dart` | Done | Danh sách giao dịch |
 | User Profile | `user_profile_screen.dart` | Done | Hồ sơ user khác |

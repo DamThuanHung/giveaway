@@ -31,6 +31,11 @@ export class UserController {
     return this.userService.phoneLogin(body.idToken);
   }
 
+  @Post('dev/login')
+  devLogin(@Body() body: { email: string; secret: string }) {
+    return this.userService.devLogin(body.email, body.secret);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getMe(@Request() req) {

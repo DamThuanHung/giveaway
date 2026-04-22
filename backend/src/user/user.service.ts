@@ -50,6 +50,14 @@ export class UserService {
     return this.jwtService.signAsync({ sub: user.id, email: user.email ?? user.phone ?? '', name: user.name ?? null });
   }
 
+  async devLogin(email: string, secret: string) {
+    if (secret !== process.env.DEV_SECRET) throw new Error('unauthorized');
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new Error('User not found');
+    const accessToken = await this.signToken(user);
+    return { accessToken, user: { id: user.id, email: user.email, name: user.name } };
+  }
+
   async createUser(data: any) {
     const email = data?.email?.toString().trim().toLowerCase();
     const password = data?.password?.toString();

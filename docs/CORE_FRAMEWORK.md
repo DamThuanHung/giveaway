@@ -4,7 +4,7 @@
 
 **Tên dự án:** Trao Tay (Cho và Tặng)
 **Mô tả:** Ứng dụng trao tặng & mua bán đồ cũ tại Việt Nam
-**Trạng thái:** Đang phát triển — deployed trên Railway (kế hoạch chuyển sang Koyeb + Neon)
+**Trạng thái:** Đang phát triển — chạy local bằng Docker Compose (postgres + minio + nestjs)
 
 ---
 
@@ -26,7 +26,7 @@
                      │ Prisma ORM
 ┌────────────────────▼────────────────────────────────┐
 │                  DATA LAYER                         │
-│     PostgreSQL (Railway) + Cloudinary CDN           │
+│     PostgreSQL (Docker) + MinIO (S3 self-hosted)    │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -40,26 +40,29 @@
 |---|---|
 | Framework | NestJS v11 |
 | Ngôn ngữ | TypeScript |
-| Port | `process.env.PORT` (Railway tự set) |
-| Production URL | `https://giveaway-production-605c.up.railway.app` |
+| Port | `process.env.PORT` (mặc định `3800`) |
+| Local URL | `http://localhost:3800` (Docker) / `http://192.168.x.x:3800` (LAN) |
 | ORM | Prisma v6 |
-| Database | PostgreSQL (Railway) |
-| Auth | JWT (biến `JWT_SECRET`) + Firebase Phone Auth |
-| Upload ảnh | Cloudinary CDN (biến `CLOUDINARY_*`) |
+| Database | PostgreSQL 15 (Docker container `traotay_db`) |
+| Auth | JWT (biến `JWT_SECRET`) + OTP qua SĐT (Firebase) hoặc Email (Resend) |
+| Upload ảnh | MinIO S3-compatible (biến `MINIO_*`, container `traotay_storage`) |
 
 ### Biến môi trường bắt buộc
 
 | Biến | Mô tả |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string (Railway) |
+| `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | Secret key cho JWT |
-| `PORT` | Port server (Railway tự set) |
+| `PORT` | Port server (mặc định 3800) |
 | `BASE_URL` | Public URL của server |
 | `FCM_SERVICE_ACCOUNT` | JSON credentials Firebase Cloud Messaging |
-| `DEV_SECRET` | Secret để gọi `/dev/*` endpoints |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary config |
-| `CLOUDINARY_API_KEY` | Cloudinary config |
-| `CLOUDINARY_API_SECRET` | Cloudinary config |
+| `DEV_SECRET` | Secret để gọi `/user/dev/login` và `/dev/*` endpoints |
+| `MINIO_ENDPOINT` | MinIO host (e.g. `minio` trong Docker, `localhost` ngoài) |
+| `MINIO_PORT` | MinIO port (mặc định `9000`) |
+| `MINIO_ACCESS_KEY` | MinIO access key |
+| `MINIO_SECRET_KEY` | MinIO secret key |
+| `MINIO_BUCKET` | Tên bucket (mặc định `traotay`) |
+| `MINIO_PUBLIC_URL` | Public URL để tạo link ảnh (e.g. `http://localhost:9000`) |
 
 ### Cấu trúc thư mục backend
 
@@ -77,7 +80,7 @@ backend/src/
 ├── deal/                    # Giao dịch (xin nhận đồ)
 ├── review/                  # Đánh giá sau deal
 ├── report/                  # Báo cáo bài đăng
-├── cloudinary/              # Upload ảnh lên Cloudinary
+├── cloudinary/              # Upload ảnh lên MinIO (class vẫn giữ tên CloudinaryService)
 ├── fcm/                     # Firebase Cloud Messaging service
 ├── admin/                   # Quản trị
 └── prisma/                  # PrismaService
@@ -103,7 +106,8 @@ backend/src/
 | GET | `/user/me` | JWT | Lấy thông tin user hiện tại |
 | GET | `/user/:id` | — | Lấy thông tin user theo ID |
 | PATCH | `/user/:id` | JWT | Cập nhật profile |
-| POST | `/user/avatar` | JWT | Upload avatar (Cloudinary) |
+| POST | `/user/avatar` | JWT | Upload avatar (MinIO) |
+| POST | `/user/dev/login` | — | Đăng nhập không OTP (cần `{ email, secret: DEV_SECRET }`) |
 | POST | `/user/change-password` | JWT | Đổi mật khẩu |
 | POST | `/user/block/:blockedId` | JWT | Chặn user |
 | DELETE | `/user/block/:blockedId` | JWT | Bỏ chặn user |
@@ -123,6 +127,7 @@ backend/src/
 | POST | `/post` | JWT | Tạo bài đăng mới (multipart, tối đa 5 ảnh) |
 | PATCH | `/post/:id` | JWT | Cập nhật bài đăng |
 | PATCH | `/post/:id/status` | JWT | Đổi trạng thái (`available`/`done`) |
+| POST | `/post/:id/bump` | JWT | Đẩy bài đăng lên đầu (cooldown 24h) |
 | DELETE | `/post/:id` | JWT | Xóa bài đăng |
 
 ### Chat — `/chat`
@@ -155,13 +160,22 @@ backend/src/
 | PATCH | `/notification/read-all` | JWT | Đánh dấu tất cả đã đọc |
 | POST | `/notification/fcm-token` | JWT | Lưu FCM token |
 
-#### Dev endpoints (cần header `x-dev-secret`)
+#### Dev endpoints (cần body `{ secret: DEV_SECRET }`)
 
 | Method | Path | Mô tả |
 |---|---|---|
 | POST | `/notification/dev/reset-test-data` | Xóa sạch + tạo 10 acc test |
 | POST | `/notification/dev/seed-chat` | Tạo room chat test |
+| POST | `/notification/dev/seed-posts` | Seed bài đăng cho userId |
+| POST | `/notification/dev/seed-notifications` | Tạo tất cả loại noti để test |
+| POST | `/notification/dev/setup-test` | Setup full test data |
 | POST | `/notification/dev/clear-notifications` | Xóa notification của userId |
+| POST | `/notification/dev/reset-reviews` | Xóa hết reviews test, tạo lại đúng 1 cái |
+| POST | `/notification/dev/test-review` | Tạo deal + review + gửi FCM |
+| POST | `/notification/dev/test-keyword-alert` | Trigger keyword alert |
+| POST | `/notification/dev/user-debug` | Xem 5 noti gần nhất + keywords |
+| POST | `/notification/dev/find-user` | Tìm user theo email/phone |
+| POST | `/notification/test-push` | Gửi FCM test thô |
 
 ### Favorite — `/favorite`
 
@@ -227,7 +241,8 @@ backend/src/
 
 ```dart
 // app/lib/services/api_service.dart
-static const String baseUrl = 'https://giveaway-production-605c.up.railway.app';
+static const String baseUrl = 'http://192.168.0.108:3800'; // IP máy trên LAN wifi
+// isLocal = true khi baseUrl chứa localhost / 192.168 / 10.0 → hiện tab Dev login
 ```
 
 ### Cấu trúc màn hình
@@ -235,38 +250,43 @@ static const String baseUrl = 'https://giveaway-production-605c.up.railway.app';
 ```
 app/lib/screens/
 ├── app_shell.dart               # Shell chính (bottom nav 5 tabs)
+├── splash_screen.dart           # Màn hình khởi động (kiểm tra token)
 ├── home_tab.dart                # Trang chủ — danh sách bài đăng + filter
 ├── search_tab.dart              # Tìm kiếm
-├── post_create_screen.dart      # Đăng bài mới
-├── favorites_tab.dart           # Yêu thích
 ├── messages_tab.dart            # Danh sách chat
-├── chat_screen.dart             # Chat 1-1
-├── notifications_screen.dart    # Thông báo
 ├── profile_tab.dart             # Hồ sơ cá nhân
+├── notifications_screen.dart    # Thông báo in-app
+├── chat_screen.dart             # Chat 1-1 (WebSocket)
 ├── post_detail_screen.dart      # Chi tiết bài đăng
 ├── user_profile_screen.dart     # Hồ sơ user khác
-├── login_screen.dart            # Đăng nhập email
-├── phone_login_screen.dart      # Đăng nhập SĐT (Firebase OTP)
-├── register_screen.dart         # Đăng ký
-└── onboarding_screen.dart       # Onboarding (lần đầu mở app)
+├── post/
+│   └── create_post_tab.dart     # Đăng bài mới
+├── deal/
+│   └── deals_screen.dart        # Danh sách giao dịch
+├── profile/
+│   └── my_reviews_screen.dart   # Đánh giá nhận được
+└── auth/
+    ├── phone_login_screen.dart  # Đăng nhập SĐT (Firebase OTP)
+    └── email_login_screen.dart  # Đăng nhập email OTP
 ```
 
 ### Bottom Navigation (5 tabs)
 
 | Tab | Icon | Label |
 |---|---|---|
-| 0 | home | Trang chủ |
+| 0 | home | Trang chủ (badge thông báo) |
 | 1 | search | Tìm kiếm |
-| 2 | add_circle | Đăng tin (FAB style) |
-| 3 | favorite | Yêu thích |
-| 4 | person | Hồ sơ |
+| 2 | add_circle | Đăng tin (mở CreatePostTab) |
+| 3 | chat_bubble | Tin nhắn (badge unread) |
+| 4 | person | Cá nhân |
 
 ### Luồng xác thực
 
-1. App mở → kiểm tra `auth_token` trong `SharedPreferences`
-2. Có token → `AppShell` (home)
-3. Không có → `OnboardingScreen` (lần đầu) hoặc `PhoneLoginScreen`
+1. App mở → `SplashScreen` → kiểm tra `auth_token` trong `SharedPreferences`
+2. Có token hợp lệ → `AppShell`
+3. Không có → `PhoneLoginScreen` (OTP SĐT) hoặc `EmailLoginScreen` (OTP Email)
 4. Đăng nhập thành công → lưu `auth_token` + `user_id` → `AppShell`
+5. Đăng ký người dùng mới → tự động khi OTP thành công lần đầu (isNewUser = true)
 
 ---
 

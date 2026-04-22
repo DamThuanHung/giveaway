@@ -521,7 +521,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               )
-            // Bài cho tặng còn hàng → 2 nút: Nhắn tin + Yêu cầu nhận
+            // Bài cho tặng còn hàng → chỉ nút Nhắn tin (deal flow diễn ra trong chat)
             : isGive && isAvailable
             ? ElevatedButton.icon(
                 onPressed: _isChatLoading ? null : _openChat,

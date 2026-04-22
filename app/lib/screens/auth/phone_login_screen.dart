@@ -71,6 +71,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                             onTap: () => setState(() => _tab = 0)),
                         _TabBtn(label: 'Email', selected: _tab == 1,
                             onTap: () => setState(() => _tab = 1)),
+                        if (ApiService.isLocal)
+                          _TabBtn(label: '🛠 Dev', selected: _tab == 2,
+                              onTap: () => setState(() => _tab = 2)),
                       ]),
                     ),
                     const SizedBox(height: 28),
@@ -80,7 +83,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       duration: const Duration(milliseconds: 200),
                       child: _tab == 0
                           ? _PhoneOtpForm(key: const ValueKey('phone'), onSuccess: _onSuccess)
-                          : _EmailOtpForm(key: const ValueKey('email'), onSuccess: _onSuccess),
+                          : _tab == 1
+                              ? _EmailOtpForm(key: const ValueKey('email'), onSuccess: _onSuccess)
+                              : _DevLoginForm(key: const ValueKey('dev'), onSuccess: _onSuccess),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -643,6 +648,96 @@ class _OtpBox extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Dev Login Form ────────────────────────────────────────────────────────────
+
+class _DevLoginForm extends StatefulWidget {
+  final void Function(bool isNewUser) onSuccess;
+  const _DevLoginForm({super.key, required this.onSuccess});
+  @override
+  State<_DevLoginForm> createState() => _DevLoginFormState();
+}
+
+class _DevLoginFormState extends State<_DevLoginForm> {
+  String _email = '1@test.com';
+  bool _loading = false;
+  String? _error;
+
+  static const _accounts = [
+    '1@test.com', '2@test.com', '3@test.com', '4@test.com', '5@test.com',
+    '6@test.com', '7@test.com', '8@test.com', '9@test.com', '10@test.com',
+  ];
+
+  Future<void> _login() async {
+    setState(() { _loading = true; _error = null; });
+    final error = await context.read<app_auth.AuthProvider>().devLogin(_email);
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (error == null) {
+      widget.onSuccess(false);
+    } else {
+      setState(() => _error = error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(children: [
+            Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 18),
+            const SizedBox(width: 8),
+            Text('Chỉ dùng khi test local', style: TextStyle(color: Colors.orange.shade700, fontSize: 13)),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _email,
+              isExpanded: true,
+              items: _accounts.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+              onChanged: (v) => setState(() => _email = v!),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_error != null) ...[
+          Text(_error!, style: const TextStyle(color: AppTheme.error, fontSize: 13)),
+          const SizedBox(height: 8),
+        ],
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _loading ? null : _login,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: _loading
+                ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                : const Text('Đăng nhập Dev', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ),
+      ],
     );
   }
 }

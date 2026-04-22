@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://giveaway-production-e88c.up.railway.app';
+  static const String baseUrl = 'http://192.168.0.108:3800';
 
   static Future<String?> _getToken() async {
     final p = await SharedPreferences.getInstance();
@@ -141,6 +141,34 @@ class ApiService {
           ...Map<String, dynamic>.from(d['user']),
           'isNewUser': d['isNewUser'] == true,
         };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static bool get isLocal => baseUrl.contains('localhost') || baseUrl.contains('192.168') || baseUrl.contains('10.0');
+
+  static const String _devSecret = 'traotay_dev_2024';
+
+  static Future<Map<String, dynamic>?> devLogin(String email) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/dev/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'secret': _devSecret}),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final d = jsonDecode(res.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await prefs.setString('user_id', d['user']['id'] ?? '');
+        await prefs.setString('user_name', d['user']['name'] ?? '');
+        await prefs.setString('user_email', d['user']['email'] ?? '');
+        await prefs.setString('user_avatar', '');
+        await prefs.setString('user_role', 'user');
+        return d['user'];
       }
       return null;
     } catch (e) {

@@ -7,8 +7,8 @@
 | Thông số | Giá trị |
 |---|---|
 | Engine | PostgreSQL 15 |
-| Dev | `postgresql://postgres:postgres@localhost:5432/app` |
-| Production | Railway PostgreSQL (biến `DATABASE_URL`) |
+| Dev | `postgresql://postgres:postgres@localhost:5432/traotay` (Docker container `traotay_db`) |
+| Production | Self-hosted / VPS (biến `DATABASE_URL`) |
 | ORM | Prisma v6 |
 | Schema file | `backend/prisma/schema.prisma` |
 | Extension | `unaccent` (tìm kiếm không dấu) |
@@ -31,6 +31,7 @@
 | `fcmToken` | `String?` | Push notification token (Firebase Cloud Messaging) |
 | `isBanned` | `Boolean` | Mặc định false |
 | `role` | `String` | `"user"` hoặc `"admin"` |
+| `deletedAt` | `DateTime?` | Soft delete: null = active, có giá trị = đã xóa |
 | `createdAt` | `DateTime` | Tự động |
 | `updatedAt` | `DateTime` | Tự động |
 
@@ -59,6 +60,7 @@
 | `latitude` | `Float` | Tọa độ (mặc định 0) |
 | `longitude` | `Float` | Tọa độ (mặc định 0) |
 | `viewCount` | `Int` | Số lượt xem |
+| `bumpedAt` | `DateTime?` | Thời điểm đẩy bài gần nhất (null = chưa bump). Dùng để sort + cooldown 24h |
 | `subType` | `String?` | BĐS: `"rent"` / `"sell"` |
 | `area` | `Float?` | BĐS: diện tích m² |
 | `bedrooms` | `Int?` | BĐS: số phòng ngủ |
@@ -68,7 +70,7 @@
 | `createdAt` | `DateTime` | Tự động |
 | `updatedAt` | `DateTime` | Tự động |
 
-**Indexes:** status, province, listingType, itemCategory, authorId, createdAt, postType
+**Indexes:** status, province, listingType, itemCategory, authorId, createdAt, postType, bumpedAt, (status+listingType), (status+itemCategory)
 
 ---
 
@@ -120,12 +122,27 @@
 |---|---|---|
 | `id` | `String` (cuid) | PK |
 | `userId` | `String` | FK → `User.id` (cascade delete) |
-| `type` | `String` | `"chat"` / `"deal"` / `"system"` |
+| `type` | `String` | Xem danh sách type bên dưới |
 | `title` | `String` | Tiêu đề thông báo |
 | `body` | `String` | Nội dung thông báo |
-| `data` | `String?` | JSON string: `{ roomId, postTitle, postImageLabel }` |
+| `data` | `String?` | JSON string context: `{ roomId, dealId, postId, followerId, ... }` |
 | `isRead` | `Boolean` | Mặc định false |
 | `createdAt` | `DateTime` | Tự động |
+
+**Notification types:**
+| Type | Nguồn | Mô tả |
+|---|---|---|
+| `chat` | ChatGateway | Tin nhắn mới |
+| `deal` | DealService | Yêu cầu nhận / chấp nhận / từ chối |
+| `review` | ReviewService / DealService | Nhận đánh giá mới / deal hoàn thành |
+| `follow` | FollowService | Có người follow mình |
+| `favorite` | FavoriteService | Có người thích bài của mình |
+| `new_post` | FollowService | Người mình follow đăng bài mới |
+| `deal_reminder` | NotificationCronService | Deal pending > 24h chưa xử lý (cron mỗi giờ) |
+| `post_reminder` | NotificationCronService | Bài đăng 7 ngày không có tương tác (cron 9:00) |
+| `keyword_alert` | KeywordAlertService | Có bài đăng mới khớp từ khóa theo dõi |
+| `welcome` | NotificationCronService | Chào mừng sau 1 ngày đăng ký (cron 10:00) |
+| `daily_digest` | NotificationCronService | Bản tin cuối ngày 20:00 |
 
 ---
 
@@ -137,7 +154,7 @@
 | `postId` | `String` | FK → `Post.id` |
 | `requesterId` | `String` | FK → `User.id` (người xin nhận) |
 | `ownerId` | `String` | FK → `User.id` (người đăng) |
-| `status` | `String` | `"pending"` / `"accepted"` / `"rejected"` / `"done"` |
+| `status` | `String` | `"pending"` / `"accepted"` / `"rejected"` / `"completed"` / `"cancelled"` |
 | `message` | `String?` | Lời nhắn kèm deal |
 | `createdAt` | `DateTime` | Tự động |
 | `updatedAt` | `DateTime` | Tự động |
@@ -186,10 +203,36 @@
 
 ---
 
+### `KeywordAlert`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `userId` | `String` | FK → `User.id` (cascade delete) |
+| `keyword` | `String` | Từ khóa theo dõi |
+| `createdAt` | `DateTime` | Tự động |
+
+**Unique:** `[userId, keyword]` — mỗi user không thể theo dõi cùng 1 từ khóa 2 lần
+
+---
+
+### `BannedIdentity`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `email` | `String?` | UNIQUE, email bị cấm |
+| `phone` | `String?` | UNIQUE, SĐT bị cấm |
+| `createdAt` | `DateTime` | Tự động |
+
+**Mục đích:** Blacklist email/SĐT — ngăn tạo tài khoản mới sau khi bị ban. Khi admin ban user, email và phone của user đó được thêm vào bảng này.
+
+---
+
 ## Lưu ý quan trọng
 
 1. ID dùng **cuid** (không phải UUID hay integer)
-2. Ảnh lưu dưới dạng **URL Cloudinary đầy đủ** (không phải filename như trước)
+2. Ảnh lưu dưới dạng **URL MinIO đầy đủ** (e.g. `http://localhost:9000/traotay/posts/xxx.jpg`)
 3. `imageLabel` = ảnh thumbnail đại diện cho bài đăng (dùng trong chat banner, notification)
 4. User có thể đăng nhập bằng **phone** (Firebase OTP) hoặc **email+password** — không bắt buộc có cả hai
 5. `ChatRoom` unique theo `[buyerId, sellerId]` — tức 1 cặp user chỉ có 1 room duy nhất bất kể bài đăng

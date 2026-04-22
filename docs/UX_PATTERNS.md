@@ -87,9 +87,15 @@ Nút phải: "Xác nhận" hoặc "Xóa" (ElevatedButton, màu error nếu destr
 - Dùng cho: Xóa bài đăng, Đăng xuất, Hủy form có dữ liệu
 - **KHÔNG** dùng cho: Thêm yêu thích (optimistic, không cần confirm)
 
-### Deep link flow
-- Từ notification → mở thẳng `PostDetailScreen` với postId
-- Xử lý case chưa đăng nhập → redirect login → quay lại màn hình đích
+### Deep link flow từ FCM notification
+| `data.type` | Màn hình đích |
+|---|---|
+| `chat` / `deal` (có roomId) | `ChatScreen` (fetch room, tìm đối phương) |
+| `review` | `MyReviewsScreen` (tab Cá nhân → push) |
+| `deal` (không có roomId) | `DealsScreen` |
+- Cold-start (app bị tắt): `PendingFcmMessage` lưu message → `AppShell.initState` xử lý
+- Background: `FirebaseMessaging.onMessageOpenedApp` xử lý
+- Foreground: hiển thị local notification (flutter_local_notifications), không navigate tự động
 
 ---
 

@@ -114,7 +114,8 @@ Gõ "lưu" để tôi cập nhật tự động.
 
 | Ngày | Quyết định | Lý do | Người xác nhận |
 |---|---|---|---|
-| 17/04/2026 | Không có nút "Yêu cầu nhận" trong chi tiết bài đăng | Deal flow diễn ra trong chat | user |
+| 17/04/2026 | Deal flow diễn ra trong chat (deal card) | Trải nghiệm liền mạch hơn khi chat trực tiếp | user |
+| 22/04/2026 | Nút "Tôi muốn nhận" được thêm lại vào chi tiết bài cho tặng | User cần CTA rõ ràng ngay trên màn hình chi tiết | user |
 | 17/04/2026 | Roadmap phải theo mục tiêu vận hành, không phải logic kỹ thuật | User cần app vận hành được, không chỉ feature complete | user |
 | 17/04/2026 | Không làm giai đoạn sau khi chưa xong giai đoạn trước | Đảm bảo chất lượng từng bước | user |
 | 21/04/2026 | Tiếp tục dùng Railway cho đến khi hết credit, sau đó chuyển Koyeb + Neon | Railway vẫn còn credit, Koyeb+Neon là phương án miễn phí 100% | user |
@@ -122,13 +123,49 @@ Gõ "lưu" để tôi cập nhật tự động.
 
 ---
 
-## 7. Quy tắc khi gặp conflict
+## 7. Quy tắc giao tiếp với user
+
+### Đề xuất trước khi hỏi (BẮT BUỘC)
+Khi gặp tình huống chưa rõ hoặc có nhiều lựa chọn, AI PHẢI:
+1. Tự phân tích các phương án dựa trên code + docs thực tế
+2. Đưa ra **đề xuất cụ thể** kèm lý do ngắn gọn
+3. Hỏi user xác nhận — **không hỏi suông** kiểu "Bạn muốn làm gì?"
+
+**Sai:** "Bạn muốn dùng approach nào?"
+**Đúng:** "Tôi đề xuất làm X vì Y. Bạn đồng ý không?"
+
+### Không hỏi lại ở mỗi bước nhỏ
+- Khi user đã đồng ý hướng đi → tự làm đến cùng, không hỏi lại từng bước
+- Chỉ dừng khi gặp rủi ro cao (xóa data, push code, thay đổi không rollback được)
+
+---
+
+## 8. Quy tắc khi gặp conflict
 
 Khi có conflict giữa các nguồn:
 1. **Code thực tế** > Tài liệu cũ
 2. **User nói trực tiếp** > AI suy luận
 3. **File docs mới hơn** > File docs cũ hơn
 4. Khi không chắc → **hỏi user**, ghi rõ `[cần xác nhận]`
+
+---
+
+## 9. Tự làm trước khi bảo user làm
+
+Mọi việc AI có thể tự làm được thì PHẢI tự làm — không được hướng dẫn user làm thay.
+
+| Không được làm | Phải làm |
+|---|---|
+| "Bạn chạy lệnh `flutter run -d chrome`" | Tự chạy lệnh luôn |
+| "Bạn tạo file X với nội dung..." | Tự tạo file luôn |
+| "Bạn mở PowerShell và gõ..." | Tự chạy qua Bash tool |
+| "Bạn thêm dòng này vào..." | Tự edit file luôn |
+
+**Ngoại lệ** — chỉ hướng dẫn user khi:
+- Cần quyền Admin / BIOS (AI không có quyền hệ thống)
+- Cần thao tác vật lý (cắm dây, bấm nút máy)
+- Cần tài khoản/credential của user (Railway, Firebase console...)
+- Hành động có rủi ro cao cần user xác nhận trước
 
 ---
 

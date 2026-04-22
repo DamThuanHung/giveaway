@@ -1,26 +1,14 @@
-# Base image
-FROM node:20
+FROM node:20-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+RUN npm install --ignore-scripts
 
-# Install dependencies
-RUN npm install
-
-# Copy source code
 COPY . .
-
-# Build app
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 RUN npm run build
 
-# 👉 generate Prisma không cần DB thật
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
-
-# Expose port
 EXPOSE 3800
 
-# Start app: migrate DB rồi mới start
-CMD npx prisma migrate deploy && node dist/src/main.js
+CMD npx prisma db push --skip-generate && node dist/src/main

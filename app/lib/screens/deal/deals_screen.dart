@@ -207,6 +207,12 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
           onCancel: _outgoing[i]['status'] == 'pending'
               ? () => _updateStatus(_outgoing[i]['id'], 'cancelled')
               : null,
+          onReviewed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Cảm ơn bạn đã đánh giá!'),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          )),
         ),
       ),
     );
@@ -309,18 +315,58 @@ class _IncomingCard extends StatelessWidget {
   }
 }
 
-class _OutgoingCard extends StatelessWidget {
+class _OutgoingCard extends StatefulWidget {
   final Map<String, dynamic> deal;
   final VoidCallback? onCancel;
+  final VoidCallback? onReviewed;
 
-  const _OutgoingCard({required this.deal, this.onCancel});
+  const _OutgoingCard({required this.deal, this.onCancel, this.onReviewed});
+
+  @override
+  State<_OutgoingCard> createState() => _OutgoingCardState();
+}
+
+class _OutgoingCardState extends State<_OutgoingCard> {
+  bool _hasReviewed = false;
+  bool _checkingReview = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.deal['status'] == 'completed') _checkReview();
+  }
+
+  Future<void> _checkReview() async {
+    setState(() => _checkingReview = true);
+    final result = await ApiService.checkReviewed(widget.deal['id']);
+    if (!mounted) return;
+    setState(() { _hasReviewed = result; _checkingReview = false; });
+  }
+
+  Future<void> _openReviewSheet() async {
+    final owner = widget.deal['owner'] as Map<String, dynamic>? ?? {};
+    final dealId = widget.deal['id'] as String;
+    final reviewed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReviewSheet(
+        dealId: dealId,
+        ownerName: owner['name']?.toString() ?? 'Người đăng',
+      ),
+    );
+    if (reviewed == true) {
+      setState(() => _hasReviewed = true);
+      widget.onReviewed?.call();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final post = deal['post'] as Map<String, dynamic>? ?? {};
-    final owner = deal['owner'] as Map<String, dynamic>? ?? {};
-    final status = deal['status'] as String? ?? 'pending';
-    final message = deal['message'] as String?;
+    final post = widget.deal['post'] as Map<String, dynamic>? ?? {};
+    final owner = widget.deal['owner'] as Map<String, dynamic>? ?? {};
+    final status = widget.deal['status'] as String? ?? 'pending';
+    final message = widget.deal['message'] as String?;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -355,16 +401,126 @@ class _OutgoingCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontStyle: FontStyle.italic)),
           ),
         ],
-        if (onCancel != null) ...[
+        if (widget.onCancel != null) ...[
           const SizedBox(height: 12),
           SizedBox(width: double.infinity, child: OutlinedButton(
             style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.error, side: const BorderSide(color: AppTheme.error)),
-            onPressed: onCancel,
+            onPressed: widget.onCancel,
             child: const Text('Huỷ yêu cầu'),
           )),
         ],
+        if (status == 'completed' && !_checkingReview) ...[
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: _hasReviewed
+              ? OutlinedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                  label: const Text('Đã đánh giá'),
+                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.textSecondary),
+                )
+              : ElevatedButton.icon(
+                  onPressed: _openReviewSheet,
+                  icon: const Icon(Icons.star_outline_rounded, size: 16, color: Colors.white),
+                  label: const Text('Viết đánh giá', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
+                )),
+        ],
       ]),
+    );
+  }
+}
+
+class _ReviewSheet extends StatefulWidget {
+  final String dealId;
+  final String ownerName;
+  const _ReviewSheet({required this.dealId, required this.ownerName});
+
+  @override
+  State<_ReviewSheet> createState() => _ReviewSheetState();
+}
+
+class _ReviewSheetState extends State<_ReviewSheet> {
+  int _rating = 5;
+  final _commentCtrl = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _commentCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_rating == 0) return;
+    setState(() => _submitting = true);
+    final ok = await ApiService.createReview(widget.dealId, _rating, comment: _commentCtrl.text.trim());
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (ok) {
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Không gửi được đánh giá, thử lại sau'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          Text('Đánh giá ${widget.ownerName}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 20),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(5, (i) => GestureDetector(
+            onTap: () => setState(() => _rating = i + 1),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Icon(
+                i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                color: Colors.amber, size: 40,
+              ),
+            ),
+          ))),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _commentCtrl,
+            maxLines: 3,
+            maxLength: 200,
+            decoration: InputDecoration(
+              hintText: 'Nhận xét của bạn (không bắt buộc)',
+              filled: true,
+              fillColor: AppTheme.background,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: ElevatedButton(
+            onPressed: _submitting ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _submitting
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Gửi đánh giá', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+          )),
+        ]),
+      ),
     );
   }
 }

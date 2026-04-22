@@ -25,8 +25,8 @@
 
 ### Người dùng (User)
 - Đăng nhập bằng **SĐT** (Firebase OTP) — flow chính
-- Đăng nhập bằng **email + password** — flow dự phòng
-- Đăng nhập bằng **email OTP** — không cần nhớ mật khẩu
+- Đăng nhập bằng **email OTP** (Resend) — không cần mật khẩu, hỗ trợ đăng ký mới
+- `isNewUser: true` được trả về khi OTP thành công lần đầu (tự động tạo tài khoản)
 - Token JWT có hiệu lực **7 ngày**, lưu `SharedPreferences` key `auth_token`
 - User phone-only không có `email/password`, chỉ có `phone`
 
@@ -39,16 +39,22 @@
 - Notification body: `Bạn nhận được tin nhắn mới từ "{tên}" về bài viết "{tiêu đề}"`
 
 ### Deal (Giao dịch)
-- Flow xin nhận đồ qua chat (không phải nút riêng)
-- `status`: `pending` → `accepted` / `rejected` → `done`
-- Sau `done` → có thể để lại `Review` (đánh giá 1–5 sao)
+- Flow xin nhận đồ qua chat (deal card trong tin nhắn)
+- `status`: `pending` → `accepted` / `rejected` / `completed` / `cancelled`
+  - `accepted`: người bán đồng ý, bài chuyển sang `reserved`, các deal pending khác bị `rejected`
+  - `completed`: giao dịch hoàn thành, bài chuyển sang `done`
+  - `cancelled`: người nhận tự hủy
+- Sau `completed` → người nhận có thể để lại `Review` (đánh giá 1–5 sao)
 
 ### Notification
-- `type: "chat"` — tin nhắn mới
-- `type: "deal"` — cập nhật deal
-- `type: "system"` — thông báo hệ thống
-- `data` = JSON string chứa context: `{ roomId, postTitle, postImageLabel }`
-- Tap notification → navigate đến màn hình tương ứng
+- `type: "chat"` → mở `ChatScreen` (roomId)
+- `type: "deal"` → mở `ChatScreen` (roomId) hoặc `DealsScreen`
+- `type: "review"` → mở `MyReviewsScreen`
+- `type: "follow"` / `"favorite"` / `"new_post"` / `"keyword_alert"` → in-app only
+- `type: "deal_reminder"` / `"post_reminder"` / `"welcome"` / `"daily_digest"` → in-app only
+- `data` = JSON string chứa context: `{ roomId, dealId, postId, followerId, ... }`
+- FCM push notification kèm theo mọi loại type (trừ một số loại reminder)
+- Tap notification (FCM) → navigate đúng màn hình theo `data.type`
 
 ### Follow
 - User có thể follow user khác
@@ -71,7 +77,8 @@
 | Status | Hiển thị |
 |---|---|
 | `available` | Bình thường, có thể nhắn tin |
-| `done` | Hiển thị badge "Đã trao tặng", nút nhắn tin bị disable |
+| `reserved` | Đã được chấp nhận deal, đang chờ hoàn thành |
+| `done` | Đã trao tặng/bán xong, nút bị disable |
 
 ### Danh mục (itemCategory)
 `electronics`, `furniture`, `clothing`, `kitchen`, `books`, `toys`, `sports`, `vehicles`, `beauty`, `pets`, `tools`, `food`, `baby`, `music`, `realestate`, `service`, `other` (17 danh mục)
@@ -87,24 +94,31 @@
 
 ```
 [App khởi động]
-    ├── Lần đầu → OnboardingScreen → PhoneLoginScreen
-    └── Đã login → AppShell (5 tabs)
+    SplashScreen → kiểm tra token
+    ├── Có token → AppShell (5 tabs)
+    └── Không có → PhoneLoginScreen / EmailLoginScreen
 
 [Đăng nhập]
     SĐT: nhập số → Firebase OTP → POST /user/phone-login → JWT
-    Email: POST /user/login (email + password) → JWT
+    Email: POST /user/email-login/send → nhập OTP → POST /user/email-login/verify → JWT
+    (isNewUser = true → tự tạo tài khoản)
 
 [Xem bài đăng]
     GET /post (filter) → HomeTab → PostDetailScreen
 
-[Nhắn tin]
+[Nhắn tin / Deal]
     PostDetailScreen → "Nhắn tin" → POST /chat/room → ChatScreen (WebSocket)
+    Trong chat → deal card → owner accept/reject/complete
 
-[Deal flow]
-    Thỏa thuận trong chat → owner đổi status bài thành "done"
+[Review]
+    Deal completed → người nhận nhận noti → tap noti → MyReviewsScreen
+    Người nhận viết review: POST /review (dealId + rating + comment)
+    Người bán nhận FCM: "X đã đánh giá bạn ⭐⭐⭐⭐⭐"
 
 [Thông báo]
-    FCM push (background) + in-app NotificationsScreen
+    FCM push (foreground: local notification, background/killed: FCM)
+    Tap notification → navigate theo data.type
+    In-app: NotificationsScreen (grouped by date)
 ```
 
 ---

@@ -54,6 +54,21 @@ class AuthProvider with ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<String?> devLogin(String email) async {
+    final user = await ApiService.devLogin(email);
+    if (user != null) {
+      _userId = user['id'];
+      _userName = user['name'];
+      _userEmail = user['email'];
+      _userAvatar = user['avatar'] ?? '';
+      _userRole = user['role'] ?? 'user';
+      _isAuthenticated = true;
+      notifyListeners();
+      return null;
+    }
+    return 'Đăng nhập thất bại';
+  }
+
   Future<String?> login(String email, String password) async {
     final user = await ApiService.login(email, password);
     if (user != null) {

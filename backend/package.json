@@ -43,6 +43,7 @@
     "class-validator": "^0.15.1",
     "cloudinary": "^1.41.3",
     "firebase-admin": "^13.7.0",
+    "minio": "^8.0.7",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.5",
     "passport": "^0.7.0",
