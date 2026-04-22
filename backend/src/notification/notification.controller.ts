@@ -447,14 +447,23 @@ export class NotificationController {
     if (!post) return { error: 'Tạo post trước bằng dev/seed-posts' };
 
     // Tạo deal completed
-    const deal = await this.prisma.deal.create({
-      data: { postId: post.id, requesterId: reviewer.id, ownerId: body.userId, status: 'completed' },
-    });
+    let deal: any;
+    try {
+      deal = await this.prisma.deal.create({
+        data: { postId: post.id, requesterId: reviewer.id, ownerId: body.userId, status: 'completed' },
+      });
+    } catch (e: any) {
+      return { error: 'deal_create_failed', detail: e.message };
+    }
 
     // Tạo review
-    await this.prisma.review.create({
-      data: { dealId: deal.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
-    });
+    try {
+      await this.prisma.review.create({
+        data: { dealId: deal.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
+      });
+    } catch (e: any) {
+      return { error: 'review_create_failed', detail: e.message };
+    }
 
     // Gửi notification + FCM
     await this.notificationService.createNotification(
