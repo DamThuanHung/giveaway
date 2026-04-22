@@ -429,8 +429,7 @@ export class NotificationController {
   }
 
   // Simulate review notification + tạo review thật trong DB
-  // DISABLED: tắt tạm để dừng spam
-  @Post('dev/test-review-disabled')
+  @Post('dev/test-review')
   async testReview(@Body() body: { userId: string; secret?: string }) {
     if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     if (!body.userId) return { error: 'userId required' };

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../models/post.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
@@ -9,6 +10,9 @@ import '../widgets/skeleton.dart';
 import '../widgets/empty_state.dart';
 import 'chat_screen.dart';
 import 'deal/deals_screen.dart';
+import 'post_detail_screen.dart';
+import 'profile/my_reviews_screen.dart';
+import 'profile/user_profile_screen.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -38,19 +42,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _navigateToTarget(Map n) async {
     final dataStr = n['data']?.toString();
     final type = n['type']?.toString() ?? '';
-    if (dataStr == null || dataStr.isEmpty) return;
-    try {
-      final data = jsonDecode(dataStr) as Map;
-      final roomId = data['roomId']?.toString();
-      if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
-        await _openChat(roomId);
-        return;
-      }
-      if (type == 'deal' || type == 'review') {
-        if (!mounted) return;
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
-      }
-    } catch (_) {}
+
+    Map data = {};
+    if (dataStr != null && dataStr.isNotEmpty) {
+      try { data = jsonDecode(dataStr) as Map; } catch (_) {}
+    }
+
+    final roomId = data['roomId']?.toString();
+    final postId = data['postId']?.toString();
+    final followerId = data['followerId']?.toString();
+
+    if (!mounted) return;
+
+    if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+      await _openChat(roomId);
+      return;
+    }
+    if (type == 'deal' || type == 'deal_reminder') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
+      return;
+    }
+    if (type == 'review') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
+      return;
+    }
+    if (type == 'follow' && followerId != null && followerId.isNotEmpty) {
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => UserProfileScreen(userId: followerId),
+      ));
+      return;
+    }
+    if (postId != null && postId.isNotEmpty) {
+      await _openPost(postId);
+    }
+  }
+
+  Future<void> _openPost(String postId) async {
+    final data = await ApiService.getPostById(postId);
+    if (!mounted || data == null) return;
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => PostDetailScreen(
+        post: Post.fromJson(data),
+        isFavorite: false,
+        onToggleFavorite: () async {},
+      ),
+    ));
   }
 
   Future<void> _openChat(String roomId) async {
