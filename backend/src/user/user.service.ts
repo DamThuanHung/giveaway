@@ -4,7 +4,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as admin from 'firebase-admin';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -22,24 +22,16 @@ export class UserService {
   }
 
   private async sendEmailOtp(email: string, otp: string): Promise<void> {
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    const apiKey = process.env.RESEND_API_KEY;
 
-    // Nếu chưa cấu hình SMTP → log ra console để test
-    if (!smtpUser || !smtpPass) {
+    if (!apiKey) {
       console.log(`📧 [DEV] OTP cho ${email}: ${otp}`);
       return;
     }
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: { user: smtpUser, pass: smtpPass },
-    });
-
-    await transporter.sendMail({
-      from: `"Trao Tay" <${smtpUser}>`,
+    const resend = new Resend(apiKey);
+    await resend.emails.send({
+      from: 'Trao Tay <onboarding@resend.dev>',
       to: email,
       subject: 'Mã xác nhận OTP - Trao Tay',
       html: `
