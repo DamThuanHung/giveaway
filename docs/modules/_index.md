@@ -19,7 +19,7 @@
 |---|---|---|---|
 | Auth | *(trong CORE_FRAMEWORK.md)* | — | JwtAuthGuard, JwtStrategy |
 | User | [user.md](user.md) | Cần cập nhật | Đăng ký, đăng nhập, profile, block, link-email |
-| Post | [post.md](post.md) | Cần cập nhật | Bài đăng (CRUD, Cloudinary upload) |
+| Post | [post.md](post.md) | Cần cập nhật | Bài đăng (CRUD, MinIO upload, bump) |
 | Chat | [chat.md](chat.md) | Cần cập nhật | WebSocket Gateway + REST rooms + messages |
 | Notification | *(chưa có)* | Thiếu | FCM push + in-app notifications + /dev endpoints |
 | Favorite | [favorite.md](favorite.md) | Cần cập nhật | Yêu thích bài đăng |
@@ -28,7 +28,7 @@
 | Review | *(chưa có)* | Thiếu | Đánh giá sau deal completed |
 | Report | [report.md](report.md) | Cần cập nhật | Báo cáo bài đăng vi phạm |
 | KeywordAlert | *(chưa có)* | Thiếu | Theo dõi từ khóa, nhận FCM khi có bài mới khớp |
-| Cloudinary | *(chưa có)* | Thiếu | Upload ảnh lên Cloudinary CDN |
+| Storage (MinIO) | *(chưa có)* | Thiếu | Upload ảnh lên MinIO (self-hosted S3) |
 | FCM | *(chưa có)* | Thiếu | Firebase Cloud Messaging service |
 | Admin | *(chưa có)* | Thiếu | Quản trị hệ thống |
 | Prisma | *(trong DATABASE_SCHEMA.md)* | — | Database ORM service |
@@ -39,7 +39,10 @@
 |---|---|---|---|
 | Splash | `splash_screen.dart` | Done | Kiểm tra token, điều hướng vào app |
 | Auth | `auth/phone_login_screen.dart`, `auth/email_login_screen.dart` | Done | Đăng nhập OTP SĐT + Email |
+| Complete Profile | `auth/complete_profile_screen.dart` | Done | Nhập tên sau khi đăng ký lần đầu (isNewUser = true) |
+| Onboarding | `onboarding_screen.dart` | Done | Màn hình chào lần đầu mở app (lưu flag `onboardingDone`) |
 | Home | `home_tab.dart` | Done | Trang chủ — danh sách + filter category |
+| Map View | `map_view_screen.dart` | Done | Xem bài đăng trên bản đồ (mở từ icon bản đồ trên Trang chủ) |
 | Search | `search_tab.dart` | Done | Tìm kiếm bài đăng |
 | Post Detail | `post_detail_screen.dart` | Done | Chi tiết bài đăng |
 | Post Create | `post/create_post_tab.dart` | Done | Đăng bài mới |

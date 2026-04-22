@@ -20,7 +20,7 @@
 - `postType: item` = đồ vật thông thường (default)
 - `postType: realestate` = bất động sản (thêm fields: area, bedrooms, subType, priceUnit)
 - `postType: service` = dịch vụ/thợ (thêm fields: priceUnit, serviceArea)
-- Tối đa 5 ảnh/bài, lưu URL Cloudinary
+- Tối đa 5 ảnh/bài, lưu URL MinIO đầy đủ
 - `imageLabel` = URL ảnh thumbnail đại diện (dùng trong chat banner, notification)
 
 ### Người dùng (User)
@@ -131,9 +131,10 @@
 
 ## Deployment
 
-| Môi trường | URL |
+| Môi trường | Giá trị |
 |---|---|
-| Production backend | `https://giveaway-production-e88c.up.railway.app` |
-| Production DB | Railway PostgreSQL |
-| CDN ảnh | Cloudinary (`traotay/` folder) |
-| Domain (tương lai) | `traotay.com.vn` (đăng ký tại TenTen.vn) |
+| Local backend | `http://localhost:3800` (Docker) |
+| Local DB | PostgreSQL container `traotay_db` |
+| Local storage | MinIO container `traotay_storage` (`http://localhost:9000`) |
+| Flutter baseUrl | `http://192.168.0.108:3800` (IP máy trên wifi) |
+| Domain | `traotay.com.vn` (đăng ký tại TenTen.vn) — chưa trỏ |
