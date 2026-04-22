@@ -95,6 +95,11 @@ export class UserController {
     return this.userService.sendEmailLoginOtp(body.email);
   }
 
+  @Post('admin-login/send')
+  sendAdminLoginOtp(@Body() body: { email: string }) {
+    return this.userService.sendEmailLoginOtp(body.email, true);
+  }
+
   @Post('email-login/verify')
   verifyEmailLoginOtp(@Body() body: { email: string; otp: string }) {
     return this.userService.verifyEmailLoginOtp(body.email, body.otp);

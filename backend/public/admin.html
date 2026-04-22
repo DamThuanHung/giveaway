@@ -186,12 +186,12 @@ async function sendOtp() {
   const btn = document.getElementById('send-otp-btn');
   btn.disabled = true; btn.textContent = 'Đang gửi...';
   try {
-    const res = await fetch(`${BASE}/user/email-login/send`, {
+    const res = await fetch(`${BASE}/user/admin-login/send`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({email}),
     });
     const data = await res.json();
-    if (!res.ok) { showErr('email-err', data.message || 'Lỗi gửi OTP'); btn.disabled=false; btn.textContent='Gửi mã OTP'; return; }
+    if (!res.ok) { showErr('email-err', data.message || 'Email này không có quyền truy cập'); btn.disabled=false; btn.textContent='Gửi mã OTP'; return; }
     document.getElementById('otp-email-display').textContent = email;
     document.getElementById('step-email').style.display = 'none';
     document.getElementById('step-otp').style.display = 'block';

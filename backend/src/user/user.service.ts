@@ -251,8 +251,16 @@ export class UserService {
 
   // ─── Email OTP Login (dùng email dự phòng) ───────────────────────────────
 
-  async sendEmailLoginOtp(email: string) {
+  private get adminEmails(): string[] {
+    const raw = process.env.ADMIN_EMAILS ?? 'damhungtpt@gmail.com';
+    return raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  }
+
+  async sendEmailLoginOtp(email: string, adminOnly = false) {
     const emailLower = email.trim().toLowerCase();
+    if (adminOnly && !this.adminEmails.includes(emailLower)) {
+      throw new BadRequestException('Email này không có quyền truy cập trang quản trị');
+    }
     const otp = this.generateOtp();
     this.otpStore.set(`login:${emailLower}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
     await this.sendEmailOtp(emailLower, otp);
