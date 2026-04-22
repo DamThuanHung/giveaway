@@ -132,6 +132,27 @@ class PostCard extends StatelessWidget {
                     ),
                   ),
 
+                // Badge "Nổi bật" khi bài được đẩy (bumpedAt < 24h)
+                if (post.isBoosted && !isSold)
+                  Positioned(
+                    top: 6, right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.rocket_launch, color: Colors.white, size: 10),
+                          SizedBox(width: 3),
+                          Text('Nổi bật', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+
                 // Badge "Đang giữ" góc trên phải
                 if (isReserved && !isSold)
                   Positioned(

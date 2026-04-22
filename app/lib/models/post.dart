@@ -24,6 +24,7 @@ class Post {
   final String? authorAvatar;
   final DateTime? createdAt;
   final int viewCount;
+  final DateTime? bumpedAt;
 
   // BĐS & Dịch vụ
   final String postType;      // item | realestate | service
@@ -54,6 +55,7 @@ class Post {
     this.authorAvatar,
     this.createdAt,
     this.viewCount = 0,
+    this.bumpedAt,
     this.postType = 'item',
     this.subType,
     this.area,
@@ -113,6 +115,21 @@ class Post {
     }
   }
 
+  bool get isBoosted {
+    if (bumpedAt == null) return false;
+    return DateTime.now().difference(bumpedAt!).inHours < 24;
+  }
+
+  /// null = có thể đẩy; non-null = đang cooldown, trả về chuỗi "Còn Xg Yp"
+  String? get bumpCountdown {
+    if (bumpedAt == null) return null;
+    final remaining = bumpedAt!.add(const Duration(hours: 24)).difference(DateTime.now());
+    if (remaining.isNegative) return null;
+    final h = remaining.inHours;
+    final m = remaining.inMinutes % 60;
+    return h > 0 ? 'Còn ${h}g ${m}p' : 'Còn ${m} phút';
+  }
+
   bool get isFree => listingType == 'give' || listingType == 'free';
   bool get isAvailable => status == 'available';
   bool get isReserved => status == 'reserved';
@@ -166,7 +183,7 @@ class Post {
 
   String get displayPrice => listingType == 'free' ? 'Miễn phí' : '${price}đ';
 
-  Post copyWith({String? status}) {
+  Post copyWith({String? status, DateTime? bumpedAt, bool clearBumpedAt = false}) {
     return Post(
       id: id, title: title, description: description, price: price,
       province: province, district: district, ward: ward, addressDetail: addressDetail,
@@ -176,6 +193,7 @@ class Post {
       latitude: latitude, longitude: longitude,
       authorId: authorId, authorName: authorName, authorAvatar: authorAvatar,
       createdAt: createdAt, viewCount: viewCount,
+      bumpedAt: clearBumpedAt ? null : (bumpedAt ?? this.bumpedAt),
       postType: postType, subType: subType, area: area, bedrooms: bedrooms,
       priceUnit: priceUnit, serviceArea: serviceArea,
     );
@@ -239,6 +257,7 @@ class Post {
       authorAvatar: author?['avatar']?.toString(),
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
+      bumpedAt: json['bumpedAt'] != null ? DateTime.tryParse(json['bumpedAt'].toString()) : null,
       postType: json['postType']?.toString().isNotEmpty == true ? json['postType'] : 'item',
       subType: json['subType']?.toString(),
       area: (json['area'] as num?)?.toDouble(),

@@ -50,6 +50,21 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     ));
   }
 
+  Future<void> _bumpPost(String id) async {
+    final result = await ApiService.bumpPost(id);
+    if (!mounted) return;
+    if (result != null && result['ok'] == true) {
+      final bumpedAt = result['bumpedAt'] != null ? DateTime.tryParse(result['bumpedAt'].toString()) : null;
+      setState(() {
+        final idx = _posts.indexWhere((p) => p.id == id);
+        if (idx != -1) _posts[idx] = _posts[idx].copyWith(bumpedAt: bumpedAt);
+      });
+      _showSnackBar('Đã đẩy bài lên đầu danh sách');
+    } else {
+      _showSnackBar(result?['error'] ?? 'Không thể đẩy bài, thử lại sau', isError: true);
+    }
+  }
+
   Future<void> _markStatus(String id, String status) async {
     final ok = await ApiService.updatePostStatus(id, status);
     if (!mounted) return;
@@ -159,6 +174,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                           onDelete: () => _deletePost(_posts[i].id),
                           onMarkDone: () => _markStatus(_posts[i].id, 'done'),
                           onMarkAvailable: () => _markStatus(_posts[i].id, 'available'),
+                          onBump: () => _bumpPost(_posts[i].id),
                           onEdit: () async {
                             final updated = await Navigator.push<bool>(ctx, MaterialPageRoute(
                               builder: (_) => EditPostScreen(post: _posts[i]),
@@ -172,13 +188,44 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 }
 
+class _BumpButton extends StatelessWidget {
+  final String? countdown;
+  final VoidCallback onBump;
+  const _BumpButton({required this.countdown, required this.onBump});
+
+  @override
+  Widget build(BuildContext context) {
+    final canBump = countdown == null;
+    return SizedBox(
+      width: double.infinity,
+      height: 32,
+      child: OutlinedButton.icon(
+        onPressed: canBump ? onBump : null,
+        icon: Icon(Icons.rocket_launch_outlined, size: 14,
+            color: canBump ? AppTheme.primary : AppTheme.textSecondary),
+        label: Text(
+          canBump ? 'Đẩy lên đầu' : countdown!,
+          style: TextStyle(fontSize: 12,
+              color: canBump ? AppTheme.primary : AppTheme.textSecondary),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: canBump ? AppTheme.primary : AppTheme.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+        ),
+      ),
+    );
+  }
+}
+
 class _PostItem extends StatelessWidget {
   final Post post;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
   final VoidCallback onMarkDone;
   final VoidCallback onMarkAvailable;
-  const _PostItem({required this.post, required this.onDelete, required this.onEdit, required this.onMarkDone, required this.onMarkAvailable});
+  final VoidCallback onBump;
+  const _PostItem({required this.post, required this.onDelete, required this.onEdit, required this.onMarkDone, required this.onMarkAvailable, required this.onBump});
 
   @override
   Widget build(BuildContext context) {
@@ -197,9 +244,12 @@ class _PostItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: post.isBoosted ? AppTheme.primary.withOpacity(0.4) : AppTheme.border),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -264,6 +314,12 @@ class _PostItem extends StatelessWidget {
               ])),
             ],
           ),
+        ],
+      ),
+        if (post.status == 'available') ...[
+          const SizedBox(height: 8),
+          _BumpButton(countdown: post.bumpCountdown, onBump: onBump),
+        ],
         ],
       ),
     ),

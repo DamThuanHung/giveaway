@@ -102,7 +102,7 @@ export class PostService {
     const orderBy: any =
       query.sortBy === 'price_asc' ? { price: 'asc' } :
       query.sortBy === 'price_desc' ? { price: 'desc' } :
-      { createdAt: 'desc' };
+      [{ bumpedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }];
 
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
@@ -247,6 +247,28 @@ export class PostService {
     if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
     if (post.authorId !== userId) throw new ForbiddenException('Không có quyền xóa bài này');
     return this.prisma.post.delete({ where: { id } });
+  }
+
+  async bumpPost(id: string, userId: string) {
+    const post = await this.prisma.post.findUnique({ where: { id } });
+    if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
+    if (post.authorId !== userId) throw new ForbiddenException('Không có quyền đẩy bài này');
+    if (post.status !== 'available') throw new BadRequestException('Chỉ có thể đẩy bài đang còn hàng');
+
+    if (post.bumpedAt) {
+      const hoursSince = (Date.now() - post.bumpedAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSince < 24) {
+        const remainingHours = Math.ceil(24 - hoursSince);
+        throw new BadRequestException(`Còn ${remainingHours} giờ nữa mới được đẩy lại`);
+      }
+    }
+
+    const updated = await this.prisma.post.update({
+      where: { id },
+      data: { bumpedAt: new Date() },
+    });
+    const nextBumpAt = new Date(updated.bumpedAt!.getTime() + 24 * 60 * 60 * 1000);
+    return { ok: true, bumpedAt: updated.bumpedAt, nextBumpAt };
   }
 
   async getMyStats(userId: string) {

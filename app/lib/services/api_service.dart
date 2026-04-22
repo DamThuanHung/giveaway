@@ -388,6 +388,20 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> bumpPost(String postId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/post/$postId/bump'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200 || res.statusCode == 201) return jsonDecode(res.body);
+      final body = jsonDecode(res.body);
+      return {'error': body['message'] ?? 'Không thể đẩy bài'};
+    } catch (e) {
+      return {'error': 'Lỗi kết nối'};
+    }
+  }
+
   // ─── FAVORITE ────────────────────────────────────────
   static Future<bool> addFavorite(String userId, String postId) async {
     try {

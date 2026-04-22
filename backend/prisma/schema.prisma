@@ -61,6 +61,7 @@ model Post {
   authorId      String?
   updatedAt     DateTime   @updatedAt
   viewCount     Int        @default(0)
+  bumpedAt      DateTime?
   postType      String     @default("item")      // item | realestate | service
   subType       String?                           // rent | sell (BĐS)
   area          Float?                            // m² (BĐS)
@@ -82,6 +83,7 @@ model Post {
   @@index([status, listingType])
   @@index([status, itemCategory])
   @@index([postType])
+  @@index([bumpedAt])
 }
 
 model Favorite {

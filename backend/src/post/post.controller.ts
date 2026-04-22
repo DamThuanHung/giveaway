@@ -93,6 +93,12 @@ export class PostController {
     return this.postService.updateStatus(id, req.user.id, body.status);
   }
 
+  @Post(':id/bump')
+  @UseGuards(JwtAuthGuard)
+  bumpPost(@Param('id') id: string, @Request() req) {
+    return this.postService.bumpPost(id, req.user.id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   deletePost(@Param('id') id: string, @Request() req) {
