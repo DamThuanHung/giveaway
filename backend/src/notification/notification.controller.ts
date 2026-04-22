@@ -54,6 +54,17 @@ export class NotificationController {
   }
 
 
+  @Post('dev/find-user')
+  async findUser(@Body() body: { email?: string; phone?: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    const user = await this.prisma.user.findFirst({
+      where: body.email ? { email: body.email } : { phone: body.phone },
+      select: { id: true, name: true, email: true, phone: true, fcmToken: true },
+    });
+    if (!user) return { error: 'not found' };
+    return { ...user, fcmToken: user.fcmToken ? user.fcmToken.substring(0, 20) + '...' : null };
+  }
+
   // Endpoint test — chỉ dùng trong development/debug
   @Post('test-push')
   async testPush(@Body() body: { userId: string; title: string; message: string; secret?: string }) {
