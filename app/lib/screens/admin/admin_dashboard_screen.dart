@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/skeleton.dart';
+import '../../widgets/user_avatar.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -10,15 +13,34 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  Map<String, dynamic>? _stats;
-  bool _isLoading = true;
-  int _tab = 0; // 0=stats, 1=posts, 2=users, 3=reports
+  int _tab = 0;
 
-  // Dữ liệu các tab
-  List<dynamic> _posts = [];
-  List<dynamic> _users = [];
-  List<dynamic> _reports = [];
-  bool _tabLoading = false;
+  // Stats
+  Map<String, dynamic>? _stats;
+  bool _statsLoading = true;
+
+  // Posts
+  final List<dynamic> _posts = [];
+  int _postsPage = 0;
+  int _postsTotalPages = 1;
+  bool _postsLoading = false;
+  bool _postsInitialized = false;
+  final _postSearchCtrl = TextEditingController();
+
+  // Users
+  final List<dynamic> _users = [];
+  int _usersPage = 0;
+  int _usersTotalPages = 1;
+  bool _usersLoading = false;
+  bool _usersInitialized = false;
+  final _userSearchCtrl = TextEditingController();
+
+  // Reports
+  final List<dynamic> _reports = [];
+  int _reportsPage = 0;
+  int _reportsTotalPages = 1;
+  bool _reportsLoading = false;
+  bool _reportsInitialized = false;
 
   @override
   void initState() {
@@ -26,27 +48,91 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _loadStats();
   }
 
-  Future<void> _loadStats() async {
-    final data = await ApiService.getAdminStats();
-    if (!mounted) return;
-    setState(() { _stats = data; _isLoading = false; });
+  @override
+  void dispose() {
+    _postSearchCtrl.dispose();
+    _userSearchCtrl.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadTab(int tab) async {
-    setState(() { _tab = tab; _tabLoading = true; });
-    if (tab == 1) {
-      final r = await ApiService.adminGetPosts();
-      if (mounted) setState(() { _posts = r; _tabLoading = false; });
-    } else if (tab == 2) {
-      final r = await ApiService.adminGetUsers();
-      if (mounted) setState(() { _users = r; _tabLoading = false; });
-    } else if (tab == 3) {
-      final r = await ApiService.adminGetReports();
-      if (mounted) setState(() { _reports = r; _tabLoading = false; });
-    } else {
-      _loadStats();
-      setState(() => _tabLoading = false);
-    }
+  Future<void> _loadStats() async {
+    setState(() => _statsLoading = true);
+    final data = await ApiService.getAdminStats();
+    if (!mounted) return;
+    setState(() { _stats = data; _statsLoading = false; });
+  }
+
+  Future<void> _loadPosts({bool reset = false}) async {
+    if (_postsLoading) return;
+    if (reset) { _posts.clear(); _postsPage = 0; _postsTotalPages = 1; }
+    if (_postsPage >= _postsTotalPages && !reset) return;
+    setState(() => _postsLoading = true);
+    final nextPage = _postsPage + 1;
+    final search = _postSearchCtrl.text.trim();
+    final result = await ApiService.adminGetPosts(
+      page: nextPage,
+      search: search.isNotEmpty ? search : null,
+    );
+    if (!mounted) return;
+    final data = result['data'] as List;
+    final meta = result['meta'] as Map;
+    setState(() {
+      _posts.addAll(data);
+      _postsPage = (meta['page'] as num?)?.toInt() ?? nextPage;
+      _postsTotalPages = (meta['totalPages'] as num?)?.toInt() ?? 1;
+      _postsLoading = false;
+      _postsInitialized = true;
+    });
+  }
+
+  Future<void> _loadUsers({bool reset = false}) async {
+    if (_usersLoading) return;
+    if (reset) { _users.clear(); _usersPage = 0; _usersTotalPages = 1; }
+    if (_usersPage >= _usersTotalPages && !reset) return;
+    setState(() => _usersLoading = true);
+    final nextPage = _usersPage + 1;
+    final search = _userSearchCtrl.text.trim();
+    final result = await ApiService.adminGetUsers(
+      page: nextPage,
+      search: search.isNotEmpty ? search : null,
+    );
+    if (!mounted) return;
+    final data = result['data'] as List;
+    final meta = result['meta'] as Map;
+    setState(() {
+      _users.addAll(data);
+      _usersPage = (meta['page'] as num?)?.toInt() ?? nextPage;
+      _usersTotalPages = (meta['totalPages'] as num?)?.toInt() ?? 1;
+      _usersLoading = false;
+      _usersInitialized = true;
+    });
+  }
+
+  Future<void> _loadReports({bool reset = false}) async {
+    if (_reportsLoading) return;
+    if (reset) { _reports.clear(); _reportsPage = 0; _reportsTotalPages = 1; }
+    if (_reportsPage >= _reportsTotalPages && !reset) return;
+    setState(() => _reportsLoading = true);
+    final nextPage = _reportsPage + 1;
+    final result = await ApiService.adminGetReports(page: nextPage);
+    if (!mounted) return;
+    final data = result['data'] as List;
+    final meta = result['meta'] as Map;
+    setState(() {
+      _reports.addAll(data);
+      _reportsPage = (meta['page'] as num?)?.toInt() ?? nextPage;
+      _reportsTotalPages = (meta['totalPages'] as num?)?.toInt() ?? 1;
+      _reportsLoading = false;
+      _reportsInitialized = true;
+    });
+  }
+
+  void _switchTab(int tab) {
+    setState(() => _tab = tab);
+    if (tab == 0 && _stats == null) _loadStats();
+    if (tab == 1 && !_postsInitialized) _loadPosts();
+    if (tab == 2 && !_usersInitialized) _loadUsers();
+    if (tab == 3 && !_reportsInitialized) _loadReports();
   }
 
   @override
@@ -59,28 +145,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       body: Column(
         children: [
-          // Tab bar
           Container(
             color: Colors.white,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _TabBtn('📊 Tổng quan', 0, _tab, _loadTab),
-                  _TabBtn('📦 Bài đăng', 1, _tab, _loadTab),
-                  _TabBtn('👤 Người dùng', 2, _tab, _loadTab),
-                  _TabBtn('🚩 Báo cáo', 3, _tab, _loadTab),
-                ],
-              ),
+              child: Row(children: [
+                _TabBtn('📊 Tổng quan', 0, _tab, _switchTab),
+                _TabBtn('📦 Bài đăng', 1, _tab, _switchTab),
+                _TabBtn('👤 Người dùng', 2, _tab, _switchTab),
+                _TabBtn('🚩 Báo cáo', 3, _tab, _switchTab),
+              ]),
             ),
           ),
           const Divider(height: 1),
-          // Nội dung
-          Expanded(
-            child: _isLoading || _tabLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-                : _buildContent(),
-          ),
+          Expanded(child: _buildContent()),
         ],
       ),
     );
@@ -96,8 +174,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  // ── Stats ─────────────────────────────────────────────────────────────────
+
   Widget _buildStats() {
-    if (_stats == null) return const Center(child: Text('Không thể tải thống kê'));
+    if (_statsLoading) return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
+    if (_stats == null) return const EmptyState(icon: Icons.error_outline, message: 'Không thể tải thống kê');
+
     final overview = _stats!['overview'] ?? {};
     final today = _stats!['today'] ?? {};
     final posts = _stats!['posts'] ?? {};
@@ -108,11 +190,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Tổng quan
           _Section('Tổng quan'),
           const SizedBox(height: 12),
           GridView.count(
-            crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2, shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.6,
             children: [
               _StatTile('Người dùng', '${overview['totalUsers'] ?? 0}', Icons.people_outline, AppTheme.primary),
@@ -122,8 +204,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
           const SizedBox(height: 20),
-
-          // Hôm nay
           _Section('Hoạt động hôm nay'),
           const SizedBox(height: 12),
           Row(children: [
@@ -134,8 +214,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _MiniStat('Deal mới', '${today['newDeals'] ?? 0}', Colors.orange),
           ]),
           const SizedBox(height: 20),
-
-          // Trạng thái bài
           _Section('Trạng thái bài đăng'),
           const SizedBox(height: 12),
           Container(
@@ -149,155 +227,197 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               _BarRow('Trạng thái khác', posts['other'] ?? 0, overview['totalPosts'] ?? 1, Colors.orange),
             ]),
           ),
-          const SizedBox(height: 20),
-
-          // Kiểm duyệt
-          if ((mod['pendingReports'] ?? 0) > 0)
+          if ((mod['pendingReports'] ?? 0) > 0) ...[
+            const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50, borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
               child: Row(children: [
                 const Icon(Icons.warning_amber_rounded, color: Colors.red),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Có ${mod['pendingReports']} báo cáo chờ xử lý', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
-                TextButton(
-                  onPressed: () => _loadTab(3),
-                  child: const Text('Xem ngay'),
-                ),
+                Expanded(child: Text('Có ${mod['pendingReports']} báo cáo chờ xử lý',
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+                TextButton(onPressed: () => _switchTab(3), child: const Text('Xem ngay')),
               ]),
             ),
+          ],
         ],
       ),
     );
   }
 
+  // ── Posts ─────────────────────────────────────────────────────────────────
+
   Widget _buildPosts() {
-    if (_posts.isEmpty) return const Center(child: Text('Không có bài đăng nào'));
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: _posts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (ctx, i) {
-        final p = _posts[i];
-        final status = p['status'] ?? 'available';
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text(p['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 2)),
-              _StatusChip(status),
-            ]),
-            const SizedBox(height: 4),
-            Text('Người đăng: ${p['author']?['name'] ?? 'Ẩn danh'}  •  ${p['viewCount'] ?? 0} lượt xem',
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: _AdminBtn('Ẩn bài', Colors.orange, () async {
-                await ApiService.adminHidePost(p['id']);
-                _loadTab(1);
-              })),
-              const SizedBox(width: 8),
-              Expanded(child: _AdminBtn('Xóa', Colors.red, () async {
-                final ok = await _confirm('Xóa bài đăng này?');
-                if (ok) { await ApiService.adminDeletePost(p['id']); _loadTab(1); }
-              })),
-            ]),
-          ]),
-        );
-      },
+    return Column(children: [
+      _SearchBar(controller: _postSearchCtrl, hint: 'Tìm bài đăng...',
+          onSearch: () => _loadPosts(reset: true)),
+      Expanded(child: _buildPostsList()),
+    ]);
+  }
+
+  Widget _buildPostsList() {
+    if (!_postsInitialized && _postsLoading) return const AdminListSkeleton();
+    if (_postsInitialized && _posts.isEmpty) {
+      return const EmptyState(icon: Icons.article_outlined, message: 'Không có bài đăng nào');
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadPosts(reset: true),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: _posts.length + (_postsPage < _postsTotalPages ? 1 : 0),
+        itemBuilder: (ctx, i) {
+          if (i == _posts.length) return _LoadMoreBtn(loading: _postsLoading, onTap: _loadPosts);
+          final p = _posts[i];
+          return _PostCard(
+            post: p,
+            onHide: () async {
+              await ApiService.adminHidePost(p['id']);
+              _loadPosts(reset: true);
+            },
+            onDelete: () async {
+              final ok = await _confirm('Xóa bài đăng "${p['title'] ?? ''}"?');
+              if (ok) { await ApiService.adminDeletePost(p['id']); _loadPosts(reset: true); }
+            },
+          );
+        },
+      ),
     );
   }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
 
   Widget _buildUsers() {
-    if (_users.isEmpty) return const Center(child: Text('Không có người dùng'));
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: _users.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (ctx, i) {
-        final u = _users[i];
-        final isBanned = u['isBanned'] == true;
-        final count = u['_count'] ?? {};
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
-          child: Row(children: [
-            CircleAvatar(
-              backgroundColor: isBanned ? Colors.red.shade50 : AppTheme.primaryLight,
-              child: Text((u['name'] ?? 'U')[0].toUpperCase(), style: TextStyle(color: isBanned ? Colors.red : AppTheme.primary, fontWeight: FontWeight.bold)),
+    return Column(children: [
+      _SearchBar(controller: _userSearchCtrl, hint: 'Tìm người dùng...',
+          onSearch: () => _loadUsers(reset: true)),
+      Expanded(child: _buildUsersList()),
+    ]);
+  }
+
+  Widget _buildUsersList() {
+    if (!_usersInitialized && _usersLoading) return const AdminListSkeleton();
+    if (_usersInitialized && _users.isEmpty) {
+      return const EmptyState(icon: Icons.people_outline, message: 'Không có người dùng nào');
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadUsers(reset: true),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: _users.length + (_usersPage < _usersTotalPages ? 1 : 0),
+        itemBuilder: (ctx, i) {
+          if (i == _users.length) return _LoadMoreBtn(loading: _usersLoading, onTap: _loadUsers);
+          final u = _users[i];
+          final isBanned = u['isBanned'] == true;
+          final count = u['_count'] ?? {};
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isBanned ? Colors.red.shade200 : AppTheme.border),
             ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Text(u['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                if (u['role'] == 'admin') ...[
-                  const SizedBox(width: 6),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(4)),
-                    child: const Text('Admin', style: TextStyle(fontSize: 10, color: Colors.purple))),
-                ],
-              ]),
-              Text(u['email'] ?? '', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-              Text('${count['posts'] ?? 0} bài  •  ${count['dealsAsRequester'] ?? 0} deal', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-            ])),
-            if (u['role'] != 'admin')
-              TextButton(
-                onPressed: () async {
-                  await ApiService.adminBanUser(u['id'], !isBanned);
-                  _loadTab(2);
-                },
-                style: TextButton.styleFrom(foregroundColor: isBanned ? AppTheme.success : Colors.red),
-                child: Text(isBanned ? 'Mở khóa' : 'Khóa'),
+            child: Row(children: [
+              UserAvatar(
+                imageUrl: u['avatar']?.toString(),
+                name: u['name']?.toString(),
+                radius: 20,
               ),
-          ]),
-        );
-      },
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Text(u['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  if (u['role'] == 'admin') ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(4)),
+                      child: const Text('Admin', style: TextStyle(fontSize: 10, color: Colors.purple)),
+                    ),
+                  ],
+                  if (isBanned) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
+                      child: Text('Bị khóa', style: TextStyle(fontSize: 10, color: Colors.red.shade700)),
+                    ),
+                  ],
+                ]),
+                Text(u['email'] ?? u['phone'] ?? '', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                Text('${count['posts'] ?? 0} bài  •  ${count['dealsAsRequester'] ?? 0} deal',
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              ])),
+              if (u['role'] != 'admin')
+                TextButton(
+                  onPressed: () async {
+                    await ApiService.adminBanUser(u['id'], !isBanned);
+                    _loadUsers(reset: true);
+                  },
+                  style: TextButton.styleFrom(foregroundColor: isBanned ? AppTheme.success : Colors.red),
+                  child: Text(isBanned ? 'Mở khóa' : 'Khóa'),
+                ),
+            ]),
+          );
+        },
+      ),
     );
   }
 
+  // ── Reports ───────────────────────────────────────────────────────────────
+
   Widget _buildReports() {
-    if (_reports.isEmpty) return const Center(child: Text('Không có báo cáo nào'));
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: _reports.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (ctx, i) {
-        final r = _reports[i];
-        final status = r['status'] ?? 'pending';
-        final isPending = status == 'pending';
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isPending ? Colors.orange.shade200 : AppTheme.border),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text('Bài: ${r['post']?['title'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 2)),
-              _StatusChip(status),
-            ]),
-            const SizedBox(height: 4),
-            Text('Lý do: ${r['reason'] ?? ''}', style: const TextStyle(fontSize: 13)),
-            Text('Người báo: ${r['user']?['name'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-            if (isPending) ...[
-              const SizedBox(height: 8),
+    if (!_reportsInitialized && _reportsLoading) return const AdminListSkeleton();
+    if (_reportsInitialized && _reports.isEmpty) {
+      return const EmptyState(icon: Icons.flag_outlined, message: 'Không có báo cáo nào');
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadReports(reset: true),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: _reports.length + (_reportsPage < _reportsTotalPages ? 1 : 0),
+        itemBuilder: (ctx, i) {
+          if (i == _reports.length) return _LoadMoreBtn(loading: _reportsLoading, onTap: _loadReports);
+          final r = _reports[i];
+          final isPending = (r['status'] ?? '') == 'pending';
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isPending ? Colors.orange.shade200 : AppTheme.border),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(child: _AdminBtn('Xử lý (ẩn bài)', Colors.orange, () async {
-                  await ApiService.adminResolveReport(r['id'], 'resolved');
-                  _loadTab(3);
-                })),
-                const SizedBox(width: 8),
-                Expanded(child: _AdminBtn('Bỏ qua', Colors.grey, () async {
-                  await ApiService.adminResolveReport(r['id'], 'dismissed');
-                  _loadTab(3);
-                })),
+                Expanded(child: Text(r['post']?['title'] ?? '',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2)),
+                _StatusChip(r['status'] ?? ''),
               ]),
-            ],
-          ]),
-        );
-      },
+              const SizedBox(height: 4),
+              Text('Lý do: ${r['reason'] ?? ''}', style: const TextStyle(fontSize: 13)),
+              Text('Người báo: ${r['user']?['name'] ?? ''}',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              if (isPending) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: _AdminBtn('Ẩn bài & xử lý', Colors.orange, () async {
+                    await ApiService.adminResolveReport(r['id'], 'resolved');
+                    _loadReports(reset: true);
+                  })),
+                  const SizedBox(width: 8),
+                  Expanded(child: _AdminBtn('Bỏ qua', Colors.grey, () async {
+                    await ApiService.adminResolveReport(r['id'], 'dismissed');
+                    _loadReports(reset: true);
+                  })),
+                ]),
+              ],
+            ]),
+          );
+        },
+      ),
     );
   }
 
@@ -320,13 +440,104 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-// ── Widgets nhỏ ───────────────────────────────────────────────
+// ── Post card ─────────────────────────────────────────────────────────────────
+
+class _PostCard extends StatelessWidget {
+  final Map post;
+  final VoidCallback onHide;
+  final VoidCallback onDelete;
+  const _PostCard({required this.post, required this.onHide, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(post['title'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2)),
+          const SizedBox(width: 8),
+          _StatusChip(post['status'] ?? ''),
+        ]),
+        const SizedBox(height: 4),
+        Text('${post['author']?['name'] ?? 'Ẩn danh'}  •  ${post['viewCount'] ?? 0} lượt xem',
+            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: _AdminBtn('Ẩn bài', Colors.orange, onHide)),
+          const SizedBox(width: 8),
+          Expanded(child: _AdminBtn('Xóa', Colors.red, onDelete)),
+        ]),
+      ]),
+    );
+  }
+}
+
+// ── Shared small widgets ──────────────────────────────────────────────────────
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final VoidCallback onSearch;
+  const _SearchBar({required this.controller, required this.hint, required this.onSearch});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: TextField(
+        controller: controller,
+        onSubmitted: (_) => onSearch(),
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: const Icon(Icons.search, size: 20, color: AppTheme.textSecondary),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.search, size: 20, color: AppTheme.primary),
+            onPressed: onSearch,
+          ),
+          filled: true, fillColor: AppTheme.background,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadMoreBtn extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onTap;
+  const _LoadMoreBtn({required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: loading
+            ? const SizedBox(width: 24, height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
+            : TextButton(
+                onPressed: onTap,
+                child: const Text('Tải thêm', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+              ),
+      ),
+    );
+  }
+}
 
 class _Section extends StatelessWidget {
   final String text;
   const _Section(this.text);
   @override Widget build(BuildContext context) =>
-    Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary));
+      Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary));
 }
 
 class _TabBtn extends StatelessWidget {
@@ -340,8 +551,12 @@ class _TabBtn extends StatelessWidget {
       onTap: () => onTap(index),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: selected ? AppTheme.primary : Colors.transparent, width: 2))),
-        child: Text(label, style: TextStyle(color: selected ? AppTheme.primary : AppTheme.textSecondary, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(
+            color: selected ? AppTheme.primary : Colors.transparent, width: 2))),
+        child: Text(label, style: TextStyle(
+          color: selected ? AppTheme.primary : AppTheme.textSecondary,
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+        )),
       ),
     );
   }
@@ -392,7 +607,8 @@ class _BarRow extends StatelessWidget {
       ]),
       const SizedBox(height: 4),
       ClipRRect(borderRadius: BorderRadius.circular(4),
-        child: LinearProgressIndicator(value: pct, color: color, backgroundColor: color.withOpacity(0.12), minHeight: 8)),
+        child: LinearProgressIndicator(value: pct, color: color,
+            backgroundColor: color.withOpacity(0.12), minHeight: 8)),
     ]);
   }
 }
@@ -403,13 +619,13 @@ class _StatusChip extends StatelessWidget {
   @override Widget build(BuildContext context) {
     Color c; String label;
     switch (status) {
-      case 'available': c = AppTheme.success; label = 'Hiển thị'; break;
-      case 'hidden': c = Colors.grey; label = 'Ẩn'; break;
-      case 'done': c = AppTheme.primary; label = 'Xong'; break;
-      case 'pending': c = Colors.orange; label = 'Chờ xử lý'; break;
-      case 'resolved': c = AppTheme.success; label = 'Đã xử lý'; break;
-      case 'dismissed': c = Colors.grey; label = 'Bỏ qua'; break;
-      default: c = Colors.grey; label = status;
+      case 'available':  c = AppTheme.success;   label = 'Hiển thị';   break;
+      case 'hidden':     c = Colors.grey;         label = 'Ẩn';         break;
+      case 'done':       c = AppTheme.primary;    label = 'Xong';       break;
+      case 'pending':    c = Colors.orange;       label = 'Chờ xử lý';  break;
+      case 'resolved':   c = AppTheme.success;    label = 'Đã xử lý';   break;
+      case 'dismissed':  c = Colors.grey;         label = 'Bỏ qua';     break;
+      default:           c = Colors.grey;         label = status;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -429,8 +645,12 @@ class _AdminBtn extends StatelessWidget {
     child: Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6), border: Border.all(color: color.withOpacity(0.3))),
-      child: Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center),
     ),
   );
 }

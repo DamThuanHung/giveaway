@@ -375,3 +375,47 @@ class DealListSkeleton extends StatelessWidget {
     );
   }
 }
+
+class AdminCardSkeleton extends StatelessWidget {
+  const AdminCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: AppTheme.border,
+      highlightColor: AppTheme.background,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Container(height: 13, color: AppTheme.border)),
+            const SizedBox(width: 40),
+            Container(width: 52, height: 20, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(6))),
+          ]),
+          const SizedBox(height: 8),
+          Container(height: 11, width: 200, color: AppTheme.border),
+          const SizedBox(height: 10),
+          Row(children: [
+            Container(width: 70, height: 28, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(6))),
+            const SizedBox(width: 8),
+            Container(width: 70, height: 28, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(6))),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+class AdminListSkeleton extends StatelessWidget {
+  const AdminListSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 6,
+      itemBuilder: (_, __) => const AdminCardSkeleton(),
+    );
+  }
+}

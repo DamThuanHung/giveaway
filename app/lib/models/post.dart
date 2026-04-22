@@ -62,6 +62,17 @@ class Post {
     this.serviceArea,
   });
 
+  /// Thời gian tương đối — dùng trên badge ảnh PostCard
+  String get timeAgo {
+    if (createdAt == null) return '';
+    final diff = DateTime.now().difference(createdAt!);
+    if (diff.inMinutes < 1) return 'Vừa xong';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
+    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+    return formattedDate;
+  }
+
   /// Format ngày đăng — dùng trong card kết quả: "09/04/2026"
   String get formattedDate {
     if (createdAt == null) return '';

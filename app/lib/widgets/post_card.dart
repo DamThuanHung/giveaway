@@ -147,6 +147,22 @@ class PostCard extends StatelessWidget {
                     ),
                   ),
 
+                // Badge thời gian + số ảnh — bottom-left
+                Positioned(
+                  bottom: 6, left: 6,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (post.timeAgo.isNotEmpty)
+                        _ImageBadge(post.timeAgo),
+                      if ((post.images?.length ?? 0) > 1) ...[
+                        const SizedBox(width: 4),
+                        _ImageBadge('${post.images!.length} 🖼'),
+                      ],
+                    ],
+                  ),
+                ),
+
                 // Nút yêu thích
                 if (onToggleFavorite != null)
                   Positioned(
@@ -222,6 +238,25 @@ class PostCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Image Badge ──────────────────────────────────────────────────────────────
+
+class _ImageBadge extends StatelessWidget {
+  final String text;
+  const _ImageBadge(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500)),
     );
   }
 }
