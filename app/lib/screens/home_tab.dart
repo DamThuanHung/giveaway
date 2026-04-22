@@ -57,6 +57,9 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   String? _selectedCategory; // null = không lọc theo danh mục
   static final _categories = AppCategories.list;
 
+  // 0 = Dành cho bạn, 1 = Mới nhất, 2 = Gần bạn
+  int _feedTab = 0;
+
   // Feed riêng cho tab "Đang theo dõi"
   List<Post> _followFeed = [];
   bool _followFeedLoading = false;
@@ -161,13 +164,37 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     final lng = _radiusResult?.lng;
     final radius = _radiusResult?.radius;
 
+    // "Mới nhất" = toàn quốc, bỏ filter tỉnh
+    // "Gần bạn"  = chỉ tỉnh cụ thể đang chọn (không lọc vùng miền)
+    // "Dành cho bạn" = behavior mặc định (province + region)
+    final String? province;
+    final List<String>? provinces;
+    if (_feedTab == 1) {
+      province = null;
+      provinces = null;
+    } else if (_feedTab == 2) {
+      province = _selectedProvince != 'Toàn quốc' && !_regionProvinces.containsKey(_selectedProvince)
+          ? _selectedProvince
+          : null;
+      provinces = null;
+    } else {
+      province = _provinceFilter;
+      provinces = _provincesFilter;
+    }
+
     postProv.fetchPosts(
       listingType: _selectedChip == 1 ? 'give' : null,
       itemCategory: _selectedCategory,
-      province: _provinceFilter,
-      provinces: _provincesFilter,
+      province: province,
+      provinces: provinces,
       lat: lat, lng: lng, radius: radius,
     );
+  }
+
+  void _onFeedTab(int index) {
+    if (_feedTab == index) return;
+    setState(() => _feedTab = index);
+    _refetch();
   }
 
   void _onChipTap(int index) {
@@ -370,6 +397,19 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
             ),
           ),
           const Divider(height: 1),
+
+          // ── Feed tabs ────────────────────────────────────
+          if (_selectedChip != -1)
+            Container(
+              color: AppTheme.surface,
+              child: Row(
+                children: [
+                  _FeedTab(label: 'Dành cho bạn', index: 0, selected: _feedTab == 0, onTap: _onFeedTab),
+                  _FeedTab(label: 'Mới nhất', index: 1, selected: _feedTab == 1, onTap: _onFeedTab),
+                  _FeedTab(label: 'Gần bạn', index: 2, selected: _feedTab == 2, onTap: _onFeedTab),
+                ],
+              ),
+            ),
 
           // ── Feed ─────────────────────────────────────────
           Expanded(
@@ -684,6 +724,45 @@ class _FilterChip extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedTab extends StatelessWidget {
+  final String label;
+  final int index;
+  final bool selected;
+  final void Function(int) onTap;
+
+  const _FeedTab({required this.label, required this.index, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: selected ? AppTheme.primary : Colors.transparent,
+                width: 2,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+          ),
         ),
       ),
     );
