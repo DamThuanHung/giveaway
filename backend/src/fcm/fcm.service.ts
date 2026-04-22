@@ -43,17 +43,15 @@ export class FcmService implements OnModuleInit {
     try {
       await admin.messaging().send({
         token,
-        notification: { title, body },
-        data: data ?? {},
+        // Data-only: Flutter background handler tự hiển thị local notification
+        // Tránh MIUI throttle notification hệ thống
+        data: { title, body: body ?? '', ...(data ?? {}) },
         android: {
           priority: 'high',
-          notification: {
-            channelId: 'high_importance_channel',
-            sound: 'default',
-          },
         },
         apns: {
-          payload: { aps: { sound: 'default', badge: 1 } },
+          headers: { 'apns-priority': '10' },
+          payload: { aps: { contentAvailable: true } },
         },
       });
       this.logger.log(`FCM sent successfully`);

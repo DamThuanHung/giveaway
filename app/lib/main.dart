@@ -15,12 +15,46 @@ import 'screens/deal/deals_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 
+const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'Thông báo quan trọng',
+  description: 'Kênh thông báo chính của Trao Tay',
+  importance: Importance.max,
+);
+
+final FlutterLocalNotificationsPlugin _localNotif = FlutterLocalNotificationsPlugin();
+
+const _androidNotifDetails = AndroidNotificationDetails(
+  'high_importance_channel',
+  'Thông báo quan trọng',
+  importance: Importance.max,
+  priority: Priority.high,
+  playSound: true,
+);
+
+// Background / terminated: chạy trong isolate riêng
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final title = message.data['title'] ?? '';
+  final body = message.data['body'] ?? '';
+  if (title.isEmpty) return;
+
+  final plugin = FlutterLocalNotificationsPlugin();
+  await plugin.initialize(
+    const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    ),
+  );
+  await plugin.show(
+    message.hashCode,
+    title,
+    body,
+    const NotificationDetails(android: _androidNotifDetails),
+  );
 }
 
-// Lưu message khi app cold-start từ notification
 class PendingFcmMessage {
   static RemoteMessage? value;
 }
@@ -34,7 +68,15 @@ Future<void> main() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Cold start: lưu lại message để AppShell xử lý sau
+    await _localNotif.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
+    );
+    await _localNotif
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_channel);
+
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       PendingFcmMessage.value = initialMessage;
@@ -63,7 +105,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String? _pendingFcmToken;
-  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
@@ -75,22 +116,9 @@ class _MyAppState extends State<MyApp> {
     if (kIsWeb) return;
     final messaging = FirebaseMessaging.instance;
 
-    // Tạo notification channel HIGH importance cho Android 8+
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel',
-      'Thông báo quan trọng',
-      description: 'Kênh thông báo chính của Trao Tay',
-      importance: Importance.max,
-    );
-    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-
     await messaging.setForegroundNotificationPresentationOptions(
       alert: true, badge: true, sound: true,
     );
-
     await messaging.requestPermission(alert: true, badge: true, sound: true);
 
     messaging.onTokenRefresh.listen((token) {
@@ -109,53 +137,21 @@ class _MyAppState extends State<MyApp> {
       _handleFcmNavigation(message);
     });
 
-    // In-app banner khi app đang mở và nhận notification
+    // Foreground: hiển thị local notification (đáng tin cậy hơn SnackBar trên Xiaomi)
     FirebaseMessaging.onMessage.listen((message) {
-      final title = message.notification?.title ?? '';
-      final body = message.notification?.body ?? '';
+      final title = message.data['title'] ?? message.notification?.title ?? '';
+      final body = message.data['body'] ?? message.notification?.body ?? '';
       if (title.isEmpty && body.isEmpty) return;
 
-      // Refresh unread count
       if (mounted) {
         context.read<NotificationProvider>().refresh();
       }
 
-      // Hiện banner trượt xuống
-      _messengerKey.currentState?.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          backgroundColor: Colors.white,
-          elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 4),
-          content: Row(children: [
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.notifications_rounded, color: AppTheme.primary, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (title.isNotEmpty)
-                  Text(title, style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary,
-                  )),
-                if (body.isNotEmpty)
-                  Text(body, style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondary,
-                  ), maxLines: 2, overflow: TextOverflow.ellipsis),
-              ],
-            )),
-          ]),
-        ),
+      _localNotif.show(
+        message.hashCode,
+        title,
+        body,
+        const NotificationDetails(android: _androidNotifDetails),
       );
     });
   }
@@ -169,7 +165,6 @@ class _MyAppState extends State<MyApp> {
     if (nav == null) return;
 
     if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
-      // Fetch room info để lấy tên người dùng và thông tin bài đăng
       try {
         final room = await ApiService.getRoomById(roomId);
         if (room == null) return;
@@ -212,7 +207,6 @@ class _MyAppState extends State<MyApp> {
       title: 'Trao Tay',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      scaffoldMessengerKey: _messengerKey,
       navigatorKey: _navigatorKey,
       home: const SplashScreen(),
     );
