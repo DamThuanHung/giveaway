@@ -191,20 +191,23 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 class _BumpButton extends StatelessWidget {
   final String? countdown;
   final VoidCallback onBump;
-  const _BumpButton({required this.countdown, required this.onBump});
+  final bool loading;
+  const _BumpButton({required this.countdown, required this.onBump, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
-    final canBump = countdown == null;
+    final canBump = countdown == null && !loading;
     return SizedBox(
       width: double.infinity,
       height: 32,
       child: OutlinedButton.icon(
         onPressed: canBump ? onBump : null,
-        icon: Icon(Icons.rocket_launch_outlined, size: 14,
-            color: canBump ? AppTheme.primary : AppTheme.textSecondary),
+        icon: loading
+            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+            : Icon(Icons.rocket_launch_outlined, size: 14,
+                color: canBump ? AppTheme.primary : AppTheme.textSecondary),
         label: Text(
-          canBump ? 'Đẩy lên đầu' : countdown!,
+          loading ? 'Đang đẩy...' : (canBump ? 'Đẩy lên đầu' : countdown!),
           style: TextStyle(fontSize: 12,
               color: canBump ? AppTheme.primary : AppTheme.textSecondary),
         ),
@@ -218,17 +221,32 @@ class _BumpButton extends StatelessWidget {
   }
 }
 
-class _PostItem extends StatelessWidget {
+class _PostItem extends StatefulWidget {
   final Post post;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
   final VoidCallback onMarkDone;
   final VoidCallback onMarkAvailable;
-  final VoidCallback onBump;
+  final Future<void> Function() onBump;
   const _PostItem({required this.post, required this.onDelete, required this.onEdit, required this.onMarkDone, required this.onMarkAvailable, required this.onBump});
 
   @override
+  State<_PostItem> createState() => _PostItemState();
+}
+
+class _PostItemState extends State<_PostItem> {
+  bool _bumping = false;
+
+  Future<void> _handleBump() async {
+    if (_bumping) return;
+    setState(() => _bumping = true);
+    await widget.onBump();
+    if (mounted) setState(() => _bumping = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
     Color statusColor = post.status == 'available' ? AppTheme.success : post.status == 'reserved' ? AppTheme.warning : AppTheme.textSecondary;
 
     return GestureDetector(
@@ -284,10 +302,10 @@ class _PostItem extends StatelessWidget {
           ),
           PopupMenuButton<String>(
             onSelected: (val) {
-              if (val == 'edit') onEdit();
-              if (val == 'delete') onDelete();
-              if (val == 'done') onMarkDone();
-              if (val == 'available') onMarkAvailable();
+              if (val == 'edit') widget.onEdit();
+              if (val == 'delete') widget.onDelete();
+              if (val == 'done') widget.onMarkDone();
+              if (val == 'available') widget.onMarkAvailable();
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Row(children: [
@@ -318,7 +336,7 @@ class _PostItem extends StatelessWidget {
       ),
         if (post.status == 'available') ...[
           const SizedBox(height: 8),
-          _BumpButton(countdown: post.bumpCountdown, onBump: onBump),
+          _BumpButton(countdown: post.bumpCountdown, onBump: _handleBump, loading: _bumping),
         ],
         ],
       ),

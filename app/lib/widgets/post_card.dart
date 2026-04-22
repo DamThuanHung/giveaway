@@ -133,7 +133,8 @@ class PostCard extends StatelessWidget {
                   ),
 
                 // Badge "Nổi bật" khi bài được đẩy (bumpedAt < 24h)
-                if (post.isBoosted && !isSold)
+                // Không hiện khi reserved vì "Đang giữ" badge cùng vị trí
+                if (post.isBoosted && !isSold && !isReserved)
                   Positioned(
                     top: 6, right: 6,
                     child: Container(
