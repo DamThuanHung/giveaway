@@ -475,6 +475,45 @@ export class NotificationController {
     return { ok: true };
   }
 
+  // Dọn dẹp reviews test: xóa hết rồi tạo lại đúng 1 cái
+  @Post('dev/reset-reviews')
+  async resetReviews(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    if (!body.userId) return { error: 'userId required' };
+
+    const testReviewer = await this.prisma.user.findFirst({ where: { phone: '+841111111111' } });
+    if (testReviewer) {
+      const reviewIds = (await this.prisma.review.findMany({
+        where: { reviewerId: testReviewer.id },
+        select: { id: true, dealId: true },
+      }));
+      const dealIds = reviewIds.map(r => r.dealId);
+      await this.prisma.review.deleteMany({ where: { reviewerId: testReviewer.id } });
+      if (dealIds.length > 0) {
+        await this.prisma.deal.deleteMany({ where: { id: { in: dealIds } } });
+      }
+    }
+
+    // Tạo lại đúng 1 review
+    let reviewer = testReviewer;
+    if (!reviewer) {
+      reviewer = await this.prisma.user.create({
+        data: { phone: '+841111111111', name: 'Trần Thị Test', avatar: 'https://picsum.photos/seed/testseller/100/100' },
+      });
+    }
+    const post = await this.prisma.post.findFirst({ where: { authorId: body.userId } });
+    if (!post) return { error: 'Tạo post trước bằng dev/seed-posts' };
+
+    const deal = await this.prisma.deal.create({
+      data: { postId: post.id, requesterId: reviewer.id, ownerId: body.userId, status: 'completed' },
+    });
+    await this.prisma.review.create({
+      data: { dealId: deal.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
+    });
+
+    return { ok: true, deleted: testReviewer ? 'all previous reviews' : 'none', created: 1 };
+  }
+
   // Trigger keyword alert thật cho userId (test full flow với tiếng Việt chuẩn)
   @Post('dev/test-keyword-alert')
   async testKeywordAlert(@Body() body: { authorId: string; postTitle: string; secret?: string }) {
