@@ -48,6 +48,7 @@ export class FcmService implements OnModuleInit {
         android: {
           priority: 'high',
           notification: {
+            channelId: 'high_importance_channel',
             sound: 'default',
           },
         },
