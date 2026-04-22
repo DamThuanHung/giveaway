@@ -312,13 +312,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           if (i == _users.length) return _LoadMoreBtn(loading: _usersLoading, onTap: _loadUsers);
           final u = _users[i];
           final isBanned = u['isBanned'] == true;
+          final isDeleted = u['deletedAt'] != null;
           final count = u['_count'] ?? {};
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: isBanned ? Colors.red.shade200 : AppTheme.border),
+              color: isDeleted ? Colors.grey.shade50 : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isBanned ? Colors.red.shade200 : isDeleted ? Colors.grey.shade300 : AppTheme.border),
             ),
             child: Row(children: [
               UserAvatar(
@@ -329,7 +331,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Text(u['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(u['name'] ?? '', style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDeleted ? AppTheme.textSecondary : AppTheme.textPrimary,
+                  )),
                   if (u['role'] == 'admin') ...[
                     const SizedBox(width: 6),
                     Container(
@@ -338,7 +343,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       child: const Text('Admin', style: TextStyle(fontSize: 10, color: Colors.purple)),
                     ),
                   ],
-                  if (isBanned) ...[
+                  if (isDeleted) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
+                      child: Text('Đã xóa', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                    ),
+                  ] else if (isBanned) ...[
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -347,11 +359,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                   ],
                 ]),
-                Text(u['email'] ?? u['phone'] ?? '', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                Text(u['email'] ?? u['phone'] ?? '—', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 Text('${count['posts'] ?? 0} bài  •  ${count['dealsAsRequester'] ?? 0} deal',
                     style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
               ])),
-              if (u['role'] != 'admin')
+              if (!isDeleted && u['role'] != 'admin')
                 TextButton(
                   onPressed: () async {
                     await ApiService.adminBanUser(u['id'], !isBanned);

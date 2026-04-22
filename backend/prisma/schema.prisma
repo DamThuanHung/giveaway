@@ -22,6 +22,7 @@ model User {
   updatedAt        DateTime       @updatedAt
   phone            String?        @unique
   isPhoneVerified  Boolean        @default(false)
+  deletedAt        DateTime?
   blockedByUsers   BlockedUser[]  @relation("BlockedRelation")
   blockedUsers     BlockedUser[]  @relation("BlockerRelation")
   followers        Follow[]       @relation("FollowingRelation")
@@ -219,4 +220,11 @@ model KeywordAlert {
 
   @@unique([userId, keyword])
   @@index([userId])
+}
+
+model BannedIdentity {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  phone     String?  @unique
+  createdAt DateTime @default(now())
 }

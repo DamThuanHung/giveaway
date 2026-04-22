@@ -77,7 +77,8 @@ export class AdminService {
         where, skip, take: limit,
         orderBy: { createdAt: 'desc' },
         select: {
-          id: true, name: true, email: true, role: true, isBanned: true, createdAt: true,
+          id: true, name: true, email: true, phone: true, role: true,
+          isBanned: true, deletedAt: true, createdAt: true,
           _count: { select: { posts: true, dealsAsRequester: true, reviewsReceived: true } },
         },
       }),
@@ -87,7 +88,28 @@ export class AdminService {
   }
 
   async banUser(id: string, isBanned: boolean) {
-    return this.prisma.user.update({ where: { id }, data: { isBanned } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { email: true, phone: true },
+    });
+
+    await this.prisma.user.update({ where: { id }, data: { isBanned } });
+
+    if (user) {
+      if (isBanned) {
+        if (user.email) await this.prisma.bannedIdentity.upsert({
+          where: { email: user.email }, create: { email: user.email }, update: {},
+        });
+        if (user.phone) await this.prisma.bannedIdentity.upsert({
+          where: { phone: user.phone }, create: { phone: user.phone }, update: {},
+        });
+      } else {
+        if (user.email) await this.prisma.bannedIdentity.deleteMany({ where: { email: user.email } });
+        if (user.phone) await this.prisma.bannedIdentity.deleteMany({ where: { phone: user.phone } });
+      }
+    }
+
+    return { ok: true };
   }
 
   async getAllReports(page = 1, limit = 20, status?: string) {

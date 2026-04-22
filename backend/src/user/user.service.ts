@@ -61,6 +61,9 @@ export class UserService {
     const existed = await this.prisma.user.findUnique({ where: { email } });
     if (existed) throw new BadRequestException('Email đã tồn tại');
 
+    const banned = await this.prisma.bannedIdentity.findUnique({ where: { email } });
+    if (banned) throw new BadRequestException('Email này không thể đăng ký tài khoản mới');
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({ data: { email, password: hashedPassword, name } });
     const accessToken = await this.signToken(user);
@@ -172,6 +175,8 @@ export class UserService {
     let user = await this.prisma.user.findUnique({ where: { phone } });
     const isNewUser = !user;
     if (!user) {
+      const banned = await this.prisma.bannedIdentity.findUnique({ where: { phone } });
+      if (banned) throw new UnauthorizedException('Số điện thoại này không thể đăng ký tài khoản mới');
       user = await this.prisma.user.create({
         data: {
           phone,
@@ -237,7 +242,19 @@ export class UserService {
       this.prisma.message.deleteMany({ where: { senderId: userId } }),
       this.prisma.chatRoom.deleteMany({ where: { OR: [{ buyerId: userId }, { sellerId: userId }] } }),
       this.prisma.post.deleteMany({ where: { authorId: userId } }),
-      this.prisma.user.delete({ where: { id: userId } }),
+      // Soft delete: ẩn danh hóa + đánh dấu đã xóa (giải phóng email/phone để đăng ký lại)
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          deletedAt: new Date(),
+          name: 'Người dùng đã xóa',
+          email: null,
+          phone: null,
+          avatar: null,
+          fcmToken: null,
+          password: null,
+        },
+      }),
     ]);
     return { message: 'Tài khoản đã được xóa thành công' };
   }
@@ -272,6 +289,8 @@ export class UserService {
     const isNewUser = !user;
     const isAdmin = this.adminEmails.includes(emailLower);
     if (!user) {
+      const banned = await this.prisma.bannedIdentity.findUnique({ where: { email: emailLower } });
+      if (banned) throw new UnauthorizedException('Email này không thể đăng ký tài khoản mới');
       user = await this.prisma.user.create({
         data: { email: emailLower, role: isAdmin ? 'admin' : 'user' },
       });
