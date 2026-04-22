@@ -65,7 +65,7 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
     _selected = widget.selected;
     // Nếu đang ở radius mode → mở tab bản đồ
     _tabCtrl = TabController(length: 2, vsync: this,
-        initialIndex: widget.radiusResult != null ? 0 : 1);
+        initialIndex: widget.selected != null ? 1 : 0);
   }
 
   @override
