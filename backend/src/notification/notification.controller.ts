@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from './notification.service';
 import { FcmService } from '../fcm/fcm.service';
+import { KeywordAlertService } from '../keyword-alert/keyword-alert.service';
 import * as bcrypt from 'bcrypt';
 
 @Controller('notification')
@@ -11,6 +12,7 @@ export class NotificationController {
     private readonly notificationService: NotificationService,
     private readonly prisma: PrismaService,
     private readonly fcm: FcmService,
+    private readonly keywordAlert: KeywordAlertService,
   ) {}
 
   @Get()
@@ -424,6 +426,15 @@ export class NotificationController {
     }
 
     return { ok: true, sellerId: testSeller.id, posts: createdPosts.length, rooms: rooms.length };
+  }
+
+  // Trigger keyword alert thật cho userId (test full flow với tiếng Việt chuẩn)
+  @Post('dev/test-keyword-alert')
+  async testKeywordAlert(@Body() body: { authorId: string; postTitle: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    if (!body.authorId || !body.postTitle) return { error: 'authorId and postTitle required' };
+    await this.keywordAlert.notifyMatchingUsers('test-post-id', body.postTitle, body.postTitle, body.authorId);
+    return { ok: true, postTitle: body.postTitle };
   }
 
   // Xóa toàn bộ thông báo của một userId (dùng để dọn dữ liệu test)

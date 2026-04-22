@@ -34,6 +34,7 @@ import { ReviewService } from './review/review.service';
 import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
 import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
+import { KeywordAlertService } from './keyword-alert/keyword-alert.service';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
     NotificationCronService,
     NotificationGateway,
     FcmService,
+    KeywordAlertService,
     JwtStrategy,
   ],
 })
