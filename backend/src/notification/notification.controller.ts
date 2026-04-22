@@ -428,6 +428,21 @@ export class NotificationController {
     return { ok: true, sellerId: testSeller.id, posts: createdPosts.length, rooms: rooms.length };
   }
 
+  // Simulate review notification
+  @Post('dev/test-review')
+  async testReview(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    if (!body.userId) return { error: 'userId required' };
+    await this.notificationService.createNotification(
+      body.userId,
+      'review',
+      'Trần Thị Test đã đánh giá bạn ⭐⭐⭐⭐⭐',
+      '"Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!"',
+      JSON.stringify({ dealId: 'test-deal' }),
+    );
+    return { ok: true };
+  }
+
   // Trigger keyword alert thật cho userId (test full flow với tiếng Việt chuẩn)
   @Post('dev/test-keyword-alert')
   async testKeywordAlert(@Body() body: { authorId: string; postTitle: string; secret?: string }) {
