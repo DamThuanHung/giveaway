@@ -120,6 +120,13 @@ Nút phải: "Xác nhận" hoặc "Xóa" (ElevatedButton, màu error nếu destr
 - Vuốt xuống → đóng viewer
 - Nhiều ảnh → swipe ngang để xem tiếp
 
+### Đẩy bài lên đầu (Bump Post)
+- Nút "Đẩy lên đầu" hiện trong màn hình **Bài đăng của tôi** (MyPostsScreen) và **Chi tiết bài đăng** — chỉ với bài của chính mình
+- Tap → loading state → SnackBar "Đã đẩy bài lên đầu!" hoặc "Còn X giờ nữa mới đẩy được"
+- Cooldown **24 giờ** — sau khi bump thành công nút hiển thị thời gian còn lại
+- Badge **"Nổi bật"** hiện trên PostCard khi `bumpedAt` trong vòng 24h
+- Sort mặc định danh sách: `bumpedAt DESC NULLS LAST` → `createdAt DESC`
+
 ### Xem tất cả bài đăng của user
 - Tap avatar / tên người đăng → Mở `UserProfileScreen`
 - Hiển thị: ảnh đại diện, tên, ngày tham gia, danh sách bài đăng

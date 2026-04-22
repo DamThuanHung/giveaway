@@ -65,9 +65,15 @@
 ## Business Rules quan trọng
 
 ### Upload ảnh
-- Ảnh upload lên **Cloudinary CDN** (không lưu local)
-- Trong DB lưu **URL đầy đủ** (`https://res.cloudinary.com/...`)
+- Ảnh upload lên **MinIO** (self-hosted S3, container `traotay_storage`)
+- Trong DB lưu **URL đầy đủ** (`http://localhost:9000/traotay/posts/...`)
 - `imageLabel` = URL ảnh đầu tiên, dùng cho thumbnail
+
+### Đẩy bài lên đầu (Bump Post)
+- Miễn phí, không giới hạn số lần — chỉ cooldown **24 giờ** giữa 2 lần bump
+- API trả về `{ ok, bumpedAt, nextBumpAt }` — `nextBumpAt` dùng để tính thời gian còn lại
+- Sort danh sách: `bumpedAt DESC NULLS LAST` → `createdAt DESC` (bài chưa bump xuống cuối)
+- Badge "Nổi bật" hiện khi `bumpedAt` trong vòng 24h tính từ thời điểm hiện tại
 
 ### Xác thực
 - Header: `Authorization: Bearer {token}`
