@@ -20,7 +20,8 @@ export class NotificationCronService {
 
   // Group 2a: Nhắc deal pending quá 24 giờ chưa xử lý (chạy mỗi giờ)
   // Dedup: chỉ nhắc nếu chưa gửi deal_reminder cho deal này trong 24h qua
-  @Cron('0 * * * *')
+  // TEMP DISABLED: tắt tạm để dừng notification loop từ pending test deals
+  // @Cron('0 * * * *')
   async remindPendingDeals() {
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const deals = await this.prisma.deal.findMany({

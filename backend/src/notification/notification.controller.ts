@@ -532,6 +532,18 @@ export class NotificationController {
     return { ok: true, deleted: count };
   }
 
+  // Cancel tất cả pending deals của userId — dừng cron deal_reminder gửi liên tục
+  @Post('dev/cancel-pending-deals')
+  async cancelPendingDeals(@Body() body: { userId: string; secret?: string }) {
+    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
+    if (!body.userId) return { error: 'userId required' };
+    const { count } = await this.prisma.deal.updateMany({
+      where: { ownerId: body.userId, status: 'pending' },
+      data: { status: 'cancelled' },
+    });
+    return { ok: true, cancelled: count };
+  }
+
   // Dọn sạch toàn bộ dữ liệu test + tạo 10 acc test + bài đăng đủ category
   @Post('dev/reset-test-data')
   async resetTestData(@Body() body: { secret?: string }) {
