@@ -269,9 +269,15 @@ export class UserService {
 
     let user = await this.prisma.user.findUnique({ where: { email: emailLower } });
     const isNewUser = !user;
+    const isAdmin = this.adminEmails.includes(emailLower);
     if (!user) {
       user = await this.prisma.user.create({
-        data: { email: emailLower },
+        data: { email: emailLower, role: isAdmin ? 'admin' : 'user' },
+      });
+    } else if (isAdmin && user.role !== 'admin') {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'admin' },
       });
     }
     if (user.isBanned) throw new UnauthorizedException('Tài khoản đã bị khóa');
