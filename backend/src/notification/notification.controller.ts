@@ -428,17 +428,40 @@ export class NotificationController {
     return { ok: true, sellerId: testSeller.id, posts: createdPosts.length, rooms: rooms.length };
   }
 
-  // Simulate review notification
+  // Simulate review notification + tạo review thật trong DB
   @Post('dev/test-review')
   async testReview(@Body() body: { userId: string; secret?: string }) {
     if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
     if (!body.userId) return { error: 'userId required' };
+
+    // Lấy hoặc tạo test reviewer
+    let reviewer = await this.prisma.user.findFirst({ where: { phone: '+841111111111' } });
+    if (!reviewer) {
+      reviewer = await this.prisma.user.create({
+        data: { phone: '+841111111111', name: 'Trần Thị Test', avatar: 'https://picsum.photos/seed/testseller/100/100' },
+      });
+    }
+
+    // Tìm post của userId để tạo deal
+    const post = await this.prisma.post.findFirst({ where: { authorId: body.userId } });
+    if (!post) return { error: 'Tạo post trước bằng dev/seed-posts' };
+
+    // Tạo deal completed
+    const deal = await this.prisma.deal.create({
+      data: { postId: post.id, requesterId: reviewer.id, ownerId: body.userId, status: 'completed' },
+    });
+
+    // Tạo review
+    await this.prisma.review.create({
+      data: { dealId: deal.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
+    });
+
+    // Gửi notification + FCM
     await this.notificationService.createNotification(
-      body.userId,
-      'review',
+      body.userId, 'review',
       'Trần Thị Test đã đánh giá bạn ⭐⭐⭐⭐⭐',
       '"Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!"',
-      JSON.stringify({ dealId: 'test-deal' }),
+      JSON.stringify({ dealId: deal.id }),
     );
     return { ok: true };
   }
