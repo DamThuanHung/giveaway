@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://giveaway-production-605c.up.railway.app';
+  static const String baseUrl = 'https://giveaway-production-e88c.up.railway.app';
 
   static Future<String?> _getToken() async {
     final p = await SharedPreferences.getInstance();
@@ -591,38 +591,47 @@ class ApiService {
   }
 
   // ─── ADMIN ───────────────────────────────────────────
-  static Future<List<dynamic>> adminGetPosts({String? status, String? search}) async {
+  static Future<Map<String, dynamic>> adminGetPosts({int page = 1, String? status, String? search}) async {
     try {
-      final params = <String, String>{'limit': '50'};
+      final params = <String, String>{'page': '$page', 'limit': '20'};
       if (status != null) params['status'] = status;
       if (search != null) params['search'] = search;
       final uri = Uri.parse('$baseUrl/admin/posts').replace(queryParameters: params);
       final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body)['data'] ?? [];
-      return [];
-    } catch (e) { return []; }
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return {'data': body['data'] ?? [], 'meta': body['meta'] ?? {}};
+      }
+      return {'data': [], 'meta': {}};
+    } catch (e) { return {'data': [], 'meta': {}}; }
   }
 
-  static Future<List<dynamic>> adminGetUsers({String? search}) async {
+  static Future<Map<String, dynamic>> adminGetUsers({int page = 1, String? search}) async {
     try {
-      final params = <String, String>{'limit': '50'};
+      final params = <String, String>{'page': '$page', 'limit': '20'};
       if (search != null) params['search'] = search;
       final uri = Uri.parse('$baseUrl/admin/users').replace(queryParameters: params);
       final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body)['data'] ?? [];
-      return [];
-    } catch (e) { return []; }
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return {'data': body['data'] ?? [], 'meta': body['meta'] ?? {}};
+      }
+      return {'data': [], 'meta': {}};
+    } catch (e) { return {'data': [], 'meta': {}}; }
   }
 
-  static Future<List<dynamic>> adminGetReports({String? status}) async {
+  static Future<Map<String, dynamic>> adminGetReports({int page = 1, String? status}) async {
     try {
-      final params = <String, String>{'limit': '50'};
+      final params = <String, String>{'page': '$page', 'limit': '20'};
       if (status != null) params['status'] = status;
       final uri = Uri.parse('$baseUrl/admin/reports').replace(queryParameters: params);
       final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body)['data'] ?? [];
-      return [];
-    } catch (e) { return []; }
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return {'data': body['data'] ?? [], 'meta': body['meta'] ?? {}};
+      }
+      return {'data': [], 'meta': {}};
+    } catch (e) { return {'data': [], 'meta': {}}; }
   }
 
   static Future<bool> adminHidePost(String id) async {
