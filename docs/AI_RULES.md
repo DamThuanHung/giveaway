@@ -105,6 +105,9 @@ Gõ "lưu" để tôi cập nhật tự động.
 [21/04/2026] Railway Raw Editor: key=value KHÔNG được có dấu cách trước `=` (ví dụ `DEV_SECRET =value` sẽ tạo key `DEV_SECRET ` có space, không nhận được) — Xác nhận qua debug thực tế
 [21/04/2026] Railway "Apply X changes" áp dụng TẤT CẢ pending changes kể cả xóa service — nếu có service deletion trong queue thì sẽ hiện Destructive Changes dialog, phải gõ tên service để confirm — đây là flow đúng, không cần Cancel
 [21/04/2026] FCM token chỉ được lưu vào DB khi app đang chạy trên điện thoại thật + user đã đăng nhập + app đã build lại sau khi đổi server URL
+[22/04/2026] NestJS Dockerfile: `npm install --ignore-scripts` trước, `COPY . .` rồi mới `npx prisma generate` — nếu prisma generate chạy trước COPY thì schema chưa có → build lỗi
+[22/04/2026] NestJS compile ra `dist/src/main.js` (không phải `dist/main.js`) khi không có `rootDir` trong tsconfig — CMD phải là `node dist/src/main`
+[22/04/2026] `.env.docker` phải gitignore nếu chứa FCM private key hoặc secrets thật — commit file mẫu không có secret vào git lần đầu là đủ
 
 ---
 
@@ -118,8 +121,9 @@ Gõ "lưu" để tôi cập nhật tự động.
 | 22/04/2026 | Nút "Tôi muốn nhận" được thêm lại vào chi tiết bài cho tặng | User cần CTA rõ ràng ngay trên màn hình chi tiết | user |
 | 17/04/2026 | Roadmap phải theo mục tiêu vận hành, không phải logic kỹ thuật | User cần app vận hành được, không chỉ feature complete | user |
 | 17/04/2026 | Không làm giai đoạn sau khi chưa xong giai đoạn trước | Đảm bảo chất lượng từng bước | user |
-| 21/04/2026 | Tiếp tục dùng Railway cho đến khi hết credit, sau đó chuyển Koyeb + Neon | Railway vẫn còn credit, Koyeb+Neon là phương án miễn phí 100% | user |
-| 21/04/2026 | Backend không đặt `cloudinary.config()` trong constructor | Constructor NestJS không đảm bảo env vars loaded khi deploy Railway | code thực tế |
+| 22/04/2026 | Chuyển toàn bộ hạ tầng sang Docker self-host (Railway + Cloudinary bỏ hẳn) | Tự chủ dữ liệu + tiết kiệm chi phí | user |
+| 22/04/2026 | Giữ Firebase (FCM + Phone OTP) và Resend — không thay thế | FCM/APNs bắt buộc ở OS level; Resend deliverability tốt hơn Gmail SMTP | user |
+| 22/04/2026 | CloudinaryService được refactor thành MinIO, giữ nguyên class name + interface | Không cần sửa callers (post.controller, user.controller) | code thực tế |
 
 ---
 
@@ -169,7 +173,7 @@ Mọi việc AI có thể tự làm được thì PHẢI tự làm — không đ
 
 ---
 
-## 8. Khi user nói "làm X"
+## 10. Khi user nói "làm X"
 
 AI phải ngầm hiểu và thực hiện:
 
