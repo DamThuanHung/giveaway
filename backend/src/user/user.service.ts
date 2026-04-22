@@ -31,7 +31,7 @@ export class UserService {
 
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: 'Trao Tay <onboarding@resend.dev>',
+      from: 'Trao Tay <noreply@traotay.com.vn>',
       to: email,
       subject: 'Mã xác nhận OTP - Trao Tay',
       html: `
