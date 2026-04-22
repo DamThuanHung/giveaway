@@ -177,7 +177,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ── Stats ─────────────────────────────────────────────────────────────────
 
   Widget _buildStats() {
-    if (_statsLoading) return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
+    if (_statsLoading) return const AdminListSkeleton();
     if (_stats == null) return const EmptyState(icon: Icons.error_outline, message: 'Không thể tải thống kê');
 
     final overview = _stats!['overview'] ?? {};
@@ -260,8 +260,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildPostsList() {
-    if (!_postsInitialized && _postsLoading) return const AdminListSkeleton();
-    if (_postsInitialized && _posts.isEmpty) {
+    if (!_postsInitialized) return const AdminListSkeleton();
+    if (_posts.isEmpty) {
       return const EmptyState(icon: Icons.article_outlined, message: 'Không có bài đăng nào');
     }
     return RefreshIndicator(
@@ -299,8 +299,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildUsersList() {
-    if (!_usersInitialized && _usersLoading) return const AdminListSkeleton();
-    if (_usersInitialized && _users.isEmpty) {
+    if (!_usersInitialized) return const AdminListSkeleton();
+    if (_users.isEmpty) {
       return const EmptyState(icon: Icons.people_outline, message: 'Không có người dùng nào');
     }
     return RefreshIndicator(
@@ -370,8 +370,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ── Reports ───────────────────────────────────────────────────────────────
 
   Widget _buildReports() {
-    if (!_reportsInitialized && _reportsLoading) return const AdminListSkeleton();
-    if (_reportsInitialized && _reports.isEmpty) {
+    if (!_reportsInitialized) return const AdminListSkeleton();
+    if (_reports.isEmpty) {
       return const EmptyState(icon: Icons.flag_outlined, message: 'Không có báo cáo nào');
     }
     return RefreshIndicator(
