@@ -258,15 +258,25 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Flexible(
-                        child: Text(
-                          PostCard.formatPrice(post.price, post.listingType),
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: post.isJob
+                          ? Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.work_outline, size: 12, color: Color(0xFF5C6BC0)),
+                              const SizedBox(width: 3),
+                              Flexible(child: Text(
+                                post.subTypeLabel.isNotEmpty ? post.subTypeLabel : 'Việc làm',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF5C6BC0)),
+                                overflow: TextOverflow.ellipsis,
+                              )),
+                            ])
+                          : Text(
+                              PostCard.formatPrice(post.price, post.listingType),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                       ),
                       if (post.createdAt != null) ...[
                         const SizedBox(width: 4),

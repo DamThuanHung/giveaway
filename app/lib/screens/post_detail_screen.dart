@@ -719,6 +719,28 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     Expanded(child: Text('Phạm vi: ${_post.serviceArea}', style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
                   ]),
                 ],
+                // Việc làm: job type + công ty + lương
+                if (_post.isJob) ...[
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    if (_post.subTypeLabel.isNotEmpty)
+                      _InfoChip(label: _post.subTypeLabel, icon: Icons.work_outline, color: const Color(0xFF5C6BC0)),
+                    if (_post.priceUnitLabel.isNotEmpty || _post.price > 0)
+                      _InfoChip(
+                        label: _post.price == 0 ? 'Thỏa thuận' : '${PostCard.formatPrice(_post.price, 'sell')}${_post.priceUnitLabel}',
+                        icon: Icons.payments_outlined,
+                        color: AppTheme.primary,
+                      ),
+                  ]),
+                  if (_post.companyName != null && _post.companyName!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      const Icon(Icons.business_outlined, size: 14, color: AppTheme.textSecondary),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(_post.companyName!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                    ]),
+                  ],
+                ],
                 const SizedBox(height: 10),
                 Row(
                   children: [

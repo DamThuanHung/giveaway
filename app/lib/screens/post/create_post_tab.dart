@@ -42,9 +42,11 @@ class _CreatePostTabState extends State<CreatePostTab> {
 
   bool get _isRealestate => _itemCategory == 'realestate';
   bool get _isService => _itemCategory == 'service';
+  bool get _isJob => _itemCategory == 'jobs';
   String get _postType {
     if (_isRealestate) return 'realestate';
     if (_isService) return 'service';
+    if (_isJob) return 'job';
     return 'item';
   }
 
@@ -185,8 +187,10 @@ class _CreatePostTabState extends State<CreatePostTab> {
       if (_isRealestate) 'subType': _subType,
       if (_isRealestate && _areaController.text.isNotEmpty) 'area': _areaController.text.trim(),
       if (_isRealestate) 'bedrooms': _bedrooms.toString(),
-      if (_isRealestate || _isService) 'priceUnit': _priceUnit,
+      if (_isRealestate || _isService || _isJob) 'priceUnit': _priceUnit,
       if (_isService && _serviceAreaController.text.isNotEmpty) 'serviceArea': _serviceAreaController.text.trim(),
+      if (_isJob) 'subType': _subType,
+      if (_isJob && _serviceAreaController.text.isNotEmpty) 'serviceArea': _serviceAreaController.text.trim(),
     };
 
     try {
@@ -209,7 +213,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
           _selectedWard = '';
           _listingType = 'sell';
           _itemCategory = 'electronics';
-          _subType = 'rent';
+          _subType = _itemCategory == 'jobs' ? 'full-time' : 'rent';
           _bedrooms = 1;
           _priceUnit = 'month';
         });
@@ -273,7 +277,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     const SizedBox(height: 20),
                     _buildCategoryDropdown(),
                     const SizedBox(height: 16),
-                    if (!_isRealestate && !_isService) ...[
+                    if (!_isRealestate && !_isService && !_isJob) ...[
                       _buildTypeSelector(),
                       const SizedBox(height: 16),
                     ],
@@ -296,7 +300,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                       maxLength: 100,
                     ),
                     const SizedBox(height: 16),
-                    if (!_isRealestate && !_isService && _listingType != 'give') ...[
+                    if (!_isRealestate && !_isService && !_isJob && _listingType != 'give') ...[
                       TextFormField(
                         controller: _priceController,
                         decoration: InputDecoration(
@@ -332,6 +336,11 @@ class _CreatePostTabState extends State<CreatePostTab> {
                     // --- Dịch vụ fields ---
                     if (_isService) ...[
                       _buildServiceFields(),
+                      const SizedBox(height: 16),
+                    ],
+                    // --- Việc làm fields ---
+                    if (_isJob) ...[
+                      _buildJobFields(),
                       const SizedBox(height: 16),
                     ],
                     TextFormField(
@@ -504,6 +513,79 @@ class _CreatePostTabState extends State<CreatePostTab> {
           textInputAction: TextInputAction.next,
           maxLength: 100,
         ),
+      ],
+    );
+  }
+
+  Widget _buildJobFields() {
+    final inputDeco = InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primary, width: 1.5)),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Loại công việc
+        const Text('Hình thức làm việc *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8, runSpacing: 8,
+          children: [
+            _TypeChip(label: 'Toàn thời gian', value: 'full-time', selected: _subType == 'full-time', onTap: () => setState(() => _subType = 'full-time')),
+            _TypeChip(label: 'Bán thời gian',  value: 'part-time', selected: _subType == 'part-time', onTap: () => setState(() => _subType = 'part-time')),
+            _TypeChip(label: 'Freelance',       value: 'freelance', selected: _subType == 'freelance', onTap: () => setState(() => _subType = 'freelance')),
+            _TypeChip(label: 'Thực tập',        value: 'intern',    selected: _subType == 'intern',    onTap: () => setState(() => _subType = 'intern')),
+            _TypeChip(label: 'Remote',          value: 'remote',    selected: _subType == 'remote',    onTap: () => setState(() => _subType = 'remote')),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Tên công ty
+        TextFormField(
+          controller: _serviceAreaController,
+          decoration: inputDeco.copyWith(
+            labelText: 'Tên công ty / Nhà tuyển dụng',
+            hintText: 'VD: Công ty ABC',
+            prefixIcon: const Icon(Icons.business_outlined),
+          ),
+          textInputAction: TextInputAction.next,
+          maxLength: 100,
+        ),
+        const SizedBox(height: 8),
+
+        // Mức lương + đơn vị
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: _priceController,
+              decoration: inputDeco.copyWith(
+                labelText: 'Mức lương (VNĐ)',
+                hintText: 'Để trống = thỏa thuận',
+                prefixIcon: const Icon(Icons.payments_outlined),
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: DropdownButtonFormField<String>(
+              value: (_priceUnit == 'month' || _priceUnit == 'hour') ? _priceUnit : 'month',
+              decoration: inputDeco.copyWith(labelText: 'Đơn vị'),
+              items: const [
+                DropdownMenuItem(value: 'month', child: Text('/tháng')),
+                DropdownMenuItem(value: 'hour',  child: Text('/giờ')),
+              ],
+              onChanged: (v) => setState(() => _priceUnit = v!),
+            ),
+          ),
+        ]),
       ],
     );
   }

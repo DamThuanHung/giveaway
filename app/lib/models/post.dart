@@ -97,11 +97,18 @@ class Post {
 
   bool get isRealestate => postType == 'realestate';
   bool get isService => postType == 'service';
+  bool get isJob => postType == 'job';
 
   String get subTypeLabel {
     switch (subType) {
       case 'rent': return 'Cho thuê';
       case 'sell': return 'Bán';
+      // Job types
+      case 'full-time': return 'Toàn thời gian';
+      case 'part-time': return 'Bán thời gian';
+      case 'freelance': return 'Freelance';
+      case 'intern': return 'Thực tập';
+      case 'remote': return 'Remote';
       default: return '';
     }
   }
@@ -116,6 +123,9 @@ class Post {
       default: return '';
     }
   }
+
+  /// Tên công ty (jobs dùng field serviceArea để lưu)
+  String? get companyName => isJob ? serviceArea : null;
 
   bool get isBoosted {
     if (bumpedAt == null) return false;

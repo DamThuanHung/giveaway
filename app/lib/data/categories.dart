@@ -16,6 +16,7 @@ class AppCategories {
     {'value': 'music',       'label': 'Nhạc cụ',    'icon': 'assets/icons/categories/music.png'},
     {'value': 'realestate',  'label': 'Bất động sản','icon': 'assets/icons/categories/realestate.png'},
     {'value': 'service',     'label': 'Rao dịch vụ',  'icon': 'assets/icons/categories/service.png'},
+    {'value': 'jobs',        'label': 'Việc làm',    'icon': 'assets/icons/categories/jobs.png'},
     {'value': 'other',       'label': 'Khác',        'icon': 'assets/icons/categories/other.png'},
   ];
 

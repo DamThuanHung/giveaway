@@ -97,7 +97,14 @@
 | `done` | Đã trao tặng/bán xong, nút bị disable |
 
 ### Danh mục (itemCategory)
-`electronics`, `furniture`, `clothing`, `kitchen`, `books`, `toys`, `sports`, `vehicles`, `beauty`, `pets`, `tools`, `food`, `baby`, `music`, `realestate`, `service`, `other` (17 danh mục)
+`electronics`, `furniture`, `clothing`, `kitchen`, `books`, `toys`, `sports`, `vehicles`, `beauty`, `pets`, `tools`, `food`, `baby`, `music`, `realestate`, `service`, `jobs`, `other` (18 danh mục)
+
+**Danh mục `jobs` — Việc làm:**
+- `postType: 'job'`
+- `subType`: `full-time` | `part-time` | `freelance` | `intern` | `remote`
+- `serviceArea`: tên công ty / nhà tuyển dụng
+- `price` + `priceUnit: 'month'/'hour'`: mức lương (0 = thỏa thuận)
+- PostCard hiển thị job type thay vì giá
 
 ### Test accounts
 - Email: `1@test.com` → `10@test.com`
