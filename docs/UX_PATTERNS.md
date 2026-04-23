@@ -120,12 +120,21 @@ Nút phải: "Xác nhận" hoặc "Xóa" (ElevatedButton, màu error nếu destr
 - Vuốt xuống → đóng viewer
 - Nhiều ảnh → swipe ngang để xem tiếp
 
-### Đẩy bài lên đầu (Bump Post)
-- Nút "Đẩy lên đầu" hiện trong màn hình **Bài đăng của tôi** (MyPostsScreen) và **Chi tiết bài đăng** — chỉ với bài của chính mình
-- Tap → loading state → SnackBar "Đã đẩy bài lên đầu!" hoặc "Còn X giờ nữa mới đẩy được"
-- Cooldown **24 giờ** — sau khi bump thành công nút hiển thị thời gian còn lại
-- Badge **"Nổi bật"** hiện trên PostCard khi `bumpedAt` trong vòng 24h
-- Sort mặc định danh sách: `bumpedAt DESC NULLS LAST` → `createdAt DESC`
+### Đẩy bài lên đầu (Bump Post) — 3 Tier
+- Nút "Đẩy lên đầu" hiện trong **Bài đăng của tôi** và **Chi tiết bài đăng** — chỉ với bài của chính mình
+- Sort mặc định: `bumpedAt DESC NULLS LAST` → `createdAt DESC`
+
+**Tier 1 — Free (miễn phí):**
+- Cooldown 24h — nút hiển thị thời gian còn lại sau khi bump
+- Badge "Nổi bật" (primary, góc trên phải, topRight+bottomLeft radius) — đối xứng với badge "Miễn phí"
+
+**Tier 2 — Plus (5k/3 ngày):**
+- Badge "Plus" vàng (góc trên phải, cùng vị trí Tier 1)
+- Card: nền vàng nhạt `#FFFDF5` + viền vàng tĩnh 1.5px + shadow vàng
+
+**Tier 3 — VIP (15k/7 ngày):**
+- Badge "VIP" đen-vàng (góc trên phải)
+- Card: scale 1.03x + viền vàng chạy (SweepGradient animate) + 6 sparkles vàng lấp lánh trên ảnh
 
 ### Xem tất cả bài đăng của user
 - Tap avatar / tên người đăng → Mở `UserProfileScreen`

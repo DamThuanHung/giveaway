@@ -702,7 +702,7 @@ class _SearchTabState extends State<SearchTab> {
                 final imgUrl = (p['images'] as List?)?.isNotEmpty == true
                     ? p['images'][0].toString()
                     : p['imageLabel']?.toString().isNotEmpty == true
-                        ? '${ApiService.baseUrl}/uploads/${p['imageLabel']}'
+                        ? ApiService.buildImageUrl(p['imageLabel'].toString())
                         : '';
                 return GestureDetector(
                   onTap: () {
@@ -909,7 +909,7 @@ class _SearchTabState extends State<SearchTab> {
                 if (post.images != null && post.images!.isNotEmpty) {
                   imgUrl = post.images!.first;
                 } else if (post.imageLabel.isNotEmpty) {
-                  imgUrl = '${ApiService.baseUrl}/uploads/${post.imageLabel}';
+                  imgUrl = ApiService.buildImageUrl(post.imageLabel);
                 }
                 return GestureDetector(
                   onTap: () {

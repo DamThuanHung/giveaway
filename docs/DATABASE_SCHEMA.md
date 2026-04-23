@@ -61,6 +61,7 @@
 | `longitude` | `Float` | Tọa độ (mặc định 0) |
 | `viewCount` | `Int` | Số lượt xem |
 | `bumpedAt` | `DateTime?` | Thời điểm đẩy bài gần nhất (null = chưa bump). Dùng để sort + cooldown 24h |
+| `boostTier` | `Int` | Tier boost hiện tại: `0`=none, `1`=free bump, `2`=Plus, `3`=VIP. Default `0`. Được PayOS set khi user mua gói |
 | `subType` | `String?` | BĐS: `"rent"` / `"sell"` |
 | `area` | `Float?` | BĐS: diện tích m² |
 | `bedrooms` | `Int?` | BĐS: số phòng ngủ |

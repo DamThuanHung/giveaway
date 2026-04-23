@@ -98,7 +98,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
 
   String _getImageUrl(Post post) {
     if (post.images != null && post.images!.isNotEmpty) return post.images!.first;
-    if (post.imageLabel.isNotEmpty) return '${ApiService.baseUrl}/uploads/${post.imageLabel}';
+    if (post.imageLabel.isNotEmpty) return ApiService.buildImageUrl(post.imageLabel);
     return '';
   }
 

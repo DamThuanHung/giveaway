@@ -76,7 +76,7 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
     if (rawUrl.isNotEmpty && rawUrl.startsWith('http')) {
       imgUrl = rawUrl;
     } else if (post.imageLabel.isNotEmpty) {
-      imgUrl = '${ApiService.baseUrl}/uploads/${post.imageLabel}';
+      imgUrl = ApiService.buildImageUrl(post.imageLabel);
     }
 
     final locParts = <String>[];
@@ -98,9 +98,9 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
         ],
       );
     } else if (tier == 2) {
-      // Plus: viền vàng tĩnh + shadow nhẹ vàng
+      // Plus: nền vàng nhạt + viền vàng tĩnh + shadow nhẹ vàng
       cardDeco = BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFDF5), // vàng nhạt 5% — đủ thấy, không chói
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _kGoldDark, width: 1.5),
         boxShadow: [
@@ -300,7 +300,7 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
       ),
     );
 
-    // VIP: bọc thêm lớp viền vàng chạy
+    // VIP: viền vàng chạy + scale nhẹ để nhô khỏi feed
     if (tier == 3 && _vipCtrl != null) {
       card = AnimatedBuilder(
         animation: _vipCtrl!,
@@ -310,6 +310,7 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
         ),
         child: card,
       );
+      card = Transform.scale(scale: 1.03, child: card);
     }
 
     return GestureDetector(onTap: widget.onTap, child: card);
@@ -437,9 +438,12 @@ class _SparklesOverlay extends StatelessWidget {
         final t = controller.value;
         return Stack(
           children: [
-            _spark(top: 0.18, left: 0.22, phase: 0.0, size: 10, t: t),
-            _spark(top: 0.60, left: 0.75, phase: 0.33, size: 10, t: t),
-            _spark(top: 0.35, left: 0.85, phase: 0.67, size: 8, t: t),
+            _spark(top: 0.12, left: 0.18, phase: 0.00, size: 12, t: t),
+            _spark(top: 0.55, left: 0.72, phase: 0.17, size: 11, t: t),
+            _spark(top: 0.30, left: 0.82, phase: 0.33, size: 8,  t: t),
+            _spark(top: 0.75, left: 0.28, phase: 0.50, size: 10, t: t),
+            _spark(top: 0.20, left: 0.60, phase: 0.67, size: 9,  t: t),
+            _spark(top: 0.65, left: 0.50, phase: 0.83, size: 13, t: t),
           ],
         );
       },
@@ -457,8 +461,11 @@ class _SparklesOverlay extends StatelessWidget {
             scale: 0.3 + opacity * 0.7,
             child: Transform.rotate(
               angle: opacity * pi,
-              child: Icon(Icons.star, color: Colors.white, size: size,
-                shadows: const [Shadow(color: _kGoldLight, blurRadius: 6)]),
+              child: Icon(Icons.star, color: _kGoldLight, size: size,
+                shadows: const [
+                  Shadow(color: Colors.white, blurRadius: 4),
+                  Shadow(color: _kGoldOrange, blurRadius: 8),
+                ]),
             ),
           ),
         ),

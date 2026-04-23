@@ -69,11 +69,21 @@
 - Trong DB lưu **URL đầy đủ** (`http://localhost:9000/traotay/posts/...`)
 - `imageLabel` = URL ảnh đầu tiên, dùng cho thumbnail
 
-### Đẩy bài lên đầu (Bump Post)
-- Miễn phí, không giới hạn số lần — chỉ cooldown **24 giờ** giữa 2 lần bump
-- API trả về `{ ok, bumpedAt, nextBumpAt }` — `nextBumpAt` dùng để tính thời gian còn lại
-- Sort danh sách: `bumpedAt DESC NULLS LAST` → `createdAt DESC` (bài chưa bump xuống cuối)
-- Badge "Nổi bật" hiện khi `bumpedAt` trong vòng 24h tính từ thời điểm hiện tại
+### Đẩy bài lên đầu (Bump Post) — 3 Tier
+**Tier 1 — Free:** Miễn phí, cooldown **24 giờ** giữa 2 lần bump
+- API `POST /post/:id/bump` trả về `{ ok, bumpedAt, nextBumpAt }`
+- `effectiveTier = 1` khi `bumpedAt` trong vòng 24h
+
+**Tier 2 — Plus (5k/3 ngày):** Trả phí qua PayOS
+- `boostTier = 2` trong DB, hết hạn theo `BumpOrder.expiredAt`
+- Hiệu ứng: nền card vàng nhạt + viền vàng tĩnh + badge "Plus"
+
+**Tier 3 — VIP (15k/7 ngày):** Trả phí qua PayOS
+- `boostTier = 3` trong DB, hết hạn theo `BumpOrder.expiredAt`
+- Hiệu ứng: viền vàng chạy (SweepGradient) + 6 sparkles + scale 1.03x + badge "VIP"
+
+**Flutter model:** `Post.effectiveTier` = `boostTier > 0 ? boostTier : (isBoosted ? 1 : 0)`
+**Sort:** `bumpedAt DESC NULLS LAST` → `createdAt DESC`
 
 ### Xác thực
 - Header: `Authorization: Bearer {token}`

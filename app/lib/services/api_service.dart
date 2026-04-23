@@ -6,6 +6,13 @@ import 'package:image_picker/image_picker.dart';
 class ApiService {
   static const String baseUrl = 'http://192.168.0.108:3800';
 
+  /// Xây URL ảnh an toàn: nếu label đã là full URL thì dùng luôn, không prepend baseUrl
+  static String buildImageUrl(String label) {
+    if (label.isEmpty) return '';
+    if (label.startsWith('http')) return label;
+    return '$baseUrl/uploads/$label';
+  }
+
   static Future<String?> _getToken() async {
     final p = await SharedPreferences.getInstance();
     return p.getString('auth_token');

@@ -567,7 +567,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } else if (_post.imageUrl != null && _post.imageUrl!.isNotEmpty) {
       validImages.add(_getCleanImageUrl(_post.imageUrl!));
     } else if (_post.imageLabel.isNotEmpty) {
-      validImages.add('${ApiService.baseUrl}/uploads/${_post.imageLabel}');
+      validImages.add(ApiService.buildImageUrl(_post.imageLabel));
     }
 
     return Scaffold(
@@ -964,7 +964,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                         borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                                         child: AppImage(
                                           url: p.imageLabel.isNotEmpty
-                                              ? '${ApiService.baseUrl}/uploads/${p.imageLabel}'
+                                              ? ApiService.buildImageUrl(p.imageLabel)
                                               : (p.images != null && p.images!.isNotEmpty ? p.images!.first : ''),
                                           width: 140,
                                           height: 100,

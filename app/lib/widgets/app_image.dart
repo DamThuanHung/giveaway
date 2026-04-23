@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class AppImage extends StatelessWidget {
@@ -22,9 +23,19 @@ class AppImage extends StatelessWidget {
   });
 
   String _optimizeUrl(String raw) {
-    if (!raw.contains('cloudinary.com') || !raw.contains('/upload/')) return raw;
-    final params = thumbnail ? 'w_400,q_auto,f_auto' : 'w_800,q_auto,f_auto';
-    return raw.replaceFirst('/upload/', '/upload/$params/');
+    // Cloudinary transform (legacy)
+    if (raw.contains('cloudinary.com') && raw.contains('/upload/')) {
+      final params = thumbnail ? 'w_400,q_auto,f_auto' : 'w_800,q_auto,f_auto';
+      return raw.replaceFirst('/upload/', '/upload/$params/');
+    }
+    // MinIO URL có localhost → thay bằng IP server thực (điện thoại không truy cập localhost được)
+    if (raw.contains('localhost:9000') || raw.contains('127.0.0.1:9000')) {
+      final serverHost = Uri.parse(ApiService.baseUrl).host;
+      return raw
+          .replaceAll('localhost:9000', '$serverHost:9000')
+          .replaceAll('127.0.0.1:9000', '$serverHost:9000');
+    }
+    return raw;
   }
 
   @override

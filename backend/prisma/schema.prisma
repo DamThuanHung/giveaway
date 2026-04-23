@@ -62,6 +62,7 @@ model Post {
   updatedAt     DateTime   @updatedAt
   viewCount     Int        @default(0)
   bumpedAt      DateTime?
+  boostTier     Int        @default(0)  // 0=none 1=free 2=plus 3=vip
   postType      String     @default("item")      // item | realestate | service
   subType       String?                           // rent | sell (BĐS)
   area          Float?                            // m² (BĐS)

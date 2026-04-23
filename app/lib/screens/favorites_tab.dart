@@ -188,9 +188,7 @@ class _FavoriteItem extends StatelessWidget {
                 width: 90,
                 height: 90,
                 child: AppImage(
-                  url: post.imageLabel.isNotEmpty
-                      ? '${ApiService.baseUrl}/uploads/${post.imageLabel}'
-                      : '',
+                  url: ApiService.buildImageUrl(post.imageLabel),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),

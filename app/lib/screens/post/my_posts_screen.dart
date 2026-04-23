@@ -274,7 +274,7 @@ class _PostItemState extends State<_PostItem> {
             child: SizedBox(
               width: 72, height: 72,
               child: AppImage(
-                url: post.imageLabel.isNotEmpty ? '${ApiService.baseUrl}/uploads/${post.imageLabel}' : '',
+                url: ApiService.buildImageUrl(post.imageLabel),
                 fit: BoxFit.cover,
               ),
             ),
