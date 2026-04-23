@@ -39,6 +39,7 @@ model User {
   reviewsReceived  Review[]       @relation("ReviewReceived")
   reviewsGiven     Review[]       @relation("ReviewGiven")
   keywordAlerts    KeywordAlert[]
+  bumpOrders       BumpOrder[]
 }
 
 model Post {
@@ -72,6 +73,7 @@ model Post {
   chatRooms     ChatRoom[]
   deals         Deal[]
   favorites     Favorite[]
+  bumpOrders    BumpOrder[]
   author        User?      @relation(fields: [authorId], references: [id])
   reports       Report[]
 
@@ -85,6 +87,26 @@ model Post {
   @@index([status, itemCategory])
   @@index([postType])
   @@index([bumpedAt])
+}
+
+model BumpOrder {
+  id            String    @id @default(cuid())
+  userId        String
+  postId        String
+  package       String    // "plus_3d" | "vip_7d"
+  tier          Int       // 2=plus | 3=vip
+  amount        Int       // giá VNĐ: 5000 | 15000
+  status        String    @default("pending") // pending | paid | expired | cancelled
+  payosOrderId  String?   @unique            // mã đơn PayOS
+  expiredAt     DateTime?                    // null khi chưa paid
+  createdAt     DateTime  @default(now())
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
+  @@index([status])
+  @@index([expiredAt])
 }
 
 model Favorite {

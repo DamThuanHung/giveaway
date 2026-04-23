@@ -35,6 +35,7 @@ import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
 import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
 import { KeywordAlertService } from './keyword-alert/keyword-alert.service';
+import { BumpModule } from './bump/bump.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { KeywordAlertService } from './keyword-alert/keyword-alert.service';
     ChatModule,
     CloudinaryModule,
     KeywordAlertModule,
+    BumpModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [
