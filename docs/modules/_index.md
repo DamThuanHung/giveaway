@@ -30,7 +30,8 @@
 | KeywordAlert | *(chưa có)* | Thiếu | Theo dõi từ khóa, nhận FCM khi có bài mới khớp |
 | Storage (MinIO) | *(chưa có)* | Thiếu | Upload ảnh lên MinIO (self-hosted S3) |
 | FCM | *(chưa có)* | Thiếu | Firebase Cloud Messaging service |
-| Admin | *(chưa có)* | Thiếu | Quản trị hệ thống |
+| Bump | *(trong CORE_FRAMEWORK.md)* | Done | Đẩy bài 3 tier: Free/Plus/VIP — PayOS webhook, cron reset |
+| Admin | *(trong CORE_FRAMEWORK.md)* | Done | Stats, posts, users, reports, revenue (BumpOrder) |
 | Prisma | *(trong DATABASE_SCHEMA.md)* | — | Database ORM service |
 
 ## Flutter Modules (Screens & Providers)
@@ -52,3 +53,6 @@
 | My Reviews | `profile/my_reviews_screen.dart` | Done | Đánh giá nhận được |
 | Deals | `deal/deals_screen.dart` | Done | Danh sách giao dịch |
 | User Profile | `user_profile_screen.dart` | Done | Hồ sơ user khác |
+| My Posts | `post/my_posts_screen.dart` | Done | Bài đăng của tôi + nút Đẩy bài |
+| Bump Package | `post/bump_package_screen.dart` | Done | Chọn gói boost (Free/Plus/VIP) + PayOSWebView |
+| Admin | `admin/admin_dashboard_screen.dart` | Done | Quản trị: Stats/Posts/Users/Reports/Doanh thu |

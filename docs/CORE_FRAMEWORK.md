@@ -127,8 +127,18 @@ backend/src/
 | POST | `/post` | JWT | Tạo bài đăng mới (multipart, tối đa 5 ảnh) |
 | PATCH | `/post/:id` | JWT | Cập nhật bài đăng |
 | PATCH | `/post/:id/status` | JWT | Đổi trạng thái (`available`/`done`) |
-| POST | `/post/:id/bump` | JWT | Đẩy bài đăng lên đầu (cooldown 24h) |
+| POST | `/post/:id/bump` | JWT | Đẩy bài đăng lên đầu (cooldown 24h, free Tier 1) |
 | DELETE | `/post/:id` | JWT | Xóa bài đăng |
+
+### Bump — `/bump`
+
+| Method | Path | Auth | Mô tả |
+|---|---|---|---|
+| POST | `/bump/:postId/order` | JWT | Tạo đơn PayOS — body: `{ package: "plus_3d" \| "vip_7d" }` |
+| POST | `/bump/webhook` | — | PayOS callback webhook (verify signature) |
+| GET | `/bump/:postId/status` | — | Trạng thái boost hiện tại + thời gian còn lại |
+| GET | `/bump/return?postId=` | — | Redirect về `traotay://bump/success` sau thanh toán |
+| GET | `/bump/cancel?postId=` | — | Redirect về `traotay://bump/cancel` sau huỷ |
 
 ### Chat — `/chat`
 
@@ -236,6 +246,7 @@ backend/src/
 | Storage | `shared_preferences`, `flutter_secure_storage` |
 | Push notifications | `firebase_messaging` (FCM) |
 | Image cache | `cached_network_image` |
+| WebView | `webview_flutter` (PayOS thanh toán) |
 
 ### Base URL
 
@@ -260,14 +271,19 @@ app/lib/screens/
 ├── post_detail_screen.dart      # Chi tiết bài đăng
 ├── user_profile_screen.dart     # Hồ sơ user khác
 ├── post/
-│   └── create_post_tab.dart     # Đăng bài mới
+│   ├── create_post_tab.dart        # Đăng bài mới
+│   ├── my_posts_screen.dart        # Bài đăng của tôi + nút Đẩy bài
+│   ├── bump_package_screen.dart    # Chọn gói boost (Free/Plus/VIP) + PayOSWebView
+│   └── edit_post_screen.dart       # Sửa bài đăng
 ├── deal/
-│   └── deals_screen.dart        # Danh sách giao dịch
+│   └── deals_screen.dart           # Danh sách giao dịch
 ├── profile/
-│   └── my_reviews_screen.dart   # Đánh giá nhận được
+│   └── my_reviews_screen.dart      # Đánh giá nhận được
+├── admin/
+│   └── admin_dashboard_screen.dart # Quản trị: Stats/Posts/Users/Reports/Doanh thu
 └── auth/
-    ├── phone_login_screen.dart  # Đăng nhập SĐT (Firebase OTP)
-    └── email_login_screen.dart  # Đăng nhập email OTP
+    ├── phone_login_screen.dart     # Đăng nhập SĐT (Firebase OTP)
+    └── email_login_screen.dart     # Đăng nhập email OTP
 ```
 
 ### Bottom Navigation (5 tabs)

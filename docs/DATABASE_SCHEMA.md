@@ -75,6 +75,27 @@
 
 ---
 
+### `BumpOrder`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `userId` | `String` | FK → `User.id` (cascade delete) |
+| `postId` | `String` | FK → `Post.id` (cascade delete) |
+| `package` | `String` | `"plus_3d"` \| `"vip_7d"` |
+| `tier` | `Int` | `2`=Plus \| `3`=VIP |
+| `amount` | `Int` | Giá VNĐ: `5000` \| `15000` |
+| `status` | `String` | `pending` → `paid` / `expired` / `cancelled` |
+| `payosOrderId` | `String?` | Mã đơn PayOS (unique) |
+| `expiredAt` | `DateTime?` | `null` khi chưa paid. Set khi webhook xác nhận thanh toán |
+| `createdAt` | `DateTime` | Tự động |
+
+**Indexes:** userId, postId, status, expiredAt
+
+**Flow:** `pending` (tạo đơn) → `paid` (webhook PayOS xác nhận) → `expired` (cron reset mỗi giờ khi expiredAt < now)
+
+---
+
 ### `Favorite`
 
 | Cột | Kiểu | Ghi chú |
