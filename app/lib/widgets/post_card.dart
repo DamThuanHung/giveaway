@@ -259,15 +259,19 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
                     children: [
                       Flexible(
                         child: post.isJob
-                          ? Row(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.work_outline, size: 12, color: Color(0xFF5C6BC0)),
-                              const SizedBox(width: 3),
-                              Flexible(child: Text(
-                                post.subTypeLabel.isNotEmpty ? post.subTypeLabel : 'Việc làm',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF5C6BC0)),
-                                overflow: TextOverflow.ellipsis,
-                              )),
-                            ])
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  post.price == 0 ? 'Thỏa thuận' : '${PostCard.formatPrice(post.price, 'sell')}${post.priceUnitLabel}',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (post.subTypeLabel.isNotEmpty)
+                                  Text(post.subTypeLabel, style: const TextStyle(fontSize: 10, color: Color(0xFF5C6BC0)), overflow: TextOverflow.ellipsis),
+                              ],
+                            )
                           : Text(
                               PostCard.formatPrice(post.price, post.listingType),
                               style: TextStyle(

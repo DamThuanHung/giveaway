@@ -174,8 +174,8 @@ class _CreatePostTabState extends State<CreatePostTab> {
     final postData = {
       'title': _titleController.text.trim(),
       'description': _descController.text.trim(),
-      'price': _listingType == 'give' ? '0' : (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()),
-      'listingType': _isRealestate ? (_subType == 'rent' ? 'sell' : 'sell') : _listingType,
+      'price': (_listingType == 'give' || _isJob) ? (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()) : (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()),
+      'listingType': (_isRealestate || _isJob) ? 'sell' : _listingType,
       'itemCategory': _itemCategory,
       'postType': _postType,
       'province': _selectedProvince,
@@ -569,7 +569,14 @@ class _CreatePostTabState extends State<CreatePostTab> {
                 prefixIcon: const Icon(Icons.payments_outlined),
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return null;
+                final n = int.tryParse(v.trim());
+                if (n == null || n < 0) return 'Mức lương không hợp lệ';
+                if (n > 2000000000) return 'Mức lương tối đa 2 tỷ đồng';
+                return null;
+              },
             ),
           ),
           const SizedBox(width: 8),
