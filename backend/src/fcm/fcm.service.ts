@@ -10,7 +10,7 @@ export class FcmService implements OnModuleInit {
   onModuleInit() {
     if (admin.apps.length > 0) return;
 
-    // Ưu tiên 1: env var FCM_SERVICE_ACCOUNT (dùng trên Railway)
+    // Ưu tiên 1: env var FCM_SERVICE_ACCOUNT (Docker / production)
     const envJson = process.env.FCM_SERVICE_ACCOUNT;
     if (envJson) {
       try {
