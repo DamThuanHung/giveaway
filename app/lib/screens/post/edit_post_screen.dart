@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../data/categories.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
@@ -17,9 +18,12 @@ class _EditPostScreenState extends State<EditPostScreen> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _priceCtrl;
+  late final TextEditingController _companyCtrl; // jobs: tên công ty
   late String _listingType;
   late String _itemCategory;
   late String _status;
+  late String _subType;     // jobs: job type | realestate: rent/sell
+  late String _priceUnit;   // jobs/realestate/service: đơn vị giá
   bool _isSubmitting = false;
 
   static const _listingTypes = [
@@ -35,18 +39,24 @@ class _EditPostScreenState extends State<EditPostScreen> {
     ('done', 'Đã giao xong'),
   ];
 
+  bool get _isJob => _itemCategory == 'jobs';
+  bool get _isRealestate => _itemCategory == 'realestate';
+  bool get _isService => _itemCategory == 'service';
+
   @override
   void initState() {
     super.initState();
-    _titleCtrl = TextEditingController(text: widget.post.title);
-    _descCtrl = TextEditingController(text: widget.post.description);
-    _priceCtrl = TextEditingController(text: widget.post.price == 0 ? '' : '${widget.post.price}');
-    _listingType = widget.post.listingType;
-    final validCategories = AppCategories.list.map((c) => c['value']!).toSet();
-    _itemCategory = validCategories.contains(widget.post.itemCategory)
-        ? widget.post.itemCategory
-        : 'other';
-    _status = widget.post.status;
+    final p = widget.post;
+    _titleCtrl   = TextEditingController(text: p.title);
+    _descCtrl    = TextEditingController(text: p.description);
+    _priceCtrl   = TextEditingController(text: p.price == 0 ? '' : '${p.price}');
+    _companyCtrl = TextEditingController(text: p.isJob ? (p.serviceArea ?? '') : '');
+    final validCats = AppCategories.list.map((c) => c['value']!).toSet();
+    _itemCategory = validCats.contains(p.itemCategory) ? p.itemCategory : 'other';
+    _listingType  = p.listingType;
+    _status       = p.status;
+    _subType      = p.subType ?? (p.isJob ? 'full-time' : 'rent');
+    _priceUnit    = p.priceUnit ?? 'month';
   }
 
   @override
@@ -54,6 +64,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _priceCtrl.dispose();
+    _companyCtrl.dispose();
     super.dispose();
   }
 
@@ -61,13 +72,28 @@ class _EditPostScreenState extends State<EditPostScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
 
-    final data = {
-      'title': _titleCtrl.text.trim(),
+    final data = <String, dynamic>{
+      'title':       _titleCtrl.text.trim(),
       'description': _descCtrl.text.trim(),
-      'price': int.tryParse(_priceCtrl.text.trim()) ?? 0,
-      'listingType': _listingType,
+      'price':       int.tryParse(_priceCtrl.text.trim()) ?? 0,
+      'listingType': (_isJob || _isRealestate) ? 'sell' : _listingType,
       'itemCategory': _itemCategory,
-      'status': _status,
+      'status':      _status,
+      if (_isJob) ...{
+        'postType':   'job',
+        'subType':    _subType,
+        'priceUnit':  _priceUnit,
+        'serviceArea': _companyCtrl.text.trim(),
+      },
+      if (_isRealestate) ...{
+        'postType':  'realestate',
+        'subType':   _subType,
+        'priceUnit': _priceUnit,
+      },
+      if (_isService) ...{
+        'postType':  'service',
+        'priceUnit': _priceUnit,
+      },
     };
 
     final ok = await ApiService.updatePost(widget.post.id, data);
@@ -122,40 +148,99 @@ class _EditPostScreenState extends State<EditPostScreen> {
               _Label('Mô tả'),
               TextFormField(
                 controller: _descCtrl,
-                decoration: _deco('Mô tả chi tiết tình trạng, lý do bán...'),
+                decoration: _deco('Mô tả chi tiết...'),
                 maxLines: 4,
                 maxLength: 1000,
               ),
               const SizedBox(height: 16),
-
-              // Loại đăng
-              _Label('Loại đăng'),
-              _SegmentRow(
-                options: _listingTypes.map((e) => (e.$1, e.$2)).toList(),
-                selected: _listingType,
-                onChanged: (v) => setState(() { _listingType = v; if (v == 'give') _priceCtrl.clear(); }),
-              ),
-              const SizedBox(height: 16),
-
-              // Giá
-              if (_listingType == 'sell') ...[
-                _Label('Giá (VNĐ)'),
-                TextFormField(
-                  controller: _priceCtrl,
-                  decoration: _deco('VD: 500000'),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-              ],
 
               // Danh mục
               _Label('Danh mục'),
               _DropdownField<String>(
                 value: _itemCategory,
                 items: _categories.map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2))).toList(),
-                onChanged: (v) => setState(() => _itemCategory = v!),
+                onChanged: (v) => setState(() {
+                  _itemCategory = v!;
+                  if (v == 'jobs') { _subType = 'full-time'; _priceUnit = 'month'; }
+                  else if (v == 'realestate') { _subType = 'rent'; _priceUnit = 'month'; }
+                }),
               ),
               const SizedBox(height: 16),
+
+              // ── Jobs fields ─────────────────────────────────
+              if (_isJob) ...[
+                _Label('Hình thức làm việc *'),
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: [
+                    _TypeChip('Toàn thời gian', 'full-time', _subType, (v) => setState(() => _subType = v)),
+                    _TypeChip('Bán thời gian',  'part-time', _subType, (v) => setState(() => _subType = v)),
+                    _TypeChip('Freelance',       'freelance', _subType, (v) => setState(() => _subType = v)),
+                    _TypeChip('Thực tập',        'intern',    _subType, (v) => setState(() => _subType = v)),
+                    _TypeChip('Remote',          'remote',    _subType, (v) => setState(() => _subType = v)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _Label('Tên công ty / Nhà tuyển dụng'),
+                TextFormField(
+                  controller: _companyCtrl,
+                  decoration: _deco('VD: Công ty ABC').copyWith(prefixIcon: const Icon(Icons.business_outlined)),
+                  maxLength: 100,
+                ),
+                const SizedBox(height: 8),
+                _Label('Mức lương (VNĐ)'),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(flex: 3, child: TextFormField(
+                    controller: _priceCtrl,
+                    decoration: _deco('Để trống = thỏa thuận').copyWith(prefixIcon: const Icon(Icons.payments_outlined)),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return null;
+                      final n = int.tryParse(v.trim());
+                      if (n == null || n > 2000000000) return 'Tối đa 2 tỷ đồng';
+                      return null;
+                    },
+                  )),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 2, child: _DropdownField<String>(
+                    value: (_priceUnit == 'month' || _priceUnit == 'hour') ? _priceUnit : 'month',
+                    items: const [
+                      DropdownMenuItem(value: 'month', child: Text('/tháng')),
+                      DropdownMenuItem(value: 'hour',  child: Text('/giờ')),
+                    ],
+                    onChanged: (v) => setState(() => _priceUnit = v!),
+                  )),
+                ]),
+                const SizedBox(height: 16),
+              ],
+
+              // ── Item thường / Service — loại đăng + giá ───
+              if (!_isJob && !_isRealestate) ...[
+                _Label('Loại đăng'),
+                _SegmentRow(
+                  options: _listingTypes.map((e) => (e.$1, e.$2)).toList(),
+                  selected: _listingType,
+                  onChanged: (v) => setState(() { _listingType = v; if (v == 'give') _priceCtrl.clear(); }),
+                ),
+                const SizedBox(height: 16),
+                if (_listingType == 'sell') ...[
+                  _Label('Giá (VNĐ)'),
+                  TextFormField(
+                    controller: _priceCtrl,
+                    decoration: _deco('Để trống = thương lượng'),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return null;
+                      final n = int.tryParse(v.trim());
+                      if (n == null || n > 2000000000) return 'Giá không hợp lệ';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ],
 
               // Trạng thái
               _Label('Trạng thái bài đăng'),
@@ -166,7 +251,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Nút lưu
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -199,6 +283,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
   );
 }
 
+// ── Widgets ───────────────────────────────────────────────────────────────────
+
 class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
@@ -206,6 +292,31 @@ class _Label extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
   );
+}
+
+class _TypeChip extends StatelessWidget {
+  final String label, value, selected;
+  final Function(String) onTap;
+  const _TypeChip(this.label, this.value, this.selected, this.onTap);
+
+  @override Widget build(BuildContext context) {
+    final isSelected = value == selected;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? AppTheme.primary : AppTheme.border),
+        ),
+        child: Text(label, style: TextStyle(
+          fontSize: 13, fontWeight: FontWeight.w600,
+          color: isSelected ? Colors.white : AppTheme.textSecondary,
+        )),
+      ),
+    );
+  }
 }
 
 class _SegmentRow extends StatelessWidget {
