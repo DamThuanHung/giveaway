@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/skeleton.dart';
+import 'bump_package_screen.dart';
 import 'edit_post_screen.dart';
 import '../post_detail_screen.dart';
 
@@ -51,18 +52,22 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 
   Future<void> _bumpPost(String id) async {
-    final result = await ApiService.bumpPost(id);
-    if (!mounted) return;
-    if (result != null && result['ok'] == true) {
-      final bumpedAt = result['bumpedAt'] != null ? DateTime.tryParse(result['bumpedAt'].toString()) : null;
-      setState(() {
-        final idx = _posts.indexWhere((p) => p.id == id);
-        if (idx != -1) _posts[idx] = _posts[idx].copyWith(bumpedAt: bumpedAt);
-      });
-      _showSnackBar('Đã đẩy bài lên đầu danh sách');
-    } else {
-      _showSnackBar(result?['error'] ?? 'Không thể đẩy bài, thử lại sau', isError: true);
-    }
+    final post = _posts.firstWhere((p) => p.id == id);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (_, __) => BumpPackageScreen(
+          postId: id,
+          currentTier: post.effectiveTier,
+          onSuccess: _loadPosts,
+        ),
+      ),
+    );
   }
 
   Future<void> _markStatus(String id, String status) async {

@@ -437,6 +437,34 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> createBumpOrder(String postId, String package) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/bump/$postId/order'),
+        headers: {...await _authHeaders(), 'Content-Type': 'application/json'},
+        body: jsonEncode({'package': package}),
+      ).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200 || res.statusCode == 201) return jsonDecode(res.body);
+      final body = jsonDecode(res.body);
+      return {'error': body['message'] ?? 'Không thể tạo đơn'};
+    } catch (e) {
+      return {'error': 'Lỗi kết nối'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getBoostStatus(String postId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/bump/$postId/status'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return {'error': 'Không lấy được trạng thái'};
+    } catch (e) {
+      return {'error': 'Lỗi kết nối'};
+    }
+  }
+
   // ─── FAVORITE ────────────────────────────────────────
   static Future<bool> addFavorite(String userId, String postId) async {
     try {
