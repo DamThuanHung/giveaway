@@ -668,6 +668,19 @@ class ApiService {
   }
 
   // ─── ADMIN ───────────────────────────────────────────
+  static Future<Map<String, dynamic>> adminGet(String path) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/admin/$path'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) return jsonDecode(res.body);
+      return {'error': 'Lỗi ${res.statusCode}'};
+    } catch (e) {
+      return {'error': 'Lỗi kết nối'};
+    }
+  }
+
   static Future<Map<String, dynamic>> adminGetPosts({int page = 1, String? status, String? search}) async {
     try {
       final params = <String, String>{'page': '$page', 'limit': '20'};

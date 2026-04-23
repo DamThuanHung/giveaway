@@ -63,4 +63,19 @@ export class AdminController {
   resolveReport(@Param('id') id: string, @Body('action') action: 'resolved' | 'dismissed') {
     return this.adminService.resolveReport(id, action);
   }
+
+  // ─── Revenue / BumpOrders ─────────────────────────
+  @Get('revenue')
+  getRevenue() {
+    return this.adminService.getRevenueStats();
+  }
+
+  @Get('bump-orders')
+  getBumpOrders(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getBumpOrders(+page, +limit, status);
+  }
 }

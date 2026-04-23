@@ -137,4 +137,45 @@ export class AdminService {
     }
     return report;
   }
+
+  async getRevenueStats() {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const [totalRevenue, todayRevenue, monthRevenue, plusCount, vipCount, activeBoosts] =
+      await Promise.all([
+        this.prisma.bumpOrder.aggregate({ where: { status: 'paid' }, _sum: { amount: true } }),
+        this.prisma.bumpOrder.aggregate({ where: { status: 'paid', createdAt: { gte: today } }, _sum: { amount: true } }),
+        this.prisma.bumpOrder.aggregate({ where: { status: 'paid', createdAt: { gte: thisMonth } }, _sum: { amount: true } }),
+        this.prisma.bumpOrder.count({ where: { status: 'paid', package: 'plus_3d' } }),
+        this.prisma.bumpOrder.count({ where: { status: 'paid', package: 'vip_7d' } }),
+        this.prisma.bumpOrder.count({ where: { status: 'paid', expiredAt: { gt: new Date() } } }),
+      ]);
+
+    return {
+      total: totalRevenue._sum.amount ?? 0,
+      today: todayRevenue._sum.amount ?? 0,
+      thisMonth: monthRevenue._sum.amount ?? 0,
+      breakdown: { plus: plusCount, vip: vipCount },
+      activeBoosts,
+    };
+  }
+
+  async getBumpOrders(page = 1, limit = 20, status?: string) {
+    const where: any = {};
+    if (status) where.status = status;
+    const skip = (page - 1) * limit;
+    const [orders, total] = await Promise.all([
+      this.prisma.bumpOrder.findMany({
+        where, skip, take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, email: true, phone: true } },
+          post: { select: { id: true, title: true } },
+        },
+      }),
+      this.prisma.bumpOrder.count({ where }),
+    ]);
+    return { data: orders, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
 }

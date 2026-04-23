@@ -42,6 +42,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _reportsLoading = false;
   bool _reportsInitialized = false;
 
+  // Revenue
+  Map<String, dynamic>? _revenue;
+  final List<dynamic> _orders = [];
+  int _ordersPage = 0;
+  int _ordersTotalPages = 1;
+  bool _revenueLoading = false;
+  bool _revenueInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -127,12 +135,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
   }
 
+  Future<void> _loadRevenue() async {
+    if (_revenueLoading) return;
+    setState(() => _revenueLoading = true);
+    try {
+      final stats = await ApiService.adminGet('revenue');
+      final orders = await ApiService.adminGet('bump-orders?page=1&limit=20');
+      if (!mounted) return;
+      setState(() {
+        _revenue = stats;
+        _orders.clear();
+        _orders.addAll(orders['data'] ?? []);
+        _ordersTotalPages = orders['meta']?['totalPages'] ?? 1;
+        _revenueInitialized = true;
+      });
+    } finally {
+      if (mounted) setState(() => _revenueLoading = false);
+    }
+  }
+
   void _switchTab(int tab) {
     setState(() => _tab = tab);
     if (tab == 0 && _stats == null) _loadStats();
     if (tab == 1 && !_postsInitialized) _loadPosts();
     if (tab == 2 && !_usersInitialized) _loadUsers();
     if (tab == 3 && !_reportsInitialized) _loadReports();
+    if (tab == 4 && !_revenueInitialized) _loadRevenue();
   }
 
   @override
@@ -154,6 +182,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 _TabBtn('📦 Bài đăng', 1, _tab, _switchTab),
                 _TabBtn('👤 Người dùng', 2, _tab, _switchTab),
                 _TabBtn('🚩 Báo cáo', 3, _tab, _switchTab),
+                _TabBtn('💰 Doanh thu', 4, _tab, _switchTab),
               ]),
             ),
           ),
@@ -170,6 +199,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       case 1: return _buildPosts();
       case 2: return _buildUsers();
       case 3: return _buildReports();
+      case 4: return _buildRevenue();
       default: return const SizedBox();
     }
   }
@@ -449,6 +479,132 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
     ) ?? false;
+  }
+
+  // ── Revenue tab ───────────────────────────────────────────────────────────
+
+  Widget _buildRevenue() {
+    if (_revenueLoading && !_revenueInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final r = _revenue;
+    return RefreshIndicator(
+      onRefresh: _loadRevenue,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Summary cards
+          Row(children: [
+            Expanded(child: _StatTile('Tổng doanh thu', _formatMoney(r?['total'] ?? 0), Icons.payments_outlined, AppTheme.primary)),
+            const SizedBox(width: 12),
+            Expanded(child: _StatTile('Tháng này', _formatMoney(r?['thisMonth'] ?? 0), Icons.calendar_month_outlined, AppTheme.warning)),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _StatTile('Hôm nay', _formatMoney(r?['today'] ?? 0), Icons.today_outlined, AppTheme.success)),
+            const SizedBox(width: 12),
+            Expanded(child: _StatTile('Đang boost', '${r?['activeBoosts'] ?? 0} bài', Icons.rocket_launch_outlined, const Color(0xFFC9A84A))),
+          ]),
+          const SizedBox(height: 16),
+
+          // Breakdown
+          const _Section('Theo gói'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+            child: Row(children: [
+              Expanded(child: _MiniStat('Plus (5k)', '${r?['breakdown']?['plus'] ?? 0} đơn', const Color(0xFF854F0B))),
+              const SizedBox(width: 12),
+              Expanded(child: _MiniStat('VIP (15k)', '${r?['breakdown']?['vip'] ?? 0} đơn', const Color(0xFFC9A84A))),
+            ]),
+          ),
+          const SizedBox(height: 16),
+
+          // Order list
+          const _Section('Đơn hàng gần nhất'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+            child: _orders.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(child: Text('Chưa có đơn nào', style: TextStyle(color: AppTheme.textSecondary))),
+                )
+              : Column(children: _orders.map((o) => _OrderTile(order: o)).toList()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatMoney(dynamic amount) {
+    final n = (amount as num?)?.toInt() ?? 0;
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}tr';
+    if (n >= 1000) return '${(n / 1000).round()}k';
+    return '${n}đ';
+  }
+}
+
+class _OrderTile extends StatelessWidget {
+  final dynamic order;
+  const _OrderTile({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = order['status'] as String? ?? '';
+    final pkg = order['package'] as String? ?? '';
+    final amount = order['amount'] as int? ?? 0;
+    final user = order['user'];
+    final post = order['post'];
+    final createdAt = order['createdAt'] != null
+        ? DateTime.tryParse(order['createdAt'].toString())
+        : null;
+
+    final statusColor = switch (status) {
+      'paid'      => AppTheme.success,
+      'pending'   => AppTheme.warning,
+      'expired'   => AppTheme.textSecondary,
+      'cancelled' => AppTheme.error,
+      _           => AppTheme.textSecondary,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5))),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(post?['title'] ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text(user?['name'] ?? user?['email'] ?? '—', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(pkg == 'plus_3d' ? 'Plus 3 ngày' : 'VIP 7 ngày',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: statusColor.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+                  child: Text(status, style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 6),
+                Text('${(amount / 1000).round()}k', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.priceColor)),
+              ]),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
