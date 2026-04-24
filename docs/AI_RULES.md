@@ -108,6 +108,10 @@ Gõ "lưu" để tôi cập nhật tự động.
 [22/04/2026] NestJS Dockerfile: `npm install --ignore-scripts` trước, `COPY . .` rồi mới `npx prisma generate` — nếu prisma generate chạy trước COPY thì schema chưa có → build lỗi
 [22/04/2026] NestJS compile ra `dist/src/main.js` (không phải `dist/main.js`) khi không có `rootDir` trong tsconfig — CMD phải là `node dist/src/main`
 [22/04/2026] `.env.docker` phải gitignore nếu chứa FCM private key hoặc secrets thật — commit file mẫu không có secret vào git lần đầu là đủ
+[24/04/2026] ADB screencap không được pipe qua PowerShell `>` redirect — PowerShell auto convert LF → CRLF làm corrupt PNG. Dùng `adb shell screencap -p /sdcard/x.png` rồi `adb pull` sang máy — Xác nhận qua fix thực tế
+[24/04/2026] MSYS Git Bash tự convert đường dẫn Unix `/sdcard/...` thành `C:/Program Files/Git/sdcard/...` khi gọi adb. Fix: dùng PowerShell (không có path translation) hoặc set `MSYS_NO_PATHCONV=1` (chỉ ảnh hưởng destination path adb) — Xác nhận qua fix thực tế
+[24/04/2026] Claude Code giới hạn ảnh ≤ 2000px mỗi chiều trong session có nhiều ảnh ("many-image threshold"). Screenshot Android 1240x2772 sẽ fail. Resize xuống 1600px max chiều dài bằng PowerShell System.Drawing HighQualityBicubic — lưu bản preview riêng, giữ file gốc cho Play Store
+[24/04/2026] Flutter app không expose text qua uiautomator dump — toàn bộ UI hierarchy chỉ có `FlutterView`, không có text/content-desc. Để tap chính xác phải đọc source Dart (Expanded, EdgeInsets, Row flex) và tính tọa độ từ layout
 
 ---
 

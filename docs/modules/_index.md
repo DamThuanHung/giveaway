@@ -56,3 +56,9 @@
 | My Posts | `post/my_posts_screen.dart` | Done | Bài đăng của tôi + nút Đẩy bài |
 | Bump Package | `post/bump_package_screen.dart` | Done | Chọn gói boost (Free/Plus/VIP) + PayOSWebView |
 | Admin | `admin/admin_dashboard_screen.dart` | Done | Quản trị: Stats/Posts/Users/Reports/Doanh thu |
+
+## Quy trình phát hành
+
+| Module | File tài liệu | Mô tả |
+|---|---|---|
+| Play Store Screenshots | [playstore-screenshots.md](playstore-screenshots.md) | Quy trình seed data + chụp ADB + resize preview |
