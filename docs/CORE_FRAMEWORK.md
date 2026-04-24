@@ -51,19 +51,24 @@
 
 | Biến | Mô tả |
 |---|---|
+| `NODE_ENV` | `development` \| `production`. Production tự disable toàn bộ `/dev/*` endpoint + tắt static `/uploads` |
 | `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET` | Secret key cho JWT |
+| `JWT_SECRET` | Secret key cho JWT (≥64 ký tự random) |
 | `PORT` | Port server (mặc định 3800) |
 | `BASE_URL` | Public URL của server (fallback cho PayOS nếu không có `PUBLIC_URL`) |
 | `PUBLIC_URL` | URL public cho PayOS webhook/redirect (ngrok khi dev, domain khi production). Bắt buộc nếu `BASE_URL` là LAN IP |
+| `CORS_ORIGIN` | Comma-separated origin cho REST + 2 WebSocket gateway. Production: `https://traotay.com.vn,https://www.traotay.com.vn`. Rỗng khi dev → reflect mọi origin |
+| `ADMIN_EMAILS` | Comma-separated email có role admin. Rỗng = không ai là admin (không có fallback hardcode) |
 | `FCM_SERVICE_ACCOUNT` | JSON credentials Firebase Cloud Messaging |
-| `DEV_SECRET` | Secret để gọi `/user/dev/login` và `/dev/*` endpoints |
+| `RESEND_API_KEY` | Resend API key để gửi OTP email. Production thiếu → server throw khi gửi OTP |
+| `DEV_SECRET` | Secret bổ sung cho `/dev/*` (chỉ check khi `NODE_ENV !== 'production'`) |
 | `MINIO_ENDPOINT` | MinIO host (e.g. `minio` trong Docker, `localhost` ngoài) |
 | `MINIO_PORT` | MinIO port (mặc định `9000`) |
+| `MINIO_USE_SSL` | `true` nếu MinIO qua HTTPS (production), `false` dev |
 | `MINIO_ACCESS_KEY` | MinIO access key |
 | `MINIO_SECRET_KEY` | MinIO secret key |
 | `MINIO_BUCKET` | Tên bucket (mặc định `traotay`) |
-| `MINIO_PUBLIC_URL` | Public URL để tạo link ảnh (e.g. `http://localhost:9000`) |
+| `MINIO_PUBLIC_URL` | Public URL để tạo link ảnh (e.g. `http://localhost:9000`, prod `https://s3.traotay.com.vn`) |
 | `PAYOS_CLIENT_ID` | Client ID cổng PayOS (từ my.payos.vn → Kênh thanh toán) |
 | `PAYOS_API_KEY` | API Key PayOS |
 | `PAYOS_CHECKSUM_KEY` | Checksum Key PayOS (để verify webhook) |

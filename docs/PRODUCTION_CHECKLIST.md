@@ -55,63 +55,41 @@ openssl rand -base64 64   # cho JWT
 - [ ] PayOS `PAYOS_CHECKSUM_KEY` đặc biệt nhạy cảm — lộ key này = attacker fake webhook được
 
 ### ⚠️ HIGH — Admin email
-- [ ] [backend/src/user/user.service.ts:273](backend/src/user/user.service.ts#L273): hardcode fallback `damhungtpt@gmail.com` — đặt `ADMIN_EMAILS` env var trong `.env.docker`:
-  ```
-  ADMIN_EMAILS=admin@traotay.com.vn,backup-admin@traotay.com.vn
-  ```
-- [ ] Xóa chữ `damhungtpt@gmail.com` khỏi code fallback → nếu env thiếu thì list rỗng, an toàn hơn
+- [x] ~~Xóa hardcode fallback `damhungtpt@gmail.com`~~ ✅ commit `ca4c421` — fallback giờ là `''`, phải set env `ADMIN_EMAILS`
+- [ ] Set `ADMIN_EMAILS=admin@traotay.com.vn,backup-admin@traotay.com.vn` trong `.env.docker` production
 
 ---
 
 ## 2. PRE-PRODUCTION — Backend Security
 
 ### 🚨 CRITICAL — CORS
-3 nơi đang `origin: '*'` cho phép mọi origin:
+- [x] ~~3 nơi `origin: '*'`~~ ✅ commit `ca4c421` — giờ đọc từ env `CORS_ORIGIN` (comma-separated), fallback `true` (reflect origin) khi rỗng
+- [ ] Set `CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"` trong `.env.docker` production
 
-| File:line | Loại |
-|---|---|
-| [backend/src/main.ts:18](backend/src/main.ts#L18) | REST API |
-| [backend/src/chat/chat.gateway.ts:8](backend/src/chat/chat.gateway.ts#L8) | WebSocket chat |
-| [backend/src/notification/notification.gateway.ts:4](backend/src/notification/notification.gateway.ts#L4) | WebSocket notification |
-
-**Fix:**
-```ts
-// Thêm biến env CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"
-origin: process.env.CORS_ORIGIN?.split(',') ?? []
-```
-
-**Lưu ý:** App mobile không gửi `Origin` header → CORS không ảnh hưởng mobile. Restrict `*` chỉ chặn web.
+**Lưu ý:** App mobile không gửi `Origin` header → CORS không ảnh hưởng mobile. Restrict chỉ chặn web.
 
 ### ⚠️ HIGH — Security headers (helmet)
-- [ ] Cài `npm i helmet` trong backend
-- [ ] Thêm vào [main.ts](backend/src/main.ts) trước `app.enableCors`:
-  ```ts
-  import helmet from 'helmet';
-  app.use(helmet());
-  ```
+- [x] ~~Cài + dùng helmet~~ ✅ commit `ca4c421` — `app.use(helmet())` trước `enableCors`
 
 ### ⚠️ HIGH — Rate limiting
-- [ ] Cài `npm i @nestjs/throttler`
-- [ ] Global throttle (app.module.ts):
-  ```ts
-  ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }])  // 100 req/phút/IP
-  ```
-- [ ] Endpoint nhạy cảm dùng `@Throttle({ default: { ttl, limit } })`:
+- [x] ~~ThrottlerModule global + @Throttle endpoint nhạy cảm~~ ✅ commit `ca4c421`:
 
-| Endpoint | Limit | Lý do |
+| Endpoint | Limit đã set | Ghi chú |
 |---|---|---|
-| `POST /user/email-login/send` | 3/phút | Chống spam OTP |
-| `POST /user/forgot-password/send` | 3/5 phút | Chống spam OTP |
-| `POST /user/phone-login` | 10/phút | OTP Firebase |
-| `POST /bump/webhook` | 30/phút | Chống DDoS verify signature |
-| `POST /post` | 10/giờ | Chống spam tạo bài |
-| `POST /chat/room/:id/message` | 60/phút | Chống spam tin nhắn |
-| `POST /user/avatar` | 5/phút | Chống spam upload |
+| Default toàn bộ | 60/phút/IP | — |
+| `POST /user/email-login/send` | 3/phút | ✓ |
+| `POST /user/admin-login/send` | 3/phút | ✓ |
+| `POST /user/email-login/verify` | 10/phút | ✓ |
+| `POST /user/forgot-password/send` | 3/5 phút | ✓ |
+| `POST /user/avatar` | 5/phút | ✓ |
+| `POST /bump/webhook` | 30/phút | ✓ |
+| `POST /post` | 10/giờ | ✓ |
+| `POST /chat/room/:id/message` | — | ❓ chưa add (chat qua WebSocket, không qua HTTP throttle) |
 
 ### ⚙️ MEDIUM — Logging
-- [ ] Đổi toàn bộ `console.log` sang `Logger` của NestJS để kiểm soát level
-- [ ] [backend/src/user/user.service.ts:28](backend/src/user/user.service.ts#L28): log OTP khi thiếu `RESEND_API_KEY` — wrap trong `if (process.env.NODE_ENV !== 'production')`
-- [ ] [backend/src/main.ts:37](backend/src/main.ts#L37): bỏ `console.log('http://192.168.0.108:...')` — đổi thành `process.env.BASE_URL`
+- [x] ~~OTP log wrap NODE_ENV~~ ✅ commit `ca4c421` — production throw lỗi thay vì log
+- [x] ~~Bỏ hardcode IP LAN trong startup log~~ ✅ commit `ca4c421` — dùng `BASE_URL || localhost:PORT`
+- [ ] Đổi toàn bộ `console.log` còn lại sang `Logger` NestJS (quality improvement)
 
 ---
 
@@ -132,15 +110,15 @@ Nếu `DEV_SECRET` leak (log, git history, người biết) → toàn bộ data 
 | `POST /notification/dev/seed-chat` | ↑ | Sinh chat giả |
 | `POST /notification/dev/setup-test` | ↑ | Setup test state |
 
-**Cách xử lý — chọn 1:**
-- **Option A (đơn giản nhất):** thêm global guard check `NODE_ENV !== 'production'` vào route `/dev/*`, set `NODE_ENV=production` trên VPS. Code vẫn còn nhưng return 404.
-- **Option B (an toàn nhất):** xóa hẳn các endpoint đang commit, chỉ giữ `/bump/dev/boost` (dùng cho emergency restore tier). Các endpoint seed/reset chạy qua script CLI thay route HTTP.
-- **Option C (trung dung):** chuyển tất cả sang `/admin/dev/*` với `AdminGuard` (đã có), xóa `x-dev-secret` check — chỉ admin login được mới gọi được.
-
-**Đề xuất:** Option C — chuyển sang admin, giữ lại khả năng dùng emergency qua admin panel.
+**Đã xử lý (Option A):**
+- [x] ~~Check `NODE_ENV === 'production'` để disable~~ ✅ commit `ca4c421`:
+  - `user.service.devLogin` throw UnauthorizedException khi production
+  - `notification.checkDevSecret` return false khi production (tất cả 9 endpoint dev/ của module này tắt ngay)
+  - `bump.dev/boost` throw ForbiddenException khi production
+- [ ] Set `NODE_ENV=production` trong `.env.docker` trên VPS (đã có dòng trong `.env.example`)
 
 ### ⚠️ HIGH — kiểm tra OTP log
-- [ ] [user.service.ts:28](backend/src/user/user.service.ts#L28): `console.log('📧 [DEV] OTP cho ${email}: ${otp}')` — phải chỉ chạy khi `NODE_ENV !== 'production'`. Production mà log OTP = attacker đọc log sẽ login được.
+- [x] ~~Wrap NODE_ENV~~ ✅ commit `ca4c421` — production thiếu `RESEND_API_KEY` → throw Error thay vì log OTP ra console
 
 ---
 
@@ -164,36 +142,12 @@ Attacker có thể upload:
 - File `.exe`, `.php`, `.sh` rồi abuse URL public để phát tán malware
 - Ảnh polyglot (hợp lệ vừa là JPG vừa là HTML) → XSS khi browser render
 
-**Fix bắt buộc trước production:**
-```ts
-const MAX_SIZE = 5 * 1024 * 1024;          // 5MB/ảnh
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
-
-async uploadBuffer(buffer: Buffer, folder: string, mimeType: string): Promise<string> {
-  if (buffer.length > MAX_SIZE) throw new BadRequestException('Ảnh > 5MB');
-  if (!ALLOWED.includes(mimeType)) throw new BadRequestException('Định dạng không hỗ trợ');
-  
-  // Check magic bytes (không tin header)
-  const sig = buffer.slice(0, 4).toString('hex');
-  const isJpeg = sig.startsWith('ffd8ff');
-  const isPng = sig === '89504e47';
-  const isWebp = buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP';
-  if (!isJpeg && !isPng && !isWebp) throw new BadRequestException('File không phải ảnh hợp lệ');
-  
-  const ext = isJpeg ? 'jpg' : isPng ? 'png' : 'webp';
-  const filename = `${folder}/${randomUUID()}.${ext}`;
-  await this.client.putObject(this.bucket, filename, buffer, buffer.length, { 'Content-Type': mimeType });
-  return `${this.publicUrl}/${this.bucket}/${filename}`;
-}
-```
-
-- [ ] Thêm `@UploadedFile(new ParseFilePipe({ validators: [...] }))` hoặc custom pipe ở controller để NestJS validate sớm
-
-### 🚨 CRITICAL — multer memory limit
-- [ ] [backend/src/post/post.controller.ts](backend/src/post/post.controller.ts) `FilesInterceptor` + [user.controller.ts upload avatar](backend/src/user/user.controller.ts) → thêm `limits: { fileSize: 5 * 1024 * 1024, files: 10 }`
+**Đã fix (commit `ca4c421`):**
+- [x] `CloudinaryService.uploadBuffer` — check size ≤ 5MB, MIME allowlist, magic bytes (không tin client)
+- [x] `multer` limit `fileSize: 5 * 1024 * 1024, files: 10` ở post + avatar
 
 ### ⚙️ MEDIUM — disable static uploads folder
-- [ ] [backend/src/main.ts:29](backend/src/main.ts#L29): `app.useStaticAssets(uploadDir, { prefix: '/uploads/' })` — cũ từ hồi Cloudinary. Production đã dùng MinIO hoàn toàn, comment ra để không serve `backend/uploads/` ra internet.
+- [x] ~~`app.useStaticAssets(uploadDir, ...)`~~ ✅ commit `ca4c421` — chỉ enable khi `NODE_ENV !== 'production'`
 
 ---
 
@@ -294,31 +248,14 @@ services:
 ## 7. PRE-PRODUCTION — Flutter App
 
 ### 🚨 CRITICAL — Hardcode IP LAN
-2 file còn hardcode `http://192.168.0.108:3800`:
+- [x] ~~`api_service.dart:7` + `chat_socket_service.dart:11`~~ ✅ commit `ca4c421` — dùng `String.fromEnvironment('API_URL', defaultValue: 'http://192.168.0.108:3800')`
 
-| File:line | Fix |
-|---|---|
-| [app/lib/services/api_service.dart:7](app/lib/services/api_service.dart#L7) | `static const String baseUrl = 'https://api.traotay.com.vn';` |
-| [app/lib/services/chat_socket_service.dart:11](app/lib/services/chat_socket_service.dart#L11) | `static const String _serverUrl = 'https://api.traotay.com.vn';` |
-
-**Cách làm đúng — flavor:**
-```dart
-// lib/config/env.dart
-class Env {
-  static const String baseUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'https://api.traotay.com.vn',
-  );
-}
-```
-Build prod:
+**Build production (bắt buộc `--dart-define`):**
 ```bash
+flutter build appbundle --release --dart-define=API_URL=https://api.traotay.com.vn
 flutter build apk --release --dart-define=API_URL=https://api.traotay.com.vn
 ```
-Build dev (nếu cần local):
-```bash
-flutter run --dart-define=API_URL=http://192.168.0.108:3800
-```
+**Dev:** không cần `--dart-define` — dùng fallback LAN IP
 
 ### ⚠️ HIGH — `isLocal` guard dev features
 - [ ] Tìm mọi chỗ hiển thị "Dev login" / "Seed data" trong UI — disable khi `!baseUrl.contains('192.168')` hoặc better: dùng build flavor `kDebugMode`
