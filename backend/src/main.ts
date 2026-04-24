@@ -8,6 +8,10 @@ import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Graceful shutdown: khi nhận SIGTERM/SIGINT, đóng connection đang xử lý
+  // trước khi exit. Tránh lost request khi Docker restart.
+  app.enableShutdownHooks();
+
   app.use(helmet());
 
   // CORS: production phải set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"

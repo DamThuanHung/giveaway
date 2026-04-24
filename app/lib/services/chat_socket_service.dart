@@ -1,5 +1,6 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatSocketService {
   // KIẾN TRÚC SINGLETON: Đảm bảo chỉ có 1 kết nối duy nhất
@@ -13,33 +14,41 @@ class ChatSocketService {
     defaultValue: 'http://192.168.0.108:3800',
   );
 
-  void initConnection() {
-    // Tránh khởi tạo chồng chéo nếu đã kết nối
+  Future<void> initConnection() async {
+    // Server bắt buộc JWT trong handshake — lấy từ SharedPreferences
+    final p = await SharedPreferences.getInstance();
+    final token = p.getString('auth_token');
+    if (token == null) {
+      debugPrint('[Socket] 🆘 Chưa có token — chưa đăng nhập?');
+      return;
+    }
+
     try {
       socket = IO.io(_serverUrl, IO.OptionBuilder()
           .setTransports(['websocket'])
+          .setAuth({'token': token})
           .enableAutoConnect()
           .build());
 
       socket.onConnect((_) => debugPrint('[Socket] ✅ Kết nối Backend thành công'));
       socket.onConnectError((err) => debugPrint('[Socket] 🆘 Lỗi kết nối: $err'));
       socket.onDisconnect((_) => debugPrint('[Socket] ❌ Đã ngắt kết nối'));
-      
+
     } catch (e) {
       debugPrint('[Socket] 🆘 Lỗi khởi tạo: $e');
     }
   }
 
-  // Các hàm hỗ trợ gửi/nhận dữ liệu chuẩn
-  void joinRoom(int roomId) {
+  // Các hàm hỗ trợ gửi/nhận dữ liệu chuẩn. senderId được server lấy từ JWT,
+  // không gửi từ client → chống impersonate.
+  void joinRoom(String roomId) {
     socket.emit('joinRoom', {'roomId': roomId});
   }
 
-  void sendMessage({required int roomId, required int senderId, required String text}) {
+  void sendMessage({required String roomId, required String text}) {
     if (text.trim().isEmpty) return;
     socket.emit('sendMessage', {
       'roomId': roomId,
-      'senderId': senderId,
       'text': text.trim()
     });
   }

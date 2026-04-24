@@ -7,11 +7,11 @@ class ChatProvider with ChangeNotifier {
 
   List get messages => _messages;
 
-  void initChat() {
-    _socketService.initConnection();
+  Future<void> initChat() async {
+    await _socketService.initConnection();
     _socketService.socket.on('receive_message', (data) {
       _messages.add(data);
-      notifyListeners(); 
+      notifyListeners();
     });
   }
 
