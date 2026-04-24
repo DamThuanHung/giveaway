@@ -10,11 +10,17 @@ export class ReviewService {
   ) {}
 
   async createReview(reviewerId: string, dealId: string, rating: number, comment?: string) {
+    if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+      throw new BadRequestException('Rating phải là số nguyên từ 1 đến 5');
+    }
+    const cleanComment = comment ? String(comment).trim().slice(0, 1000) : undefined;
+
     const deal = await this.prisma.deal.findUnique({ where: { id: dealId } });
     if (!deal) throw new NotFoundException('Không tìm thấy deal');
     if (deal.status !== 'completed') throw new BadRequestException('Deal chưa hoàn thành');
-    if (deal.requesterId !== reviewerId && deal.ownerId !== reviewerId) throw new BadRequestException('Không có quyền đánh giá deal này');
-    if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) throw new BadRequestException('Rating phải là số nguyên từ 1 đến 5');
+    if (deal.requesterId !== reviewerId && deal.ownerId !== reviewerId) {
+      throw new BadRequestException('Không có quyền đánh giá deal này');
+    }
 
     const revieweeId = deal.requesterId === reviewerId ? deal.ownerId : deal.requesterId;
 
@@ -24,7 +30,7 @@ export class ReviewService {
     if (existing) throw new BadRequestException('Bạn đã đánh giá giao dịch này rồi');
 
     const review = await this.prisma.review.create({
-      data: { dealId, reviewerId, revieweeId, rating, comment },
+      data: { dealId, reviewerId, revieweeId, rating, comment: cleanComment },
       include: { reviewer: { select: { id: true, name: true, avatar: true } } },
     });
 

@@ -6,7 +6,7 @@ import { KeywordAlertService } from '../keyword-alert/keyword-alert.service';
 const BASE_URL = process.env.BASE_URL ?? '';
 
 // Whitelist — không tin string từ client
-const VALID_POST_STATUSES = ['available', 'reserved', 'done'] as const;
+const VALID_POST_STATUSES = ['available', 'reserved', 'done', 'hidden'] as const;
 const VALID_ITEM_CATEGORIES = [
   'electronics', 'fashion', 'home', 'books', 'toys', 'sports', 'beauty',
   'food', 'pets', 'vehicles', 'realestate', 'services', 'jobs', 'other',
