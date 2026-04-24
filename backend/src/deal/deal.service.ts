@@ -2,6 +2,23 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 
+// State machine — chỉ cho phép transitions hợp lệ.
+// Tránh bug DB inconsistent (VD complete deal đã cancelled).
+const VALID_STATUSES = ['pending', 'accepted', 'rejected', 'cancelled', 'completed'] as const;
+type DealStatus = typeof VALID_STATUSES[number];
+
+const ALLOWED_TRANSITIONS: Record<DealStatus, DealStatus[]> = {
+  pending:   ['accepted', 'rejected', 'cancelled'],
+  accepted:  ['completed', 'cancelled'],
+  rejected:  [],  // terminal
+  cancelled: [],  // terminal
+  completed: [],  // terminal
+};
+
+// Ai được phép trigger status nào?
+const OWNER_ACTIONS: DealStatus[]     = ['accepted', 'rejected', 'completed'];
+const REQUESTER_ACTIONS: DealStatus[] = ['cancelled'];
+
 @Injectable()
 export class DealService {
   constructor(
@@ -18,10 +35,21 @@ export class DealService {
     if (post.authorId === requesterId) throw new BadRequestException('Không thể gửi yêu cầu cho bài đăng của mình');
     if (post.status !== 'available') throw new BadRequestException('Bài đăng này không còn nhận yêu cầu');
 
+    const ownerId = post.authorId!;
+
+    // Chặn deal giữa 2 user đã block nhau (cả 2 chiều)
+    const blocked = await this.prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { blockerId: ownerId, blockedId: requesterId },
+          { blockerId: requesterId, blockedId: ownerId },
+        ],
+      },
+    });
+    if (blocked) throw new ForbiddenException('Không thể gửi yêu cầu (đã bị chặn)');
+
     const existing = await this.prisma.deal.findFirst({ where: { postId, requesterId, status: 'pending' } });
     if (existing) throw new BadRequestException('Bạn đã gửi yêu cầu cho bài đăng này rồi');
-
-    const ownerId = post.authorId!;
 
     // Tạo deal
     const deal = await this.prisma.deal.create({
@@ -42,7 +70,6 @@ export class DealService {
       });
     }
 
-    // Gửi deal card message (senderId = requesterId, system message)
     const metadata = JSON.stringify({
       type: 'deal',
       dealId: deal.id,
@@ -60,7 +87,6 @@ export class DealService {
     });
     await this.prisma.chatRoom.update({ where: { id: room.id }, data: { updatedAt: new Date() } });
 
-    // Notification cho người bán
     const requesterName = (deal.requester as any)?.name ?? 'Ai đó';
     await this.notificationService.createNotification(
       ownerId,
@@ -95,19 +121,63 @@ export class DealService {
     });
   }
 
-  async updateDealStatus(dealId: string, userId: string, status: string) {
+  async updateDealStatus(dealId: string, userId: string, newStatus: string) {
+    // Validate status enum (không tin string từ client)
+    if (!VALID_STATUSES.includes(newStatus as DealStatus)) {
+      throw new BadRequestException('Status không hợp lệ');
+    }
+    const targetStatus = newStatus as DealStatus;
+
     const deal = await this.prisma.deal.findUnique({ where: { id: dealId } });
     if (!deal) throw new NotFoundException('Không tìm thấy deal');
 
-    const validOwnerStatuses = ['accepted', 'rejected', 'completed'];
-    const validRequesterStatuses = ['cancelled'];
+    // Authorization — ai được làm gì
+    if (OWNER_ACTIONS.includes(targetStatus) && deal.ownerId !== userId) {
+      throw new ForbiddenException('Chỉ người bán mới có quyền này');
+    }
+    if (REQUESTER_ACTIONS.includes(targetStatus) && deal.requesterId !== userId) {
+      throw new ForbiddenException('Chỉ người yêu cầu mới có quyền này');
+    }
 
-    if (validOwnerStatuses.includes(status) && deal.ownerId !== userId) throw new ForbiddenException('Không có quyền');
-    if (validRequesterStatuses.includes(status) && deal.requesterId !== userId) throw new ForbiddenException('Không có quyền');
+    // State machine — chỉ cho phép transition hợp lệ
+    const currentStatus = deal.status as DealStatus;
+    const allowed = ALLOWED_TRANSITIONS[currentStatus] ?? [];
+    if (!allowed.includes(targetStatus)) {
+      throw new BadRequestException(
+        `Không thể chuyển từ "${currentStatus}" sang "${targetStatus}". Hợp lệ: ${allowed.join(', ') || '(không có — trạng thái cuối)'}`,
+      );
+    }
 
-    const updated = await this.prisma.deal.update({ where: { id: dealId }, data: { status } });
+    // ═══ Transaction: update deal + post + reject other pending ═══
+    // Đặt trong transaction để tránh race condition khi 2 người accept cùng lúc.
+    await this.prisma.$transaction(async (tx) => {
+      // Update deal status
+      await tx.deal.update({ where: { id: dealId }, data: { status: targetStatus } });
 
-    // Cập nhật metadata trong deal card message
+      if (targetStatus === 'accepted') {
+        // Chỉ accept khi post vẫn available (defense với race condition)
+        const post = await tx.post.findUnique({ where: { id: deal.postId } });
+        if (!post || post.status !== 'available') {
+          throw new BadRequestException('Bài đăng đã được accept bởi người khác');
+        }
+        await tx.post.update({ where: { id: deal.postId }, data: { status: 'reserved' } });
+        await tx.deal.updateMany({
+          where: { postId: deal.postId, id: { not: dealId }, status: 'pending' },
+          data: { status: 'rejected' },
+        });
+      }
+
+      if (targetStatus === 'completed') {
+        await tx.post.update({ where: { id: deal.postId }, data: { status: 'done' } });
+      }
+
+      // Khi cancel/reject deal đã accepted → reset post về available để nhận deal khác
+      if ((targetStatus === 'cancelled' || targetStatus === 'rejected') && currentStatus === 'accepted') {
+        await tx.post.update({ where: { id: deal.postId }, data: { status: 'available' } });
+      }
+    });
+
+    // Cập nhật metadata trong deal card message (ngoài transaction — OK nếu fail)
     const dealMessage = await this.prisma.message.findFirst({
       where: { metadata: { contains: `"dealId":"${dealId}"` } },
     });
@@ -115,17 +185,12 @@ export class DealService {
       const meta = JSON.parse(dealMessage.metadata);
       await this.prisma.message.update({
         where: { id: dealMessage.id },
-        data: { metadata: JSON.stringify({ ...meta, status }) },
+        data: { metadata: JSON.stringify({ ...meta, status: targetStatus }) },
       });
     }
 
-    if (status === 'accepted') {
-      await this.prisma.post.update({ where: { id: deal.postId }, data: { status: 'reserved' } });
-      await this.prisma.deal.updateMany({
-        where: { postId: deal.postId, id: { not: dealId }, status: 'pending' },
-        data: { status: 'rejected' },
-      });
-      // Notify người mua
+    // Notifications
+    if (targetStatus === 'accepted') {
       await this.notificationService.createNotification(
         deal.requesterId,
         'deal',
@@ -134,9 +199,7 @@ export class DealService {
         JSON.stringify({ dealId }),
       );
     }
-
-    if (status === 'completed') {
-      await this.prisma.post.update({ where: { id: deal.postId }, data: { status: 'done' } });
+    if (targetStatus === 'completed') {
       const room = await this.prisma.chatRoom.findFirst({
         where: { postId: deal.postId, buyerId: deal.requesterId },
       });
@@ -148,8 +211,7 @@ export class DealService {
         JSON.stringify({ roomId: room?.id, dealId }),
       );
     }
-
-    if (status === 'rejected') {
+    if (targetStatus === 'rejected') {
       await this.notificationService.createNotification(
         deal.requesterId,
         'deal',
@@ -158,7 +220,17 @@ export class DealService {
         JSON.stringify({ dealId }),
       );
     }
+    if (targetStatus === 'cancelled') {
+      // Requester cancel → notify owner
+      await this.notificationService.createNotification(
+        deal.ownerId,
+        'deal',
+        'Yêu cầu bị hủy',
+        'Người yêu cầu đã hủy. Bài đăng của bạn đã mở lại để nhận yêu cầu khác.',
+        JSON.stringify({ dealId }),
+      );
+    }
 
-    return updated;
+    return this.prisma.deal.findUnique({ where: { id: dealId } });
   }
 }
