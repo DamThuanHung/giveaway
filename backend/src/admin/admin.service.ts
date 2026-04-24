@@ -88,15 +88,16 @@ export class AdminService {
   }
 
   async banUser(id: string, isBanned: boolean) {
+    const banFlag = isBanned === true; // strict — reject string/number coerce
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: { email: true, phone: true },
     });
 
-    await this.prisma.user.update({ where: { id }, data: { isBanned } });
+    await this.prisma.user.update({ where: { id }, data: { isBanned: banFlag } });
 
     if (user) {
-      if (isBanned) {
+      if (banFlag) {
         if (user.email) await this.prisma.bannedIdentity.upsert({
           where: { email: user.email }, create: { email: user.email }, update: {},
         });
@@ -109,7 +110,7 @@ export class AdminService {
       }
     }
 
-    return { ok: true };
+    return { ok: true, isBanned: banFlag };
   }
 
   async getAllReports(page = 1, limit = 20, status?: string) {
@@ -131,6 +132,10 @@ export class AdminService {
   }
 
   async resolveReport(id: string, action: 'resolved' | 'dismissed') {
+    // Runtime validate — TS type không enforce ở JS runtime
+    if (action !== 'resolved' && action !== 'dismissed') {
+      throw new Error('action chỉ nhận "resolved" hoặc "dismissed"');
+    }
     const report = await this.prisma.report.update({ where: { id }, data: { status: action } });
     if (action === 'resolved') {
       await this.prisma.post.update({ where: { id: report.postId }, data: { status: 'hidden' } });
