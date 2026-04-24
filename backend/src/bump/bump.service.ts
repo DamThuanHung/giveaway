@@ -24,6 +24,15 @@ export class BumpService {
       this.logger.warn('PayOS credentials thiếu — tính năng thanh toán Plus/VIP sẽ báo lỗi khi gọi.');
     }
 
+    const publicUrl = process.env.PUBLIC_URL || process.env.BASE_URL;
+    if (!publicUrl) {
+      this.logger.warn('PUBLIC_URL và BASE_URL đều thiếu — PayOS return/cancel URL sẽ invalid.');
+    } else if (/localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\./.test(publicUrl)) {
+      this.logger.warn(
+        `PUBLIC_URL có vẻ là LAN/localhost (${publicUrl}) — PayOS không gọi webhook được từ internet. Dùng ngrok hoặc domain công khai.`,
+      );
+    }
+
     const client = new PayOS({
       clientId:    clientId    ?? '',
       apiKey:      apiKey      ?? '',
@@ -52,6 +61,9 @@ export class BumpService {
     // PUBLIC_URL: URL public cho PayOS webhook/redirect (ngrok local / domain production).
     // BASE_URL: fallback — chỉ work nếu đã là public URL, không phải LAN IP.
     const publicUrl = process.env.PUBLIC_URL || process.env.BASE_URL;
+    if (!publicUrl) {
+      throw new ForbiddenException('PUBLIC_URL / BASE_URL chưa cấu hình — không thể tạo đơn PayOS');
+    }
     const returnUrl = `${publicUrl}/bump/return?postId=${postId}`;
     const cancelUrl = `${publicUrl}/bump/cancel?postId=${postId}`;
 
