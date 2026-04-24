@@ -2,6 +2,7 @@ import {
   BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post,
   Query, Request, UploadedFiles, UseGuards, UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,7 +10,10 @@ import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { PostService } from './post.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
-const multerOptions = { storage: memoryStorage() };
+const multerOptions = {
+  storage: memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 10 }, // 5MB/ảnh, tối đa 10 ảnh
+};
 
 @Controller('post')
 export class PostController {
@@ -66,13 +70,14 @@ export class PostController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 3_600_000 } }) // 10 post/giờ/user
   @UseInterceptors(FilesInterceptor('images', 10, multerOptions))
   async createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
     let imageUrls: string[] = [];
     if (files && files.length > 0) {
       try {
         imageUrls = await Promise.all(
-          files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts'))
+          files.map(f => this.cloudinaryService.uploadBuffer(f.buffer, 'traotay/posts', f.mimetype))
         );
       } catch (e: any) {
         const msg = e?.message ?? e?.error?.message ?? JSON.stringify(e) ?? 'unknown';

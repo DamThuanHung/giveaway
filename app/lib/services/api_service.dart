@@ -4,7 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.108:3800';
+  // Build với: flutter build apk --release --dart-define=API_URL=https://api.traotay.com.vn
+  // Dev mặc định trỏ về máy local (LAN IP); đổi trong --dart-define nếu server khác.
+  static const String baseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://192.168.0.108:3800',
+  );
 
   /// Xây URL ảnh an toàn: nếu label đã là full URL thì dùng luôn, không prepend baseUrl
   static String buildImageUrl(String label) {

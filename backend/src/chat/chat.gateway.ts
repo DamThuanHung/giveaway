@@ -5,7 +5,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 
-@WebSocketGateway({ cors: { origin: '*' } })
+const corsOrigin = process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) ?? true;
+
+@WebSocketGateway({ cors: { origin: corsOrigin } })
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;

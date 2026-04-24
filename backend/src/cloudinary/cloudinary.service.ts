@@ -1,6 +1,9 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import * as Minio from 'minio';
 import { randomUUID } from 'crypto';
+
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
 @Injectable()
 export class CloudinaryService implements OnModuleInit {
@@ -15,7 +18,7 @@ export class CloudinaryService implements OnModuleInit {
     this.client = new Minio.Client({
       endPoint: process.env.MINIO_ENDPOINT ?? 'localhost',
       port: parseInt(process.env.MINIO_PORT ?? '9000'),
-      useSSL: false,
+      useSSL: (process.env.MINIO_USE_SSL ?? 'false') === 'true',
       accessKey: process.env.MINIO_ACCESS_KEY ?? 'minioadmin',
       secretKey: process.env.MINIO_SECRET_KEY ?? 'minioadmin123',
     });
@@ -35,10 +38,36 @@ export class CloudinaryService implements OnModuleInit {
     }
   }
 
-  async uploadBuffer(buffer: Buffer, folder: string): Promise<string> {
-    const filename = `${folder}/${randomUUID()}.jpg`;
+  /** Kiểm tra magic bytes để chắc file thật sự là ảnh, không tin MIME từ client */
+  private detectImage(buffer: Buffer): { ext: string; mime: string } | null {
+    if (buffer.length < 12) return null;
+    const hex = buffer.slice(0, 4).toString('hex');
+    if (hex.startsWith('ffd8ff')) return { ext: 'jpg', mime: 'image/jpeg' };
+    if (hex === '89504e47') return { ext: 'png', mime: 'image/png' };
+    if (buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP') {
+      return { ext: 'webp', mime: 'image/webp' };
+    }
+    return null;
+  }
+
+  async uploadBuffer(buffer: Buffer, folder: string, mimeType?: string): Promise<string> {
+    if (!buffer || buffer.length === 0) {
+      throw new BadRequestException('File rỗng');
+    }
+    if (buffer.length > MAX_UPLOAD_SIZE) {
+      throw new BadRequestException('Ảnh vượt quá 5MB');
+    }
+    if (mimeType && !ALLOWED_MIME.includes(mimeType)) {
+      throw new BadRequestException('Chỉ hỗ trợ JPEG, PNG, WebP');
+    }
+    const detected = this.detectImage(buffer);
+    if (!detected) {
+      throw new BadRequestException('File không phải ảnh hợp lệ');
+    }
+
+    const filename = `${folder}/${randomUUID()}.${detected.ext}`;
     await this.client.putObject(this.bucket, filename, buffer, buffer.length, {
-      'Content-Type': 'image/jpeg',
+      'Content-Type': detected.mime,
     });
     return `${this.publicUrl}/${this.bucket}/${filename}`;
   }

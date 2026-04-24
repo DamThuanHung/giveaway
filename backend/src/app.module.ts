@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { join } from 'path';
 import { AdminController } from './admin/admin.controller';
 import { AdminGuard } from './admin/admin.guard';
@@ -54,6 +56,11 @@ import { BumpModule } from './bump/bump.module';
     KeywordAlertModule,
     BumpModule,
     ScheduleModule.forRoot(),
+    // Rate limit default: 60 req/phút/IP cho mọi endpoint.
+    // Endpoint nhạy cảm (OTP, webhook, upload) dùng @Throttle override.
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60_000, limit: 60 },
+    ]),
   ],
   controllers: [
     AppController,
@@ -85,6 +92,7 @@ import { BumpModule } from './bump/bump.module';
     FcmService,
     KeywordAlertService,
     JwtStrategy,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

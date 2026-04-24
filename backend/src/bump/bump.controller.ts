@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Param, Body, Query, Req, UseGuards, Res, ForbiddenException } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { BumpService, BumpPackageKey } from './bump.service';
@@ -29,6 +30,7 @@ export class BumpController {
 
   // POST /bump/webhook — PayOS gọi về sau thanh toán
   @Post('webhook')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   webhook(@Body() body: any) {
     return this.bump.handleWebhook(body);
   }
@@ -50,6 +52,9 @@ export class BumpController {
   // Body: { secret, userEmail, tier: 2|3, postId?: string }
   @Post('dev/boost')
   devBoost(@Body() body: { secret?: string; userEmail?: string; tier?: number; postId?: string }) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('dev endpoint disabled');
+    }
     if (!body.secret || body.secret !== process.env.DEV_SECRET) {
       throw new ForbiddenException('Sai DEV_SECRET');
     }

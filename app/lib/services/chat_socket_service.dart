@@ -8,7 +8,10 @@ class ChatSocketService {
   ChatSocketService._internal();
 
   late IO.Socket socket; // Đổi thành công khai để Provider truy cập
-  static const String _serverUrl = 'http://192.168.0.108:3800';
+  static const String _serverUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://192.168.0.108:3800',
+  );
 
   void initConnection() {
     // Tránh khởi tạo chồng chéo nếu đã kết nối

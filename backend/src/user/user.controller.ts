@@ -2,6 +2,7 @@ import {
   Body, Controller, Delete, Get, Param, Patch, Post, Request,
   UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -64,9 +65,13 @@ export class UserController {
 
   @Post('avatar')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('avatar', { storage: memoryStorage() }))
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  }))
   async uploadAvatar(@Request() req, @UploadedFile() file: any) {
-    const url = await this.cloudinaryService.uploadBuffer(file.buffer, 'traotay/avatars');
+    const url = await this.cloudinaryService.uploadBuffer(file.buffer, 'traotay/avatars', file.mimetype);
     return this.userService.uploadAvatar(req.user.id, url);
   }
 
@@ -96,22 +101,26 @@ export class UserController {
 
   // ─── Email OTP Login ──────────────────────────────────────────────────────
   @Post('email-login/send')
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   sendEmailLoginOtp(@Body() body: { email: string }) {
     return this.userService.sendEmailLoginOtp(body.email);
   }
 
   @Post('admin-login/send')
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   sendAdminLoginOtp(@Body() body: { email: string }) {
     return this.userService.sendEmailLoginOtp(body.email, true);
   }
 
   @Post('email-login/verify')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   verifyEmailLoginOtp(@Body() body: { email: string; otp: string }) {
     return this.userService.verifyEmailLoginOtp(body.email, body.otp);
   }
 
   // ─── Quên mật khẩu ───────────────────────────────────────────────────────
   @Post('forgot-password/send')
+  @Throttle({ default: { limit: 3, ttl: 300_000 } })
   sendForgotPasswordOtp(@Body() body: { email: string }) {
     return this.userService.sendForgotPasswordOtp(body.email);
   }

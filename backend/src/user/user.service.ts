@@ -25,6 +25,9 @@ export class UserService {
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('RESEND_API_KEY chưa cấu hình — không gửi được OTP');
+      }
       console.log(`📧 [DEV] OTP cho ${email}: ${otp}`);
       return;
     }
@@ -51,9 +54,10 @@ export class UserService {
   }
 
   async devLogin(email: string, secret: string) {
-    if (secret !== process.env.DEV_SECRET) throw new Error('unauthorized');
+    if (process.env.NODE_ENV === 'production') throw new UnauthorizedException('dev login disabled');
+    if (!process.env.DEV_SECRET || secret !== process.env.DEV_SECRET) throw new UnauthorizedException();
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new Error('User not found');
+    if (!user) throw new NotFoundException('User not found');
     const accessToken = await this.signToken(user);
     return { accessToken, user: { id: user.id, email: user.email, name: user.name } };
   }
@@ -270,7 +274,7 @@ export class UserService {
   // ─── Email OTP Login (dùng email dự phòng) ───────────────────────────────
 
   private get adminEmails(): string[] {
-    const raw = process.env.ADMIN_EMAILS ?? 'damhungtpt@gmail.com';
+    const raw = process.env.ADMIN_EMAILS ?? '';
     return raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
   }
 

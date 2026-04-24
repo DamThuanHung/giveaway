@@ -50,6 +50,8 @@ export class NotificationController {
   }
 
   private checkDevSecret(secret?: string) {
+    // Dev endpoints bị disable hoàn toàn trong production — bất kể secret đúng hay sai.
+    if (process.env.NODE_ENV === 'production') return false;
     const expected = process.env.DEV_SECRET;
     if (!expected || secret !== expected) return false;
     return true;

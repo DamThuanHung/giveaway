@@ -3,21 +3,20 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import * as fs from 'fs';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  const uploadDir = join(__dirname, '..', 'uploads');
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-  console.log('📁 Thư mục "uploads" đã được chuẩn bị.');
+  app.use(helmet());
 
+  // CORS: production phải set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"
+  // Mobile app không gửi Origin header nên không bị ảnh hưởng.
+  const corsOrigin = process.env.CORS_ORIGIN;
   app.enableCors({
-    origin: '*',
+    origin: corsOrigin ? corsOrigin.split(',').map(s => s.trim()) : true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization',
+    allowedHeaders: 'Content-Type,Authorization,x-dev-secret',
   });
 
   app.useGlobalPipes(new ValidationPipe({
@@ -26,15 +25,20 @@ async function bootstrap() {
     forbidNonWhitelisted: false,
   }));
 
-  app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
+  // Legacy /uploads serve — chỉ enable ở dev. Production dùng MinIO thuần.
+  if (process.env.NODE_ENV !== 'production') {
+    const uploadDir = join(__dirname, '..', 'uploads');
+    app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
+  }
   app.useStaticAssets(join(__dirname, '..', '..', 'public'));
 
   const port = process.env.PORT || 3800;
   await app.listen(port);
 
+  const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
   console.log(`\n==========================================`);
-  console.log(`✅ SERVER JIMOTY ĐÃ SẴN SÀNG`);
-  console.log(`   http://192.168.0.108:${port}`);
+  console.log(`✅ Backend ready (${process.env.NODE_ENV || 'development'})`);
+  console.log(`   ${baseUrl}`);
   console.log(`==========================================\n`);
 }
 bootstrap();
