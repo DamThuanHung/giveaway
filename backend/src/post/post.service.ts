@@ -1,9 +1,21 @@
-import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { KeywordAlertService } from '../keyword-alert/keyword-alert.service';
 
 const BASE_URL = process.env.BASE_URL ?? '';
+
+// Whitelist — không tin string từ client
+const VALID_POST_STATUSES = ['available', 'reserved', 'done'] as const;
+const VALID_ITEM_CATEGORIES = [
+  'electronics', 'fashion', 'home', 'books', 'toys', 'sports', 'beauty',
+  'food', 'pets', 'vehicles', 'realestate', 'services', 'jobs', 'other',
+] as const;
+const VALID_LISTING_TYPES = ['sell', 'give', 'free', 'exchange'] as const;
+const VALID_POST_TYPES = ['item', 'realestate', 'service', 'job'] as const;
+
+const MAX_TITLE_LEN = 120;
+const MAX_DESC_LEN = 5000;
 
 function buildImageUrl(imageLabel: string): string | null {
   if (!imageLabel) return null;
@@ -160,33 +172,49 @@ export class PostService {
   }
 
   async createPost(data: any, imageUrls: string[], userId?: string) {
+    if (!userId) throw new UnauthorizedException('Cần đăng nhập');
+
+    // Defense-in-depth: JWT có thể chưa hết hạn dù user đã bị ban
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { isBanned: true } });
+    if (!user) throw new UnauthorizedException('User không tồn tại');
+    if (user.isBanned) throw new ForbiddenException('Tài khoản đã bị khóa');
+
+    // Validate + clamp inputs
+    const title = String(data.title ?? '').trim().slice(0, MAX_TITLE_LEN) || 'Không tiêu đề';
+    const description = String(data.description ?? '').trim().slice(0, MAX_DESC_LEN);
+    const itemCategory = VALID_ITEM_CATEGORIES.includes(data.itemCategory)
+      ? data.itemCategory : 'other';
+    const listingType = VALID_LISTING_TYPES.includes(data.listingType)
+      ? data.listingType : 'sell';
+    const postType = VALID_POST_TYPES.includes(data.postType) ? data.postType : 'item';
+
     const priceStr = data.price ? data.price.toString().replace(/[^\d]/g, '') : '0';
     const parsedPrice = parseInt(priceStr, 10) || 0;
     const urls = imageUrls || [];
 
     const post = await this.prisma.post.create({
       data: {
-        title: data.title || 'Không tiêu đề',
-        description: data.description || '',
+        title,
+        description,
         price: parsedPrice,
         latitude: parseFloat(data.latitude) || 0.0,
         longitude: parseFloat(data.longitude) || 0.0,
-        itemCategory: data.itemCategory || 'other',
-        province: data.province || '',
-        district: data.district || '',
-        ward: data.ward || '',
-        addressDetail: data.addressDetail || '',
-        listingType: data.listingType || 'sell',
+        itemCategory,
+        province: String(data.province ?? '').slice(0, 50),
+        district: String(data.district ?? '').slice(0, 50),
+        ward: String(data.ward ?? '').slice(0, 50),
+        addressDetail: String(data.addressDetail ?? '').slice(0, 200),
+        listingType,
         imageLabel: urls[0] || '',
         images: urls,
         status: 'available',
-        postType: data.postType || 'item',
-        ...(data.subType && { subType: data.subType }),
+        postType,
+        ...(data.subType && { subType: String(data.subType).slice(0, 50) }),
         ...(data.area !== undefined && data.area !== '' && { area: parseFloat(data.area) || null }),
         ...(data.bedrooms !== undefined && data.bedrooms !== '' && { bedrooms: parseInt(data.bedrooms) || null }),
-        ...(data.priceUnit && { priceUnit: data.priceUnit }),
-        ...(data.serviceArea && { serviceArea: data.serviceArea }),
-        ...(userId ? { authorId: userId } : {}),
+        ...(data.priceUnit && { priceUnit: String(data.priceUnit).slice(0, 20) }),
+        ...(data.serviceArea && { serviceArea: String(data.serviceArea).slice(0, 200) }),
+        authorId: userId,
       },
     });
 
@@ -219,25 +247,27 @@ export class PostService {
     if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
     if (post.authorId !== userId) throw new ForbiddenException('Không có quyền sửa bài này');
 
-    const validStatuses = ['available', 'reserved', 'done'];
     return this.prisma.post.update({
       where: { id },
       data: {
-        ...(data.title && { title: data.title }),
-        ...(data.description && { description: data.description }),
+        ...(data.title && { title: String(data.title).trim().slice(0, MAX_TITLE_LEN) }),
+        ...(data.description !== undefined && { description: String(data.description).trim().slice(0, MAX_DESC_LEN) }),
         ...(data.price !== undefined && { price: parseInt(data.price) || 0 }),
-        ...(data.province && { province: data.province }),
-        ...(data.district && { district: data.district }),
-        ...(data.ward && { ward: data.ward }),
-        ...(data.addressDetail && { addressDetail: data.addressDetail }),
-        ...(data.listingType && { listingType: data.listingType }),
-        ...(data.itemCategory && { itemCategory: data.itemCategory }),
-        ...(data.status && validStatuses.includes(data.status) && { status: data.status }),
+        ...(data.province && { province: String(data.province).slice(0, 50) }),
+        ...(data.district && { district: String(data.district).slice(0, 50) }),
+        ...(data.ward && { ward: String(data.ward).slice(0, 50) }),
+        ...(data.addressDetail && { addressDetail: String(data.addressDetail).slice(0, 200) }),
+        ...(data.listingType && VALID_LISTING_TYPES.includes(data.listingType) && { listingType: data.listingType }),
+        ...(data.itemCategory && VALID_ITEM_CATEGORIES.includes(data.itemCategory) && { itemCategory: data.itemCategory }),
+        // status update phải qua endpoint /status riêng (deal state machine có thể phụ thuộc)
       },
     }).then(formatPost);
   }
 
   async updateStatus(id: string, userId: string, status: string) {
+    if (!VALID_POST_STATUSES.includes(status as any)) {
+      throw new BadRequestException('Trạng thái không hợp lệ');
+    }
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
     if (post.authorId !== userId) throw new ForbiddenException('Không có quyền');
