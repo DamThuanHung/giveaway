@@ -26,6 +26,7 @@ Mỗi session mới, PHẢI đọc theo thứ tự:
 | 6 | `docs/AI_RULES.md` | Quy tắc viết code & tự học |
 | 7 | `docs/modules/_index.md` | Danh sách modules |
 | 8 | `docs/modules/<tên>.md` | Khi làm việc với module cụ thể |
+| 9 | `docs/PRODUCTION_CHECKLIST.md` | BẮT BUỘC đọc trước mọi thao tác liên quan deploy/VPS/security |
 
 ---
 
