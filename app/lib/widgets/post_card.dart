@@ -244,13 +244,14 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Nút yêu thích
+              // Nút yêu thích — padding nhỏ để không đè lên badge dưới ảnh
               if (widget.onToggleFavorite != null)
                 Positioned(
-                  bottom: 0, right: 0,
+                  bottom: 2, right: 2,
                   child: FavoriteButton(
                     isFavorite: widget.isFavorite,
                     onTap: widget.onToggleFavorite!,
+                    outerPadding: 8,
                   ),
                 ),
             ],
@@ -582,12 +583,16 @@ class FavoriteButton extends StatefulWidget {
   final double iconSize;
   final double buttonSize;
 
+  /// Padding bên ngoài nút (cho particle burst animation)
+  final double outerPadding;
+
   const FavoriteButton({
     super.key,
     required this.isFavorite,
     required this.onTap,
     this.iconSize = 18,
     this.buttonSize = 34,
+    this.outerPadding = 30,
   });
 
   @override
@@ -647,7 +652,7 @@ class _FavoriteButtonState extends State<FavoriteButton>
 
   @override
   Widget build(BuildContext context) {
-    final outer = widget.buttonSize + 30;
+    final outer = widget.buttonSize + widget.outerPadding * 2;
     return GestureDetector(
       onTap: _handleTap,
       child: SizedBox(

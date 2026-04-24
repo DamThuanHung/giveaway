@@ -155,6 +155,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" onclick="switchTab(1)">📦 Bài đăng</button>
     <button class="tab" onclick="switchTab(2)">👤 Người dùng</button>
     <button class="tab" onclick="switchTab(3)">🚩 Báo cáo</button>
+    <button class="tab" onclick="switchTab(4)">💰 Doanh thu</button>
   </div>
 
   <div class="content">
@@ -162,19 +163,21 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-posts" style="display:none"></div>
     <div id="tab-users" style="display:none"></div>
     <div id="tab-reports" style="display:none"></div>
+    <div id="tab-revenue" style="display:none"></div>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-const BASE = 'https://giveaway-production-e88c.up.railway.app';
+const BASE = ''; // same-origin — work mọi môi trường (local Docker, VPS)
 let token = localStorage.getItem('admin_token') || '';
 let currentTab = 0;
 const state = {
   posts: [], postsPage: 0, postsTotalPages: 1, postsSearch: '',
   users: [], usersPage: 0, usersTotalPages: 1, usersSearch: '',
   reports: [], reportsPage: 0, reportsTotalPages: 1,
+  orders: [], ordersPage: 0, ordersTotalPages: 1, revenueLoaded: false,
 };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -271,13 +274,14 @@ function initApp() {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===tab));
-  ['stats','posts','users','reports'].forEach((id,i) => {
+  ['stats','posts','users','reports','revenue'].forEach((id,i) => {
     document.getElementById(`tab-${id}`).style.display = i===tab?'block':'none';
   });
   if(tab===0) loadStats();
   else if(tab===1 && state.posts.length===0) loadPosts(true);
   else if(tab===2 && state.users.length===0) loadUsers(true);
   else if(tab===3 && state.reports.length===0) loadReports(true);
+  else if(tab===4 && !state.revenueLoaded) loadRevenue();
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -483,6 +487,71 @@ async function resolveReport(id, idx, action) {
   await api(`/admin/reports/${id}`, {method:'PATCH', body:JSON.stringify({action})});
   state.reports[idx].status=action; renderReports(false);
   toast(action==='resolved' ? 'Đã xử lý & ẩn bài' : 'Đã bỏ qua báo cáo');
+}
+
+// ── Revenue ───────────────────────────────────────────────────────────────────
+
+async function loadRevenue(reset=false) {
+  if(reset) { state.orders=[]; state.ordersPage=0; state.ordersTotalPages=1; }
+  const el = document.getElementById('tab-revenue');
+  if(state.orders.length===0) el.innerHTML='<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+  const [rev, ord] = await Promise.all([
+    api('/admin/revenue'),
+    api(`/admin/bump-orders?page=${state.ordersPage+1}&limit=20`),
+  ]);
+  if(!rev) return;
+  state.orders.push(...(ord?.data||[]));
+  state.ordersPage = ord?.meta?.page || 1;
+  state.ordersTotalPages = ord?.meta?.totalPages || 1;
+  state.revenueLoaded = true;
+  renderRevenue(rev);
+}
+
+function fmoney(n) {
+  n = n||0;
+  if(n>=1000000) return (n/1000000).toFixed(1)+'tr';
+  if(n>=1000) return Math.round(n/1000)+'k';
+  return n+'đ';
+}
+
+function renderRevenue(rev) {
+  const el = document.getElementById('tab-revenue');
+  const statusLabel = {paid:'Đã thanh toán',pending:'Chờ thanh toán',expired:'Hết hạn',cancelled:'Đã huỷ'};
+  const statusColor = {paid:'chip-green',pending:'chip-orange',expired:'chip-grey',cancelled:'chip-red'};
+  const pkgLabel = {'plus_3d':'Plus 3 ngày','vip_7d':'VIP 7 ngày'};
+
+  const orderRows = state.orders.map((o,i) => `
+    <div class="item-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div class="title">${esc(o.post?.title||'—')}</div>
+          <div class="meta">${esc(o.user?.name||o.user?.email||'—')} · ${pkgLabel[o.package]||o.package}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="chip ${statusColor[o.status]||'chip-grey'}">${statusLabel[o.status]||o.status}</span>
+          <div style="font-weight:700;color:#E53935;margin-top:4px">${fmoney(o.amount)}</div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const loadMore = state.ordersPage < state.ordersTotalPages
+    ? `<div class="load-more"><button onclick="loadRevenue()">Tải thêm</button></div>` : '';
+
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div style="font-size:24px">💰</div><div class="stat-value" style="color:#10B981">${fmoney(rev.total)}</div><div class="stat-label">Tổng doanh thu</div></div>
+      <div class="stat-card"><div style="font-size:24px">📅</div><div class="stat-value" style="color:#F59E0B">${fmoney(rev.thisMonth)}</div><div class="stat-label">Tháng này</div></div>
+      <div class="stat-card"><div style="font-size:24px">☀️</div><div class="stat-value" style="color:#3B82F6">${fmoney(rev.today)}</div><div class="stat-label">Hôm nay</div></div>
+      <div class="stat-card"><div style="font-size:24px">🚀</div><div class="stat-value" style="color:#8B5CF6">${rev.activeBoosts||0}</div><div class="stat-label">Đang boost</div></div>
+    </div>
+    <div class="section-title">Theo gói</div>
+    <div class="mini-stats">
+      <div class="mini-stat"><div class="v">${rev.breakdown?.plus||0}</div><div class="l">Plus (5k)</div></div>
+      <div class="mini-stat"><div class="v">${rev.breakdown?.vip||0}</div><div class="l">VIP (15k)</div></div>
+    </div>
+    <div class="section-title" style="margin-top:20px">Đơn hàng gần nhất</div>
+    ${state.orders.length===0?'<div class="empty"><div class="empty-icon">💰</div><p>Chưa có đơn nào</p></div>':orderRows+loadMore}
+  `;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
