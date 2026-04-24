@@ -39,7 +39,8 @@ export class PostService {
     provinces?: string[]; // filter theo nhiều tỉnh (Toàn miền X)
     listingType?: string;
     itemCategory?: string;
-    postType?: string; // item | realestate | service
+    postType?: string; // item | realestate | service | job
+    subType?: string;  // jobs: full-time|part-time|freelance|intern|remote
     minPrice?: number;
     maxPrice?: number;
     status?: string;
@@ -87,6 +88,7 @@ export class PostService {
     if (query.listingType) where.listingType = query.listingType;
     if (query.itemCategory) where.itemCategory = query.itemCategory;
     if (query.postType) where.postType = query.postType;
+    if (query.subType) where.subType = query.subType;
     if (query.minPrice !== undefined) where.price = { ...where.price, gte: query.minPrice };
     if (query.maxPrice !== undefined) where.price = { ...where.price, lte: query.maxPrice };
 

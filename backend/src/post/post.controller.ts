@@ -30,6 +30,7 @@ export class PostController {
       listingType: query.listingType,
       itemCategory: query.itemCategory,
       postType: query.postType,
+      subType: query.subType,
       minPrice: query.minPrice ? parseInt(query.minPrice) : undefined,
       maxPrice: query.maxPrice ? parseInt(query.maxPrice) : undefined,
       status: query.status,

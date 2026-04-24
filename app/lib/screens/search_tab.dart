@@ -36,6 +36,7 @@ class _SearchTabState extends State<SearchTab> {
   String? _selectedType;       // null = tất cả, 'give', 'sell'
   String? _selectedCategory;   // null = tất cả
   String? _selectedProvince;   // null = tất cả
+  String? _selectedJobType;    // null = tất cả, 'full-time', 'part-time', 'freelance', 'intern', 'remote'
   String _sortBy = 'newest';   // newest, price_asc, price_desc
   RangeValues _priceRange = const RangeValues(0, 50000000);
   static const double _maxPrice = 50000000;
@@ -87,6 +88,8 @@ class _SearchTabState extends State<SearchTab> {
         lng: _radiusResult?.lng,
         radius: _radiusResult?.radius,
         sortBy: _radiusResult != null ? null : (_sortBy == 'newest' ? null : _sortBy),
+        postType: _selectedCategory == 'jobs' ? 'job' : null,
+        subType: _selectedJobType,
         page: _page,
         limit: 20,
       );
@@ -205,6 +208,8 @@ class _SearchTabState extends State<SearchTab> {
       lng: _radiusResult?.lng,
       radius: _radiusResult?.radius,
       sortBy: _radiusResult != null ? null : (_sortBy == 'newest' ? null : _sortBy),
+      postType: _selectedCategory == 'jobs' ? 'job' : null,
+      subType: _selectedJobType,
       page: 1,
       limit: 20,
     );
@@ -276,7 +281,18 @@ class _SearchTabState extends State<SearchTab> {
     return '${price}đ';
   }
 
-  int get _activeFilterCount => [_selectedType, _selectedCategory, if (_radiusResult == null) _selectedProvince]
+  String _jobTypeLabel(String type) {
+    const map = {
+      'full-time': 'Toàn thời gian',
+      'part-time': 'Bán thời gian',
+      'freelance': 'Freelance',
+      'intern': 'Thực tập',
+      'remote': 'Remote',
+    };
+    return map[type] ?? type;
+  }
+
+  int get _activeFilterCount => [_selectedType, _selectedCategory, _selectedJobType, if (_radiusResult == null) _selectedProvince]
       .where((v) => v != null).length +
       (_sortBy != 'newest' ? 1 : 0) +
       (_isPriceFiltered ? 1 : 0) +
@@ -286,6 +302,7 @@ class _SearchTabState extends State<SearchTab> {
     // Temp state trong sheet
     String? tmpType = _selectedType;
     String? tmpCat = _selectedCategory;
+    String? tmpJobType = _selectedJobType;
     String? tmpProvince = _selectedProvince;
     String tmpSort = _sortBy;
     RangeValues tmpPrice = _priceRange;
@@ -335,21 +352,23 @@ class _SearchTabState extends State<SearchTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Loại đăng ──
-                      const Text('Loại đăng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          _FilterChip(label: 'Tất cả', selected: tmpType == null,
-                              onTap: () => setSheet(() => tmpType = null)),
-                          _FilterChip(label: '🎁 Tặng miễn phí', selected: tmpType == 'give',
-                              onTap: () => setSheet(() => tmpType = 'give')),
-                          _FilterChip(label: '💰 Thanh lý', selected: tmpType == 'sell',
-                              onTap: () => setSheet(() => tmpType = 'sell')),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
+                      // ── Loại đăng (ẩn khi chọn Việc làm) ──
+                      if (tmpCat != 'jobs') ...[
+                        const Text('Loại đăng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            _FilterChip(label: 'Tất cả', selected: tmpType == null,
+                                onTap: () => setSheet(() => tmpType = null)),
+                            _FilterChip(label: '🎁 Tặng miễn phí', selected: tmpType == 'give',
+                                onTap: () => setSheet(() => tmpType = 'give')),
+                            _FilterChip(label: '💰 Thanh lý', selected: tmpType == 'sell',
+                                onTap: () => setSheet(() => tmpType = 'sell')),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       // ── Sắp xếp ──
                       const Text('Sắp xếp theo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -414,6 +433,30 @@ class _SearchTabState extends State<SearchTab> {
                         ],
                       ),
                       const SizedBox(height: 20),
+
+                      // ── Hình thức làm việc (chỉ hiện khi chọn Việc làm) ──
+                      if (tmpCat == 'jobs') ...[
+                        const Text('Hình thức làm việc', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8, runSpacing: 8,
+                          children: [
+                            _FilterChip(label: 'Tất cả', selected: tmpJobType == null,
+                                onTap: () => setSheet(() => tmpJobType = null)),
+                            _FilterChip(label: 'Toàn thời gian', selected: tmpJobType == 'full-time',
+                                onTap: () => setSheet(() => tmpJobType = 'full-time')),
+                            _FilterChip(label: 'Bán thời gian', selected: tmpJobType == 'part-time',
+                                onTap: () => setSheet(() => tmpJobType = 'part-time')),
+                            _FilterChip(label: 'Freelance', selected: tmpJobType == 'freelance',
+                                onTap: () => setSheet(() => tmpJobType = 'freelance')),
+                            _FilterChip(label: 'Thực tập', selected: tmpJobType == 'intern',
+                                onTap: () => setSheet(() => tmpJobType = 'intern')),
+                            _FilterChip(label: 'Remote', selected: tmpJobType == 'remote',
+                                onTap: () => setSheet(() => tmpJobType = 'remote')),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       // ── Khu vực ──
                       const Text('Khu vực', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -487,8 +530,9 @@ class _SearchTabState extends State<SearchTab> {
                     onPressed: () {
                       Navigator.pop(context);
                       setState(() {
-                        _selectedType = tmpType;
+                        _selectedType = tmpCat == 'jobs' ? null : tmpType;
                         _selectedCategory = tmpCat;
+                        _selectedJobType = tmpCat == 'jobs' ? tmpJobType : null;
                         _selectedProvince = tmpProvince;
                         _sortBy = tmpSort;
                         _radiusResult = tmpRadius;
@@ -606,7 +650,12 @@ class _SearchTabState extends State<SearchTab> {
                     if (_selectedCategory != null)
                       _ActiveChip(
                         label: AppCategories.labelOf(_selectedCategory!),
-                        onRemove: () { setState(() => _selectedCategory = null); _search(_searchCtrl.text); },
+                        onRemove: () { setState(() { _selectedCategory = null; _selectedJobType = null; }); _search(_searchCtrl.text); },
+                      ),
+                    if (_selectedJobType != null)
+                      _ActiveChip(
+                        label: _jobTypeLabel(_selectedJobType!),
+                        onRemove: () { setState(() => _selectedJobType = null); _search(_searchCtrl.text); },
                       ),
                     if (_selectedProvince != null)
                       _ActiveChip(
@@ -844,6 +893,7 @@ class _SearchTabState extends State<SearchTab> {
                 setState(() {
                   _selectedType = null;
                   _selectedCategory = null;
+                  _selectedJobType = null;
                   _selectedProvince = null;
                   _sortBy = 'newest';
                   _priceRange = const RangeValues(0, _maxPrice);

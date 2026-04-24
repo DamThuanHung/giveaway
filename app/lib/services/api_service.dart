@@ -302,6 +302,8 @@ class ApiService {
     double? lng,
     double? radius,
     String? sortBy,
+    String? postType,
+    String? subType,
   }) async {
     try {
       final params = <String, String>{
@@ -318,6 +320,8 @@ class ApiService {
         if (lng != null) 'lng': lng.toString(),
         if (radius != null) 'radius': radius.toString(),
         if (sortBy != null) 'sortBy': sortBy,
+        if (postType != null) 'postType': postType,
+        if (subType != null) 'subType': subType,
       };
       final uri = Uri.parse('$baseUrl/post').replace(queryParameters: params);
       final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 15));
