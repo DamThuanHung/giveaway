@@ -111,6 +111,13 @@ export class NotificationCronService {
     });
   }
 
+  // Group 5: Dọn notification > 30 ngày (chạy 4:00 sáng)
+  @Cron('0 4 * * *')
+  async deleteOldNotifications() {
+    const count = await this.notification.deleteOldNotifications();
+    if (count > 0) console.log(`[NotifCron] Deleted ${count} old notifications (>30d)`);
+  }
+
   // Group 4: Bản tin hàng ngày lúc 20:00 — số bài đăng mới hôm nay
   // Chỉ gửi cho user có fcmToken (đang dùng app)
   @Cron('0 20 * * *')

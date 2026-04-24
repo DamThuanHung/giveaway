@@ -49,6 +49,13 @@ export class NotificationController {
     return { ok: true };
   }
 
+  // Logout → clear fcmToken (chống user mới dùng device nhận push của user cũ)
+  @Post('fcm-token/clear')
+  @UseGuards(JwtAuthGuard)
+  async clearFcmToken(@Request() req) {
+    return this.notificationService.clearFcmToken(req.user.id);
+  }
+
   private checkDevSecret(secret?: string) {
     // Dev endpoints bị disable hoàn toàn trong production — bất kể secret đúng hay sai.
     if (process.env.NODE_ENV === 'production') return false;

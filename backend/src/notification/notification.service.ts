@@ -52,7 +52,14 @@ export class NotificationService {
           if (parsed.postId) fcmData.postId = parsed.postId;
         } catch (_) {}
       }
-      await this.fcm.sendToToken(user.fcmToken, title, body, fcmData);
+      const result = await this.fcm.sendToToken(user.fcmToken, title, body, fcmData);
+      // Token invalid (user uninstall/đổi device) → clear khỏi DB, lần sau skip
+      if (result.invalidToken) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { fcmToken: null },
+        }).catch(() => {}); // best effort
+      }
     }
 
     // Emit realtime unread count nếu socket đang kết nối
@@ -62,5 +69,23 @@ export class NotificationService {
     }
 
     return notif;
+  }
+
+  /** Xóa fcmToken khi user logout — chống user mới nhận push của user cũ trên cùng device */
+  async clearFcmToken(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken: null },
+    });
+    return { ok: true };
+  }
+
+  /** Cron dọn notification > 30 ngày — tránh DB grow vô hạn */
+  async deleteOldNotifications() {
+    const threshold = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const { count } = await this.prisma.notification.deleteMany({
+      where: { createdAt: { lt: threshold } },
+    });
+    return count;
   }
 }

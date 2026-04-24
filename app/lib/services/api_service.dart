@@ -212,6 +212,17 @@ class ApiService {
   }
 
   static Future<void> logout() async {
+    // Clear fcmToken server-side TRƯỚC khi xóa auth token local.
+    // Nếu không, user khác login trên cùng device sẽ nhận push của user cũ.
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/notification/fcm-token/clear'),
+        headers: await _authHeaders(),
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Best effort — nếu fail (server down, network) vẫn phải logout local
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('user_id');

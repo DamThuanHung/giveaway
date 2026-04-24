@@ -37,9 +37,8 @@ export class FcmService implements OnModuleInit {
     return admin.apps.length > 0;
   }
 
-  async sendToToken(token: string, title: string, body: string, data?: Record<string, string>): Promise<{ ok: boolean; error?: string }> {
+  async sendToToken(token: string, title: string, body: string, data?: Record<string, string>): Promise<{ ok: boolean; error?: string; invalidToken?: boolean }> {
     if (admin.apps.length === 0) return { ok: false, error: 'FCM not initialized' };
-    this.logger.log(`Sending FCM to token: ${token.substring(0, 20)}... title: "${title}"`);
     try {
       await admin.messaging().send({
         token,
@@ -56,11 +55,19 @@ export class FcmService implements OnModuleInit {
           payload: { aps: { sound: 'default', badge: 1 } },
         },
       });
-      this.logger.log(`FCM sent successfully`);
       return { ok: true };
     } catch (err: any) {
-      this.logger.error(`FCM send failed: ${err.message}`);
-      return { ok: false, error: err.message };
+      // Invalid/expired token — signal caller để xóa khỏi DB
+      const invalidToken =
+        err?.code === 'messaging/registration-token-not-registered' ||
+        err?.code === 'messaging/invalid-registration-token' ||
+        err?.code === 'messaging/invalid-argument';
+      if (invalidToken) {
+        this.logger.warn(`FCM token invalid, should be cleared: ${token.substring(0, 20)}...`);
+      } else {
+        this.logger.error(`FCM send failed: ${err.message}`);
+      }
+      return { ok: false, error: err.message, invalidToken };
     }
   }
 }
