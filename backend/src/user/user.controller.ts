@@ -22,11 +22,13 @@ export class UserController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   login(@Body() body: any) {
     return this.userService.login(body);
   }
 
   @Post('phone-login')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   phoneLogin(@Body() body: { idToken: string }) {
     if (!body.idToken) throw new Error('Thiếu idToken');
     return this.userService.phoneLogin(body.idToken);

@@ -3,9 +3,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomInt } from 'crypto';
 import * as admin from 'firebase-admin';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
+
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class UserService {
@@ -14,11 +18,32 @@ export class UserService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // OTP store tạm thời (production nên dùng Redis)
-  private readonly otpStore = new Map<string, { otp: string; expiresAt: number }>();
+  // OTP store tạm thời (production scale >1 instance nên chuyển Redis).
+  // attempts để chống brute force: 5 lần sai → xóa OTP, user phải request lại.
+  private readonly otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
 
   private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    // crypto.randomInt — cryptographically secure, không phải Math.random
+    return randomInt(100000, 1000000).toString();
+  }
+
+  /** Verify OTP + increment attempts, xóa khi hết attempts/hết hạn. Trả true nếu match. */
+  private consumeOtp(key: string, otp: string): boolean {
+    const stored = this.otpStore.get(key);
+    if (!stored) return false;
+    if (Date.now() > stored.expiresAt) {
+      this.otpStore.delete(key);
+      return false;
+    }
+    if (stored.otp === otp) {
+      this.otpStore.delete(key);
+      return true;
+    }
+    stored.attempts += 1;
+    if (stored.attempts >= OTP_MAX_ATTEMPTS) {
+      this.otpStore.delete(key); // quá 5 lần sai → buộc request lại
+    }
+    return false;
   }
 
   private async sendEmailOtp(email: string, otp: string): Promise<void> {
@@ -284,18 +309,16 @@ export class UserService {
       throw new BadRequestException('Email này không có quyền truy cập trang quản trị');
     }
     const otp = this.generateOtp();
-    this.otpStore.set(`login:${emailLower}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    this.otpStore.set(`login:${emailLower}`, { otp, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
     await this.sendEmailOtp(emailLower, otp);
     return { message: 'Đã gửi mã OTP đến email' };
   }
 
   async verifyEmailLoginOtp(email: string, otp: string) {
     const emailLower = email.trim().toLowerCase();
-    const stored = this.otpStore.get(`login:${emailLower}`);
-    if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+    if (!this.consumeOtp(`login:${emailLower}`, otp)) {
       throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
     }
-    this.otpStore.delete(`login:${emailLower}`);
 
     let user = await this.prisma.user.findUnique({ where: { email: emailLower } });
     const isNewUser = !user;
@@ -328,25 +351,25 @@ export class UserService {
   async sendForgotPasswordOtp(email: string) {
     const emailLower = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
-    if (!user) throw new BadRequestException('Email này chưa được đăng ký');
-    if (!user.password) throw new BadRequestException('Tài khoản này đăng nhập bằng SĐT, không có mật khẩu để đặt lại');
 
-    const otp = this.generateOtp();
-    this.otpStore.set(`reset:${emailLower}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
-    await this.sendEmailOtp(emailLower, otp);
-    return { message: 'Đã gửi mã OTP đến email' };
+    // Silent response — không leak email tồn tại hay không (chống enumeration).
+    // Chỉ thực sự gửi OTP nếu user tồn tại và có password.
+    if (user && user.password) {
+      const otp = this.generateOtp();
+      this.otpStore.set(`reset:${emailLower}`, { otp, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
+      await this.sendEmailOtp(emailLower, otp);
+    }
+    return { message: 'Nếu email này có đăng ký, mã OTP đã được gửi' };
   }
 
   async resetPassword(email: string, otp: string, newPassword: string) {
     const emailLower = email.trim().toLowerCase();
-    const stored = this.otpStore.get(`reset:${emailLower}`);
-    if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
-      throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
-    }
     if (!newPassword || newPassword.length < 6) {
       throw new BadRequestException('Mật khẩu mới phải có ít nhất 6 ký tự');
     }
-    this.otpStore.delete(`reset:${emailLower}`);
+    if (!this.consumeOtp(`reset:${emailLower}`, otp)) {
+      throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+    }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({ where: { email: emailLower }, data: { password: hashedPassword } });
@@ -358,24 +381,31 @@ export class UserService {
   async sendLinkEmailOtp(userId: string, email: string) {
     const emailLower = email.trim().toLowerCase();
     const existed = await this.prisma.user.findUnique({ where: { email: emailLower } });
-    if (existed) throw new BadRequestException('Email này đã được sử dụng bởi tài khoản khác');
 
-    const otp = this.generateOtp();
-    this.otpStore.set(`link:${userId}:${emailLower}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
-    await this.sendEmailOtp(emailLower, otp);
-    return { message: 'Đã gửi mã OTP đến email' };
+    // Silent response khi email đã tồn tại — chống enumeration.
+    // Nếu thực sự collision, user verify OTP sẽ fail ở bước confirm (unique constraint).
+    if (!existed) {
+      const otp = this.generateOtp();
+      this.otpStore.set(`link:${userId}:${emailLower}`, { otp, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
+      await this.sendEmailOtp(emailLower, otp);
+    }
+    return { message: 'Nếu email hợp lệ, mã OTP đã được gửi' };
   }
 
   async confirmLinkEmail(userId: string, email: string, otp: string) {
     const emailLower = email.trim().toLowerCase();
-    const key = `link:${userId}:${emailLower}`;
-    const stored = this.otpStore.get(key);
-    if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+    if (!this.consumeOtp(`link:${userId}:${emailLower}`, otp)) {
       throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
     }
-    this.otpStore.delete(key);
 
-    await this.prisma.user.update({ where: { id: userId }, data: { email: emailLower } });
+    try {
+      await this.prisma.user.update({ where: { id: userId }, data: { email: emailLower } });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new BadRequestException('Email này đã được sử dụng bởi tài khoản khác');
+      }
+      throw err;
+    }
     return { message: 'Liên kết email thành công' };
   }
 }
