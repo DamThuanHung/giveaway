@@ -249,6 +249,56 @@ class _PostItemState extends State<_PostItem> {
     if (mounted) setState(() => _bumping = false);
   }
 
+  Future<void> _checkBoostStatus() async {
+    // Hiện dialog loading, gọi API, thay nội dung dialog bằng kết quả.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [
+          SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)),
+          SizedBox(width: 16),
+          Expanded(child: Text('Đang kiểm tra trạng thái...')),
+        ]),
+      ),
+    );
+
+    final status = await ApiService.getBoostStatus(widget.post.id);
+    if (!mounted) return;
+    Navigator.pop(context); // đóng loading
+
+    if (status['error'] != null) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Không kiểm tra được'),
+          content: Text(status['error'].toString()),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))],
+        ),
+      );
+      return;
+    }
+
+    final tier = status['boostTier'] as int? ?? 0;
+    final remainingHours = status['remainingHours'] as int?;
+    final tierLabel = tier == 3 ? 'VIP' : tier == 2 ? 'Plus' : tier == 1 ? 'Nổi bật (Free)' : 'Không boost';
+    final body = tier > 0 && remainingHours != null
+        ? 'Bài đang ở tier: $tierLabel\nCòn hiệu lực: $remainingHours giờ'
+        : tier > 0
+            ? 'Bài đang ở tier: $tierLabel'
+            : 'Bài chưa được boost.\nNếu bạn vừa thanh toán mà chưa thấy cập nhật, vui lòng đợi 1-2 phút rồi kiểm tra lại.';
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Trạng thái boost'),
+        content: Text(body),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -360,12 +410,18 @@ class _PostItemState extends State<_PostItem> {
               if (val == 'delete') widget.onDelete();
               if (val == 'done') widget.onMarkDone();
               if (val == 'available') widget.onMarkAvailable();
+              if (val == 'check_status') _checkBoostStatus();
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Row(children: [
                 Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
                 SizedBox(width: 8),
                 Text('Chỉnh sửa bài đăng'),
+              ])),
+              const PopupMenuItem(value: 'check_status', child: Row(children: [
+                Icon(Icons.verified_outlined, color: kGoldDark, size: 18),
+                SizedBox(width: 8),
+                Text('Kiểm tra trạng thái boost'),
               ])),
               if (post.status != 'done')
                 const PopupMenuItem(value: 'done', child: Row(children: [

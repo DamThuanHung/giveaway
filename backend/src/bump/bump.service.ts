@@ -57,7 +57,6 @@ export class BumpService {
       data: { status: 'cancelled' },
     });
 
-    const orderCode = Date.now() % 9000000000 + Math.floor(Math.random() * 1000);
     // PUBLIC_URL: URL public cho PayOS webhook/redirect (ngrok local / domain production).
     // BASE_URL: fallback — chỉ work nếu đã là public URL, không phải LAN IP.
     const publicUrl = process.env.PUBLIC_URL || process.env.BASE_URL;
@@ -67,24 +66,38 @@ export class BumpService {
     const returnUrl = `${publicUrl}/bump/return?postId=${postId}`;
     const cancelUrl = `${publicUrl}/bump/cancel?postId=${postId}`;
 
+    // Sinh orderCode + tạo BumpOrder với retry khi `payosOrderId @unique` collision.
+    // Collision cực hiếm (2 user cùng ms + cùng random 0-999) nhưng vẫn có thể.
+    let orderCode: number = 0;
+    let order: { id: string } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      orderCode = Date.now() % 9000000000 + Math.floor(Math.random() * 1000);
+      try {
+        order = await this.prisma.bumpOrder.create({
+          data: {
+            userId,
+            postId,
+            package: pkg,
+            tier: config.tier,
+            amount: config.amount,
+            status: 'pending',
+            payosOrderId: String(orderCode),
+          },
+        });
+        break;
+      } catch (err: any) {
+        if (err?.code === 'P2002' && attempt < 2) continue; // unique violation → retry
+        throw err;
+      }
+    }
+    if (!order) throw new Error('Không thể sinh orderCode sau 3 lần thử');
+
     const paymentLink: CreatePaymentLinkResponse = await this.paymentRequests.create({
       orderCode,
       amount: config.amount,
       description: config.label,
       returnUrl,
       cancelUrl,
-    });
-
-    const order = await this.prisma.bumpOrder.create({
-      data: {
-        userId,
-        postId,
-        package: pkg,
-        tier: config.tier,
-        amount: config.amount,
-        status: 'pending',
-        payosOrderId: String(orderCode),
-      },
     });
 
     return {
@@ -217,6 +230,21 @@ export class BumpService {
       days,
       expiredAt,
     };
+  }
+
+  // ── Cron: huỷ pending orders cũ hơn 30 phút ──────────────────────────────
+  // User tạo đơn nhưng không thanh toán → pending rác trong DB.
+  // PayOS không tự gửi webhook cancel → phải tự dọn.
+  async cancelStalePending() {
+    const threshold = new Date(Date.now() - 30 * 60 * 1000);
+    const { count } = await this.prisma.bumpOrder.updateMany({
+      where: { status: 'pending', createdAt: { lt: threshold } },
+      data: { status: 'cancelled' },
+    });
+    if (count > 0) {
+      this.logger.log(`Cancelled ${count} stale pending orders (>30 phút)`);
+    }
+    return count;
   }
 
   // ── Cron: reset boostTier khi hết hạn ─────────────────────────────────────
