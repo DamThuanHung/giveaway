@@ -102,13 +102,20 @@ POST /bump/dev/boost
 
 ---
 
-## Cron reset expired
+## Cron jobs
 
-`bump.cron.ts` — chạy mỗi giờ (`EVERY_HOUR`):
+`bump.cron.ts`:
+
+### `EVERY_HOUR` — reset expired boosts
 - Tìm `BumpOrder.status = paid` có `expiredAt < now`
 - Transaction:
   - Đổi order → `status: expired`
   - Nếu post không còn order paid active khác → set `Post.boostTier = 0`
+
+### `EVERY_30_MINUTES` — cancel stale pending
+- Tìm `BumpOrder.status = pending` có `createdAt < now - 30'`
+- Đổi tất cả → `status: cancelled`
+- User bỏ ngang giữa thanh toán → pending không bao giờ được webhook update → dọn rác
 
 ---
 
@@ -147,4 +154,5 @@ Tokens dùng chung: `kGoldDark = 0xFFC9A84A`, `kGoldLight = 0xFFF4D36A`, `kGoldO
 | Thanh toán xong không cập nhật tier | Webhook URL chưa public (dùng ngrok expose `/bump/webhook`) |
 | `req.user.userId is undefined` | Phải dùng `req.user.id` (JwtStrategy gán `id`) |
 | Webhook trả `Amount mismatch` | `data.amount` PayOS khác `order.amount` DB — check log, có thể partial refund hoặc bug PayOS |
-| User báo "đã trả tiền nhưng app báo chưa xử lý" | Bình thường — polling 6s timeout; user kéo refresh My Posts sau 1-2 phút để xác nhận |
+| User báo "đã trả tiền nhưng app báo chưa xử lý" | Bình thường — polling 6s timeout; user vào My Posts → popup menu "Kiểm tra trạng thái boost" để xác nhận |
+| `orderCode` collision `P2002` | Rất hiếm — tự retry 3 lần trong `createOrder`. Nếu vẫn fail → lỗi Prisma khác, check log |
