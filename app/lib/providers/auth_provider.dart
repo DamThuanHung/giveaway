@@ -33,6 +33,17 @@ class AuthProvider with ChangeNotifier {
   Future<void> _tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
+
+    // Token expired (JWT exp claim) → xóa local, user thấy login screen
+    // thay vì empty screens do mọi API trả 401.
+    if (token != null && token.isNotEmpty && ApiService.isTokenExpired(token)) {
+      await ApiService.logout();
+      _isAuthenticated = false;
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
     if (token != null && token.isNotEmpty) {
       _userId = prefs.getString('user_id');
       _userName = prefs.getString('user_name');

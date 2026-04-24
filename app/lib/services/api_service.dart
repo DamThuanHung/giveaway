@@ -23,6 +23,23 @@ class ApiService {
     return p.getString('auth_token');
   }
 
+  /// Check JWT exp claim local — trả true nếu token hết hạn hoặc malformed.
+  /// Dùng khi auto-login để tránh cho user vào app với token expired, mọi
+  /// API trả 401 → user thấy màn hình trống không hiểu tại sao.
+  static bool isTokenExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final normalized = base64Url.normalize(parts[1]);
+      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)));
+      final exp = payload['exp'];
+      if (exp == null || exp is! int) return false; // không có exp = infinite
+      return DateTime.now().millisecondsSinceEpoch >= exp * 1000;
+    } catch (_) {
+      return true; // malformed → treat as expired
+    }
+  }
+
   static Future<Map<String, String>> _authHeaders() async {
     final t = await _getToken();
     return {
