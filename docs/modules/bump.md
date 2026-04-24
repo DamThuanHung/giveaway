@@ -44,10 +44,16 @@ Tier 1 (Free 24h) không đi qua module này — dùng `POST /post/:id/bump`.
 3. **App** mở `PayOSWebView` vào `checkoutUrl`, user quét QR thanh toán trên app ngân hàng
 4. **PayOS** POST webhook → `POST /bump/webhook`:
    - `webhooks.verify(body)` — verify HMAC SHA256 bằng `PAYOS_CHECKSUM_KEY`
-   - Nếu `code === '00'` (thành công): transaction update `BumpOrder.status = 'paid' + expiredAt` và `Post.boostTier + bumpedAt`
-5. **PayOS** redirect user browser về `returnUrl` → backend redirect `traotay://bump/success?postId=` → Flutter WebView bắt URL, `Navigator.pop(true)` về màn hình My Posts → reload
+   - Check `data.code === '00'` (thành công)
+   - **Verify `data.amount === order.amount`** — chống mismatch (không match → log error, trả `{ ok: false }`)
+   - Transaction: `BumpOrder.status = 'paid' + expiredAt` và `Post.boostTier + bumpedAt`
+   - `logger.log` kèm orderCode/postId/tier/amount để ops trace
+5. **PayOS** redirect user browser về `returnUrl` → backend redirect `traotay://bump/success?postId=` → Flutter WebView bắt URL, `Navigator.pop(true)`
+6. **App** show dialog "Đang xác nhận thanh toán..." → **polling `getBoostStatus` mỗi 1s tối đa 6 lần** (webhook có thể chậm hơn redirect vài giây). Chỉ báo "Đã kích hoạt" khi `boostTier > 0` thật. Timeout → hiện message gợi ý kéo refresh.
 
-**Quan trọng:** WebView bắt URL `/bump/return` và `/bump/cancel` **TRƯỚC** khi backend redirect deep link, để không bị ngrok interstitial (trang cảnh báo) chặn.
+**Quan trọng:**
+- WebView bắt URL `/bump/return` và `/bump/cancel` **TRƯỚC** khi backend redirect deep link, để không bị ngrok interstitial chặn
+- **KHÔNG bao giờ báo success chỉ dựa trên returnUrl** — phải verify DB đã ghi `boostTier` qua polling. Webhook và returnUrl chạy song song, webhook có thể chậm.
 
 ---
 
@@ -60,7 +66,12 @@ PAYOS_CHECKSUM_KEY="..."       # để verify webhook signature
 PUBLIC_URL="https://xxx.ngrok-free.app"  # Bắt buộc — LAN IP không work với PayOS
 ```
 
-Nếu thiếu 3 biến `PAYOS_*` → service warn log khi startup và báo lỗi khi gọi API.
+**Validation khi startup** (`BumpService` constructor):
+- Thiếu 3 biến `PAYOS_*` → `logger.warn`, API sẽ fail khi gọi thật
+- Cả `PUBLIC_URL` và `BASE_URL` đều rỗng → `logger.warn`
+- `PUBLIC_URL` match pattern LAN/localhost (`127.`, `192.168.`, `10.`, `172.16-31.`, `localhost`) → `logger.warn` — PayOS không gọi webhook được từ internet
+
+**Validation khi `createOrder`**: `PUBLIC_URL` + `BASE_URL` đều rỗng → throw `ForbiddenException` thay vì để PayOS reject URL `undefined/bump/return`.
 
 ---
 
@@ -135,3 +146,5 @@ Tokens dùng chung: `kGoldDark = 0xFFC9A84A`, `kGoldLight = 0xFFF4D36A`, `kGoldO
 | WebView treo ở trang ngrok | Chưa bắt `/bump/return` sớm — check `onNavigationRequest` |
 | Thanh toán xong không cập nhật tier | Webhook URL chưa public (dùng ngrok expose `/bump/webhook`) |
 | `req.user.userId is undefined` | Phải dùng `req.user.id` (JwtStrategy gán `id`) |
+| Webhook trả `Amount mismatch` | `data.amount` PayOS khác `order.amount` DB — check log, có thể partial refund hoặc bug PayOS |
+| User báo "đã trả tiền nhưng app báo chưa xử lý" | Bình thường — polling 6s timeout; user kéo refresh My Posts sau 1-2 phút để xác nhận |
