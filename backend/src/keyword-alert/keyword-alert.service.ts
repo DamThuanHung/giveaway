@@ -43,8 +43,18 @@ export class KeywordAlertService {
     const titleLower = postTitle.toLowerCase();
     const descLower = postDescription.toLowerCase();
 
+    // Exclude những user đã block author hoặc bị author block (privacy)
+    const blockedIds = await this.prisma.blockedUser.findMany({
+      where: { OR: [{ blockerId: authorId }, { blockedId: authorId }] },
+      select: { blockerId: true, blockedId: true },
+    });
+    const excludedUserIds = new Set<string>([
+      authorId,
+      ...blockedIds.flatMap(b => [b.blockerId, b.blockedId]),
+    ]);
+
     const alerts = await this.prisma.keywordAlert.findMany({
-      where: { userId: { not: authorId } },
+      where: { userId: { notIn: [...excludedUserIds] } },
       select: { userId: true, keyword: true },
     });
 
