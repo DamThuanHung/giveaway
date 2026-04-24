@@ -129,6 +129,8 @@ Cảm ơn bạn đã cài đặt — chúng tôi luôn lắng nghe góp ý tại
 - [x] Icon 512×512 — `app/assets/icon/app_icon_512.png` (handshake xanh)
 - [x] Screenshot 1–6 — `playstore/screenshots/01–06` (1240×2772)
 - [x] Feature graphic 1024×500 — `playstore/feature_graphic_1024x500.png` (banner logo + tagline)
-- [ ] Privacy policy URL — `https://traotay.com.vn/privacy` (cần deploy landing page trước)
-- [ ] Data safety form — khai báo các loại data thu thập (email, sđt, location, ảnh)
+- [x] Privacy policy URL — `https://damthuanhung.github.io/giveaway/privacy.html` (branch `gh-pages`, GitHub Pages)
+- [ ] Bật GitHub Pages — Settings → Pages → Branch `gh-pages` / root → Save (1 click, chỉ làm 1 lần)
+- [ ] Data safety form — khai báo các loại data thu thập (email, sđt, location, ảnh) trong Console
 - [ ] Google Play Console account — phí 25 USD một lần
+- [ ] Sau khi có VPS + domain traotay.com.vn — trỏ privacy sang `traotay.com.vn/privacy` và cập nhật trong Console
