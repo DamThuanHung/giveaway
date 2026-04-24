@@ -89,7 +89,19 @@ openssl rand -base64 64   # cho JWT
 ### ⚙️ MEDIUM — Logging
 - [x] ~~OTP log wrap NODE_ENV~~ ✅ commit `ca4c421` — production throw lỗi thay vì log
 - [x] ~~Bỏ hardcode IP LAN trong startup log~~ ✅ commit `ca4c421` — dùng `BASE_URL || localhost:PORT`
+- [x] ~~Log rotation Docker~~ ✅ commit `44847d4` — json-file max-size 10-20m, max-file 3-5
 - [ ] Đổi toàn bộ `console.log` còn lại sang `Logger` NestJS (quality improvement)
+
+### 🚨 CRITICAL — WebSocket JWT auth (phát hiện sau)
+- [x] ~~Chat gateway không auth, client gửi senderId từ body → impersonate~~ ✅ commit `44847d4`
+  - handleConnection verify JWT từ handshake `auth.token`
+  - userId lưu ở `client.data`, không tin từ body
+  - `canAccessRoom` check buyer/seller trước khi send/mark/typing
+  - Flutter: setAuth từ SharedPreferences `auth_token`
+
+### ⚠️ HIGH — Docker optimization
+- [x] ~~Dockerfile multi-stage~~ ✅ commit `44847d4` — image ~1GB → ~300MB, non-root user
+- [x] ~~Graceful shutdown~~ ✅ commit `44847d4` — `app.enableShutdownHooks()` xử lý SIGTERM
 
 ---
 
