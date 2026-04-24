@@ -616,10 +616,22 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 100), // Khoảng trống cho nút Chat
         children: [
-          // 1. SLIDER ẢNH
-          SizedBox(
-            height: 300,
-            child: validImages.isEmpty
+          // 0. BOOST BANNER (Plus/VIP)
+          if (_post.effectiveTier >= 2) _BoostBanner(tier: _post.effectiveTier),
+
+          // 1. SLIDER ẢNH — VIP có khung vàng
+          Container(
+            decoration: _post.effectiveTier == 3
+                ? const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFC9A84A), width: 2),
+                      bottom: BorderSide(color: Color(0xFFC9A84A), width: 2),
+                    ),
+                  )
+                : null,
+            child: SizedBox(
+              height: 300,
+              child: validImages.isEmpty
                 ? _buildImagePlaceholder()
                 : Stack(
               children: [
@@ -661,6 +673,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
 
@@ -1104,6 +1117,53 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
       // 6. NÚT CHAT CỐ ĐỊNH Ở ĐÁY
       bottomSheet: _buildBottomBar(auth),
+    );
+  }
+}
+
+// ── Boost Banner (Plus/VIP) ──────────────────────────────────────────────────
+
+class _BoostBanner extends StatelessWidget {
+  final int tier;
+  const _BoostBanner({required this.tier});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tier == 3) {
+      // VIP — nền đen-vàng
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF2A2418), Color(0xFF1A1A1A)],
+            begin: Alignment.centerLeft, end: Alignment.centerRight,
+          ),
+        ),
+        child: Row(children: const [
+          Icon(Icons.workspace_premium, color: Color(0xFFF4D36A), size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text(
+            'Bài đăng VIP • Ưu tiên hiển thị cao nhất',
+            style: TextStyle(color: Color(0xFFF4D36A), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+          )),
+        ]),
+      );
+    }
+    // Plus — nền vàng nhạt
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFEF9E7),
+        border: Border(bottom: BorderSide(color: Color(0xFFC9A84A), width: 0.5)),
+      ),
+      child: Row(children: const [
+        Icon(Icons.star_rounded, color: Color(0xFFC9A84A), size: 18),
+        SizedBox(width: 8),
+        Expanded(child: Text(
+          'Bài đăng Plus • Được ưu tiên hiển thị',
+          style: TextStyle(color: Color(0xFF854F0B), fontSize: 13, fontWeight: FontWeight.w600),
+        )),
+      ]),
     );
   }
 }
