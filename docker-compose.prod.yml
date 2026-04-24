@@ -1,0 +1,85 @@
+# ══════════════════════════════════════════════════════════════════
+# docker-compose.prod.yml — Production deployment (VPS / AWS EC2)
+#
+# Khác biệt với docker-compose.yml (dev):
+# - Postgres + MinIO password từ env (không hardcode weak)
+# - Không expose port DB/MinIO console ra internet (Nginx reverse proxy)
+# - mem_limit để 3 container không OOM EC2 t3.micro 1GB RAM
+# - restart: always
+# - Healthcheck + depends_on condition
+# - Backend bind 127.0.0.1 only (Nginx proxy)
+#
+# Dùng:
+#   cp .env.production.example .env.docker
+#   nano .env.docker  # điền mọi CHANGE_ME
+#   docker compose -f docker-compose.prod.yml up -d
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: traotay_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # KHÔNG expose port — chỉ container khác trong network truy cập
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 256m
+    mem_reservation: 128m
+
+  minio:
+    image: minio/minio
+    container_name: traotay_storage
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${CORS_ORIGIN:-https://traotay.com.vn}
+    ports:
+      # 9000 bind 127.0.0.1 — Nginx map sang s3.traotay.com.vn:443
+      - "127.0.0.1:9000:9000"
+      # KHÔNG expose console 9001 ra internet (SSH tunnel khi cần)
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+    mem_reservation: 128m
+
+  backend:
+    build: ./backend
+    container_name: traotay_backend
+    restart: always
+    ports:
+      # 3800 bind 127.0.0.1 — Nginx map sang api.traotay.com.vn:443
+      - "127.0.0.1:3800:3800"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    environment:
+      # Override bắt buộc trong production
+      NODE_ENV: production
+    mem_limit: 384m
+    mem_reservation: 256m
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
