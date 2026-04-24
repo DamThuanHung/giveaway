@@ -21,6 +21,30 @@ export class ChatService {
   }
 
   async createRoom(postId: string, buyerId: string, sellerId: string) {
+    // Validate: buyerId và sellerId khác nhau + post thuộc sellerId
+    if (buyerId === sellerId) {
+      throw new ForbiddenException('Không thể chat với chính mình');
+    }
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+    if (!post) throw new ForbiddenException('Bài đăng không tồn tại');
+    if (post.authorId !== sellerId) {
+      throw new ForbiddenException('Bài đăng không thuộc người bán này');
+    }
+
+    // Chặn nếu buyer/seller đã block nhau (2 chiều)
+    const blocked = await this.prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { blockerId: buyerId, blockedId: sellerId },
+          { blockerId: sellerId, blockedId: buyerId },
+        ],
+      },
+    });
+    if (blocked) throw new ForbiddenException('Không thể tạo phòng chat (đã bị chặn)');
+
     return this.prisma.chatRoom.create({
       data: { postId, buyerId, sellerId },
       include: {
@@ -104,6 +128,14 @@ export class ChatService {
   }
 
   async markRoomAsRead(roomId: string, userId: string) {
+    // Verify user là member của room trước khi mark — chống abuse ping DB
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { buyerId: true, sellerId: true },
+    });
+    if (!room || (room.buyerId !== userId && room.sellerId !== userId)) {
+      throw new ForbiddenException('Không có quyền truy cập phòng chat này');
+    }
     await this.prisma.message.updateMany({
       where: { roomId, senderId: { not: userId }, isRead: false },
       data: { isRead: true },
