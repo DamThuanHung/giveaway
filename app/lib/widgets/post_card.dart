@@ -43,8 +43,9 @@ class PostCard extends StatefulWidget {
   State<PostCard> createState() => _PostCardState();
 }
 
-class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin {
+class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   AnimationController? _vipCtrl;
+  AnimationController? _shimmerCtrl;
 
   @override
   void initState() {
@@ -54,12 +55,17 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
         vsync: this,
         duration: const Duration(seconds: 3),
       )..repeat();
+      _shimmerCtrl = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 4),
+      )..repeat();
     }
   }
 
   @override
   void dispose() {
     _vipCtrl?.dispose();
+    _shimmerCtrl?.dispose();
     super.dispose();
   }
 
@@ -88,13 +94,14 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
     // Decoration tuỳ tier
     BoxDecoration cardDeco;
     if (tier == 3) {
-      // VIP: shadow đậm hơn, border vẽ bằng CustomPainter ở ngoài
+      // VIP: glow vàng mạnh + shadow sâu, border vẽ bằng CustomPainter ở ngoài
       cardDeco = BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
-          BoxShadow(color: _kGoldLight.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4)),
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: _kGoldLight.withOpacity(0.55), blurRadius: 18, spreadRadius: 1, offset: const Offset(0, 2)),
+          BoxShadow(color: _kGoldOrange.withOpacity(0.25), blurRadius: 24, spreadRadius: 2),
+          BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 6, offset: const Offset(0, 3)),
         ],
       );
     } else if (tier == 2) {
@@ -201,6 +208,16 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
                     ),
                     child: const Text('Đang giữ',
                         style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+
+              // Shimmer ánh sáng quét — chỉ trên ảnh
+              if (tier == 3 && _shimmerCtrl != null && !isSold)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ClipRect(
+                      child: _ShimmerOverlay(controller: _shimmerCtrl!),
+                    ),
                   ),
                 ),
 
@@ -314,7 +331,7 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
       ),
     );
 
-    // VIP: viền vàng chạy + scale nhẹ để nhô khỏi feed
+    // VIP: viền vàng chạy + glow vàng mạnh (giữ nguyên size để không phá grid)
     if (tier == 3 && _vipCtrl != null) {
       card = AnimatedBuilder(
         animation: _vipCtrl!,
@@ -324,7 +341,6 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
         ),
         child: card,
       );
-      card = Transform.scale(scale: 1.03, child: card);
     }
 
     return GestureDetector(onTap: widget.onTap, child: card);
@@ -484,6 +500,57 @@ class _SparklesOverlay extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Shimmer Light Sweep (VIP) ────────────────────────────────────────────────
+
+class _ShimmerOverlay extends StatelessWidget {
+  final AnimationController controller;
+  const _ShimmerOverlay({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, __) {
+        final t = controller.value;
+        // Chỉ hiện sweep trong 20% đầu chu kỳ (800ms trên 4s), còn lại ẩn
+        if (t > 0.2) return const SizedBox.shrink();
+        // Map t [0 → 0.2] sang progress [-0.3 → 1.3] để dải sáng quét từ trái qua phải
+        final progress = -0.3 + (t / 0.2) * 1.6;
+        return LayoutBuilder(
+          builder: (_, c) {
+            final w = c.maxWidth;
+            final h = c.maxHeight;
+            return Stack(children: [
+              Positioned(
+                left: w * progress,
+                top: -h * 0.2,
+                child: Transform.rotate(
+                  angle: -pi / 6, // nghiêng ~30°
+                  child: Container(
+                    width: w * 0.35,
+                    height: h * 1.4,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Colors.white.withOpacity(0.0),
+                          Colors.white.withOpacity(0.25),
+                          Colors.white.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ]);
+          },
+        );
+      },
     );
   }
 }
