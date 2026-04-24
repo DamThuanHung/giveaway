@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, Query, Req, UseGuards, Res } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Query, Req, UseGuards, Res, ForbiddenException } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { BumpService, BumpPackageKey } from './bump.service';
@@ -18,7 +18,7 @@ export class BumpController {
     if (!pkg || !['plus_3d', 'vip_7d'].includes(pkg)) {
       return { error: 'package phải là plus_3d hoặc vip_7d' };
     }
-    return this.bump.createOrder(postId, req.user.userId, pkg);
+    return this.bump.createOrder(postId, req.user.id, pkg);
   }
 
   // GET /bump/:postId/status — trạng thái boost hiện tại
@@ -44,5 +44,18 @@ export class BumpController {
   @Get('cancel')
   cancelUrl(@Query('postId') postId: string, @Res() res: Response) {
     res.redirect(`traotay://bump/cancel?postId=${postId}`);
+  }
+
+  // POST /bump/dev/boost — boost thủ công 1 bài lên Plus/VIP (chỉ dev, cần DEV_SECRET)
+  // Body: { secret, userEmail, tier: 2|3, postId?: string }
+  @Post('dev/boost')
+  devBoost(@Body() body: { secret?: string; userEmail?: string; tier?: number; postId?: string }) {
+    if (!body.secret || body.secret !== process.env.DEV_SECRET) {
+      throw new ForbiddenException('Sai DEV_SECRET');
+    }
+    if (!body.userEmail) return { error: 'thiếu userEmail' };
+    const tier = body.tier ?? 3;
+    if (![2, 3].includes(tier)) return { error: 'tier chỉ nhận 2 (Plus) hoặc 3 (VIP)' };
+    return this.bump.devBoost(body.userEmail, tier, body.postId);
   }
 }

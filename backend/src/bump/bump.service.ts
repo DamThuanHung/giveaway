@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PayOS, PaymentRequests, Webhooks } from '@payos/node';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { PayOS, PaymentRequests, Webhooks, CreatePaymentLinkResponse } from '@payos/node';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const BUMP_PACKAGES = {
@@ -11,14 +11,23 @@ export type BumpPackageKey = keyof typeof BUMP_PACKAGES;
 
 @Injectable()
 export class BumpService {
+  private readonly logger = new Logger(BumpService.name);
   private paymentRequests: PaymentRequests;
   private webhooks: Webhooks;
 
   constructor(private prisma: PrismaService) {
+    const clientId = process.env.PAYOS_CLIENT_ID;
+    const apiKey = process.env.PAYOS_API_KEY;
+    const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
+
+    if (!clientId || !apiKey || !checksumKey) {
+      this.logger.warn('PayOS credentials thiếu — tính năng thanh toán Plus/VIP sẽ báo lỗi khi gọi.');
+    }
+
     const client = new PayOS({
-      clientId:     process.env.PAYOS_CLIENT_ID    || 'placeholder',
-      apiKey:       process.env.PAYOS_API_KEY       || 'placeholder',
-      checksumKey:  process.env.PAYOS_CHECKSUM_KEY  || 'placeholder',
+      clientId:    clientId    ?? '',
+      apiKey:      apiKey      ?? '',
+      checksumKey: checksumKey ?? '',
     });
     this.paymentRequests = new PaymentRequests(client);
     this.webhooks = new Webhooks(client);
@@ -40,17 +49,19 @@ export class BumpService {
     });
 
     const orderCode = Date.now() % 9000000000 + Math.floor(Math.random() * 1000);
-    const returnUrl = `${process.env.PAYOS_RETURN_URL}?postId=${postId}`;
-    const cancelUrl = `${process.env.PAYOS_CANCEL_URL}?postId=${postId}`;
-    const webhookUrl = `${process.env.BASE_URL}/bump/webhook`;
+    // PUBLIC_URL: URL public cho PayOS webhook/redirect (ngrok local / domain production).
+    // BASE_URL: fallback — chỉ work nếu đã là public URL, không phải LAN IP.
+    const publicUrl = process.env.PUBLIC_URL || process.env.BASE_URL;
+    const returnUrl = `${publicUrl}/bump/return?postId=${postId}`;
+    const cancelUrl = `${publicUrl}/bump/cancel?postId=${postId}`;
 
-    const paymentLink = await this.paymentRequests.create({
+    const paymentLink: CreatePaymentLinkResponse = await this.paymentRequests.create({
       orderCode,
       amount: config.amount,
       description: config.label,
       returnUrl,
       cancelUrl,
-    } as any);
+    });
 
     const order = await this.prisma.bumpOrder.create({
       data: {
@@ -66,8 +77,8 @@ export class BumpService {
 
     return {
       orderId: order.id,
-      checkoutUrl: (paymentLink as any).checkoutUrl,
-      qrCode: (paymentLink as any).qrCode,
+      checkoutUrl: paymentLink.checkoutUrl,
+      qrCode: paymentLink.qrCode,
       amount: config.amount,
       package: pkg,
     };
@@ -78,8 +89,9 @@ export class BumpService {
   async handleWebhook(body: any) {
     let data: any;
     try {
-      data = this.webhooks.verify(body);
-    } catch {
+      data = await this.webhooks.verify(body);
+    } catch (err) {
+      this.logger.warn(`Webhook verify failed: ${(err as Error).message}`);
       return { ok: false, message: 'Invalid signature' };
     }
 
@@ -133,6 +145,54 @@ export class BumpService {
       expiredAt,
       remainingHours,
       packages: BUMP_PACKAGES,
+    };
+  }
+
+  // ── Dev endpoint: boost thủ công bài của user theo tier ───────────────────
+
+  async devBoost(userEmail: string, tier: number, postId?: string) {
+    const user = await this.prisma.user.findUnique({ where: { email: userEmail } });
+    if (!user) throw new NotFoundException(`User "${userEmail}" không tồn tại`);
+
+    const post = postId
+      ? await this.prisma.post.findUnique({ where: { id: postId } })
+      : await this.prisma.post.findFirst({
+          where: { authorId: user.id, status: 'available' },
+          orderBy: { createdAt: 'asc' },
+        });
+    if (!post) throw new NotFoundException('Không tìm thấy bài available của user');
+
+    const pkg = tier === 3 ? 'vip_7d' : 'plus_3d';
+    const days = tier === 3 ? 7 : 3;
+    const expiredAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    await this.prisma.$transaction([
+      this.prisma.post.update({
+        where: { id: post.id },
+        data: { boostTier: tier, bumpedAt: new Date() },
+      }),
+      this.prisma.bumpOrder.create({
+        data: {
+          userId: user.id,
+          postId: post.id,
+          package: pkg,
+          tier,
+          amount: 0,
+          status: 'paid',
+          payosOrderId: `dev_${Date.now()}`,
+          expiredAt,
+        },
+      }),
+    ]);
+
+    return {
+      ok: true,
+      postId: post.id,
+      postTitle: post.title,
+      userEmail,
+      tier,
+      days,
+      expiredAt,
     };
   }
 

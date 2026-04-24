@@ -127,22 +127,34 @@ class Post {
   /// Tên công ty (jobs dùng field serviceArea để lưu)
   String? get companyName => isJob ? serviceArea : null;
 
+  /// Duration (giờ) boost có hiệu lực theo tier: free 24h, Plus 72h, VIP 168h
+  int get _boostDurationHours {
+    switch (boostTier) {
+      case 3: return 168; // VIP 7 ngày
+      case 2: return 72;  // Plus 3 ngày
+      default: return 24; // Free 24h
+    }
+  }
+
   bool get isBoosted {
     if (bumpedAt == null) return false;
-    return DateTime.now().difference(bumpedAt!).inHours < 24;
+    return DateTime.now().difference(bumpedAt!).inHours < _boostDurationHours;
   }
 
   /// Tier hiệu lực: ưu tiên boostTier từ API, fallback về free-bump
   int get effectiveTier => boostTier > 0 ? boostTier : (isBoosted ? 1 : 0);
 
-  /// null = có thể đẩy; non-null = đang cooldown, trả về chuỗi "Còn Xg Yp"
+  /// null = có thể đẩy; non-null = đang boost hoặc cooldown, trả về chuỗi "Còn Xd Yh" hoặc "Còn Xg Yp"
   String? get bumpCountdown {
     if (bumpedAt == null) return null;
-    final remaining = bumpedAt!.add(const Duration(hours: 24)).difference(DateTime.now());
+    final remaining = bumpedAt!.add(Duration(hours: _boostDurationHours)).difference(DateTime.now());
     if (remaining.isNegative) return null;
-    final h = remaining.inHours;
-    final m = remaining.inMinutes % 60;
-    return h > 0 ? 'Còn ${h}g ${m}p' : 'Còn ${m} phút';
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    if (days > 0) return 'Còn ${days} ngày ${hours} giờ';
+    if (remaining.inHours > 0) return 'Còn ${remaining.inHours}g ${minutes}p';
+    return 'Còn ${minutes} phút';
   }
 
   bool get isFree => listingType == 'give' || listingType == 'free';

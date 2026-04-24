@@ -54,7 +54,8 @@
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | Secret key cho JWT |
 | `PORT` | Port server (mặc định 3800) |
-| `BASE_URL` | Public URL của server |
+| `BASE_URL` | Public URL của server (fallback cho PayOS nếu không có `PUBLIC_URL`) |
+| `PUBLIC_URL` | URL public cho PayOS webhook/redirect (ngrok khi dev, domain khi production). Bắt buộc nếu `BASE_URL` là LAN IP |
 | `FCM_SERVICE_ACCOUNT` | JSON credentials Firebase Cloud Messaging |
 | `DEV_SECRET` | Secret để gọi `/user/dev/login` và `/dev/*` endpoints |
 | `MINIO_ENDPOINT` | MinIO host (e.g. `minio` trong Docker, `localhost` ngoài) |
@@ -63,6 +64,9 @@
 | `MINIO_SECRET_KEY` | MinIO secret key |
 | `MINIO_BUCKET` | Tên bucket (mặc định `traotay`) |
 | `MINIO_PUBLIC_URL` | Public URL để tạo link ảnh (e.g. `http://localhost:9000`) |
+| `PAYOS_CLIENT_ID` | Client ID cổng PayOS (từ my.payos.vn → Kênh thanh toán) |
+| `PAYOS_API_KEY` | API Key PayOS |
+| `PAYOS_CHECKSUM_KEY` | Checksum Key PayOS (để verify webhook) |
 
 ### Cấu trúc thư mục backend
 
@@ -139,6 +143,7 @@ backend/src/
 | GET | `/bump/:postId/status` | — | Trạng thái boost hiện tại + thời gian còn lại |
 | GET | `/bump/return?postId=` | — | Redirect về `traotay://bump/success` sau thanh toán |
 | GET | `/bump/cancel?postId=` | — | Redirect về `traotay://bump/cancel` sau huỷ |
+| POST | `/bump/dev/boost` | DEV_SECRET | Boost thủ công 1 bài (không PayOS) — body: `{ secret, userEmail, tier: 2\|3, postId? }`. Dùng để test E2E khi chưa có PayOS keys thật |
 
 ### Chat — `/chat`
 

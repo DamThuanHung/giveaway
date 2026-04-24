@@ -30,7 +30,7 @@
 | KeywordAlert | *(chưa có)* | Thiếu | Theo dõi từ khóa, nhận FCM khi có bài mới khớp |
 | Storage (MinIO) | *(chưa có)* | Thiếu | Upload ảnh lên MinIO (self-hosted S3) |
 | FCM | *(chưa có)* | Thiếu | Firebase Cloud Messaging service |
-| Bump | *(trong CORE_FRAMEWORK.md)* | Done | Đẩy bài 3 tier: Free/Plus/VIP — PayOS webhook, cron reset |
+| Bump | [bump.md](bump.md) | Done | Đẩy bài 3 tier: Free/Plus/VIP — PayOS webhook, cron reset, dev/boost endpoint |
 | Admin | *(trong CORE_FRAMEWORK.md)* | Done | Stats, posts, users, reports, revenue (BumpOrder) |
 | Prisma | *(trong DATABASE_SCHEMA.md)* | — | Database ORM service |
 

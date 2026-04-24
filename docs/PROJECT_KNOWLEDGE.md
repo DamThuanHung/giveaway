@@ -85,6 +85,16 @@
 **Flutter model:** `Post.effectiveTier` = `boostTier > 0 ? boostTier : (isBoosted ? 1 : 0)`
 **Sort:** `bumpedAt DESC NULLS LAST` → `createdAt DESC`
 
+**Thời gian boost có hiệu lực (tính từ `bumpedAt`):**
+| Tier | Duration | Ghi chú |
+|---|---|---|
+| 0 (không boost) | — | — |
+| 1 (Free) | 24h | Tự hết, cooldown 24h giữa 2 lần bump |
+| 2 (Plus) | 72h (3 ngày) | Hết hạn theo `BumpOrder.expiredAt`; cron `EVERY_HOUR` reset `boostTier=0` |
+| 3 (VIP) | 168h (7 ngày) | Hết hạn theo `BumpOrder.expiredAt`; cron `EVERY_HOUR` reset `boostTier=0` |
+
+Flutter `Post.bumpCountdown` và `Post.isBoosted` tính theo duration của tier, KHÔNG hardcode 24h.
+
 ### Xác thực
 - Header: `Authorization: Bearer {token}`
 - Dev endpoints: header `x-dev-secret: {DEV_SECRET}`

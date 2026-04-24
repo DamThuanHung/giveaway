@@ -8,6 +8,11 @@ import 'bump_package_screen.dart';
 import 'edit_post_screen.dart';
 import '../post_detail_screen.dart';
 
+// Tier color tokens — khớp với bump_package_screen.dart + post_card.dart
+const kGoldDark = Color(0xFFC9A84A);
+const kGoldLight = Color(0xFFF4D36A);
+const kGoldOrange = Color(0xFFFFA500);
+
 class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
 
@@ -53,15 +58,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
   Future<void> _bumpPost(String id) async {
     final post = _posts.firstWhere((p) => p.id == id);
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.75,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        builder: (_, __) => BumpPackageScreen(
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BumpPackageScreen(
           postId: id,
           currentTier: post.effectiveTier,
           onSuccess: _loadPosts,
@@ -254,6 +254,28 @@ class _PostItemState extends State<_PostItem> {
     final post = widget.post;
     Color statusColor = post.status == 'available' ? AppTheme.success : post.status == 'reserved' ? AppTheme.warning : AppTheme.textSecondary;
 
+    final tier = post.effectiveTier;
+    // Viền + nền + shadow theo tier. VIP glow mạnh, Plus nhẹ, Free bump xanh, không boost xám.
+    final borderColor = tier == 3
+        ? kGoldLight
+        : tier == 2
+            ? kGoldDark
+            : tier == 1
+                ? AppTheme.primary.withOpacity(0.4)
+                : AppTheme.border;
+    final borderWidth = tier == 3 ? 2.0 : (tier == 2 ? 1.5 : 1.0);
+    final bgColor = tier == 2
+        ? const Color(0xFFFFFDF5)
+        : Colors.white;
+    final shadows = tier == 3
+        ? [
+            BoxShadow(color: kGoldLight.withOpacity(0.45), blurRadius: 14, spreadRadius: 1),
+            BoxShadow(color: kGoldOrange.withOpacity(0.22), blurRadius: 20, spreadRadius: 1),
+          ]
+        : tier == 2
+            ? [BoxShadow(color: kGoldDark.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2))]
+            : <BoxShadow>[];
+
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => PostDetailScreen(
@@ -265,9 +287,10 @@ class _PostItemState extends State<_PostItem> {
       child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: post.isBoosted ? AppTheme.primary.withOpacity(0.4) : AppTheme.border),
+        border: Border.all(color: borderColor, width: borderWidth),
+        boxShadow: shadows,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,10 +320,36 @@ class _PostItemState extends State<_PostItem> {
                   fontWeight: FontWeight.bold, fontSize: 14,
                 )),
                 const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text(post.statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                      child: Text(post.statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                    ),
+                    if (tier == 2) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF9E7),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('Plus', style: TextStyle(color: Color(0xFF854F0B), fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                    if (tier == 3) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2418),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('VIP', style: TextStyle(color: kGoldLight, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

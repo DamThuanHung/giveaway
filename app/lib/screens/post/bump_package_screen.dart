@@ -117,8 +117,9 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
 
       final checkoutUrl = res['checkoutUrl'] as String?;
       if (checkoutUrl == null || checkoutUrl.isEmpty) {
+        final errorMsg = res['error'] as String? ?? 'Không rõ lỗi';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể tạo đơn thanh toán. Thử lại sau.')),
+          SnackBar(content: Text('Không thể tạo đơn: $errorMsg')),
         );
         return;
       }
@@ -335,7 +336,17 @@ class _PayOSWebViewState extends State<PayOSWebView> {
         onPageStarted: (_) => setState(() => _loading = true),
         onPageFinished: (_) => setState(() => _loading = false),
         onNavigationRequest: (req) {
-          // Detect deep link callback từ backend
+          // Bắt URL callback ngay khi PayOS redirect (trước khi WebView
+          // load ngrok interstitial hoặc đợi backend redirect về deep link)
+          if (req.url.contains('/bump/return')) {
+            Navigator.pop(context, true);
+            return NavigationDecision.prevent;
+          }
+          if (req.url.contains('/bump/cancel')) {
+            Navigator.pop(context, false);
+            return NavigationDecision.prevent;
+          }
+          // Fallback — deep link scheme sau khi backend redirect
           if (req.url.startsWith('traotay://bump/success')) {
             Navigator.pop(context, true);
             return NavigationDecision.prevent;
