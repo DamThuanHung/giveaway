@@ -137,7 +137,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _timeAgo(String createdAt) {
-    final dt = DateTime.tryParse(createdAt);
+    final dt = DateTime.tryParse(createdAt)?.toLocal();
     if (dt == null) return '';
     final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 1) return 'Vừa xong';
@@ -148,7 +148,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _dateLabel(String createdAt) {
-    final dt = DateTime.tryParse(createdAt);
+    final dt = DateTime.tryParse(createdAt)?.toLocal();
     if (dt == null) return 'Trước đó';
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

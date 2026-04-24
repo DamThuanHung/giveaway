@@ -80,14 +80,14 @@ class Post {
   /// Format ngày đăng — dùng trong card kết quả: "09/04/2026"
   String get formattedDate {
     if (createdAt == null) return '';
-    final d = createdAt!;
+    final d = createdAt!.toLocal();
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
   /// Format ngày giờ đăng — dùng trong chi tiết: "09/04/2026 14:30"
   String get formattedDateTime {
     if (createdAt == null) return '';
-    final d = createdAt!;
+    final d = createdAt!.toLocal();
     final time = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} $time';
   }

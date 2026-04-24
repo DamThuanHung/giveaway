@@ -116,7 +116,7 @@ class _ReviewTile extends StatelessWidget {
 
   String _formatDate(String? createdAt) {
     if (createdAt == null) return '';
-    final dt = DateTime.tryParse(createdAt);
+    final dt = DateTime.tryParse(createdAt)?.toLocal();
     if (dt == null) return '';
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }

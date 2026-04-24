@@ -138,7 +138,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
   String _formatMemberSince(dynamic createdAt) {
     if (createdAt == null) return '';
-    final dt = DateTime.tryParse(createdAt.toString());
+    final dt = DateTime.tryParse(createdAt.toString())?.toLocal();
     if (dt == null) return '';
     return 'Thành viên từ tháng ${dt.month}/${dt.year}';
   }
