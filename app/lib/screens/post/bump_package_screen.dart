@@ -135,9 +135,51 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
         ),
       );
 
-      if (result == true) {
+      if (result == true && mounted) {
+        // Webhook PayOS có thể chậm hơn returnUrl redirect vài giây.
+        // Polling boost status — chỉ báo thành công khi DB đã ghi boostTier.
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const AlertDialog(
+            content: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Row(children: [
+                SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(width: 16),
+                Expanded(child: Text('Đang xác nhận thanh toán...')),
+              ]),
+            ),
+          ),
+        );
+
+        bool confirmed = false;
+        for (int i = 0; i < 6; i++) {
+          await Future.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+          final status = await ApiService.getBoostStatus(widget.postId);
+          final tier = status['boostTier'] as int? ?? 0;
+          if (tier > 0) { confirmed = true; break; }
+        }
+
+        if (!mounted) return;
+        Navigator.pop(context); // đóng dialog loading
+
         widget.onSuccess?.call();
-        if (mounted) Navigator.pop(context, true);
+        if (confirmed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Đã kích hoạt gói ${pkg.label}!')),
+          );
+          if (mounted) Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Thanh toán đã được gửi. Nếu bài chưa boost sau 1-2 phút, kéo xuống để làm mới.'),
+              duration: Duration(seconds: 6),
+            ),
+          );
+          if (mounted) Navigator.pop(context, false);
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -104,6 +104,14 @@ export class BumpService {
 
     if (!order) return { ok: true, message: 'Order not found or already processed' };
 
+    // Verify amount webhook khớp amount DB — chống mismatch từ PayOS hoặc replay
+    if (Number(data.amount) !== order.amount) {
+      this.logger.error(
+        `Amount mismatch orderCode=${orderCode}: webhook=${data.amount} vs DB=${order.amount}`,
+      );
+      return { ok: false, message: 'Amount mismatch' };
+    }
+
     const config = BUMP_PACKAGES[order.package as BumpPackageKey];
     const expiredAt = new Date(Date.now() + config.days * 24 * 60 * 60 * 1000);
 
@@ -118,6 +126,9 @@ export class BumpService {
       }),
     ]);
 
+    this.logger.log(
+      `Bump paid: orderCode=${orderCode} postId=${order.postId} tier=${order.tier} amount=${order.amount}`,
+    );
     return { ok: true, message: 'Payment processed' };
   }
 
