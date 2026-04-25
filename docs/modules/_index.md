@@ -13,6 +13,7 @@
 | [PRODUCTION_CHECKLIST.md](../PRODUCTION_CHECKLIST.md) | Checklist đầy đủ trước/trong/sau khi lên production — BẮT BUỘC đọc trước deploy |
 | [AWS_SETUP.md](../AWS_SETUP.md) | Hướng dẫn click-by-click deploy AWS EC2 free tier ($0/tháng năm 1) |
 | [MONITORING_SETUP.md](../MONITORING_SETUP.md) | Setup Firebase Analytics + Crashlytics + Sentry + UptimeRobot — 30 phút |
+| [PLAY_STORE_DATA_SAFETY.md](../PLAY_STORE_DATA_SAFETY.md) | Template Data Safety form — paste khi điền Play Console |
 
 ---
 
