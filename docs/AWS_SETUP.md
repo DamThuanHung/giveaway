@@ -491,6 +491,53 @@ Xem [PRODUCTION_CHECKLIST.md section 14-15](PRODUCTION_CHECKLIST.md#14-post-prod
 
 ---
 
+## Phần 11 — Cloudflare Proxied (sau ~30' monitor stable)
+
+Sau khi backend chạy ổn định ~30 phút và PayOS webhook đã verify (POST /bump/webhook trả 201), bật Proxied trên Cloudflare để có DDoS protection + CDN cache ảnh.
+
+### Bước 1 — Deploy nginx real_ip config (BẮT BUỘC làm TRƯỚC khi bật Proxied)
+
+Không có config này, sau khi bật Proxied, nginx rate limit `limit_req_zone $binary_remote_addr` sẽ count theo CF IP (chỉ ~15 IP) → trigger 20r/s rất nhanh → block toàn bộ user.
+
+```bash
+# Trên VPS
+sudo cp /opt/traotay/repo/nginx/cloudflare-real-ip.conf /etc/nginx/conf.d/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+File này whitelisted 22 CF IP ranges (15 IPv4 + 7 IPv6) + đặt `real_ip_header CF-Connecting-IP`. Sau reload, `$remote_addr` trong nginx sẽ là real client IP thay vì CF IP.
+
+### Bước 2 — Bật Proxied 4 records trên Cloudflare dashboard
+
+Mở `https://dash.cloudflare.com` → zone `traotay.com.vn` → DNS → Records.
+
+Click ☁️ xám (DNS only) → ☁️ cam (Proxied) cho TỪNG record:
+
+| # | Record | Lưu ý |
+|---|---|---|
+| 1 | `traotay.com.vn` (root) | Landing — bật trước, ít rủi ro nhất |
+| 2 | `www.traotay.com.vn` | Tương tự landing |
+| 3 | `s3.traotay.com.vn` | CDN ảnh — Cache-Control 7d đã set ở nginx, CF auto cache |
+| 4 | `api.traotay.com.vn` | Bật cuối — Socket.IO heartbeat 25s < CF timeout 100s nên WS không drop |
+
+Sau mỗi record, smoke test với `curl -sI https://<domain>/ | grep -i 'server\|cf-ray'`. Nếu thấy `Server: cloudflare` + `CF-RAY: ...-NRT` thì OK.
+
+### Bước 3 — Verify nginx log có real client IP
+
+```bash
+sudo tail -10 /var/log/nginx/access.log
+# Cột IP đầu tiên phải là real client IP, KHÔNG phải CF IP (104.x, 172.x, ...)
+```
+
+### Lưu ý quan trọng
+
+- **ACME challenge** (`.well-known/acme-challenge/`) vẫn hoạt động qua CF Proxy → certbot auto-renew không bị broken
+- **Upload limit** — nginx 60M < CF free plan 100M → user upload ảnh không bị broken
+- **WebSocket** — Socket.IO heartbeat default ~25s < CF idle timeout 100s → WS không bị drop
+- **Update CF IP list** khi cần: `curl https://www.cloudflare.com/ips-v4` + `/ips-v6`, replace trong `nginx/cloudflare-real-ip.conf`
+
+---
+
 ## Troubleshooting thường gặp
 
 | Lỗi | Fix |
@@ -548,3 +595,4 @@ Khi gần hết free tier (tháng 10-11 năm 1), plan migration: Vultr Singapore
 | Ngày | Thay đổi |
 |---|---|
 | 2026-04-24 | Tạo mới cho plan AWS EC2 free tier |
+| 2026-04-26 | Thêm Phần 11 — Cloudflare Proxied + nginx real_ip config sau khi production stable |
