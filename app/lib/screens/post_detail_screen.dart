@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/post.dart';
 import '../services/api_service.dart';
+import '../services/analytics.dart';
 import '../services/viewed_posts_service.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
@@ -55,6 +56,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     localIsFavorite = widget.isFavorite;
     _checkFavoriteStatus();
     ViewedPostsService.save(widget.post);
+    Analytics.postView(postId: widget.post.id);
     _fetchLatestPost();
     _loadSimilarPosts();
     _loadSellerPosts();
@@ -75,6 +77,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         : await ApiService.followUser(_post.authorId!);
     if (mounted && success) {
       setState(() => _isFollowingSeller = !_isFollowingSeller);
+      // Track chỉ khi follow (không track unfollow để giảm noise)
+      if (_isFollowingSeller && _post.authorId != null) {
+        Analytics.followUser(targetUserId: _post.authorId!);
+      }
     }
     if (mounted) setState(() => _followSellerLoading = false);
   }
@@ -465,6 +471,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     setState(() => _isDealLoading = false);
 
     if (result != null) {
+      Analytics.dealCreate(postId: _post.id);
       final roomId = result['roomId']?.toString();
       if (roomId != null && mounted) {
         Navigator.push(context, MaterialPageRoute(

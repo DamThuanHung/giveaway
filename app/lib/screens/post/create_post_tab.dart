@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'map_picker_screen.dart';
 import '../../data/categories.dart';
 import '../../services/analytics.dart';
+import '../../services/image_compress.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -195,7 +196,9 @@ class _CreatePostTabState extends State<CreatePostTab> {
     };
 
     try {
-      final errMsg = await ApiService.createPost(postData, _selectedImages);
+      // Nén ảnh trước khi upload — giảm 80% size, user 3G/4G upload nhanh hơn
+      final compressed = await ImageCompress.compressBatch(_selectedImages);
+      final errMsg = await ApiService.createPost(postData, compressed);
       if (!mounted) return;
       if (errMsg == null) {
         Analytics.postCreate(

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
+import '../services/analytics.dart';
 import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -217,6 +218,7 @@ class _ChatScreenState extends State<ChatScreen> {
       'roomId': widget.roomId,
       'text': text,
     });
+    Analytics.chatMessageSend(roomId: widget.roomId);
 
     // Thêm tin nhắn vào list ngay, không chờ server echo lại
     setState(() {
