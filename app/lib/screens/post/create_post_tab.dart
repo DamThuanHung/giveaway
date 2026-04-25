@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'map_picker_screen.dart';
 import '../../data/categories.dart';
+import '../../services/analytics.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -197,6 +198,11 @@ class _CreatePostTabState extends State<CreatePostTab> {
       final errMsg = await ApiService.createPost(postData, _selectedImages);
       if (!mounted) return;
       if (errMsg == null) {
+        Analytics.postCreate(
+          category: postData['itemCategory']?.toString() ?? 'other',
+          listingType: postData['listingType']?.toString() ?? 'sell',
+          imageCount: _selectedImages.length,
+        );
         _titleController.clear();
         _descController.clear();
         _priceController.clear();

@@ -37,6 +37,7 @@
     "@nestjs/websockets": "^11.1.17",
     "@payos/node": "^2.0.5",
     "@prisma/client": "^6.19.2",
+    "@sentry/node": "^10.50.0",
     "@types/multer": "^2.1.0",
     "@types/nodemailer": "^8.0.0",
     "@types/passport-jwt": "^4.0.1",

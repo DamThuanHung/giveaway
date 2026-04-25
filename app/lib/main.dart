@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'services/analytics.dart';
 import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
 import 'providers/chat_provider.dart';
@@ -63,38 +66,53 @@ class PendingFcmMessage {
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // runZonedGuarded để bắt async errors ngoài Flutter framework — gửi Crashlytics.
+  // FlutterError.onError xử lý lỗi sync trong widget tree.
+  await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  if (!kIsWeb) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    if (!kIsWeb) {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    await _localNotif.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      // Crashlytics — bắt lỗi widget + async + native (cần bật trên Firebase Console)
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      // Tắt collection ở debug để không spam dashboard khi dev
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+      await _localNotif.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        ),
+      );
+      await _localNotif
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_channel);
+
+      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        PendingFcmMessage.value = initialMessage;
+      }
+    }
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => PostProvider()),
+          ChangeNotifierProvider(create: (_) => ChatProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ],
+        child: const MyApp(),
       ),
     );
-    await _localNotif
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
-
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      PendingFcmMessage.value = initialMessage;
+  }, (error, stack) {
+    // Catch tất cả lỗi async chưa handle — gửi Crashlytics
+    if (!kIsWeb) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     }
-  }
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => PostProvider()),
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  });
 }
 
 class MyApp extends StatefulWidget {
@@ -213,6 +231,8 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       navigatorKey: _navigatorKey,
+      // Track screen view tự động khi navigate
+      navigatorObservers: [Analytics.observer],
       home: const SplashScreen(),
     );
   }

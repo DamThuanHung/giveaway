@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../services/analytics.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
@@ -91,6 +92,8 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = true;
       notifyListeners();
       _sendFcmToken();
+      Analytics.setUser(_userId!);
+      Analytics.login(method: 'email_password');
       return null;
     }
     return 'Email hoặc mật khẩu không đúng';
@@ -109,6 +112,8 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = true;
       notifyListeners();
       _sendFcmToken();
+      Analytics.setUser(_userId!);
+      _isNewUser ? Analytics.signUp(method: 'email_otp') : Analytics.login(method: 'email_otp');
       return null;
     }
     return 'Mã OTP không đúng hoặc đã hết hạn';
@@ -126,6 +131,8 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = true;
       notifyListeners();
       _sendFcmToken();
+      Analytics.setUser(_userId!);
+      _isNewUser ? Analytics.signUp(method: 'phone') : Analytics.login(method: 'phone');
       return null;
     }
     return 'Đăng nhập bằng SĐT thất bại. Vui lòng thử lại.';
@@ -139,6 +146,8 @@ class AuthProvider with ChangeNotifier {
       _userEmail = user['email'];
       _isAuthenticated = true;
       notifyListeners();
+      Analytics.setUser(_userId!);
+      Analytics.signUp(method: 'email_password');
       return null;
     }
     return 'Đăng ký thất bại. Email có thể đã tồn tại.';
@@ -151,6 +160,7 @@ class AuthProvider with ChangeNotifier {
     _userName = null;
     _userEmail = null;
     _userAvatar = null;
+    Analytics.clearUser();
     notifyListeners();
   }
 

@@ -31,6 +31,10 @@ dependencies:
   firebase_auth: ^4.19.6
   flutter_local_notifications: ^17.2.4
 
+  # --- ANALYTICS & CRASH REPORTING ---
+  firebase_analytics: ^10.10.7
+  firebase_crashlytics: ^3.5.7
+
   # --- LƯU TRỮ & HÌNH ẢNH ---
   shared_preferences: ^2.2.2
   flutter_secure_storage: ^9.0.0

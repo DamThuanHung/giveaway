@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../services/api_service.dart';
+import '../../services/analytics.dart';
 import '../../theme/app_theme.dart';
 
 const _kGoldLight = Color(0xFFF4D36A);
@@ -111,6 +112,7 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
 
     // Plus / VIP — tạo đơn PayOS
     setState(() => _loading = true);
+    Analytics.bumpInitiate(tier: pkg.key, amount: pkg.amount);
     try {
       final res = await ApiService.createBumpOrder(widget.postId, pkg.key);
       if (!mounted) return;
@@ -167,6 +169,8 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
 
         widget.onSuccess?.call();
         if (confirmed) {
+          // Track revenue chỉ khi DB confirm — không tin returnUrl đơn thuần
+          Analytics.bumpComplete(tier: pkg.key, amount: pkg.amount);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Đã kích hoạt gói ${pkg.label}!')),
           );
