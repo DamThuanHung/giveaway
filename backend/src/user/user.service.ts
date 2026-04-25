@@ -74,6 +74,55 @@ export class UserService {
     if (error) throw new Error(`Resend error: ${error.message}`);
   }
 
+  /**
+   * Welcome email sau khi user signup lần đầu — best effort, không block flow.
+   * Engagement tuần đầu: giới thiệu 3 hành động đầu (đăng bài, follow, theo dõi keyword).
+   */
+  private async sendWelcomeEmail(email: string, name: string): Promise<void> {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return; // dev không có API key → skip silent
+
+    try {
+      const resend = new Resend(apiKey);
+      await resend.emails.send({
+        from: 'Trao Tay <noreply@traotay.com.vn>',
+        to: email,
+        subject: 'Chào mừng bạn đến Trao Tay! 🎁',
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:24px;background:#FAFAFA">
+            <div style="text-align:center;padding:24px 0">
+              <h1 style="color:#10B981;margin:0">Trao Tay</h1>
+              <p style="color:#6B7280;margin:4px 0 0">Chợ đồ cũ & trao tặng miễn phí</p>
+            </div>
+            <div style="background:white;padding:32px 24px;border-radius:12px">
+              <h2 style="color:#1A1A2E;margin-top:0">Xin chào ${name},</h2>
+              <p style="color:#374151;line-height:1.6">
+                Cảm ơn bạn đã tham gia cộng đồng <strong>Trao Tay</strong>!
+                Cùng nhau, chúng ta giúp những món đồ cũ tìm được chủ mới — giảm rác thải, sẻ chia yêu thương.
+              </p>
+              <h3 style="color:#1A1A2E;margin-top:24px">3 việc đầu tiên để bắt đầu:</h3>
+              <ol style="color:#374151;line-height:1.8;padding-left:20px">
+                <li><strong>Đăng món đồ đầu tiên</strong> — chỉ 30 giây, kèm 1-3 ảnh</li>
+                <li><strong>Khám phá khu vực gần bạn</strong> — lọc theo tỉnh/quận, xem trên bản đồ</li>
+                <li><strong>Theo dõi từ khóa quan tâm</strong> — nhận thông báo khi có bài mới khớp</li>
+              </ol>
+              <div style="text-align:center;margin-top:32px">
+                <p style="color:#6B7280;font-size:13px">Mở app Trao Tay trên điện thoại để bắt đầu</p>
+              </div>
+            </div>
+            <div style="text-align:center;padding:16px;color:#9CA3AF;font-size:12px">
+              Bạn nhận được email này vì đã đăng ký tài khoản tại traotay.com.vn.<br/>
+              Liên hệ: damhungtpt@gmail.com
+            </div>
+          </div>
+        `,
+      });
+    } catch (err) {
+      // Best effort — không throw, chỉ log để không block signup flow
+      console.warn(`[WelcomeEmail] Failed for ${email}: ${(err as Error).message}`);
+    }
+  }
+
   private signToken(user: { id: string; email?: string | null; phone?: string | null; name?: string | null }) {
     return this.jwtService.signAsync({ sub: user.id, email: user.email ?? user.phone ?? '', name: user.name ?? null });
   }
@@ -104,6 +153,9 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({ data: { email, password: hashedPassword, name } });
     const accessToken = await this.signToken(user);
+
+    // Welcome email — fire-and-forget, không block response
+    this.sendWelcomeEmail(email, name).catch(() => {});
 
     return { message: 'Tạo tài khoản thành công', accessToken, user: { id: user.id, email: user.email, name: user.name } };
   }
@@ -329,6 +381,8 @@ export class UserService {
       user = await this.prisma.user.create({
         data: { email: emailLower, role: isAdmin ? 'admin' : 'user' },
       });
+      // Welcome email cho user mới qua OTP email — best effort
+      this.sendWelcomeEmail(emailLower, user.name ?? 'bạn').catch(() => {});
     } else if (isAdmin && user.role !== 'admin') {
       user = await this.prisma.user.update({
         where: { id: user.id },
