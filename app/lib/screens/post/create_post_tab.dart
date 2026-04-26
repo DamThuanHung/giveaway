@@ -237,8 +237,13 @@ class _CreatePostTabState extends State<CreatePostTab> {
     } catch (e) {
       debugPrint('❌ CreatePostTab._submit error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Lỗi kết nối server'),
+        // Nếu ImageCompress throw (vd HEIC không xử lý được) → show message từ Exception
+        // Còn lại fallback "Lỗi kết nối server"
+        final msg = e is Exception
+            ? e.toString().replaceFirst('Exception: ', '')
+            : 'Lỗi kết nối server';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
           backgroundColor: AppTheme.error,
           behavior: SnackBarBehavior.floating,
         ));
