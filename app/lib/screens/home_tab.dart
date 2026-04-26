@@ -693,6 +693,7 @@ class _FilterChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.emoji,
+    this.iconAsset,
   });
 
   @override
