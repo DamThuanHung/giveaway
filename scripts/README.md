@@ -67,16 +67,30 @@ sudo ./nginx/init-cert.sh
 ```
 
 ### 6. Backup cron
+
+**Tuỳ chọn A — Backup local-only (nhanh, không cần B2 account):**
+```bash
+# Cron daily 3h sáng VN (20:00 UTC)
+(sudo crontab -l 2>/dev/null; echo "0 20 * * * /opt/traotay/repo/scripts/backup-local.sh") | sudo crontab -
+
+# Test ngay
+sudo /opt/traotay/repo/scripts/backup-local.sh
+ls -lh /opt/traotay/backups/
+```
+Lưu trữ 14 ngày gần nhất ở `/opt/traotay/backups/`. KHÔNG bảo vệ khi cả EBS volume hỏng — layer tạm.
+
+**Tuỳ chọn B — Backup cloud Backblaze B2 (recommended sau khi có account):**
 ```bash
 # Setup rclone cho Backblaze B2
 rclone config    # xem comment trong backup.sh
 
-# Cron daily 3h sáng
-(crontab -l 2>/dev/null; echo "0 3 * * * /opt/traotay/scripts/backup.sh >> /var/log/traotay-backup.log 2>&1") | crontab -
+# Cron daily 3h sáng VN
+(sudo crontab -l 2>/dev/null; echo "0 20 * * * /opt/traotay/repo/scripts/backup.sh >> /var/log/traotay-backup.log 2>&1") | sudo crontab -
 
 # Test
 ./scripts/backup.sh
 ```
+Sau khi B2 OK, gỡ entry backup-local khỏi crontab.
 
 ---
 
