@@ -44,22 +44,22 @@ class PostCardSkeleton extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.border),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SkeletonBox(height: 140, radius: 0),
+          SkeletonBox(height: 140, radius: 0),
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SkeletonBox(height: 14),
-                const SizedBox(height: 6),
-                const SkeletonBox(width: 80, height: 14),
-                const SizedBox(height: 8),
-                const SkeletonBox(height: 18, width: 100),
-                const SizedBox(height: 6),
-                const SkeletonBox(height: 11, width: 120),
+                SkeletonBox(height: 14),
+                SizedBox(height: 6),
+                SkeletonBox(width: 80, height: 14),
+                SizedBox(height: 8),
+                SkeletonBox(height: 18, width: 100),
+                SizedBox(height: 6),
+                SkeletonBox(height: 11, width: 120),
               ],
             ),
           ),

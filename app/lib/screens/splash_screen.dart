@@ -82,6 +82,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
     final prefs = await SharedPreferences.getInstance();
     final onboardingDone = prefs.getBool('onboarding_done') ?? false;
+    if (!mounted) return;
 
     if (!onboardingDone) {
       Navigator.pushReplacement(context, _fadeRoute(const OnboardingScreen()));

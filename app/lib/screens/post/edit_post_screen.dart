@@ -135,7 +135,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Tiêu đề
-              _Label('Tiêu đề *'),
+              const _Label('Tiêu đề *'),
               TextFormField(
                 controller: _titleCtrl,
                 decoration: _deco('VD: Bàn làm việc gỗ IKEA còn mới'),
@@ -145,7 +145,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               const SizedBox(height: 16),
 
               // Mô tả
-              _Label('Mô tả'),
+              const _Label('Mô tả'),
               TextFormField(
                 controller: _descCtrl,
                 decoration: _deco('Mô tả chi tiết...'),
@@ -155,7 +155,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               const SizedBox(height: 16),
 
               // Danh mục
-              _Label('Danh mục'),
+              const _Label('Danh mục'),
               _DropdownField<String>(
                 value: _itemCategory,
                 items: _categories.map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2))).toList(),
@@ -169,7 +169,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
               // ── Jobs fields ─────────────────────────────────
               if (_isJob) ...[
-                _Label('Hình thức làm việc *'),
+                const _Label('Hình thức làm việc *'),
                 Wrap(
                   spacing: 8, runSpacing: 8,
                   children: [
@@ -181,14 +181,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _Label('Tên công ty / Nhà tuyển dụng'),
+                const _Label('Tên công ty / Nhà tuyển dụng'),
                 TextFormField(
                   controller: _companyCtrl,
                   decoration: _deco('VD: Công ty ABC').copyWith(prefixIcon: const Icon(Icons.business_outlined)),
                   maxLength: 100,
                 ),
                 const SizedBox(height: 8),
-                _Label('Mức lương (VNĐ)'),
+                const _Label('Mức lương (VNĐ)'),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(flex: 3, child: TextFormField(
                     controller: _priceCtrl,
@@ -217,7 +217,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
               // ── Item thường / Service — loại đăng + giá ───
               if (!_isJob && !_isRealestate) ...[
-                _Label('Loại đăng'),
+                const _Label('Loại đăng'),
                 _SegmentRow(
                   options: _listingTypes.map((e) => (e.$1, e.$2)).toList(),
                   selected: _listingType,
@@ -225,7 +225,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ),
                 const SizedBox(height: 16),
                 if (_listingType == 'sell') ...[
-                  _Label('Giá (VNĐ)'),
+                  const _Label('Giá (VNĐ)'),
                   TextFormField(
                     controller: _priceCtrl,
                     decoration: _deco('Để trống = thương lượng'),
@@ -243,7 +243,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ],
 
               // Trạng thái
-              _Label('Trạng thái bài đăng'),
+              const _Label('Trạng thái bài đăng'),
               _DropdownField<String>(
                 value: _status,
                 items: _statuses.map((s) => DropdownMenuItem(value: s.$1, child: Text(s.$2))).toList(),

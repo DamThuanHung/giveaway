@@ -3,7 +3,7 @@ import '../services/chat_socket_service.dart';
 
 class ChatProvider with ChangeNotifier {
   final ChatSocketService _socketService = ChatSocketService();
-  List _messages = [];
+  final List _messages = [];
 
   List get messages => _messages;
 

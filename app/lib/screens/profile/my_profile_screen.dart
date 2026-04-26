@@ -124,7 +124,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (!mounted) return;
       final counts = results[1] as Map<String, dynamic>;
       setState(() {
-        _trustData = results[0] as Map<String, dynamic>?;
+        _trustData = results[0];
         _followersCount = counts['followersCount'] ?? 0;
         _followingCount = counts['followingCount'] ?? 0;
         _trustLoading = false;
@@ -196,11 +196,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                       ),
                       const SizedBox(height: 20),
-                      _BenefitRow(icon: Icons.post_add_outlined,     color: const Color(0xFF2196F3), text: 'Đăng tin bán & tặng đồ miễn phí'),
-                      _BenefitRow(icon: Icons.chat_bubble_outline,   color: AppTheme.primary,       text: 'Nhắn tin trực tiếp với người mua/bán'),
-                      _BenefitRow(icon: Icons.favorite_border,       color: const Color(0xFFE91E63), text: 'Lưu bài đăng yêu thích'),
-                      _BenefitRow(icon: Icons.people_outline,        color: const Color(0xFF9C27B0), text: 'Theo dõi người bán ưa thích'),
-                      _BenefitRow(icon: Icons.star_border_rounded,   color: const Color(0xFFFFC107), text: 'Đánh giá & xây dựng uy tín'),
+                      const _BenefitRow(icon: Icons.post_add_outlined,     color: Color(0xFF2196F3), text: 'Đăng tin bán & tặng đồ miễn phí'),
+                      const _BenefitRow(icon: Icons.chat_bubble_outline,   color: AppTheme.primary,       text: 'Nhắn tin trực tiếp với người mua/bán'),
+                      const _BenefitRow(icon: Icons.favorite_border,       color: Color(0xFFE91E63), text: 'Lưu bài đăng yêu thích'),
+                      const _BenefitRow(icon: Icons.people_outline,        color: Color(0xFF9C27B0), text: 'Theo dõi người bán ưa thích'),
+                      const _BenefitRow(icon: Icons.star_border_rounded,   color: Color(0xFFFFC107), text: 'Đánh giá & xây dựng uy tín'),
                       const SizedBox(height: 32),
 
                       // Nút đăng nhập
@@ -302,7 +302,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 runSpacing: 8,
                 children: [
                   if (_trustData!['isPhoneVerified'] == true)
-                    _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: AppTheme.primary),
+                    const _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: AppTheme.primary),
                   _TrustBadge(
                     icon: Icons.handshake_outlined,
                     label: '${_trustData!['completedDeals'] ?? 0} deal thành công',
@@ -625,7 +625,7 @@ class _MenuItemState extends State<_MenuItem> with SingleTickerProviderStateMixi
         ),
       ),
       title: Text(widget.label, style: TextStyle(color: labelC, fontWeight: FontWeight.w500)),
-      trailing: Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+      trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
       onTap: _handleTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
     );

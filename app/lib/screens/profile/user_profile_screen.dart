@@ -238,7 +238,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 _StatCol('${_posts.length}', 'Bài đăng'),
                                 _divider(),
                                 _StatCol(
-                                  '${_reviews?['averageRating'] != null ? (_reviews!['averageRating'] as num).toStringAsFixed(1) : '—'}',
+                                  _reviews?['averageRating'] != null ? (_reviews!['averageRating'] as num).toStringAsFixed(1) : '—',
                                   'Đánh giá TB',
                                   icon: Icons.star_rounded,
                                   iconColor: Colors.amber,
@@ -295,7 +295,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                       // Đánh giá gần đây
                       if ((_reviews?['reviews'] as List?)?.isNotEmpty == true) ...[
-                        _SectionHeader('Đánh giá gần đây'),
+                        const _SectionHeader('Đánh giá gần đây'),
                         ...(_reviews!['reviews'] as List).take(3).map((r) => _ReviewTile(review: r)),
                         const SizedBox(height: 8),
                       ],

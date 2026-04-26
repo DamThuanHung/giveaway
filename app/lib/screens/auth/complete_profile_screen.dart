@@ -78,7 +78,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     color: AppTheme.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.person_outline_rounded, color: AppTheme.primary, size: 40),
+                  child: const Icon(Icons.person_outline_rounded, color: AppTheme.primary, size: 40),
                 ),
               ),
               const SizedBox(height: 28),
@@ -91,7 +91,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Tên hiển thị sẽ xuất hiện trên các bài đăng của bạn',
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
               ),
@@ -105,20 +105,20 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 onSubmitted: (_) => _save(),
                 decoration: InputDecoration(
                   hintText: 'Ví dụ: Nguyễn Văn A',
-                  prefixIcon: Icon(Icons.badge_outlined, color: AppTheme.textSecondary),
+                  prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.textSecondary),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.border),
+                    borderSide: const BorderSide(color: AppTheme.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.border),
+                    borderSide: const BorderSide(color: AppTheme.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+                    borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
@@ -126,7 +126,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
               if (_errorMsg != null) ...[
                 const SizedBox(height: 10),
-                Text(_errorMsg!, style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                Text(_errorMsg!, style: const TextStyle(color: AppTheme.error, fontSize: 13)),
               ],
 
               const SizedBox(height: 28),

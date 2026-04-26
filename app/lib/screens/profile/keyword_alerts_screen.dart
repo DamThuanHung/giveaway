@@ -72,7 +72,7 @@ class _KeywordAlertsScreenState extends State<KeywordAlertsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Nhận thông báo khi có bài đăng mới khớp với từ khóa bạn quan tâm. Tối đa 10 từ khóa.',
                   style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                 ),
@@ -85,7 +85,7 @@ class _KeywordAlertsScreenState extends State<KeywordAlertsScreen> {
                       onSubmitted: (_) => _add(),
                       decoration: InputDecoration(
                         hintText: 'Ví dụ: xe máy, tủ lạnh...',
-                        hintStyle: TextStyle(color: AppTheme.textSecondary),
+                        hintStyle: const TextStyle(color: AppTheme.textSecondary),
                         filled: true,
                         fillColor: AppTheme.background,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -118,10 +118,10 @@ class _KeywordAlertsScreenState extends State<KeywordAlertsScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _keywords.isEmpty
-                    ? Center(
+                    ? const Center(
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
                           Icon(Icons.notifications_none_outlined, size: 56, color: AppTheme.textSecondary),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           Text('Chưa có từ khóa nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
                         ]),
                       )
@@ -138,12 +138,12 @@ class _KeywordAlertsScreenState extends State<KeywordAlertsScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(children: [
-                              Icon(Icons.search, size: 18, color: AppTheme.primary),
+                              const Icon(Icons.search, size: 18, color: AppTheme.primary),
                               const SizedBox(width: 10),
                               Expanded(child: Text(kw, style: const TextStyle(fontSize: 15))),
                               GestureDetector(
                                 onTap: () => _remove(kw),
-                                child: Icon(Icons.close, size: 20, color: AppTheme.textSecondary),
+                                child: const Icon(Icons.close, size: 20, color: AppTheme.textSecondary),
                               ),
                             ]),
                           );

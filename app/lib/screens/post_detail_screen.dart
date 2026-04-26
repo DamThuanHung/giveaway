@@ -860,7 +860,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         return Container(
                           width: 48,
                           height: 48,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppTheme.primaryLight,
                           ),
@@ -1146,7 +1146,7 @@ class _BoostBanner extends StatelessWidget {
             begin: Alignment.centerLeft, end: Alignment.centerRight,
           ),
         ),
-        child: Row(children: const [
+        child: const Row(children: [
           Icon(Icons.workspace_premium, color: Color(0xFFF4D36A), size: 20),
           SizedBox(width: 10),
           Expanded(child: Text(
@@ -1163,7 +1163,7 @@ class _BoostBanner extends StatelessWidget {
         color: Color(0xFFFEF9E7),
         border: Border(bottom: BorderSide(color: Color(0xFFC9A84A), width: 0.5)),
       ),
-      child: Row(children: const [
+      child: const Row(children: [
         Icon(Icons.star_rounded, color: Color(0xFFC9A84A), size: 18),
         SizedBox(width: 8),
         Expanded(child: Text(

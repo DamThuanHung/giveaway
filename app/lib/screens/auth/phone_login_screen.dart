@@ -44,15 +44,15 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                     const SizedBox(height: 40),
 
                     // Branding
-                    Center(
+                    const Center(
                       child: Column(children: [
-                        const AppLogo(size: 72),
-                        const SizedBox(height: 16),
+                        AppLogo(size: 72),
+                        SizedBox(height: 16),
                         Text('Trao Tay', style: TextStyle(
                           fontSize: 26, fontWeight: FontWeight.bold,
                           color: AppTheme.primary, letterSpacing: -0.5,
                         )),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         Text('Mua bán & trao tặng đồ cũ cộng đồng',
                             style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
                       ]),
@@ -92,8 +92,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 24),
               child: Text(
                 'Nhập thông tin để đăng ký hoặc đăng nhập',
                 textAlign: TextAlign.center,
@@ -168,8 +168,12 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
   @override
   void dispose() {
     _phoneCtrl.dispose();
-    for (final c in _otpCtrls) c.dispose();
-    for (final f in _otpFocuses) f.dispose();
+    for (final c in _otpCtrls) {
+      c.dispose();
+    }
+    for (final f in _otpFocuses) {
+      f.dispose();
+    }
     _timer?.cancel();
     super.dispose();
   }
@@ -179,7 +183,11 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) { t.cancel(); return; }
-      setState(() { if (_countdown > 0) _countdown--; else t.cancel(); });
+      setState(() { if (_countdown > 0) {
+        _countdown--;
+      } else {
+        t.cancel();
+      } });
     });
   }
 
@@ -213,7 +221,9 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
           _isLoading = false;
           _otpSent = true;
           _verificationId = verificationId;
-          if (isResend) for (final c in _otpCtrls) c.clear();
+          if (isResend) for (final c in _otpCtrls) {
+            c.clear();
+          }
         });
         _startCountdown();
         Future.delayed(const Duration(milliseconds: 100), () {
@@ -269,8 +279,9 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
 
   void _onOtpChanged(String value, int index) {
     if (value.length == 1) {
-      if (index < 5) _otpFocuses[index + 1].requestFocus();
-      else { _otpFocuses[index].unfocus(); _verifyOtp(); }
+      if (index < 5) {
+        _otpFocuses[index + 1].requestFocus();
+      } else { _otpFocuses[index].unfocus(); _verifyOtp(); }
     }
   }
 
@@ -289,7 +300,7 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!_otpSent) ...[
-          Text('Nhập số điện thoại để nhận mã xác nhận',
+          const Text('Nhập số điện thoại để nhận mã xác nhận',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
           Container(
@@ -301,12 +312,12 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
             child: Row(children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   border: Border(right: BorderSide(color: AppTheme.border)),
                 ),
-                child: Row(children: [
-                  const Text('🇻🇳', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 6),
+                child: const Row(children: [
+                  Text('🇻🇳', style: TextStyle(fontSize: 18)),
+                  SizedBox(width: 6),
                   Text('+84', style: TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary,
                   )),
@@ -331,12 +342,12 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
           ),
         ] else ...[
           RichText(text: TextSpan(
-            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.5),
+            style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.5),
             children: [
               const TextSpan(text: 'Mã OTP đã được gửi đến '),
               TextSpan(
                 text: '+84 ${_phoneCtrl.text.trim().replaceAll(RegExp(r'^0'), '')}',
-                style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
               ),
             ],
           )),
@@ -355,9 +366,9 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
         if (_errorMsg != null) ...[
           const SizedBox(height: 12),
           Row(children: [
-            Icon(Icons.error_outline, color: AppTheme.error, size: 15),
+            const Icon(Icons.error_outline, color: AppTheme.error, size: 15),
             const SizedBox(width: 6),
-            Flexible(child: Text(_errorMsg!, style: TextStyle(color: AppTheme.error, fontSize: 13))),
+            Flexible(child: Text(_errorMsg!, style: const TextStyle(color: AppTheme.error, fontSize: 13))),
           ]),
         ],
 
@@ -385,25 +396,27 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             if (_countdown > 0)
               Text('Gửi lại mã sau ${_countdown}s',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13))
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))
             else
               TextButton(
                 onPressed: _isLoading ? null : () => _sendOtp(isResend: true),
-                child: Text('Gửi lại mã OTP',
+                child: const Text('Gửi lại mã OTP',
                     style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
               ),
             const SizedBox(width: 4),
-            Text('·', style: TextStyle(color: AppTheme.textSecondary)),
+            const Text('·', style: TextStyle(color: AppTheme.textSecondary)),
             const SizedBox(width: 4),
             TextButton(
               onPressed: _isLoading ? null : () {
                 _timer?.cancel();
                 setState(() {
                   _otpSent = false; _countdown = 0; _errorMsg = null;
-                  for (final c in _otpCtrls) c.clear();
+                  for (final c in _otpCtrls) {
+                    c.clear();
+                  }
                 });
               },
-              child: Text('Đổi số', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+              child: const Text('Đổi số', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
             ),
           ]),
         ],
@@ -436,8 +449,12 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
   @override
   void dispose() {
     _emailCtrl.dispose();
-    for (final c in _otpCtrls) c.dispose();
-    for (final f in _otpFocuses) f.dispose();
+    for (final c in _otpCtrls) {
+      c.dispose();
+    }
+    for (final f in _otpFocuses) {
+      f.dispose();
+    }
     _timer?.cancel();
     super.dispose();
   }
@@ -447,7 +464,11 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) { t.cancel(); return; }
-      setState(() { if (_countdown > 0) _countdown--; else t.cancel(); });
+      setState(() { if (_countdown > 0) {
+        _countdown--;
+      } else {
+        t.cancel();
+      } });
     });
   }
 
@@ -467,12 +488,14 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
     setState(() {
       _isLoading = false;
       _otpSent = true;
-      if (isResend) for (final c in _otpCtrls) c.clear();
+      if (isResend) for (final c in _otpCtrls) {
+        c.clear();
+      }
     });
     _startCountdown();
     if (isResend && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Đã gửi lại mã OTP, vui lòng kiểm tra email'), duration: const Duration(seconds: 3)),
+        const SnackBar(content: Text('Đã gửi lại mã OTP, vui lòng kiểm tra email'), duration: Duration(seconds: 3)),
       );
     }
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -500,8 +523,9 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
 
   void _onOtpChanged(String value, int index) {
     if (value.length == 1) {
-      if (index < 5) _otpFocuses[index + 1].requestFocus();
-      else { _otpFocuses[index].unfocus(); _verifyOtp(); }
+      if (index < 5) {
+        _otpFocuses[index + 1].requestFocus();
+      } else { _otpFocuses[index].unfocus(); _verifyOtp(); }
     }
   }
 
@@ -520,7 +544,7 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!_otpSent) ...[
-          Text('Nhập email để nhận mã xác nhận',
+          const Text('Nhập email để nhận mã xác nhận',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
           TextField(
@@ -532,11 +556,11 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
           ),
         ] else ...[
           RichText(text: TextSpan(
-            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.5),
+            style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.5),
             children: [
               const TextSpan(text: 'Mã OTP đã gửi đến '),
               TextSpan(text: _emailCtrl.text.trim(),
-                  style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
             ],
           )),
           const SizedBox(height: 20),
@@ -554,9 +578,9 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
         if (_errorMsg != null) ...[
           const SizedBox(height: 12),
           Row(children: [
-            Icon(Icons.error_outline, color: AppTheme.error, size: 15),
+            const Icon(Icons.error_outline, color: AppTheme.error, size: 15),
             const SizedBox(width: 6),
-            Flexible(child: Text(_errorMsg!, style: TextStyle(color: AppTheme.error, fontSize: 13))),
+            Flexible(child: Text(_errorMsg!, style: const TextStyle(color: AppTheme.error, fontSize: 13))),
           ]),
         ],
 
@@ -584,24 +608,26 @@ class _EmailOtpFormState extends State<_EmailOtpForm> {
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             if (_countdown > 0)
               Text('Gửi lại sau ${_countdown}s',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 13))
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))
             else
               TextButton(
                 onPressed: _isLoading ? null : () => _sendOtp(isResend: true),
-                child: Text('Gửi lại mã OTP',
+                child: const Text('Gửi lại mã OTP',
                     style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 13)),
               ),
             const SizedBox(width: 4),
-            Text('·', style: TextStyle(color: AppTheme.textSecondary)),
+            const Text('·', style: TextStyle(color: AppTheme.textSecondary)),
             TextButton(
               onPressed: _isLoading ? null : () {
                 _timer?.cancel();
                 setState(() {
                   _otpSent = false; _countdown = 0; _errorMsg = null;
-                  for (final c in _otpCtrls) c.clear();
+                  for (final c in _otpCtrls) {
+                    c.clear();
+                  }
                 });
               },
-              child: Text('Đổi email',
+              child: const Text('Đổi email',
                   style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
             ),
           ]),
@@ -639,11 +665,11 @@ class _OtpBox extends StatelessWidget {
           decoration: InputDecoration(
             counterText: '', filled: true, fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: AppTheme.border)),
+                borderSide: const BorderSide(color: AppTheme.border)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: AppTheme.border)),
+                borderSide: const BorderSide(color: AppTheme.border)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: AppTheme.primary, width: 2)),
+                borderSide: const BorderSide(color: AppTheme.primary, width: 2)),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -747,9 +773,9 @@ InputDecoration _inputDeco(String label, IconData icon) => InputDecoration(
   prefixIcon: Icon(icon, size: 20, color: AppTheme.textSecondary),
   filled: true, fillColor: AppTheme.background,
   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: AppTheme.border)),
+      borderSide: const BorderSide(color: AppTheme.border)),
   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: AppTheme.border)),
+      borderSide: const BorderSide(color: AppTheme.border)),
   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
       borderSide: const BorderSide(color: AppTheme.primary, width: 1.5)),
   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

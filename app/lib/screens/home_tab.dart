@@ -55,7 +55,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   // -1 = Đang theo dõi, 0 = Tất cả, 1 = Miễn phí
   int _selectedChip = 0;
   String? _selectedCategory; // null = không lọc theo danh mục
-  static final _categories = AppCategories.list;
+  static const _categories = AppCategories.list;
 
   // 0 = Dành cho bạn, 1 = Mới nhất, 2 = Gần bạn
   int _feedTab = 0;
@@ -270,8 +270,11 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     if (!auth.isAuth || auth.userId == null) return;
     final isFav = _favoriteIds.contains(postId);
     setState(() {
-      if (isFav) _favoriteIds.remove(postId);
-      else _favoriteIds.add(postId);
+      if (isFav) {
+        _favoriteIds.remove(postId);
+      } else {
+        _favoriteIds.add(postId);
+      }
     });
     if (isFav) {
       await ApiService.removeFavorite(auth.userId!, postId);
@@ -690,7 +693,6 @@ class _FilterChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.emoji,
-    this.iconAsset,
   });
 
   @override

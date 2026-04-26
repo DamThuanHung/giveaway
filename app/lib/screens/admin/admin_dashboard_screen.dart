@@ -45,7 +45,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // Revenue
   Map<String, dynamic>? _revenue;
   final List<dynamic> _orders = [];
-  int _ordersPage = 0;
+  final int _ordersPage = 0;
   int _ordersTotalPages = 1;
   bool _revenueLoading = false;
   bool _revenueInitialized = false;
@@ -220,7 +220,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _Section('Tổng quan'),
+          const _Section('Tổng quan'),
           const SizedBox(height: 12),
           GridView.count(
             crossAxisCount: 2, shrinkWrap: true,
@@ -234,7 +234,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          _Section('Hoạt động hôm nay'),
+          const _Section('Hoạt động hôm nay'),
           const SizedBox(height: 12),
           Row(children: [
             _MiniStat('Người mới', '${today['newUsers'] ?? 0}', Colors.blue),
@@ -244,7 +244,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _MiniStat('Deal mới', '${today['newDeals'] ?? 0}', Colors.orange),
           ]),
           const SizedBox(height: 20),
-          _Section('Trạng thái bài đăng'),
+          const _Section('Trạng thái bài đăng'),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -542,7 +542,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final n = (amount as num?)?.toInt() ?? 0;
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}tr';
     if (n >= 1000) return '${(n / 1000).round()}k';
-    return '${n}đ';
+    return '$nđ';
   }
 }
 

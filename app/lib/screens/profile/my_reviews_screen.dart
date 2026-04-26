@@ -71,7 +71,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                   onRefresh: _load,
                   child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(height: c.maxHeight, child: EmptyState(
+                    child: SizedBox(height: c.maxHeight, child: const EmptyState(
                       icon: Icons.star_outline_rounded,
                       message: 'Chưa có đánh giá nào',
                       subMessage: 'Hoàn thành giao dịch để nhận đánh giá',

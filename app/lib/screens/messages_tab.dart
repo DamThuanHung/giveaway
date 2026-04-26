@@ -117,7 +117,7 @@ class _MessagesTabState extends State<MessagesTab> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: SizedBox(
                         height: constraints.maxHeight,
-                        child: EmptyState(
+                        child: const EmptyState(
                           icon: Icons.chat_bubble_outline,
                           message: 'Chưa có cuộc trò chuyện nào',
                           subMessage: 'Tìm đồ và liên hệ người đăng để bắt đầu',

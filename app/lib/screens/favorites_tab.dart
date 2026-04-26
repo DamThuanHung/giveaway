@@ -122,7 +122,7 @@ class FavoritesTabState extends State<FavoritesTab> {
                   onRefresh: load,
                   child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(height: c.maxHeight, child: EmptyState(
+                    child: SizedBox(height: c.maxHeight, child: const EmptyState(
                       icon: Icons.favorite_border,
                       message: 'Chưa có tin đăng nào được lưu',
                       subMessage: 'Bấm ♡ trên bài đăng để lưu vào đây',

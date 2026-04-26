@@ -210,7 +210,9 @@ class _BottomBarState extends State<_BottomBar> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    for (final c in _controllers) c.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 

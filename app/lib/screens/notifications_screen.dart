@@ -185,7 +185,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onPressed: () async {
                 await ApiService.markAllNotificationsRead();
                 setState(() {
-                  for (final n in _notifications) n['isRead'] = true;
+                  for (final n in _notifications) {
+                    n['isRead'] = true;
+                  }
                 });
                 if (mounted) context.read<NotificationProvider>().clearBadge();
               },

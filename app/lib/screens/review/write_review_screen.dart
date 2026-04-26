@@ -68,7 +68,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                 );
               })),
               const SizedBox(height: 8),
-              Text(_ratingLabel, style: TextStyle(color: AppTheme.warning, fontWeight: FontWeight.w600)),
+              Text(_ratingLabel, style: const TextStyle(color: AppTheme.warning, fontWeight: FontWeight.w600)),
             ])),
             const SizedBox(height: 24),
             TextField(

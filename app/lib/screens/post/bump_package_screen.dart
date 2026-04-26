@@ -434,5 +434,5 @@ class _PayOSWebViewState extends State<PayOSWebView> {
 
 String _formatPrice(int amount) {
   if (amount >= 1000) return '${(amount / 1000).round()}k';
-  return '${amount}đ';
+  return '$amountđ';
 }

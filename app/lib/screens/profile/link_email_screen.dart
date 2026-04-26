@@ -26,8 +26,12 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
   @override
   void dispose() {
     _emailCtrl.dispose();
-    for (final c in _otpCtrls) c.dispose();
-    for (final f in _otpFocuses) f.dispose();
+    for (final c in _otpCtrls) {
+      c.dispose();
+    }
+    for (final f in _otpFocuses) {
+      f.dispose();
+    }
     _timer?.cancel();
     super.dispose();
   }
@@ -37,7 +41,11 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) { t.cancel(); return; }
-      setState(() { if (_countdown > 0) _countdown--; else t.cancel(); });
+      setState(() { if (_countdown > 0) {
+        _countdown--;
+      } else {
+        t.cancel();
+      } });
     });
   }
 
@@ -57,7 +65,9 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
     setState(() {
       _isLoading = false;
       _otpSent = true;
-      if (isResend) for (final c in _otpCtrls) c.clear();
+      if (isResend) for (final c in _otpCtrls) {
+        c.clear();
+      }
     });
     _startCountdown();
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -89,13 +99,14 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
 
   void _onOtpChanged(String value, int index) {
     if (value.length == 1) {
-      if (index < 5) _otpFocuses[index + 1].requestFocus();
-      else { _otpFocuses[index].unfocus(); _confirm(); }
+      if (index < 5) {
+        _otpFocuses[index + 1].requestFocus();
+      } else { _otpFocuses[index].unfocus(); _confirm(); }
     }
   }
 
-  void _onOtpKey(RawKeyEvent event, int index) {
-    if (event is RawKeyDownEvent &&
+  void _onOtpKey(KeyEvent event, int index) {
+    if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.backspace &&
         _otpCtrls[index].text.isEmpty && index > 0) {
       _otpFocuses[index - 1].requestFocus();
@@ -125,10 +136,10 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
                 ),
-                child: Row(children: [
+                child: const Row(children: [
                   Icon(Icons.info_outline, color: AppTheme.primary, size: 18),
-                  const SizedBox(width: 10),
-                  const Expanded(
+                  SizedBox(width: 10),
+                  Expanded(
                     child: Text(
                       'Email dự phòng giúp bạn đăng nhập khi mất số điện thoại.',
                       style: TextStyle(fontSize: 13, color: AppTheme.textPrimary, height: 1.4),
@@ -162,8 +173,8 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
                     prefixIcon: const Icon(Icons.email_outlined, size: 20),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.border)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
                     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primary, width: 1.5)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
@@ -184,9 +195,9 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
               if (_errorMsg != null) ...[
                 const SizedBox(height: 12),
                 Row(children: [
-                  Icon(Icons.error_outline, color: AppTheme.error, size: 15),
+                  const Icon(Icons.error_outline, color: AppTheme.error, size: 15),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(_errorMsg!, style: TextStyle(color: AppTheme.error, fontSize: 13))),
+                  Expanded(child: Text(_errorMsg!, style: const TextStyle(color: AppTheme.error, fontSize: 13))),
                 ]),
               ],
 
@@ -218,7 +229,7 @@ class _LinkEmailScreenState extends State<LinkEmailScreen> {
                           style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))
                       : TextButton(
                           onPressed: _isLoading ? null : () => _sendOtp(isResend: true),
-                          child: Text('Gửi lại mã OTP',
+                          child: const Text('Gửi lại mã OTP',
                               style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
                         ),
                 ),
@@ -235,15 +246,15 @@ class _OtpBox extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
-  final ValueChanged<RawKeyEvent> onKey;
+  final ValueChanged<KeyEvent> onKey;
   final bool enabled;
   const _OtpBox({required this.controller, required this.focusNode, required this.onChanged, required this.onKey, required this.enabled});
 
   @override
   Widget build(BuildContext context) {
-    return RawKeyboardListener(
+    return KeyboardListener(
       focusNode: FocusNode(),
-      onKey: onKey,
+      onKeyEvent: onKey,
       child: SizedBox(
         width: 44, height: 54,
         child: TextField(
@@ -260,8 +271,8 @@ class _OtpBox extends StatelessWidget {
             counterText: '',
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.border)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.border)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.primary, width: 2)),
             contentPadding: EdgeInsets.zero,
           ),

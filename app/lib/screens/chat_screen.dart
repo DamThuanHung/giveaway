@@ -243,7 +243,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               color: AppTheme.warning.withOpacity(0.12),
               child: Row(children: [
-                Icon(Icons.shield_outlined, size: 16, color: AppTheme.warning),
+                const Icon(Icons.shield_outlined, size: 16, color: AppTheme.warning),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -253,7 +253,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 GestureDetector(
                   onTap: () => setState(() => _showSafetyBanner = false),
-                  child: Icon(Icons.close, size: 16, color: AppTheme.warning),
+                  child: const Icon(Icons.close, size: 16, color: AppTheme.warning),
                 ),
               ]),
             ),
@@ -407,11 +407,11 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
           if (showRead)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6, right: 2),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 6, right: 2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(Icons.done_all, size: 13, color: AppTheme.primary),
                   SizedBox(width: 3),
                   Text('Đã xem', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
@@ -557,7 +557,7 @@ class _DealCardState extends State<_DealCard> {
             if (status == 'completed') ...[
               const SizedBox(height: 12),
               if (_reviewed)
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+                const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.check_circle, color: AppTheme.success, size: 16),
                   SizedBox(width: 6),
                   Text('Đã gửi đánh giá', style: TextStyle(color: AppTheme.success, fontSize: 13, fontWeight: FontWeight.w500)),
@@ -714,7 +714,9 @@ class _TypingBubbleState extends State<_TypingBubble> with TickerProviderStateMi
 
   @override
   void dispose() {
-    for (final c in _controllers) c.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -746,7 +748,7 @@ class _TypingBubbleState extends State<_TypingBubble> with TickerProviderStateMi
                   child: Container(
                     margin: EdgeInsets.only(left: i > 0 ? 4 : 0),
                     width: 7, height: 7,
-                    decoration: BoxDecoration(color: AppTheme.textSecondary, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppTheme.textSecondary, shape: BoxShape.circle),
                   ),
                 ),
               )),

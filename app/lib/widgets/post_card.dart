@@ -36,7 +36,7 @@ class PostCard extends StatefulWidget {
       return s;
     }
     if (price >= 1000) return '${(price / 1000).round()}k';
-    return '${price}đ';
+    return '$priceđ';
   }
 
   @override

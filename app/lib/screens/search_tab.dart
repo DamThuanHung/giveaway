@@ -278,7 +278,7 @@ class _SearchTabState extends State<SearchTab> {
   String _fmtPrice(int price) {
     if (price >= 1000000) return '${(price / 1000000).toStringAsFixed(price % 1000000 == 0 ? 0 : 1)}tr';
     if (price >= 1000) return '${(price / 1000).toStringAsFixed(0)}k';
-    return '${price}đ';
+    return '$priceđ';
   }
 
   String _jobTypeLabel(String type) {
@@ -507,7 +507,7 @@ class _SearchTabState extends State<SearchTab> {
                                   fontWeight: (tmpProvince != null || tmpRadius != null) ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               )),
-                              Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 18),
+                              const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 18),
                             ],
                           ),
                         ),
@@ -704,10 +704,10 @@ class _SearchTabState extends State<SearchTab> {
     final hasHistory = _history.isNotEmpty;
 
     if (!hasViewed && !hasHistory) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.manage_search, size: 64, color: AppTheme.border),
             SizedBox(height: 12),
             Text('Nhập từ khóa để bắt đầu tìm kiếm',

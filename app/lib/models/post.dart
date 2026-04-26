@@ -152,9 +152,9 @@ class Post {
     final days = remaining.inDays;
     final hours = remaining.inHours % 24;
     final minutes = remaining.inMinutes % 60;
-    if (days > 0) return 'Còn ${days} ngày ${hours} giờ';
+    if (days > 0) return 'Còn $days ngày $hours giờ';
     if (remaining.inHours > 0) return 'Còn ${remaining.inHours}g ${minutes}p';
-    return 'Còn ${minutes} phút';
+    return 'Còn $minutes phút';
   }
 
   bool get isFree => listingType == 'give' || listingType == 'free';
@@ -208,7 +208,7 @@ class Post {
     return parts.isEmpty ? 'Chưa cập nhật' : parts.join(', ');
   }
 
-  String get displayPrice => listingType == 'free' ? 'Miễn phí' : '${price}đ';
+  String get displayPrice => listingType == 'free' ? 'Miễn phí' : '$priceđ';
 
   Post copyWith({String? status, DateTime? bumpedAt, bool clearBumpedAt = false}) {
     return Post(
@@ -231,8 +231,9 @@ class Post {
     // Xử lý giá
     final rawPrice = json['price'];
     int parsedPrice = 0;
-    if (rawPrice is int) parsedPrice = rawPrice;
-    else if (rawPrice is double) parsedPrice = rawPrice.round();
+    if (rawPrice is int) {
+      parsedPrice = rawPrice;
+    } else if (rawPrice is double) parsedPrice = rawPrice.round();
     else if (rawPrice is String) parsedPrice = int.tryParse(rawPrice.trim()) ?? 0;
 
     // Xử lý địa chỉ

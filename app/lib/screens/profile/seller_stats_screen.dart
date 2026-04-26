@@ -62,7 +62,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       // ── Tổng quan ──
-                      _SectionTitle('Tổng quan'),
+                      const _SectionTitle('Tổng quan'),
                       const SizedBox(height: 12),
                       Row(children: [
                         _StatCard(
@@ -98,7 +98,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                       const SizedBox(height: 24),
 
                       // ── Bài đăng ──
-                      _SectionTitle('Bài đăng'),
+                      const _SectionTitle('Bài đăng'),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),

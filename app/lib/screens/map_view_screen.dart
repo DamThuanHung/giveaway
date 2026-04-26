@@ -210,9 +210,9 @@ class _MapViewScreenState extends State<MapViewScreen> {
           Positioned(
             bottom: _selectedPost != null ? 196 : 20,
             left: 16,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _Legend(color: Colors.red, label: 'Tặng miễn phí'),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               _Legend(color: AppTheme.primary, label: 'Bán'),
             ]),
           ),
