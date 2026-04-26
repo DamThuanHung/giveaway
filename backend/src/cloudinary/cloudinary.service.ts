@@ -3,7 +3,6 @@ import * as Minio from 'minio';
 import { randomUUID } from 'crypto';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
 @Injectable()
 export class CloudinaryService implements OnModuleInit {
@@ -57,12 +56,11 @@ export class CloudinaryService implements OnModuleInit {
     if (buffer.length > MAX_UPLOAD_SIZE) {
       throw new BadRequestException('Ảnh vượt quá 5MB');
     }
-    if (mimeType && !ALLOWED_MIME.includes(mimeType)) {
-      throw new BadRequestException('Chỉ hỗ trợ JPEG, PNG, WebP');
-    }
+    // KHÔNG dựa vào mimeType từ request header (client untrusted, có thể sai
+    // dù bytes thực tế là JPEG/PNG/WebP hợp lệ). Magic bytes mới là source of truth.
     const detected = this.detectImage(buffer);
     if (!detected) {
-      throw new BadRequestException('File không phải ảnh hợp lệ');
+      throw new BadRequestException('Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP');
     }
 
     const filename = `${folder}/${randomUUID()}.${detected.ext}`;
