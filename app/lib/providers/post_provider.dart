@@ -81,6 +81,14 @@ class PostProvider with ChangeNotifier {
       // Fetch mới hơn đã được kích hoạt — bỏ kết quả này
       if (myVersion != _fetchVersion) return;
 
+      // ApiService.getPosts return _isError khi lỗi mạng — không có exception
+      // throw nên cần check explicit ở đây, nếu không UI tưởng list rỗng thật
+      // → render "Không có bài đăng" thay vì "Không thể tải dữ liệu / Thử lại"
+      if (result['_isError'] == true) {
+        _hasError = true;
+        return;
+      }
+
       final List<dynamic> data = result['data'] ?? [];
       final meta = result['meta'] ?? {};
 
