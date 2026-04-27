@@ -109,6 +109,10 @@ class _ChatScreenState extends State<ChatScreen> {
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': token})
+          // Fallback: gửi qua Authorization header — backend chat.gateway.ts đọc
+          // được cả 2 cách. setAuth đôi khi không đến được handshake.auth qua
+          // CF Proxy (polling vs upgrade), header là đường truyền tin cậy hơn.
+          .setExtraHeaders({'Authorization': 'Bearer $token'})
           .setQuery({'roomId': widget.roomId})
           .build(),
     );
