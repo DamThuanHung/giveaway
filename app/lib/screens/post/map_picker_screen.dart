@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../../data/province_coords.dart';
+import '../../data/provinces.dart';
 import '../../theme/app_theme.dart';
 
 class MapPickerScreen extends StatefulWidget {
@@ -60,7 +61,16 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       final street = (addr['road'] ?? addr['pedestrian'] ?? addr['footway'] ?? '').toString();
       final ward = (addr['suburb'] ?? addr['quarter'] ?? addr['neighbourhood'] ?? '').toString();
       final district = (addr['city_district'] ?? addr['county'] ?? '').toString();
-      final province = (addr['city'] ?? addr['state'] ?? _cityName).toString();
+
+      // Sanitize province: Nominatim đôi khi trả về "Tỉnh Bắc Ninh" hoặc "Phường XYZ"
+      // (cấp xã, không phải tỉnh). Strip prefix + chuẩn hoá tên cũ → mới + validate
+      // phải nằm trong list 34 tỉnh hợp lệ. Nếu không match thì fallback _cityName.
+      final rawProvince = (addr['city'] ?? addr['state'] ?? '').toString().trim();
+      final cleanedProvince = _cleanProvincePrefix(rawProvince);
+      final normalizedProvince = AppProvinces.normalize(cleanedProvince);
+      final province = AppProvinces.list.contains(normalizedProvince)
+          ? normalizedProvince
+          : _cityName;
 
       // Loại trùng liền kề
       final parts = [street, ward, district, province].where((s) => s.isNotEmpty).toList();
@@ -79,6 +89,19 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     } catch (_) {
       setState(() => _isGeocoding = false);
     }
+  }
+
+  /// Bỏ prefix kiểu "Tỉnh ", "Thành phố ", "TP. " ở đầu (Nominatim hay trả về có prefix).
+  static String _cleanProvincePrefix(String s) {
+    var v = s.trim();
+    const prefixes = ['Thành phố ', 'Tỉnh ', 'TP. ', 'TP '];
+    for (final p in prefixes) {
+      if (v.startsWith(p)) {
+        v = v.substring(p.length).trim();
+        break;
+      }
+    }
+    return v;
   }
 
   Future<void> _openProvinceSheet() async {
