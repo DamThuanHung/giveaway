@@ -13,7 +13,6 @@ import 'providers/post_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/chat_screen.dart';
-import 'screens/deal/deals_screen.dart';
 import 'screens/profile/my_reviews_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
@@ -207,10 +206,8 @@ class _MyAppState extends State<MyApp> {
       nav.push(MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
       return;
     }
-    if (type == 'deal') {
-      nav.push(MaterialPageRoute(builder: (_) => const DealsScreen()));
-      return;
-    }
+    // Note: type=='deal' đã được handle ở trên (cùng nhánh với 'chat' khi có roomId).
+    // Nếu deal notification không có roomId thì không có route phù hợp — fall through.
   }
 
   void _trySendToken() {

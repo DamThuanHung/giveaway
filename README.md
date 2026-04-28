@@ -1,225 +1,201 @@
-# Cho và Tặng — Jimoty Clone VN
+# Trao Tay — Chợ đồ cũ & cho tặng giữa hàng xóm
 
-Ứng dụng mua bán & trao tặng đồ cũ tại Việt Nam.
+> *Đồ cũ người này, Báu vật người kia.*
 
----
+App C2C Việt Nam — mua bán đồ cũ + trao tặng miễn phí. Không phải Shopee.
 
-## Yêu cầu hệ thống
-
-| Công cụ | Phiên bản | Dùng cho |
-|---|---|---|
-| Node.js | >= 18 | Backend |
-| npm | >= 9 | Backend |
-| Flutter SDK | >= 3.3.0 | Mobile App |
-| PostgreSQL | 15 | Database |
-| Docker & Docker Compose | Bất kỳ | Tuỳ chọn |
+**Production**: https://traotay.com.vn (landing) · https://api.traotay.com.vn (API) · APK private cho tester Phase 2.
 
 ---
 
-## Cấu trúc dự án
+## Stack
+
+| Phần | Công nghệ |
+|---|---|
+| Mobile app | Flutter 3.3+ (Android — iOS sẽ release sau) |
+| Backend API | NestJS 10 + Prisma 6 + PostgreSQL 15 |
+| Realtime | Socket.IO 4 (chat + notification) |
+| Storage | MinIO (S3-compatible) self-hosted, public read |
+| Auth | Firebase Phone OTP + Resend Email OTP |
+| Payment | PayOS (bump bài đăng 5k/15k VND) |
+| Hosting | AWS EC2 t3.micro Singapore + Cloudflare proxy + Let's Encrypt |
+| Error tracking | Sentry |
+
+---
+
+## Yêu cầu môi trường dev
+
+| Tool | Version |
+|---|---|
+| Node.js | ≥ 20 |
+| Flutter SDK | ≥ 3.3 |
+| PostgreSQL | 15 (qua Docker hoặc local) |
+| Docker + Compose | bất kỳ (cho `docker-compose.yml` dev stack) |
+
+---
+
+## Cấu trúc
 
 ```
 giveaway/
-├── app/          # Flutter mobile app (Android / iOS)
-├── backend/      # NestJS REST API + WebSocket
-├── docs/         # Tài liệu kỹ thuật
-│   ├── CORE_FRAMEWORK.md
-│   ├── DATABASE_SCHEMA.md
-│   ├── PROJECT_KNOWLEDGE.md
-│   └── modules/
-│       ├── _index.md
-│       ├── user.md
-│       ├── post.md
-│       ├── favorite.md
-│       ├── report.md
-│       └── chat.md
-└── README.md
+├── app/                      # Flutter mobile (Android/iOS)
+│   ├── lib/
+│   │   ├── data/             # Constants: provinces 34 tỉnh, categories, coords
+│   │   ├── models/           # Post, User, etc.
+│   │   ├── providers/        # AuthProvider, NotificationProvider
+│   │   ├── screens/          # Tabs + auth + post + chat + profile
+│   │   ├── services/         # ApiService, TokenStorage (secure), Analytics
+│   │   ├── theme/            # AppTheme tokens (màu, spacing)
+│   │   └── widgets/          # FollowButton, CategoryPickerSheet, ProvincePicker, AppLogo
+│   └── pubspec.yaml
+├── backend/                  # NestJS REST + WebSocket
+│   ├── src/
+│   │   ├── auth/             # JWT strategy + guard
+│   │   ├── admin/            # Admin endpoints + AdminGuard
+│   │   ├── user/             # OTP login (phone + email), profile
+│   │   ├── post/             # CRUD bài đăng, search, filter
+│   │   ├── favorite/         # Lưu bài
+│   │   ├── follow/           # Theo dõi user
+│   │   ├── deal/             # Yêu cầu giao dịch + state machine
+│   │   ├── review/           # Đánh giá sau giao dịch
+│   │   ├── chat/             # ChatService + Gateway WS + upload-image
+│   │   ├── notification/     # Service + Gateway + Cron + FCM (1 module shared)
+│   │   ├── keyword-alert/    # Theo dõi từ khoá
+│   │   ├── report/           # Báo cáo bài vi phạm
+│   │   ├── bump/             # PayOS webhook + boost tier
+│   │   ├── cloudinary/       # Wrapper MinIO upload
+│   │   └── fcm/              # Firebase Cloud Messaging push
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
+│   └── scripts/
+│       ├── migrate-provinces-2025.sql      # 63 → 34 tỉnh sau Nghị quyết 202/2025
+│       └── migrate-categories-2026.sql     # fashion→clothing, home→furniture, services→service
+├── nginx/                    # Production reverse proxy + Cloudflare real IP
+├── docker-compose.yml        # Dev stack
+├── docker-compose.prod.yml   # Production stack
+├── .env.example              # Dev template
+├── .env.production.example   # Production template
+└── docs/                     # Tài liệu kỹ thuật chi tiết
 ```
 
 ---
 
-## Hướng dẫn chạy Backend (NestJS)
+## Setup local dev
 
-### Bước 1 — Cài đặt dependencies
+### 1. Clone + dependencies
+
+```bash
+git clone https://github.com/DamThuanHung/giveaway
+cd giveaway
+cd backend && npm install
+cd ../app && flutter pub get
+```
+
+### 2. Tạo `.env` cho backend
 
 ```bash
 cd backend
-npm install
-```
-
-### Bước 2 — Cấu hình môi trường
-
-```bash
 cp .env.example .env
 ```
 
-Mở file `.env` và kiểm tra:
+Tối thiểu cần điền (xem chi tiết trong `.env.example`):
+
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/app"
+# Database (Docker compose mặc định)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/traotay"
+
+# JWT — sinh random 32+ ký tự: openssl rand -base64 32
+JWT_SECRET="..."
+
+# Dev login bypass (chỉ dùng local, không deploy production)
+DEV_SECRET="..."
+
+# Resend (email OTP) — đăng ký free tại resend.com
+RESEND_API_KEY="re_..."
+
+# Firebase (phone OTP) — file service-account.json từ Firebase Console
+# Đặt tại: backend/firebase-service-account.json (gitignored)
+
+# MinIO (storage ảnh) — Docker compose tự khởi động
+MINIO_ENDPOINT="localhost"
+MINIO_ACCESS_KEY="minioadmin"          # đổi nếu chạy production
+MINIO_SECRET_KEY="minioadmin123"        # đổi nếu chạy production
+MINIO_BUCKET="traotay"
+MINIO_PUBLIC_URL="http://localhost:9000"
+
+# PayOS (bump payment) — đăng ký my.payos.vn (skip nếu không test bump)
+PAYOS_CLIENT_ID="..."
+PAYOS_API_KEY="..."
+PAYOS_CHECKSUM_KEY="..."
 ```
 
-### Bước 3 — Khởi động PostgreSQL
+### 3. Khởi động database + storage
 
-**Cách A: Dùng Docker (khuyến nghị)**
 ```bash
-docker-compose up -d postgres
+# Từ project root
+docker compose up -d
 ```
 
-**Cách B: PostgreSQL đã cài sẵn trên máy**
-- Đảm bảo PostgreSQL đang chạy trên port `5432`
-- Tạo database tên `app`:
-```sql
-CREATE DATABASE app;
-```
+Postgres trên `localhost:5432`, MinIO trên `localhost:9000` (console `:9001`).
 
-### Bước 4 — Migrate database & generate Prisma client
-
-```bash
-npx prisma migrate dev --name init
-npx prisma generate
-```
-
-> Nếu chỉ muốn sync schema mà không tạo migration file:
-> ```bash
-> npx prisma db push
-> ```
-
-### Bước 5 — Chạy server
-
-```bash
-# Development (auto-reload khi đổi code)
-npm run start:dev
-
-# Production
-npm run build
-npm run start:prod
-```
-
-Server khởi động tại: `http://0.0.0.0:3800`
-
-**Kiểm tra server đang chạy:**
-```
-http://localhost:3800/post
-```
-
----
-
-## Hướng dẫn chạy Backend bằng Docker Compose (toàn bộ stack)
+### 4. Chạy migration + generate Prisma client
 
 ```bash
 cd backend
-docker-compose up --build
+npx prisma db push       # Sync schema với DB (chưa cần migration file ở dev)
+npx prisma generate
 ```
 
-Sẽ khởi động: Backend + PostgreSQL + Redis cùng lúc.
+### 5. Chạy backend
 
-> Lưu ý: docker-compose mặc định dùng port `3000`, nhưng code thực tế dùng `3800`.
-> Cần sửa `docker-compose.yml` nếu muốn dùng Docker.
+```bash
+npm run start:dev        # Auto-reload khi đổi code
+```
 
----
+Server tại `http://localhost:3800`. Smoke test:
 
-## Hướng dẫn chạy Flutter App
+```bash
+curl http://localhost:3800/health
+# {"status":"ok","timestamp":"..."}
+```
 
-### Bước 1 — Cài đặt dependencies
+### 6. Chạy Flutter app
+
+App mặc định trỏ về `http://192.168.0.108:3800` (xem `app/lib/services/api_service.dart`). Đổi qua `--dart-define`:
 
 ```bash
 cd app
-flutter pub get
+flutter run --dart-define=API_URL=http://<LAN_IP>:3800
 ```
 
-### Bước 2 — Cấu hình địa chỉ server
-
-Mở file `app/lib/services/api_service.dart`, tìm dòng:
-
-```dart
-static const String baseUrl = 'http://192.168.0.108:3800';
-```
-
-Đổi IP thành địa chỉ máy tính đang chạy backend:
-- **Windows:** Mở `cmd` → chạy `ipconfig` → tìm `IPv4 Address`
-- **Mac/Linux:** Mở terminal → chạy `ifconfig` → tìm `inet`
-
-> Điện thoại và máy tính phải **cùng mạng WiFi**.
-
-### Bước 3 — Chạy app
-
-**Trên thiết bị thật (khuyến nghị cho test API):**
-```bash
-flutter run
-```
-
-**Chọn device khi có nhiều thiết bị:**
-```bash
-flutter devices          # Xem danh sách thiết bị
-flutter run -d <device_id>
-```
-
-**Chạy trên emulator Android:**
-```bash
-# Mở Android emulator trước, sau đó:
-flutter run
-```
+`<LAN_IP>` là IP máy chạy backend trong cùng WiFi (Windows: `ipconfig` → `IPv4 Address`).
 
 ---
 
-## Quy trình phát triển thông thường
+## Authentication flow
 
-```
-1. Khởi động PostgreSQL (Docker hoặc local)
-2. cd backend && npm run start:dev
-3. cd app && flutter run
-4. Code thay đổi backend → server tự reload
-5. Code thay đổi Flutter → hot reload (nhấn r trong terminal)
-```
+App **KHÔNG dùng password**. Login qua OTP:
 
----
+| Cách | Endpoint | Provider |
+|---|---|---|
+| Số điện thoại | `POST /user/phone-login` | Firebase Phone Auth (verify ID token) |
+| Email | `POST /user/email-login/send` → `/verify` | Resend (gửi mã 6 số) |
+| Dev (chỉ local) | `POST /user/dev/login` | DEV_SECRET — disabled ở production |
 
-## Các lệnh hữu ích
-
-### Backend
-
-| Lệnh | Mô tả |
-|---|---|
-| `npm run start:dev` | Chạy dev với auto-reload |
-| `npm run build` | Build production |
-| `npm run lint` | Kiểm tra lỗi code |
-| `npm run test` | Chạy unit tests |
-| `npx prisma studio` | Mở GUI quản lý database |
-| `npx prisma migrate dev` | Tạo và chạy migration mới |
-| `npx prisma generate` | Regenerate Prisma client |
-| `npx prisma db push` | Sync schema không tạo migration |
-
-### Flutter
-
-| Lệnh | Mô tả |
-|---|---|
-| `flutter pub get` | Cài dependencies |
-| `flutter run` | Chạy app |
-| `flutter build apk` | Build APK Android |
-| `flutter build ios` | Build iOS |
-| `flutter clean` | Xóa build cache |
-| `flutter analyze` | Phân tích lỗi code |
+JWT trả về sống 7 ngày, lưu trong `flutter_secure_storage` (Android Keystore / iOS Keychain).
 
 ---
 
-## Kiểm tra kết nối
+## Production setup
 
-Sau khi backend chạy, test các endpoint này:
+Xem `docs/AWS_SETUP.md` (click-by-click setup AWS EC2 free tier) và `docs/PRODUCTION_CHECKLIST.md` (16 sections: pre-deploy, deploy, post-deploy, rollback).
 
-```bash
-# Lấy danh sách bài đăng
-curl http://localhost:3800/post
-
-# Đăng ký tài khoản
-curl -X POST http://localhost:3800/user \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"123456","name":"Test User"}'
-
-# Đăng nhập
-curl -X POST http://localhost:3800/user/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"123456"}'
-```
+Quan trọng:
+- `.env.docker` ở `/opt/traotay/repo/.env.docker` (chmod 600).
+- 4 secrets bắt buộc cho production: `JWT_SECRET`, `POSTGRES_PASSWORD`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` — phải khác default.
+- Build container: `docker compose -f docker-compose.prod.yml --env-file .env.docker up -d --build backend`
+- Backup local cron 3AM VN giữ 14 ngày tại `/opt/traotay/backups/`.
 
 ---
 
@@ -227,33 +203,19 @@ curl -X POST http://localhost:3800/user/login \
 
 | File | Nội dung |
 |---|---|
-| [docs/CORE_FRAMEWORK.md](docs/CORE_FRAMEWORK.md) | Kiến trúc hệ thống, API endpoints, cấu trúc thư mục |
-| [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Schema database, mô tả từng bảng và cột |
-| [docs/PROJECT_KNOWLEDGE.md](docs/PROJECT_KNOWLEDGE.md) | Thuật ngữ, business rules, các TODO cần làm |
-| [docs/modules/_index.md](docs/modules/_index.md) | Danh sách tất cả modules |
-| [docs/modules/user.md](docs/modules/user.md) | Module User |
-| [docs/modules/post.md](docs/modules/post.md) | Module Post |
-| [docs/modules/favorite.md](docs/modules/favorite.md) | Module Favorite |
-| [docs/modules/report.md](docs/modules/report.md) | Module Report |
-| [docs/modules/chat.md](docs/modules/chat.md) | Module Chat / WebSocket |
+| [docs/CORE_FRAMEWORK.md](docs/CORE_FRAMEWORK.md) | Kiến trúc, API endpoints, conventions |
+| [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Schema DB, quan hệ bảng |
+| [docs/PROJECT_KNOWLEDGE.md](docs/PROJECT_KNOWLEDGE.md) | Thuật ngữ + business rules |
+| [docs/UI_DESIGN_SYSTEM.md](docs/UI_DESIGN_SYSTEM.md) | Màu, typography, components |
+| [docs/UX_PATTERNS.md](docs/UX_PATTERNS.md) | Luồng UX, patterns |
+| [docs/AI_RULES.md](docs/AI_RULES.md) | Quy tắc viết code khi dùng AI assist + Decision Log |
+| [docs/PRODUCTION_CHECKLIST.md](docs/PRODUCTION_CHECKLIST.md) | Check list deploy production |
+| [docs/AWS_SETUP.md](docs/AWS_SETUP.md) | Setup AWS EC2 từng bước |
+| [docs/AUDIT_2026-04-28.md](docs/AUDIT_2026-04-28.md) | Audit toàn diện 4 nhánh, 23 issues |
+| [docs/modules/_index.md](docs/modules/_index.md) | Danh sách module + link |
 
 ---
 
-## Xử lý lỗi thường gặp
+## License
 
-### Backend không start được
-- Kiểm tra PostgreSQL đã chạy chưa
-- Kiểm tra file `.env` đã có `DATABASE_URL` chưa
-- Chạy `npx prisma generate` nếu báo lỗi Prisma client
-
-### Flutter không kết nối được backend
-- Kiểm tra `baseUrl` trong `api_service.dart` đúng IP chưa
-- Kiểm tra điện thoại và máy tính cùng WiFi
-- Kiểm tra firewall Windows có chặn port `3800` không:
-  ```
-  Windows Defender Firewall → Allow an app → thêm Node.js
-  ```
-
-### Ảnh không hiển thị
-- Kiểm tra thư mục `backend/uploads/` tồn tại
-- Kiểm tra URL ảnh đúng format: `http://{IP}:3800/uploads/{filename}`
+Mã nguồn private — không open source. © 2026 Trao Tay.

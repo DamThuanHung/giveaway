@@ -42,14 +42,4 @@ export class ReportService {
 
     return report;
   }
-
-  async getReports() {
-    return this.prisma.report.findMany({
-      include: {
-        post: { select: { id: true, title: true } },
-        user: { select: { id: true, name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
 }

@@ -75,24 +75,4 @@ class ImageCompress {
   static Future<List<XFile>> compressBatch(List<XFile> originals) async {
     return Future.wait(originals.map(compress));
   }
-
-  /// Nén buffer trực tiếp (cho avatar upload từ image_picker pickImage).
-  static Future<Uint8List?> compressBytes(Uint8List bytes) async {
-    final isAccepted = _isAcceptedFormat(bytes);
-    if (isAccepted && bytes.length < _skipSizeThreshold) return bytes;
-
-    try {
-      return await FlutterImageCompress.compressWithList(
-        bytes,
-        minWidth: _maxWidth,
-        minHeight: _maxHeight,
-        quality: _quality,
-        format: CompressFormat.jpeg,
-      );
-    } catch (e) {
-      debugPrint('[ImageCompress] bytes error: $e');
-      if (isAccepted) return bytes;
-      return null;
-    }
-  }
 }
