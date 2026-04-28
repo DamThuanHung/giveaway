@@ -23,7 +23,6 @@
 |---|---|---|
 | `id` | `String` (cuid) | PK |
 | `email` | `String?` | UNIQUE, nullable (user phone-only không có email) |
-| `password` | `String?` | Bcrypt hashed, nullable |
 | `name` | `String?` | Tên hiển thị |
 | `avatar` | `String?` | URL Cloudinary |
 | `phone` | `String?` | UNIQUE, nullable, đăng nhập bằng SĐT (Firebase) |
@@ -256,5 +255,5 @@
 1. ID dùng **cuid** (không phải UUID hay integer)
 2. Ảnh lưu dưới dạng **URL MinIO đầy đủ** (e.g. `http://localhost:9000/traotay/posts/xxx.jpg`)
 3. `imageLabel` = ảnh thumbnail đại diện cho bài đăng (dùng trong chat banner, notification)
-4. User có thể đăng nhập bằng **phone** (Firebase OTP) hoặc **email+password** — không bắt buộc có cả hai
+4. User đăng nhập bằng **phone OTP** (Firebase) hoặc **email OTP** (Resend) — đều OTP-first, không có password. User có thể liên kết phương thức còn lại làm dự phòng (link-email cho user phone-only / link-phone cho user email-only)
 5. `ChatRoom` unique theo `[buyerId, sellerId]` — tức 1 cặp user chỉ có 1 room duy nhất bất kể bài đăng

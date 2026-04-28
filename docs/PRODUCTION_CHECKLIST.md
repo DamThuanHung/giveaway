@@ -80,7 +80,8 @@ openssl rand -base64 64   # cho JWT
 | `POST /user/email-login/send` | 3/phút | ✓ |
 | `POST /user/admin-login/send` | 3/phút | ✓ |
 | `POST /user/email-login/verify` | 10/phút | ✓ |
-| `POST /user/forgot-password/send` | 3/5 phút | ✓ |
+| `POST /user/phone-login` | 10/phút | ✓ |
+| `POST /user/link-phone` | 5/phút | ✓ |
 | `POST /user/avatar` | 5/phút | ✓ |
 | `POST /bump/webhook` | 30/phút | ✓ |
 | `POST /post` | 10/giờ | ✓ |

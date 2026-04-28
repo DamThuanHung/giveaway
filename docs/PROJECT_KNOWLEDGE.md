@@ -25,10 +25,10 @@
 
 ### Người dùng (User)
 - Đăng nhập bằng **SĐT** (Firebase OTP) — flow chính
-- Đăng nhập bằng **email OTP** (Resend) — không cần mật khẩu, hỗ trợ đăng ký mới
+- Đăng nhập bằng **email OTP** (Resend) — flow phụ, đối xứng với SĐT (đều OTP-first, app KHÔNG có password)
 - `isNewUser: true` được trả về khi OTP thành công lần đầu (tự động tạo tài khoản)
 - Token JWT có hiệu lực **7 ngày**, lưu `SharedPreferences` key `auth_token`
-- User phone-only không có `email/password`, chỉ có `phone`
+- Phương thức dự phòng: user phone-only có thể liên kết email (`/user/link-email`); user email-only có thể liên kết SĐT (`/user/link-phone`). Mục đích: recovery khi mất phương thức chính.
 
 ### Chat (ChatRoom + Message)
 - Chat **1-1** theo room, mỗi cặp `[buyerId, sellerId]` chỉ có 1 room duy nhất
@@ -118,7 +118,8 @@ Flutter `Post.bumpCountdown` và `Post.isBoosted` tính theo duration của tier
 
 ### Test accounts
 - Email: `1@test.com` → `10@test.com`
-- Password: `123456`
+- Login: gửi email OTP qua Resend, mã in vào console BE khi `RESEND_API_KEY` không set
+- Hoặc dùng tab Dev trong login screen (chỉ hiện khi `ApiService.isLocal`) → gọi `/user/dev/login` với DEV_SECRET
 - Tạo lại bằng: `POST /notification/dev/reset-test-data` (header `x-dev-secret`)
 
 ---

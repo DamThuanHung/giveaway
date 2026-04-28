@@ -35,7 +35,7 @@ Build release APK → cài → bấm nút → app crash → mở app lại → �
 
 ### 1.4 Event tracking đã có sẵn
 Code track sẵn các event quan trọng (file `app/lib/services/analytics.dart`):
-- `sign_up` (method: phone | email_otp | email_password)
+- `sign_up` (method: phone | email_otp)
 - `login` (method)
 - `post_create` (category, listing_type, image_count)
 - `post_view` (post_id)

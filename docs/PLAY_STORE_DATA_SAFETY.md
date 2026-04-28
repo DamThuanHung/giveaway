@@ -16,7 +16,7 @@
 **Yes** — Tất cả request qua HTTPS (TLS 1.2+) khi production, MinIO ảnh qua HTTPS (`s3.traotay.com.vn`).
 
 ### 1.3 Do you provide a way for users to request that their data be deleted?
-**Yes** — User vào **Hồ sơ → Xóa tài khoản** trong app. Backend xóa sạch posts, deals, reviews, messages, favorites, follows; ẩn danh hóa user (xóa email/phone/avatar/fcmToken/password). Endpoint `DELETE /user/me`.
+**Yes** — User vào **Hồ sơ → Xóa tài khoản** trong app. Backend xóa sạch posts, deals, reviews, messages, favorites, follows; ẩn danh hóa user (xóa email/phone/avatar/fcmToken). Endpoint `DELETE /user/me`.
 
 ---
 

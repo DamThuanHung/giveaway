@@ -103,21 +103,18 @@ backend/src/
 
 | Method | Path | Auth | Mô tả |
 |---|---|---|---|
-| POST | `/user` | — | Tạo tài khoản (email + password) |
-| POST | `/user/login` | — | Đăng nhập email + password |
 | POST | `/user/phone-login` | — | Đăng nhập SĐT (Firebase idToken) |
 | POST | `/user/email-login/send` | — | Gửi OTP đăng nhập qua email |
 | POST | `/user/email-login/verify` | — | Xác nhận OTP → trả JWT |
-| POST | `/user/forgot-password/send` | — | Gửi OTP quên mật khẩu |
-| POST | `/user/forgot-password/reset` | — | Đặt lại mật khẩu bằng OTP |
-| POST | `/user/link-email/send` | JWT | Gửi OTP liên kết email |
-| POST | `/user/link-email/confirm` | JWT | Xác nhận liên kết email |
+| POST | `/user/admin-login/send` | — | Gửi OTP cho ADMIN_EMAILS (cho /admin) |
+| POST | `/user/link-email/send` | JWT | Gửi OTP liên kết email dự phòng |
+| POST | `/user/link-email/confirm` | JWT | Xác nhận liên kết email dự phòng |
+| POST | `/user/link-phone` | JWT | Liên kết SĐT dự phòng (Firebase idToken) |
 | GET | `/user/me` | JWT | Lấy thông tin user hiện tại |
 | GET | `/user/:id` | — | Lấy thông tin user theo ID |
-| PATCH | `/user/:id` | JWT | Cập nhật profile |
+| PATCH | `/user/:id` | JWT | Cập nhật profile (name, avatar) |
 | POST | `/user/avatar` | JWT | Upload avatar (MinIO) |
-| POST | `/user/dev/login` | — | Đăng nhập không OTP (cần `{ email, secret: DEV_SECRET }`) |
-| POST | `/user/change-password` | JWT | Đổi mật khẩu |
+| POST | `/user/dev/login` | — | Đăng nhập dev (cần `{ email, secret: DEV_SECRET }`, disable ở prod) |
 | POST | `/user/block/:blockedId` | JWT | Chặn user |
 | DELETE | `/user/block/:blockedId` | JWT | Bỏ chặn user |
 | GET | `/user/blocked/list` | JWT | Danh sách đã chặn |
