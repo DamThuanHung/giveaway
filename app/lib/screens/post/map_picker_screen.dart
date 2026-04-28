@@ -165,6 +165,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   /// - [openAppSettings]: mở Cài đặt → Quyền của app (cho deniedForever).
   /// - [openLocationSettings]: mở Cài đặt → Vị trí hệ thống (cho GPS off).
   /// - [retry]: callback để thử lại sau khi user cấp quyền.
+  ///
+  /// UI đồng nhất với theme app: rounded 20, primary button full width, icon
+  /// vị trí ở title (visual cue user hiểu liên quan GPS).
   Future<void> _showPermissionDialog({
     required String title,
     required String message,
@@ -174,35 +177,93 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   }) async {
     return showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Huỷ'),
+      barrierColor: Colors.black.withOpacity(0.45),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Icon tròn primary nhạt
+              Center(
+                child: Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.location_on_outlined, size: 30, color: AppTheme.primary),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Title
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Message
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Primary action
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    if (retry != null) {
+                      await retry();
+                    } else if (openAppSettings) {
+                      await Geolocator.openAppSettings();
+                    } else if (openLocationSettings) {
+                      await Geolocator.openLocationSettings();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    retry != null ? 'Thử lại' : 'Mở Cài đặt',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Secondary action (Huỷ)
+              SizedBox(
+                height: 44,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Huỷ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                ),
+              ),
+            ],
           ),
-          if (retry != null)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                retry();
-              },
-              child: const Text('Thử lại'),
-            )
-          else
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                if (openAppSettings) {
-                  await Geolocator.openAppSettings();
-                } else if (openLocationSettings) {
-                  await Geolocator.openLocationSettings();
-                }
-              },
-              child: const Text('Mở Cài đặt'),
-            ),
-        ],
+        ),
       ),
     );
   }
