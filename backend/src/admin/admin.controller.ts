@@ -29,6 +29,16 @@ export class AdminController {
     return this.adminService.hidePost(id);
   }
 
+  @Patch('posts/:id/unhide')
+  unhidePost(@Param('id') id: string) {
+    return this.adminService.unhidePost(id);
+  }
+
+  @Get('posts/:id')
+  getPostDetail(@Param('id') id: string) {
+    return this.adminService.getPostDetail(id);
+  }
+
   @Delete('posts/:id')
   deletePost(@Param('id') id: string) {
     return this.adminService.deletePost(id);
@@ -47,6 +57,16 @@ export class AdminController {
   @Patch('users/:id/ban')
   banUser(@Param('id') id: string, @Body('isBanned') isBanned: boolean) {
     return this.adminService.banUser(id, isBanned);
+  }
+
+  @Patch('users/:id/role')
+  setUserRole(@Param('id') id: string, @Body('role') role: 'admin' | 'user') {
+    return this.adminService.setUserRole(id, role);
+  }
+
+  @Get('users/:id')
+  getUserDetail(@Param('id') id: string) {
+    return this.adminService.getUserDetail(id);
   }
 
   // ─── Reports ──────────────────────────────────────
@@ -70,6 +90,11 @@ export class AdminController {
     return this.adminService.getRevenueStats();
   }
 
+  @Get('revenue/timeline')
+  getRevenueTimeline(@Query('days') days = '30') {
+    return this.adminService.getRevenueTimeline(+days);
+  }
+
   @Get('bump-orders')
   getBumpOrders(
     @Query('page') page = '1',
@@ -77,5 +102,11 @@ export class AdminController {
     @Query('status') status?: string,
   ) {
     return this.adminService.getBumpOrders(+page, +limit, status);
+  }
+
+  // ─── System health ────────────────────────────────
+  @Get('health-detail')
+  getHealthDetail() {
+    return this.adminService.getHealthDetail();
   }
 }

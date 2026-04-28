@@ -8,10 +8,12 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --primary:#10B981;--primary-dark:#059669;--primary-light:#D1FAE5;
-  --error:#EF4444;--warning:#F59E0B;--text:#1A1A2E;--text2:#6B7280;
+  --error:#EF4444;--warning:#F59E0B;--info:#3B82F6;--purple:#8B5CF6;
+  --text:#1A1A2E;--text2:#6B7280;--text3:#9CA3AF;
   --bg:#F7F8FA;--white:#fff;--border:#E2E5EA;--radius:10px;
 }
 body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+button{font-family:inherit}
 /* AUTH */
 #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
 .auth-card{background:var(--white);border-radius:16px;border:1px solid var(--border);padding:40px 36px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
@@ -20,8 +22,9 @@ body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:
 .auth-logo-text{font-size:22px;font-weight:800;color:var(--text)}
 .auth-card h2{font-size:18px;font-weight:700;margin-bottom:6px;text-align:center}
 .auth-card p{font-size:13px;color:var(--text2);text-align:center;margin-bottom:28px}
+.auth-tagline{font-size:12px;color:var(--text3);text-align:center;font-style:italic;margin-bottom:24px}
 label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;letter-spacing:.3px}
-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;transition:border .2s;background:var(--bg)}
+input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;transition:border .2s;background:var(--bg);font-family:inherit}
 input:focus{border-color:var(--primary)}
 .otp-row{display:flex;gap:8px;justify-content:space-between}
 .otp-row input{text-align:center;font-size:20px;font-weight:700;padding:12px 0;width:48px}
@@ -42,6 +45,8 @@ header .spacer{flex:1}
 header .user-info{font-size:13px;color:var(--text2)}
 .btn-logout{background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px}
 .btn-logout:hover{color:var(--error);border-color:var(--error)}
+.btn-refresh{background:var(--primary-light);border:none;color:var(--primary-dark);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-refresh:hover{background:#A7F3D0}
 .content{margin-top:56px;padding:20px}
 /* TABS */
 .tabs{display:flex;background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:56px;z-index:90}
@@ -52,9 +57,9 @@ header .user-info{font-size:13px;color:var(--text2)}
 .stat-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:6px}
 .stat-value{font-size:28px;font-weight:800}
 .stat-label{font-size:12px;color:var(--text2);font-weight:500}
-.section-title{font-size:15px;font-weight:700;margin-bottom:14px}
-.mini-stats{display:flex;gap:12px;margin-bottom:24px}
-.mini-stat{flex:1;background:var(--primary-light);border-radius:10px;padding:14px;text-align:center}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.mini-stats{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.mini-stat{flex:1;min-width:90px;background:var(--primary-light);border-radius:10px;padding:14px;text-align:center}
 .mini-stat .v{font-size:22px;font-weight:800;color:var(--primary-dark)}
 .mini-stat .l{font-size:11px;color:var(--primary-dark);margin-top:2px}
 .bar-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:18px;margin-bottom:24px}
@@ -75,25 +80,59 @@ header .user-info{font-size:13px;color:var(--text2)}
 .btn-grey:hover{background:#E5E7EB}
 .btn-green{background:var(--primary-light);color:var(--primary-dark)}
 .btn-green:hover{background:#A7F3D0}
+.btn-blue{background:#DBEAFE;color:#1D4ED8}
+.btn-blue:hover{background:#BFDBFE}
+.btn-purple{background:#EDE9FE;color:#6D28D9}
+.btn-purple:hover{background:#DDD6FE}
 /* TABLE/LIST */
-.search-row{display:flex;gap:10px;margin-bottom:16px}
-.search-row input{flex:1}
-.search-row .btn-sm{padding:0 18px;height:42px}
-.item-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:8px}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.toolbar input{flex:1;min-width:200px}
+.toolbar .btn-sm{padding:0 16px;height:42px}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.fchip{padding:6px 12px;border-radius:16px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s}
+.fchip:hover{border-color:var(--primary)}
+.fchip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.item-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:8px;cursor:pointer;transition:border .15s}
+.item-card:hover{border-color:var(--primary)}
 .item-card .title{font-weight:700;font-size:14px;margin-bottom:4px}
 .item-card .meta{font-size:12px;color:var(--text2);margin-bottom:10px}
-.item-actions{display:flex;gap:8px}
+.item-actions{display:flex;gap:8px;flex-wrap:wrap}
 .chip{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}
 .chip-green{background:var(--primary-light);color:var(--primary-dark)}
 .chip-grey{background:#F3F4F6;color:var(--text2)}
 .chip-blue{background:#EFF6FF;color:#1D4ED8}
 .chip-orange{background:#FEF3C7;color:#92400E}
 .chip-red{background:#FEE2E2;color:var(--error)}
+.chip-purple{background:#EDE9FE;color:#6D28D9}
 .user-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
-.user-info-col{flex:1}
-.user-info-col .name{font-weight:700}
-.user-info-col .sub{font-size:12px;color:var(--text2)}
+.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.user-info-col{flex:1;min-width:0}
+.user-info-col .name{font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.user-info-col .sub{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--white);border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.15)}
+.modal-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--white);z-index:1}
+.modal-header h3{font-size:16px;font-weight:700;flex:1}
+.modal-close{background:none;border:none;font-size:22px;color:var(--text2);cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--bg);color:var(--text)}
+.modal-body{padding:20px}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--text2);font-weight:500}
+.kv .v{font-weight:600;text-align:right;max-width:60%;word-break:break-all}
+.modal-images{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px}
+.modal-images img{width:100px;height:100px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer}
+.modal-actions{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;background:var(--bg);border-radius:0 0 16px 16px}
+/* TIMELINE CHART */
+.chart-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:20px}
+.chart-svg{width:100%;height:120px}
+.chart-bar{fill:var(--primary);opacity:.85;transition:opacity .15s}
+.chart-bar:hover{opacity:1}
+.chart-axis{stroke:var(--border);stroke-width:1}
+.chart-label{font-size:10px;fill:var(--text3)}
 /* LOADING */
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2);gap:10px}
 .spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
@@ -106,6 +145,11 @@ header .user-info{font-size:13px;color:var(--text2)}
 .load-more button:hover{border-color:var(--primary);color:var(--primary)}
 /* TOAST */
 #toast{position:fixed;bottom:24px;right:24px;background:#1A1A2E;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:9999;display:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+@media (max-width:600px){
+  .content{padding:12px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-value{font-size:22px}
+}
 </style>
 </head>
 <body>
@@ -117,6 +161,7 @@ header .user-info{font-size:13px;color:var(--text2)}
       <div class="auth-logo-icon">🤝</div>
       <span class="auth-logo-text">Trao Tay</span>
     </div>
+    <p class="auth-tagline">"Đồ cũ người này, Báu vật người kia"</p>
     <h2>Đăng nhập quản trị</h2>
     <p>Dành cho tài khoản admin</p>
 
@@ -146,6 +191,7 @@ header .user-info{font-size:13px;color:var(--text2)}
   <header>
     <div class="logo"><div class="logo-icon">🤝</div>Trao Tay Admin</div>
     <div class="spacer"></div>
+    <button class="btn-refresh" onclick="refreshCurrent()" title="Làm mới tab hiện tại">🔄</button>
     <span class="user-info" id="header-user"></span>
     <button class="btn-logout" onclick="logout()">Đăng xuất</button>
   </header>
@@ -156,6 +202,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" onclick="switchTab(2)">👤 Người dùng</button>
     <button class="tab" onclick="switchTab(3)">🚩 Báo cáo</button>
     <button class="tab" onclick="switchTab(4)">💰 Doanh thu</button>
+    <button class="tab" onclick="switchTab(5)">⚙️ Hệ thống</button>
   </div>
 
   <div class="content">
@@ -164,20 +211,33 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-users" style="display:none"></div>
     <div id="tab-reports" style="display:none"></div>
     <div id="tab-revenue" style="display:none"></div>
+    <div id="tab-system" style="display:none"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-const BASE = ''; // same-origin — work mọi môi trường (local Docker, VPS)
+const BASE = ''; // same-origin
 let token = localStorage.getItem('admin_token') || '';
 let currentTab = 0;
 const state = {
-  posts: [], postsPage: 0, postsTotalPages: 1, postsSearch: '',
-  users: [], usersPage: 0, usersTotalPages: 1, usersSearch: '',
-  reports: [], reportsPage: 0, reportsTotalPages: 1,
-  orders: [], ordersPage: 0, ordersTotalPages: 1, revenueLoaded: false,
+  posts: [], postsPage: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
+  users: [], usersPage: 0, usersTotalPages: 1, usersSearch: '', usersFilter: 'all',
+  reports: [], reportsPage: 0, reportsTotalPages: 1, reportsStatus: '',
+  orders: [], ordersPage: 0, ordersTotalPages: 1, revenueLoaded: false, revenueData: null, timeline: null,
 };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -274,14 +334,25 @@ function initApp() {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===tab));
-  ['stats','posts','users','reports','revenue'].forEach((id,i) => {
+  ['stats','posts','users','reports','revenue','system'].forEach((id,i) => {
     document.getElementById(`tab-${id}`).style.display = i===tab?'block':'none';
   });
   if(tab===0) loadStats();
   else if(tab===1 && state.posts.length===0) loadPosts(true);
   else if(tab===2 && state.users.length===0) loadUsers(true);
   else if(tab===3 && state.reports.length===0) loadReports(true);
-  else if(tab===4 && !state.revenueLoaded) loadRevenue();
+  else if(tab===4 && !state.revenueLoaded) loadRevenue(true);
+  else if(tab===5) loadSystem();
+}
+
+function refreshCurrent() {
+  if(currentTab===0) loadStats();
+  else if(currentTab===1) loadPosts(true);
+  else if(currentTab===2) loadUsers(true);
+  else if(currentTab===3) loadReports(true);
+  else if(currentTab===4) loadRevenue(true);
+  else if(currentTab===5) loadSystem();
+  toast('Đã làm mới');
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -345,6 +416,7 @@ async function loadPosts(reset=false) {
   const page = state.postsPage+1;
   const params = new URLSearchParams({page, limit:20});
   if(state.postsSearch) params.set('search', state.postsSearch);
+  if(state.postsStatus) params.set('status', state.postsStatus);
   const data = await api(`/admin/posts?${params}`);
   if(!data) return;
   state.posts.push(...(data.data||[]));
@@ -355,24 +427,35 @@ async function loadPosts(reset=false) {
 
 function renderPosts(loading) {
   const el = document.getElementById('tab-posts');
-  const searchHtml = `<div class="search-row">
-    <input id="posts-search" type="text" placeholder="Tìm bài đăng..." value="${state.postsSearch}" onkeydown="if(event.key==='Enter'){state.postsSearch=this.value;loadPosts(true)}"/>
-    <button class="btn-sm btn-primary" style="background:var(--primary);color:#fff;border:none;height:42px;padding:0 18px;border-radius:var(--radius);cursor:pointer;font-weight:600" onclick="state.postsSearch=document.getElementById('posts-search').value;loadPosts(true)">Tìm</button>
-  </div>`;
+  const filterChips = `
+    <div class="filter-chips">
+      ${['','available','hidden','done','reserved'].map(s => `
+        <button class="fchip ${state.postsStatus===s?'active':''}" onclick="state.postsStatus='${s}';loadPosts(true)">${s===''?'Tất cả':statusLabel(s)}</button>
+      `).join('')}
+    </div>`;
+  const searchHtml = `<div class="toolbar">
+    <input id="posts-search" type="text" placeholder="🔍 Tìm theo tiêu đề..." value="${state.postsSearch}" onkeydown="if(event.key==='Enter'){state.postsSearch=this.value;loadPosts(true)}"/>
+    <button class="btn-sm btn-green" onclick="state.postsSearch=document.getElementById('posts-search').value;loadPosts(true)">Tìm</button>
+  </div>${filterChips}`;
   if(loading && state.posts.length===0) { el.innerHTML=searchHtml+'<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
   if(!loading && state.posts.length===0) { el.innerHTML=searchHtml+'<div class="empty"><div class="empty-icon">📦</div><p>Không có bài đăng nào</p></div>'; return; }
-  const items = state.posts.map((p,i) => `
-    <div class="item-card">
+  const items = state.posts.map((p,i) => {
+    const isHidden = p.status==='hidden';
+    return `
+    <div class="item-card" onclick="openPostDetail('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div class="title">${esc(p.title||'')}</div>
         ${chipStatus(p.status)}
       </div>
-      <div class="meta">${esc(p.author?.name||'Ẩn danh')} · ${p.viewCount||0} lượt xem</div>
-      <div class="item-actions">
-        <button class="btn-sm btn-orange" onclick="hidePost('${p.id}',${i})">Ẩn bài</button>
+      <div class="meta">${esc(p.author?.name||'Ẩn danh')} · ${p.viewCount||0} lượt xem · ${fmoney(p.price||0)}</div>
+      <div class="item-actions" onclick="event.stopPropagation()">
+        ${isHidden
+          ? `<button class="btn-sm btn-green" onclick="unhidePost('${p.id}',${i})">Hiện lại</button>`
+          : `<button class="btn-sm btn-orange" onclick="hidePost('${p.id}',${i})">Ẩn bài</button>`}
         <button class="btn-sm btn-red" onclick="deletePost('${p.id}',${i},'${esc(p.title||'')}')">Xóa</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const loadMore = state.postsPage < state.postsTotalPages
     ? `<div class="load-more"><button onclick="loadPosts()">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
   el.innerHTML = searchHtml + items + loadMore;
@@ -384,10 +467,65 @@ async function hidePost(id, idx) {
   state.posts[idx].status='hidden'; renderPosts(false); toast('Đã ẩn bài');
 }
 
+async function unhidePost(id, idx) {
+  await api(`/admin/posts/${id}/unhide`, {method:'PATCH'});
+  state.posts[idx].status='available'; renderPosts(false); toast('Đã hiện lại bài');
+}
+
 async function deletePost(id, idx, title) {
   if(!confirm(`Xóa bài "${title}"? Không thể khôi phục.`)) return;
   await api(`/admin/posts/${id}`, {method:'DELETE'});
   state.posts.splice(idx,1); renderPosts(false); toast('Đã xóa bài');
+}
+
+async function openPostDetail(id) {
+  showModal('Chi tiết bài đăng', '<div class="loading"><div class="spinner"></div> Đang tải...</div>', '');
+  const p = await api(`/admin/posts/${id}`);
+  if(!p) { closeModal(); toast('Không tải được'); return; }
+  const images = (p.images||[]).filter(Boolean);
+  const author = p.author||{};
+  const counts = p._count||{};
+  const body = `
+    ${images.length>0 ? `<div class="modal-images">${images.map(u => `<img src="${esc(u)}" onerror="this.style.display='none'"/>`).join('')}</div>` : ''}
+    <div class="kv"><span class="k">Tiêu đề</span><span class="v">${esc(p.title||'')}</span></div>
+    <div class="kv"><span class="k">Trạng thái</span><span class="v">${chipStatus(p.status)}</span></div>
+    <div class="kv"><span class="k">Loại</span><span class="v">${esc(p.listingType||'')} · ${esc(p.itemCategory||'')}</span></div>
+    <div class="kv"><span class="k">Giá</span><span class="v">${fmoney(p.price||0)}</span></div>
+    <div class="kv"><span class="k">Khu vực</span><span class="v">${esc(p.province||'')} ${p.district?'· '+esc(p.district):''}</span></div>
+    <div class="kv"><span class="k">Lượt xem</span><span class="v">${p.viewCount||0}</span></div>
+    <div class="kv"><span class="k">Yêu thích / Deal / Báo cáo</span><span class="v">${counts.favorites||0} / ${counts.deals||0} / ${counts.reports||0}</span></div>
+    <div class="kv"><span class="k">Đăng lúc</span><span class="v">${fmtDate(p.createdAt)}</span></div>
+    <div class="kv"><span class="k">Mô tả</span><span class="v" style="font-weight:400;text-align:left;max-width:100%">${esc(p.description||'').replace(/\n/g,'<br>')}</span></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <div style="font-weight:700;margin-bottom:8px">Người đăng</div>
+    <div class="kv"><span class="k">Tên</span><span class="v">${esc(author.name||'')} ${author.role==='admin'?'<span class="chip chip-blue">Admin</span>':''} ${author.isBanned?'<span class="chip chip-red">Bị khóa</span>':''}</span></div>
+    <div class="kv"><span class="k">Email</span><span class="v">${esc(author.email||'—')}</span></div>
+    <div class="kv"><span class="k">SĐT</span><span class="v">${esc(author.phone||'—')}</span></div>
+  `;
+  const isHidden = p.status==='hidden';
+  const actions = `
+    ${isHidden
+      ? `<button class="btn-sm btn-green" onclick="unhidePostFromModal('${p.id}')">Hiện lại</button>`
+      : `<button class="btn-sm btn-orange" onclick="hidePostFromModal('${p.id}')">Ẩn bài</button>`}
+    <button class="btn-sm btn-red" onclick="deletePostFromModal('${p.id}','${esc(p.title||'')}')">Xóa bài</button>
+    <button class="btn-sm btn-grey" onclick="closeModal()">Đóng</button>
+  `;
+  showModal('Chi tiết bài đăng', body, actions);
+}
+
+async function hidePostFromModal(id) {
+  if(!confirm('Ẩn bài đăng này?')) return;
+  await api(`/admin/posts/${id}/hide`, {method:'PATCH'});
+  closeModal(); loadPosts(true); toast('Đã ẩn bài');
+}
+async function unhidePostFromModal(id) {
+  await api(`/admin/posts/${id}/unhide`, {method:'PATCH'});
+  closeModal(); loadPosts(true); toast('Đã hiện lại bài');
+}
+async function deletePostFromModal(id, title) {
+  if(!confirm(`Xóa bài "${title}"? Không thể khôi phục.`)) return;
+  await api(`/admin/posts/${id}`, {method:'DELETE'});
+  closeModal(); loadPosts(true); toast('Đã xóa bài');
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -406,30 +544,42 @@ async function loadUsers(reset=false) {
   renderUsers(false);
 }
 
+function filteredUsers() {
+  if(state.usersFilter==='admin') return state.users.filter(u => u.role==='admin');
+  if(state.usersFilter==='banned') return state.users.filter(u => u.isBanned);
+  return state.users;
+}
+
 function renderUsers(loading) {
   const el = document.getElementById('tab-users');
-  const searchHtml = `<div class="search-row">
-    <input id="users-search" type="text" placeholder="Tìm người dùng..." value="${state.usersSearch}" onkeydown="if(event.key==='Enter'){state.usersSearch=this.value;loadUsers(true)}"/>
-    <button class="btn-sm btn-primary" style="background:var(--primary);color:#fff;border:none;height:42px;padding:0 18px;border-radius:var(--radius);cursor:pointer;font-weight:600" onclick="state.usersSearch=document.getElementById('users-search').value;loadUsers(true)">Tìm</button>
-  </div>`;
+  const filterChips = `
+    <div class="filter-chips">
+      ${[['all','Tất cả'],['admin','Admin'],['banned','Đang khóa']].map(([k,l]) => `
+        <button class="fchip ${state.usersFilter===k?'active':''}" onclick="state.usersFilter='${k}';renderUsers(false)">${l}</button>
+      `).join('')}
+    </div>`;
+  const searchHtml = `<div class="toolbar">
+    <input id="users-search" type="text" placeholder="🔍 Tìm theo tên/email..." value="${state.usersSearch}" onkeydown="if(event.key==='Enter'){state.usersSearch=this.value;loadUsers(true)}"/>
+    <button class="btn-sm btn-green" onclick="state.usersSearch=document.getElementById('users-search').value;loadUsers(true)">Tìm</button>
+  </div>${filterChips}`;
   if(loading && state.users.length===0) { el.innerHTML=searchHtml+'<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
-  if(!loading && state.users.length===0) { el.innerHTML=searchHtml+'<div class="empty"><div class="empty-icon">👤</div><p>Không có người dùng nào</p></div>'; return; }
-  const items = state.users.map((u,i) => {
+  const list = filteredUsers();
+  if(!loading && list.length===0) { el.innerHTML=searchHtml+'<div class="empty"><div class="empty-icon">👤</div><p>Không có người dùng nào</p></div>'; return; }
+  const items = list.map((u) => {
     const banned = u.isBanned===true;
     const cnt = u._count||{};
     const avatarColor = avatarBg(u.name||'U');
     const initials = (u.name||'U')[0].toUpperCase();
-    return `<div class="item-card">
+    return `<div class="item-card" onclick="openUserDetail('${u.id}')">
       <div class="user-row">
-        <div class="avatar" style="background:${avatarColor}">${initials}</div>
+        <div class="avatar" style="background:${avatarColor}">${u.avatar?`<img src="${esc(u.avatar)}" onerror="this.style.display='none'"/>`:initials}</div>
         <div class="user-info-col">
-          <div class="name">${esc(u.name||'')}
-            ${u.role==='admin'?'<span class="chip chip-blue" style="margin-left:6px">Admin</span>':''}
-            ${banned?'<span class="chip chip-red" style="margin-left:6px">Bị khóa</span>':''}
+          <div class="name">${esc(u.name||'Không tên')}
+            ${u.role==='admin'?'<span class="chip chip-blue">Admin</span>':''}
+            ${banned?'<span class="chip chip-red">Bị khóa</span>':''}
           </div>
-          <div class="sub">${esc(u.email||u.phone||'')} · ${cnt.posts||0} bài · ${cnt.dealsAsRequester||0} deal</div>
+          <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài · ${cnt.dealsAsRequester||0} deal</div>
         </div>
-        ${u.role!=='admin'?`<button class="btn-sm ${banned?'btn-green':'btn-red'}" onclick="banUser('${u.id}',${i},${!banned})">${banned?'Mở khóa':'Khóa'}</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -438,12 +588,57 @@ function renderUsers(loading) {
   el.innerHTML = searchHtml + items + loadMore;
 }
 
-async function banUser(id, idx, ban) {
-  const msg = ban ? 'Khóa tài khoản này?' : 'Mở khóa tài khoản này?';
+async function openUserDetail(id) {
+  showModal('Chi tiết người dùng', '<div class="loading"><div class="spinner"></div> Đang tải...</div>', '');
+  const u = await api(`/admin/users/${id}`);
+  if(!u) { closeModal(); toast('Không tải được'); return; }
+  const cnt = u._count||{};
+  const body = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <div class="avatar" style="width:64px;height:64px;font-size:24px;background:${avatarBg(u.name||'U')}">${u.avatar?`<img src="${esc(u.avatar)}" onerror="this.style.display='none'"/>`:(u.name||'U')[0].toUpperCase()}</div>
+      <div>
+        <div style="font-size:16px;font-weight:700">${esc(u.name||'Không tên')}</div>
+        <div style="margin-top:4px">
+          ${u.role==='admin'?'<span class="chip chip-blue">Admin</span> ':''}
+          ${u.isBanned?'<span class="chip chip-red">Bị khóa</span>':'<span class="chip chip-green">Hoạt động</span>'}
+          ${u.isPhoneVerified?'<span class="chip chip-purple">SĐT đã xác minh</span>':''}
+        </div>
+      </div>
+    </div>
+    <div class="kv"><span class="k">Email</span><span class="v">${esc(u.email||'—')}</span></div>
+    <div class="kv"><span class="k">SĐT</span><span class="v">${esc(u.phone||'—')}</span></div>
+    <div class="kv"><span class="k">Bài đăng</span><span class="v">${cnt.posts||0}</span></div>
+    <div class="kv"><span class="k">Deal (gửi yêu cầu / nhận yêu cầu)</span><span class="v">${cnt.dealsAsRequester||0} / ${cnt.dealsAsOwner||0}</span></div>
+    <div class="kv"><span class="k">Đánh giá nhận được</span><span class="v">${cnt.reviewsReceived||0} (TB ${u.avgRating!=null?u.avgRating+'⭐':'—'})</span></div>
+    <div class="kv"><span class="k">Yêu thích</span><span class="v">${cnt.favorites||0}</span></div>
+    <div class="kv"><span class="k">Bump đơn (đã trả)</span><span class="v">${u.bumpOrderCount||0} đơn · ${fmoney(u.totalSpent||0)}</span></div>
+    <div class="kv"><span class="k">Đăng ký lúc</span><span class="v">${fmtDate(u.createdAt)}</span></div>
+    ${u.deletedAt?`<div class="kv"><span class="k">Đã xóa lúc</span><span class="v">${fmtDate(u.deletedAt)}</span></div>`:''}
+  `;
+  const actions = `
+    ${u.isBanned
+      ? `<button class="btn-sm btn-green" onclick="banUserFromModal('${u.id}',false)">Mở khóa</button>`
+      : `<button class="btn-sm btn-red" onclick="banUserFromModal('${u.id}',true)">Khóa tài khoản</button>`}
+    ${u.role==='admin'
+      ? `<button class="btn-sm btn-grey" onclick="setRoleFromModal('${u.id}','user')">Hạ quyền Admin</button>`
+      : `<button class="btn-sm btn-purple" onclick="setRoleFromModal('${u.id}','admin')">Cấp quyền Admin</button>`}
+    <button class="btn-sm btn-grey" onclick="closeModal()">Đóng</button>
+  `;
+  showModal('Chi tiết người dùng', body, actions);
+}
+
+async function banUserFromModal(id, ban) {
+  const msg = ban ? 'Khóa tài khoản này? User sẽ không thể login + không nhận message.' : 'Mở khóa tài khoản này?';
   if(!confirm(msg)) return;
   await api(`/admin/users/${id}/ban`, {method:'PATCH', body:JSON.stringify({isBanned:ban})});
-  state.users[idx].isBanned=ban; renderUsers(false);
-  toast(ban ? 'Đã khóa tài khoản' : 'Đã mở khóa');
+  closeModal(); loadUsers(true); toast(ban ? 'Đã khóa tài khoản' : 'Đã mở khóa');
+}
+
+async function setRoleFromModal(id, role) {
+  const msg = role==='admin' ? 'Cấp quyền Admin cho user này? Họ sẽ truy cập được trang này.' : 'Hạ quyền Admin?';
+  if(!confirm(msg)) return;
+  await api(`/admin/users/${id}/role`, {method:'PATCH', body:JSON.stringify({role})});
+  closeModal(); loadUsers(true); toast(role==='admin'?'Đã cấp quyền Admin':'Đã hạ quyền');
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
@@ -452,7 +647,9 @@ async function loadReports(reset=false) {
   if(reset) { state.reports=[]; state.reportsPage=0; state.reportsTotalPages=1; }
   renderReports(true);
   const page = state.reportsPage+1;
-  const data = await api(`/admin/reports?page=${page}&limit=20`);
+  const params = new URLSearchParams({page, limit:20});
+  if(state.reportsStatus) params.set('status', state.reportsStatus);
+  const data = await api(`/admin/reports?${params}`);
   if(!data) return;
   state.reports.push(...(data.data||[]));
   state.reportsPage = data.meta?.page || page;
@@ -462,16 +659,23 @@ async function loadReports(reset=false) {
 
 function renderReports(loading) {
   const el = document.getElementById('tab-reports');
-  if(loading && state.reports.length===0) { el.innerHTML='<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
-  if(!loading && state.reports.length===0) { el.innerHTML='<div class="empty"><div class="empty-icon">🚩</div><p>Không có báo cáo nào</p></div>'; return; }
+  const filterChips = `
+    <div class="filter-chips">
+      ${[['',`Tất cả`],['pending','Chờ xử lý'],['resolved','Đã xử lý'],['dismissed','Đã bỏ qua']].map(([k,l]) => `
+        <button class="fchip ${state.reportsStatus===k?'active':''}" onclick="state.reportsStatus='${k}';loadReports(true)">${l}</button>
+      `).join('')}
+    </div>`;
+  if(loading && state.reports.length===0) { el.innerHTML=filterChips+'<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
+  if(!loading && state.reports.length===0) { el.innerHTML=filterChips+'<div class="empty"><div class="empty-icon">🚩</div><p>Không có báo cáo nào</p></div>'; return; }
   const items = state.reports.map((r,i) => {
     const isPending = r.status==='pending';
     return `<div class="item-card" style="${isPending?'border-color:#FCD34D':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div class="title">${esc(r.post?.title||'')}</div>
+        <div class="title">${esc(r.post?.title||'(Bài đã xóa)')}</div>
         ${chipStatus(r.status)}
       </div>
-      <div class="meta">Lý do: ${esc(r.reason||'')} · Báo bởi: ${esc(r.user?.name||'')}</div>
+      <div class="meta">📌 Lý do: ${esc(r.reason||'(không ghi)')}</div>
+      <div class="meta">👤 Báo bởi: ${esc(r.user?.name||r.user?.email||'—')} · ${fmtDate(r.createdAt)}</div>
       ${isPending?`<div class="item-actions">
         <button class="btn-sm btn-orange" onclick="resolveReport('${r.id}',${i},'resolved')">Ẩn bài & xử lý</button>
         <button class="btn-sm btn-grey" onclick="resolveReport('${r.id}',${i},'dismissed')">Bỏ qua</button>
@@ -480,7 +684,7 @@ function renderReports(loading) {
   }).join('');
   const loadMore = state.reportsPage < state.reportsTotalPages
     ? `<div class="load-more"><button onclick="loadReports()">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
-  el.innerHTML = items + loadMore;
+  el.innerHTML = filterChips + items + loadMore;
 }
 
 async function resolveReport(id, idx, action) {
@@ -492,43 +696,41 @@ async function resolveReport(id, idx, action) {
 // ── Revenue ───────────────────────────────────────────────────────────────────
 
 async function loadRevenue(reset=false) {
-  if(reset) { state.orders=[]; state.ordersPage=0; state.ordersTotalPages=1; }
+  if(reset) { state.orders=[]; state.ordersPage=0; state.ordersTotalPages=1; state.revenueData=null; state.timeline=null; }
   const el = document.getElementById('tab-revenue');
   if(state.orders.length===0) el.innerHTML='<div class="loading"><div class="spinner"></div> Đang tải...</div>';
-  const [rev, ord] = await Promise.all([
+  const [rev, ord, tl] = await Promise.all([
     api('/admin/revenue'),
     api(`/admin/bump-orders?page=${state.ordersPage+1}&limit=20`),
+    !state.timeline ? api('/admin/revenue/timeline?days=30') : Promise.resolve(state.timeline),
   ]);
   if(!rev) return;
+  state.revenueData = rev;
+  state.timeline = tl;
   state.orders.push(...(ord?.data||[]));
   state.ordersPage = ord?.meta?.page || 1;
   state.ordersTotalPages = ord?.meta?.totalPages || 1;
   state.revenueLoaded = true;
-  renderRevenue(rev);
+  renderRevenue();
 }
 
-function fmoney(n) {
-  n = n||0;
-  if(n>=1000000) return (n/1000000).toFixed(1)+'tr';
-  if(n>=1000) return Math.round(n/1000)+'k';
-  return n+'đ';
-}
-
-function renderRevenue(rev) {
+function renderRevenue() {
   const el = document.getElementById('tab-revenue');
-  const statusLabel = {paid:'Đã thanh toán',pending:'Chờ thanh toán',expired:'Hết hạn',cancelled:'Đã huỷ'};
+  const rev = state.revenueData||{};
+  const tl = state.timeline||[];
+  const statusLabel2 = {paid:'Đã thanh toán',pending:'Chờ thanh toán',expired:'Hết hạn',cancelled:'Đã huỷ'};
   const statusColor = {paid:'chip-green',pending:'chip-orange',expired:'chip-grey',cancelled:'chip-red'};
   const pkgLabel = {'plus_3d':'Plus 3 ngày','vip_7d':'VIP 7 ngày'};
 
-  const orderRows = state.orders.map((o,i) => `
+  const orderRows = state.orders.map((o) => `
     <div class="item-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div>
           <div class="title">${esc(o.post?.title||'—')}</div>
-          <div class="meta">${esc(o.user?.name||o.user?.email||'—')} · ${pkgLabel[o.package]||o.package}</div>
+          <div class="meta">${esc(o.user?.name||o.user?.email||'—')} · ${pkgLabel[o.package]||o.package} · ${fmtDate(o.createdAt)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <span class="chip ${statusColor[o.status]||'chip-grey'}">${statusLabel[o.status]||o.status}</span>
+          <span class="chip ${statusColor[o.status]||'chip-grey'}">${statusLabel2[o.status]||o.status}</span>
           <div style="font-weight:700;color:#E53935;margin-top:4px">${fmoney(o.amount)}</div>
         </div>
       </div>
@@ -544,6 +746,15 @@ function renderRevenue(rev) {
       <div class="stat-card"><div style="font-size:24px">☀️</div><div class="stat-value" style="color:#3B82F6">${fmoney(rev.today)}</div><div class="stat-label">Hôm nay</div></div>
       <div class="stat-card"><div style="font-size:24px">🚀</div><div class="stat-value" style="color:#8B5CF6">${rev.activeBoosts||0}</div><div class="stat-label">Đang boost</div></div>
     </div>
+
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:6px">
+        <span>Doanh thu 30 ngày gần nhất</span>
+        <button class="btn-sm btn-green" onclick="exportOrdersCSV()">📥 Xuất CSV</button>
+      </div>
+      ${renderTimelineChart(tl)}
+    </div>
+
     <div class="section-title">Theo gói</div>
     <div class="mini-stats">
       <div class="mini-stat"><div class="v">${rev.breakdown?.plus||0}</div><div class="l">Plus (5k)</div></div>
@@ -554,20 +765,123 @@ function renderRevenue(rev) {
   `;
 }
 
+function renderTimelineChart(data) {
+  if(!data || data.length===0) return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có dữ liệu</div>';
+  const max = Math.max(...data.map(d => d.amount), 1);
+  const w = 100; // % SVG viewBox width
+  const h = 100;
+  const barW = w / data.length;
+  return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <line class="chart-axis" x1="0" y1="${h}" x2="${w}" y2="${h}"/>
+    ${data.map((d,i) => {
+      const bh = (d.amount/max) * (h-4);
+      const x = i*barW;
+      return `<rect class="chart-bar" x="${x+0.3}" y="${h-bh}" width="${barW-0.6}" height="${bh}"><title>${d.date}: ${fmoney(d.amount)}</title></rect>`;
+    }).join('')}
+  </svg>
+  <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:11px;margin-top:6px">
+    <span>${data[0]?.date||''}</span>
+    <span>Cao nhất: ${fmoney(max)}</span>
+    <span>${data[data.length-1]?.date||''}</span>
+  </div>`;
+}
+
+function exportOrdersCSV() {
+  if(state.orders.length===0) { toast('Không có đơn để xuất'); return; }
+  const header = ['ID','Ngày','User','Email','Bài','Gói','Số tiền','Trạng thái'];
+  const rows = state.orders.map(o => [
+    o.id, fmtDate(o.createdAt), o.user?.name||'', o.user?.email||'', o.post?.title||'',
+    o.package||'', o.amount||0, o.status||'',
+  ]);
+  const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `traotay-orders-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast(`Đã tải ${state.orders.length} đơn`);
+}
+
+// ── System ────────────────────────────────────────────────────────────────────
+
+async function loadSystem() {
+  const el = document.getElementById('tab-system');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang kiểm tra...</div>';
+  const data = await api('/admin/health-detail');
+  if(!data) { el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Không tải được</p></div>'; return; }
+  const checks = data.checks||{};
+  const proc = data.process||{};
+  const checkRows = Object.entries(checks).map(([k,v]) => `
+    <div class="kv">
+      <span class="k">${esc(k)}</span>
+      <span class="v">${v.ok?'<span class="chip chip-green">OK</span>':'<span class="chip chip-red">FAIL</span>'} ${esc(v.info||v.error||'')}</span>
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="section-title">Kiểm tra dịch vụ</div>
+    <div class="bar-card">${checkRows||'<div style="color:var(--text2);text-align:center;padding:20px">Chưa có check nào</div>'}</div>
+    <div class="section-title">Tiến trình backend</div>
+    <div class="bar-card">
+      <div class="kv"><span class="k">Uptime</span><span class="v">${formatUptime(proc.uptime||0)}</span></div>
+      <div class="kv"><span class="k">Memory RSS</span><span class="v">${proc.memory?.rss||0} MB</span></div>
+      <div class="kv"><span class="k">Heap dùng / tổng</span><span class="v">${proc.memory?.heapUsed||0} / ${proc.memory?.heapTotal||0} MB</span></div>
+      <div class="kv"><span class="k">Node.js</span><span class="v">${esc(proc.nodeVersion||'—')}</span></div>
+      <div class="kv"><span class="k">Môi trường</span><span class="v">${esc(proc.env||'—')}</span></div>
+    </div>
+  `;
+}
+
+function formatUptime(s) {
+  if(s<60) return s+'s';
+  if(s<3600) return Math.floor(s/60)+'m '+(s%60)+'s';
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  return h+'h '+m+'m';
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function showModal(title, body, actions) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-actions').innerHTML = actions;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function chipStatus(s) {
-  const map={available:['Hiển thị','chip-green'],hidden:['Ẩn','chip-grey'],done:['Xong','chip-blue'],pending:['Chờ xử lý','chip-orange'],resolved:['Đã xử lý','chip-green'],dismissed:['Bỏ qua','chip-grey']};
+  const map={available:['Hiển thị','chip-green'],hidden:['Ẩn','chip-grey'],done:['Xong','chip-blue'],reserved:['Đang giữ','chip-orange'],pending:['Chờ xử lý','chip-orange'],resolved:['Đã xử lý','chip-green'],dismissed:['Bỏ qua','chip-grey']};
   const [l,c]=map[s]||[s,'chip-grey'];
   return `<span class="chip ${c}" style="flex-shrink:0">${l}</span>`;
 }
-function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+function statusLabel(s) {
+  const map={available:'Hiển thị',hidden:'Ẩn',done:'Đã xong',reserved:'Đang giữ'};
+  return map[s]||s;
+}
+function fmoney(n) {
+  n = n||0;
+  if(n>=1000000) return (n/1000000).toFixed(1)+'tr';
+  if(n>=1000) return Math.round(n/1000)+'k';
+  return n+'đ';
+}
+function fmtDate(s) {
+  if(!s) return '—';
+  const d = new Date(s);
+  return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
+}
+function esc(s){ const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML; }
 function showErr(id,msg){ const el=document.getElementById(id);el.textContent=msg;el.style.display=msg?'block':'none'; }
 function toast(msg){ const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500); }
 function avatarBg(name) {
   const colors=['#26A69A','#42A5F5','#EF5350','#AB47BC','#FF7043','#66BB6A','#EC407A','#5C6BC0'];
   return colors[name.charCodeAt(0)%colors.length];
 }
+
+// ESC closes modal
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
 // ── Startup ───────────────────────────────────────────────────────────────────
 if(token) initApp();

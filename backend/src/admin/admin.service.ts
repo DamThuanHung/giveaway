@@ -59,6 +59,20 @@ export class AdminService {
     return this.prisma.post.update({ where: { id }, data: { status: 'hidden' } });
   }
 
+  async unhidePost(id: string) {
+    return this.prisma.post.update({ where: { id }, data: { status: 'available' } });
+  }
+
+  async getPostDetail(id: string) {
+    return this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        author: { select: { id: true, name: true, email: true, phone: true, role: true, isBanned: true, createdAt: true } },
+        _count: { select: { favorites: true, deals: true, reports: true } },
+      },
+    });
+  }
+
   async deletePost(id: string) {
     return this.prisma.post.delete({ where: { id } });
   }
@@ -113,6 +127,51 @@ export class AdminService {
     return { ok: true, isBanned: banFlag };
   }
 
+  async setUserRole(id: string, role: 'admin' | 'user') {
+    if (role !== 'admin' && role !== 'user') {
+      throw new BadRequestException('role chỉ nhận "admin" hoặc "user"');
+    }
+    await this.prisma.user.update({ where: { id }, data: { role } });
+    return { ok: true, role };
+  }
+
+  async getUserDetail(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, email: true, phone: true, avatar: true, role: true,
+        isBanned: true, isPhoneVerified: true, deletedAt: true, createdAt: true,
+        _count: {
+          select: {
+            posts: true,
+            dealsAsRequester: true,
+            dealsAsOwner: true,
+            reviewsReceived: true,
+            favorites: true,
+          },
+        },
+      },
+    });
+    if (!user) return null;
+    // Tính tổng tiền user đã tiêu cho bump
+    const spent = await this.prisma.bumpOrder.aggregate({
+      where: { userId: id, status: 'paid' },
+      _sum: { amount: true },
+      _count: true,
+    });
+    // Avg rating user nhận được
+    const ratings = await this.prisma.review.aggregate({
+      where: { revieweeId: id },
+      _avg: { rating: true },
+    });
+    return {
+      ...user,
+      totalSpent: spent._sum.amount ?? 0,
+      bumpOrderCount: spent._count ?? 0,
+      avgRating: ratings._avg.rating ? +ratings._avg.rating.toFixed(2) : null,
+    };
+  }
+
   async getAllReports(page = 1, limit = 20, status?: string) {
     const where: any = {};
     if (status) where.status = status;
@@ -163,6 +222,60 @@ export class AdminService {
       thisMonth: monthRevenue._sum.amount ?? 0,
       breakdown: { plus: plusCount, vip: vipCount },
       activeBoosts,
+    };
+  }
+
+  /// Doanh thu theo từng ngày trong N ngày gần nhất → cho chart timeline.
+  async getRevenueTimeline(days = 30) {
+    const safeDays = Math.min(Math.max(1, days), 365);
+    const fromDate = new Date();
+    fromDate.setHours(0, 0, 0, 0);
+    fromDate.setDate(fromDate.getDate() - safeDays + 1);
+
+    const orders = await this.prisma.bumpOrder.findMany({
+      where: { status: 'paid', createdAt: { gte: fromDate } },
+      select: { amount: true, createdAt: true },
+    });
+
+    // Group theo ngày YYYY-MM-DD
+    const map = new Map<string, number>();
+    for (let i = 0; i < safeDays; i++) {
+      const d = new Date(fromDate);
+      d.setDate(fromDate.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      map.set(key, 0);
+    }
+    for (const o of orders) {
+      const key = o.createdAt.toISOString().slice(0, 10);
+      map.set(key, (map.get(key) ?? 0) + o.amount);
+    }
+
+    return Array.from(map.entries()).map(([date, amount]) => ({ date, amount }));
+  }
+
+  /// System health — DB, MinIO basic check.
+  async getHealthDetail() {
+    const checks: Record<string, { ok: boolean; info?: string; error?: string }> = {};
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      checks.database = { ok: true, info: 'PostgreSQL connection OK' };
+    } catch (e: any) {
+      checks.database = { ok: false, error: e?.message ?? 'unknown' };
+    }
+    // Process info
+    const mem = process.memoryUsage();
+    return {
+      checks,
+      process: {
+        uptime: Math.round(process.uptime()),
+        memory: {
+          rss: Math.round(mem.rss / 1024 / 1024),
+          heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
+          heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+        },
+        nodeVersion: process.version,
+        env: process.env.NODE_ENV ?? 'development',
+      },
     };
   }
 

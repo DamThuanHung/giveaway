@@ -30,6 +30,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
+# Copy public/ — chứa admin.html (panel quản trị) + privacy-policy.html.
+# Backend main.ts useStaticAssets('public') để serve / paths.
+# Trước đây không copy → admin.html 404 trên production.
+COPY --from=builder /app/public ./public
 
 # Non-root user cho security (Docker best practice)
 RUN addgroup -S app && adduser -S app -G app
