@@ -17,19 +17,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _Slide(
       emoji: '🤝',
       title: 'Trao Tay',
-      subtitle: 'Nơi kết nối những trái tim\nmuốn chia sẻ với cộng đồng',
-      color: Color(0xFF4CAF50),
+      subtitle: 'Đồ cũ người này\nBáu vật người kia',
+      color: Color(0xFF2D6A4F),
     ),
     _Slide(
       emoji: '📦',
-      title: 'Đăng đồ dễ dàng',
-      subtitle: 'Chụp ảnh, mô tả ngắn gọn\nrồi đăng — chỉ vài phút!',
+      title: 'Đăng bán hoặc cho tặng',
+      subtitle: 'Đồ cũ chưa dùng đến?\nĐăng tin chỉ vài phút',
       color: Color(0xFF2196F3),
     ),
     _Slide(
       emoji: '🎁',
-      title: 'Nhận đồ miễn phí',
-      subtitle: 'Tìm đồ bạn cần gần nhà\nGửi yêu cầu và nhận ngay',
+      title: 'Nhận đồ ngay gần nhà',
+      subtitle: 'Mua đồ cũ giá tốt\nHoặc nhận tặng miễn phí',
       color: Color(0xFFFF9800),
     ),
   ];

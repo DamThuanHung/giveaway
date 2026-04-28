@@ -296,11 +296,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   FadeTransition(
                     opacity: _subtitleFade,
                     child: const Text(
-                      'Chia sẻ yêu thương',
+                      'Đồ cũ người này, Báu vật người kia',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Colors.white70,
-                        letterSpacing: 2,
+                        letterSpacing: 0.5,
                         fontWeight: FontWeight.w300,
                       ),
                     ),
