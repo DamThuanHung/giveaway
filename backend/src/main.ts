@@ -25,6 +25,12 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Trust proxy 1 hop: production đặt sau Nginx (127.0.0.1), Nginx forward
+  // X-Forwarded-For từ Cloudflare (đã rewrite về client IP qua cloudflare-real-ip.conf).
+  // Không có dòng này, Express dùng socket address (127.0.0.1) → @nestjs/throttler
+  // rate limit thành global cho toàn server thay vì per-IP → DoS dễ.
+  app.set('trust proxy', 'loopback');
+
   // Graceful shutdown: khi nhận SIGTERM/SIGINT, đóng connection đang xử lý
   // trước khi exit. Tránh lost request khi Docker restart.
   app.enableShutdownHooks();

@@ -6,6 +6,7 @@ import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../admin/admin.guard';
 import { UserService } from './user.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
@@ -34,9 +35,11 @@ export class UserController {
     return this.userService.getUserById(req.user.id);
   }
 
+  // Public profile — KHÔNG trả email/phone (chống PII enumeration).
+  // Owner muốn xem full thông tin của chính mình → dùng GET /user/me.
   @Get(':id')
   getUserById(@Param('id') id: string) {
-    return this.userService.getUserById(id);
+    return this.userService.getPublicUserById(id);
   }
 
   @Patch(':id')
@@ -57,8 +60,10 @@ export class UserController {
     return this.userService.uploadAvatar(req.user.id, url);
   }
 
+  // List toàn bộ user — chỉ admin (dùng cho dashboard quản trị).
+  // App user thông thường KHÔNG cần endpoint này; nếu cần search → dùng /follow hoặc public profile.
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   getUsers() {
     return this.userService.getUsers();
   }

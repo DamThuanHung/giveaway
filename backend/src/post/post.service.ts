@@ -5,11 +5,18 @@ import { KeywordAlertService } from '../keyword-alert/keyword-alert.service';
 
 const BASE_URL = process.env.BASE_URL ?? '';
 
-// Whitelist — không tin string từ client
+// Whitelist — không tin string từ client.
+// MUST khớp với app/lib/data/categories.dart `AppCategories.list`.
+// Lịch sử: backend cũ chỉ có 14 mục với các key sai (`fashion`/`home`/`services`)
+// → Flutter gửi đúng `clothing`/`furniture`/`kitchen`/`service` bị silently rewrite
+// thành `other` ở dòng cuối validate. Hậu quả: bài "Áo Zara" lưu DB là `other`.
+// Đã sync lên 18 mục đúng Flutter — kèm SQL migration `migrate-categories-2026.sql`
+// để convert data cũ trong production DB.
 const VALID_POST_STATUSES = ['available', 'reserved', 'done', 'hidden'] as const;
 const VALID_ITEM_CATEGORIES = [
-  'electronics', 'fashion', 'home', 'books', 'toys', 'sports', 'beauty',
-  'food', 'pets', 'vehicles', 'realestate', 'services', 'jobs', 'other',
+  'electronics', 'furniture', 'clothing', 'kitchen', 'books', 'toys',
+  'sports', 'vehicles', 'beauty', 'pets', 'tools', 'food', 'baby',
+  'music', 'realestate', 'service', 'jobs', 'other',
 ] as const;
 const VALID_LISTING_TYPES = ['sell', 'give', 'free', 'exchange'] as const;
 const VALID_POST_TYPES = ['item', 'realestate', 'service', 'job'] as const;

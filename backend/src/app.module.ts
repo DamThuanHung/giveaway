@@ -20,12 +20,8 @@ import { FavoriteController } from './favorite/favorite.controller';
 import { FavoriteService } from './favorite/favorite.service';
 import { FollowController } from './follow/follow.controller';
 import { FollowService } from './follow/follow.service';
-import { FcmService } from './fcm/fcm.service';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
-import { NotificationController } from './notification/notification.controller';
-import { NotificationCronService } from './notification/notification-cron.service';
-import { NotificationGateway } from './notification/notification.gateway';
-import { NotificationService } from './notification/notification.service';
+import { NotificationModule } from './notification/notification.module';
 import { PostController } from './post/post.controller';
 import { PostService } from './post/post.service';
 import { PrismaService } from './prisma/prisma.service';
@@ -36,7 +32,6 @@ import { ReviewService } from './review/review.service';
 import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
 import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
-import { KeywordAlertService } from './keyword-alert/keyword-alert.service';
 import { BumpModule } from './bump/bump.module';
 
 @Module({
@@ -54,6 +49,7 @@ import { BumpModule } from './bump/bump.module';
     ChatModule,
     CloudinaryModule,
     KeywordAlertModule,
+    NotificationModule,
     BumpModule,
     ScheduleModule.forRoot(),
     // Rate limit default: 60 req/phút/IP cho mọi endpoint.
@@ -72,7 +68,7 @@ import { BumpModule } from './bump/bump.module';
     FollowController,
     DealController,
     ReviewController,
-    NotificationController,
+    // NotificationController moved into NotificationModule
   ],
   providers: [
     AppService,
@@ -86,11 +82,8 @@ import { BumpModule } from './bump/bump.module';
     FollowService,
     DealService,
     ReviewService,
-    NotificationService,
-    NotificationCronService,
-    NotificationGateway,
-    FcmService,
-    KeywordAlertService,
+    // NotificationService/Gateway/Cron + FcmService moved into NotificationModule
+    // KeywordAlertService comes from KeywordAlertModule (exported)
     JwtStrategy,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],

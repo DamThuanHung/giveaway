@@ -74,36 +74,33 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
     super.dispose();
   }
 
+  // Cập nhật theo Nghị quyết 202/2025/QH15 — 34 đơn vị hành chính cấp tỉnh.
+  // 15 (Bắc) + 11 (Trung) + 8 (Nam) = 34. Phải khớp với home_tab.dart `_regionProvinces`.
   static const _regions = [
     {
       'label': 'Miền Bắc',
       'all': 'Toàn miền Bắc',
       'provinces': [
-        'Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Hải Dương', 'Hưng Yên',
-        'Thái Bình', 'Nam Định', 'Ninh Bình', 'Hà Nam', 'Bắc Ninh',
-        'Vĩnh Phúc', 'Phú Thọ', 'Thái Nguyên', 'Bắc Giang', 'Lạng Sơn',
-        'Cao Bằng', 'Bắc Kạn', 'Tuyên Quang', 'Hà Giang', 'Yên Bái',
-        'Lào Cai', 'Điện Biên', 'Lai Châu', 'Sơn La', 'Hòa Bình',
+        'Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Hưng Yên', 'Ninh Bình',
+        'Bắc Ninh', 'Phú Thọ', 'Thái Nguyên', 'Lạng Sơn', 'Cao Bằng',
+        'Tuyên Quang', 'Lào Cai', 'Điện Biên', 'Lai Châu', 'Sơn La',
       ],
     },
     {
       'label': 'Miền Trung',
       'all': 'Toàn miền Trung',
       'provinces': [
-        'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Bình', 'Quảng Trị',
-        'Thừa Thiên Huế', 'Đà Nẵng', 'Quảng Nam', 'Quảng Ngãi', 'Bình Định',
-        'Phú Yên', 'Khánh Hòa', 'Ninh Thuận', 'Bình Thuận',
-        'Kon Tum', 'Gia Lai', 'Đắk Lắk', 'Đắk Nông', 'Lâm Đồng',
+        'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Trị', 'Huế',
+        'Đà Nẵng', 'Quảng Ngãi', 'Khánh Hòa', 'Lâm Đồng',
+        'Gia Lai', 'Đắk Lắk',
       ],
     },
     {
       'label': 'Miền Nam',
       'all': 'Toàn miền Nam',
       'provinces': [
-        'TP. Hồ Chí Minh', 'Bình Dương', 'Đồng Nai', 'Bà Rịa - Vũng Tàu',
-        'Tây Ninh', 'Bình Phước', 'Long An', 'Tiền Giang', 'Bến Tre',
-        'Trà Vinh', 'Vĩnh Long', 'Đồng Tháp', 'An Giang', 'Kiên Giang',
-        'Cần Thơ', 'Hậu Giang', 'Sóc Trăng', 'Bạc Liêu', 'Cà Mau',
+        'TP. Hồ Chí Minh', 'Đồng Nai', 'Tây Ninh', 'Vĩnh Long',
+        'Đồng Tháp', 'An Giang', 'Cần Thơ', 'Cà Mau',
       ],
     },
   ];

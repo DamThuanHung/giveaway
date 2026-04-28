@@ -135,6 +135,7 @@ export class UserService {
     return { accessToken, user: { id: user.id, email: user.email, name: user.name } };
   }
 
+  /// Owner-only: trả full thông tin bao gồm email + phone. Dùng cho `/user/me`.
   async getUserById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -142,6 +143,34 @@ export class UserService {
         id: true,
         email: true,
         phone: true,
+        name: true,
+        avatar: true,
+        role: true,
+        createdAt: true,
+        isPhoneVerified: true,
+        _count: {
+          select: {
+            posts: true,
+            dealsAsOwner: { where: { status: 'completed' } },
+            dealsAsRequester: { where: { status: 'completed' } },
+          },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    return {
+      ...user,
+      completedDeals: (user._count.dealsAsOwner ?? 0) + (user._count.dealsAsRequester ?? 0),
+    };
+  }
+
+  /// Public profile: KHÔNG trả email/phone. Dùng cho `/user/:id` (xem profile người khác).
+  /// Chống PII enumeration — vi phạm Nghị định 13/2023 nếu để rò rỉ.
+  async getPublicUserById(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
         name: true,
         avatar: true,
         role: true,
