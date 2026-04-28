@@ -7,6 +7,7 @@ import '../../services/analytics.dart';
 import '../../services/image_compress.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/image_source_picker.dart';
 
 class CreatePostTab extends StatefulWidget {
   const CreatePostTab({super.key});
@@ -123,9 +124,21 @@ class _CreatePostTabState extends State<CreatePostTab> {
       );
       return;
     }
+
+    final source = await showImageSourceSheet(context);
+    if (source == null || !mounted) return;
+
     final remaining = 10 - _selectedImages.length;
-    final picked = await ImagePicker().pickMultiImage(imageQuality: 75, limit: remaining);
-    if (picked.isEmpty) return;
+    final List<XFile> picked;
+    if (source == ImageSource.camera) {
+      // Camera chỉ chụp 1 ảnh mỗi lần — tester chụp xong, bấm + chụp tiếp được
+      final shot = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 75);
+      picked = shot != null ? [shot] : [];
+    } else {
+      picked = await ImagePicker().pickMultiImage(imageQuality: 75, limit: remaining);
+    }
+    if (picked.isEmpty || !mounted) return;
+
     final limited = picked.take(remaining).toList();
     setState(() {
       _selectedImages.addAll(limited);
