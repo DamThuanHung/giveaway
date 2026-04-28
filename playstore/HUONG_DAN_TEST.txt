@@ -1,0 +1,508 @@
+============================================================
+HƯỚNG DẪN TEST APP TRAO TAY
+============================================================
+
+Cảm ơn bạn đã giúp test app trước khi launch chính thức!
+Hướng dẫn dưới đây dành cho người chưa quen cài app từ file APK.
+Đọc kỹ từng bước, không bỏ qua bước nào nhé.
+
+Phiên bản test: v1.0.0 (build ngày 28/04/2026)
+Thời gian dự kiến: 75 phút (gồm cả phần PayOS)
+
+LƯU Ý: Phần test PayOS (Test 18) yêu cầu chuyển khoản
+5.000đ THẬT qua app ngân hàng. Mình hoàn đủ + tip thêm
+10.000đ cảm ơn = 15.000đ trả lại sau khi bạn báo đã test.
+
+
+============================================================
+PHẦN A — CÀI ĐẶT APP (5-10 phút)
+============================================================
+
+BƯỚC 1 — TẢI FILE APK VỀ ĐIỆN THOẠI
+
+Có 3 cách:
+
+Cách 1 (khuyên dùng): Tải từ Google Drive
+  - Mở link Drive mình gửi trên điện thoại Android
+  - Bấm icon Tải xuống ở góc phải trên
+  - Đợi khoảng 1 phút (file 26 MB)
+
+Cách 2: Truyền qua Zalo / Telegram / Messenger
+  - Mình gửi file app-release.apk qua tin nhắn
+  - Bạn bấm vào file rồi chọn Lưu hoặc Tải xuống
+
+Cách 3: Truyền qua USB
+  - Cắm điện thoại vào laptop bằng cáp USB
+  - Copy file vào folder Download của điện thoại
+
+
+BƯỚC 2 — CHO PHÉP CÀI APP TỪ NGUỒN KHÔNG XÁC ĐỊNH
+
+Quan trọng vì Android mặc định chỉ cho cài app từ Play Store.
+
+Trên Android 8 trở lên (đa số máy hiện nay):
+  1. Mở app Files (Quản lý tệp) hoặc Chrome
+  2. Tìm file app-release.apk trong folder Download
+  3. Bấm vào file. Sẽ hiện cảnh báo
+     "Cài đặt bị chặn vì lý do bảo mật"
+  4. Bấm nút Cài đặt hoặc Settings
+  5. Bật toggle "Cho phép từ nguồn này"
+  6. Quay lại màn cài đặt rồi bấm Cài đặt lần nữa
+
+Trên Android 7 trở xuống:
+  1. Vào Cài đặt rồi vào Bảo mật
+  2. Tìm mục "Nguồn không xác định" rồi BẬT
+  3. Quay lại file APK rồi bấm Cài đặt
+
+
+BƯỚC 3 — CÀI ĐẶT VÀ MỞ APP
+
+  1. Sau khi nhấn Cài đặt, đợi 10-30 giây
+  2. Hiện thông báo "Đã cài đặt ứng dụng"
+  3. Bấm nút Mở để khởi động app
+  4. Hoặc tìm icon Trao Tay (logo xanh, hình chiếc lá)
+     trên màn hình chính
+
+NẾU GẶP LỖI CÀI ĐẶT:
+  - "Ứng dụng không được cài đặt": có thể máy đã có app cũ.
+    Vào Cài đặt rồi Apps rồi tìm Trao Tay rồi Gỡ cài đặt
+    rồi thử lại
+  - "Phân tích gói tin thất bại": file APK tải bị lỗi,
+    tải lại file mới
+  - Nếu vẫn lỗi, báo mình kèm chụp màn hình
+
+
+============================================================
+PHẦN B — TEST 10 LUỒNG CHÍNH (30 phút)
+============================================================
+
+10 luồng quan trọng nhất phải hoạt động được. Test theo
+thứ tự, mỗi bước nếu gặp lỗi thì chụp màn hình + ghi lại
+bước nào lỗi + báo mình.
+
+------------------------------------------------------------
+TEST 1 — ĐĂNG KÝ TÀI KHOẢN BẰNG EMAIL (5 phút)
+------------------------------------------------------------
+
+  1. Mở app rồi đến màn welcome rồi bấm Bắt đầu
+  2. Ở màn login, chọn Đăng ký bằng Email
+  3. Điền thông tin:
+     - Tên: tên thật của bạn
+     - Email: email Gmail bạn dùng (mình check welcome mail)
+     - Mật khẩu: ít nhất 6 ký tự, không dùng mật khẩu Gmail
+  4. Bấm Đăng ký
+  5. Kiểm tra email Gmail trong 1-2 phút.
+     Có nhận được mail "Chào mừng bạn đến Trao Tay" không?
+
+PASS NẾU:
+  - Đăng ký xong tự vào trang chủ
+  - Có nhận mail welcome trong inbox hoặc spam
+
+BÁO LỖI NẾU:
+  - App treo hoặc crash khi bấm Đăng ký
+  - Báo "Email đã tồn tại" dù chưa đăng ký bao giờ
+  - Không nhận mail welcome sau 5 phút
+
+
+------------------------------------------------------------
+TEST 2 — ĐĂNG NHẬP BẰNG SỐ ĐIỆN THOẠI (3 phút)
+------------------------------------------------------------
+
+(Nếu không có SĐT để test, skip phần này, báo mình
+"skip Test 2")
+
+  1. Tab Cá nhân rồi kéo xuống Đăng xuất
+  2. Quay lại màn login rồi chọn Đăng nhập bằng SĐT
+  3. Nhập SĐT của bạn rồi bấm Gửi mã
+  4. Đợi tin nhắn SMS có 6 số rồi nhập mã
+  5. Lần đầu sẽ hỏi tên và thông tin, điền vào rồi vào
+     trang chủ
+
+PASS NẾU: Nhận SMS trong 1 phút, nhập mã rồi vào app OK
+BÁO LỖI NẾU: Không nhận SMS sau 2 phút, mã sai liên tục
+
+
+------------------------------------------------------------
+TEST 3 — ĐĂNG TIN CÓ ẢNH (5 phút)
+------------------------------------------------------------
+
+  1. Trang chủ rồi bấm tab Đăng tin (giữa thanh dưới,
+     có dấu cộng)
+  2. Điền form:
+     - Tiêu đề: "Test bài đăng đầu tiên"
+     - Mô tả: "Đây là bài test, không phải bán đồ thật"
+     - Hình thức: chọn Cho tặng (free)
+     - Loại: chọn Đồ điện tử hoặc bất kỳ
+     - Giá: 0
+     - Khu vực: chọn tỉnh và quận của bạn
+  3. Thêm ảnh:
+     - Bấm vào ô ảnh đầu tiên
+     - Chọn 1-3 ảnh từ Gallery (ảnh bất kỳ)
+     - Đợi upload (có thể thấy thanh tiến trình)
+  4. Bấm Đăng
+  5. Quay lại trang chủ rồi cuộn xuống xem có thấy bài
+     vừa đăng không
+
+PASS NẾU: Bài hiện ra ở trang chủ, bấm vào xem được ảnh
+BÁO LỖI NẾU:
+  - Upload ảnh treo lâu hơn 30 giây
+  - Đăng xong không thấy bài
+  - Ảnh trong bài bị lỗi load
+  - Báo "Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP"
+    (đã fix nhưng nếu vẫn gặp thì báo gấp)
+
+
+------------------------------------------------------------
+TEST 4 — SỬA HOẶC XOÁ BÀI ĐĂNG (3 phút)
+------------------------------------------------------------
+
+  1. Tab Cá nhân rồi bấm Bài đăng của tôi
+  2. Bấm vào bài Test 3 rồi bấm icon 3 chấm hoặc Sửa
+  3. Đổi tiêu đề thành "Test sửa bài" rồi bấm Lưu
+  4. Quay lại danh sách check tiêu đề mới có cập nhật không
+  5. Vào lại bài rồi bấm Xoá rồi confirm
+  6. Bài biến mất khỏi list
+
+PASS NẾU: Sửa lưu thành công, xoá xong bài không còn
+
+
+------------------------------------------------------------
+TEST 5 — LƯU BÀI (FAVORITES) (2 phút)
+------------------------------------------------------------
+
+  1. Quay lại trang chủ, tìm 1 bài (không phải bài mình)
+  2. Bấm icon trái tim trên bài. Tim chuyển từ trắng sang đỏ
+  3. Tab Cá nhân rồi vào mục Đã lưu (Favorites)
+  4. Bài vừa lưu hiện trong danh sách
+  5. Bấm tim lần nữa để bỏ lưu, bài biến mất khỏi list
+
+PASS NẾU: Lưu hoặc bỏ lưu mượt, list cập nhật ngay
+
+
+------------------------------------------------------------
+TEST 6 — ĐỔI ẢNH ĐẠI DIỆN (2 phút)
+------------------------------------------------------------
+
+  1. Tab Cá nhân rồi bấm vào avatar (vòng tròn trên đầu)
+  2. Chọn ảnh từ Gallery (chụp tự do)
+  3. Đợi upload, avatar hiển thị ảnh mới
+
+PASS NẾU: Avatar update ngay, không lỗi
+BÁO LỖI NẾU: Báo "Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP"
+  (đặc biệt với ảnh chụp Realme/Samsung mới — nếu vẫn
+  gặp lỗi này hãy báo gấp)
+
+
+------------------------------------------------------------
+TEST 7 — TÌM KIẾM VÀ FILTER (3 phút)
+------------------------------------------------------------
+
+  1. Bấm tab Tìm kiếm (kính lúp)
+  2. Gõ keyword bất kỳ rồi xem kết quả
+  3. Thử filter theo loại (Cho tặng / Bán) ở thanh trên
+  4. Thử filter theo danh mục (Đồ điện tử, Quần áo...)
+  5. Bấm vào 1 bài để xem chi tiết. Ảnh load nhanh không?
+  6. Bấm nút Quay lại để về tab Tìm kiếm
+
+PASS NẾU: Search ra kết quả, filter hoạt động, mở chi tiết
+được, back về OK
+
+
+------------------------------------------------------------
+TEST 8 — TAB TIN NHẮN (1 phút)
+------------------------------------------------------------
+
+  1. Bấm tab Tin nhắn
+  2. Nếu chưa chat với ai, màn hiện "Chưa có tin nhắn nào"
+     hoặc tương tự (đúng)
+
+PASS NẾU: Hiện màn rỗng đẹp, không crash
+
+
+------------------------------------------------------------
+TEST 9 — TAB CÁ NHÂN (3 phút)
+------------------------------------------------------------
+
+  1. Bấm tab Cá nhân
+  2. Kiểm tra hiển thị:
+     - Avatar (đã đổi ở Test 6)
+     - Tên bạn
+     - Email hoặc SĐT
+     - Số bài đăng
+  3. Các mục con: Bài đăng của tôi, Đã lưu,
+     Đổi mật khẩu, Liên kết email (nếu đăng nhập SĐT)
+  4. Mỗi mục bấm vào, không crash là OK
+
+
+------------------------------------------------------------
+TEST 10 — ĐĂNG XUẤT VÀ MỞ LẠI APP (3 phút)
+------------------------------------------------------------
+
+  1. Tab Cá nhân rồi kéo xuống tìm nút Đăng xuất rồi bấm
+  2. App trở về màn login
+  3. Đăng nhập lại bằng email hoặc SĐT
+  4. Đóng hoàn toàn app (vuốt lên rồi xoá khỏi task)
+  5. Mở lại app từ icon
+
+PASS NẾU:
+  - Đăng xuất rồi đăng nhập lại OK
+  - Đóng app rồi mở lại tự đăng nhập, vào thẳng trang chủ
+    không cần nhập lại mật khẩu
+
+BÁO LỖI NẾU: Phải đăng nhập lại mỗi lần mở app
+
+
+============================================================
+PHẦN C — TEST EDGE CASES (15-30 phút, optional)
+============================================================
+
+------------------------------------------------------------
+TEST 11 — MẠNG YẾU HOẶC MẤT MẠNG
+------------------------------------------------------------
+
+  1. Bật chế độ Máy bay (Airplane mode)
+  2. Mở app rồi pull to refresh trang chủ
+  3. Tắt máy bay rồi bấm Thử lại
+
+PASS NẾU:
+  - Khi mất mạng: app hiện icon Wifi gạch chéo và chữ
+    "Không thể tải dữ liệu" và nút "Thử lại"
+    (KHÔNG hiện "Không có bài đăng" - đó là sai)
+  - Khi có mạng: bấm Thử lại load lại data
+
+
+------------------------------------------------------------
+TEST 12 — UPLOAD NHIỀU ẢNH
+------------------------------------------------------------
+
+  1. Đăng 1 bài mới với 10 ảnh cùng lúc (số tối đa)
+  2. Đợi upload xong rồi xem có lỗi không
+
+PASS NẾU: 10 ảnh upload hết, hiện trong bài chi tiết
+
+
+------------------------------------------------------------
+TEST 13 — XEM TRÊN BẢN ĐỒ
+------------------------------------------------------------
+
+  1. Tab Tìm kiếm hoặc trang chủ rồi tìm icon bản đồ
+     hoặc nút "Xem trên bản đồ"
+  2. Bản đồ load rồi hiện các bài đăng dạng pin/marker
+  3. Bấm vào 1 marker để preview bài
+  4. Zoom in zoom out, di chuyển bản đồ
+
+PASS NẾU: Bản đồ load dưới 5 giây, marker rõ, không lag
+khi zoom
+
+
+------------------------------------------------------------
+TEST 14 — FILTER THEO KHOẢNG CÁCH (GPS)
+------------------------------------------------------------
+
+  1. Tab Tìm kiếm rồi tìm icon vị trí hoặc Quanh tôi
+  2. Lần đầu app xin quyền truy cập vị trí, cho phép
+  3. Chọn bán kính 5km, 10km hoặc 20km
+  4. Kết quả hiện các bài trong bán kính đó
+
+PASS NẾU:
+  - App xin quyền vị trí (popup Android)
+  - Sau khi cho phép tìm thấy bài gần
+
+
+------------------------------------------------------------
+TEST 15 — TIN NHẮN 2 CHIỀU (cần 2 thiết bị hoặc 2 acc)
+------------------------------------------------------------
+
+(Skip nếu chỉ có 1 máy)
+
+  1. Người A đăng 1 bài (vd cái áo cho)
+  2. Người B vào xem bài rồi bấm nút Nhắn tin
+  3. Hai người gửi tin nhắn qua lại 5-10 lần
+  4. Test gửi nhanh liên tục (spam) xem có mất tin không
+
+PASS NẾU: Tin nhắn 2 chiều hiện gần như real-time
+(dưới 2 giây)
+
+
+------------------------------------------------------------
+TEST 16 — PUSH NOTIFICATION
+------------------------------------------------------------
+
+  1. Cho phép app gửi thông báo khi hỏi (popup quyền lần đầu)
+  2. Đóng app (kéo lên thoát task) để app KHÔNG đang mở
+  3. Có người gửi tin cho bạn xem có nhận được noti banner
+     trên đỉnh màn hình không
+  4. Bấm vào noti rồi app mở đúng cuộc trò chuyện
+
+PASS NẾU: Noti hiện khi app đóng, bấm vào mở đúng chỗ
+
+
+------------------------------------------------------------
+TEST 17 — TAB THÔNG BÁO
+------------------------------------------------------------
+
+  1. Sau khi có người nhắn tin, tab Thông báo (chuông)
+     hiện badge đỏ
+  2. Vào tab rồi list noti hiển thị
+  3. Bấm vào 1 noti rồi mở đúng nội dung
+     (vd vào chat room)
+
+PASS NẾU: Badge cập nhật real-time, list noti đầy đủ,
+click hoạt động
+
+
+============================================================
+PHẦN D — TEST PAYOS (10 phút, MÌNH HOÀN TIỀN 100%)
+============================================================
+
+QUAN TRỌNG: Phần này yêu cầu thanh toán THẬT 5.000đ
+qua app ngân hàng để verify PayOS hoạt động.
+
+Mình HOÀN LẠI ĐỦ 5k + TIP 10k cảm ơn = 15.000đ chuyển
+khoản trả bạn sau khi bạn báo đã test.
+
+Đây là luồng critical bắt buộc test, không có tester
+thì không catch được bug PayOS.
+
+------------------------------------------------------------
+TEST 18 — BOOST BÀI (gói Plus 3 ngày, 5.000đ)
+------------------------------------------------------------
+
+  1. Tab Cá nhân rồi Bài đăng của tôi rồi chọn 1 bài
+     đã đăng (hoặc đăng bài mới ở Test 3)
+  2. Bấm vào bài rồi tìm nút Boost hoặc Đẩy bài lên top
+  3. Chọn gói Plus 3 ngày, 5.000đ
+  4. Bấm Thanh toán, app mở WebView PayOS
+  5. Trong WebView:
+     - Hiện QR code và thông tin chuyển khoản
+     - Mở app ngân hàng
+       (Vietcombank, MB Bank, Techcombank...)
+       rồi quét QR rồi confirm chuyển 5.000đ
+  6. Đợi 5-10 giây sau khi chuyển, app tự đóng WebView
+  7. Hiện loading "Đang xác nhận thanh toán..."
+  8. Sau khoảng 5 giây, hiện popup
+     "Đã kích hoạt gói Plus 3 ngày!"
+  9. Quay lại trang chủ, tìm bài vừa boost rồi xem có
+     badge PLUS màu xanh và bài có lên top feed không
+
+PASS NẾU:
+  - Chuyển tiền thành công qua app ngân hàng
+  - App báo kích hoạt thành công trong 30 giây
+  - Bài có badge Plus và lên top feed
+
+BÁO LỖI NẾU:
+  - WebView không load
+  - Chuyển tiền xong nhưng app không báo gì sau 1 phút
+  - Bài không có badge và không lên top
+
+
+SAU KHI TEST XONG — BÁO MÌNH ĐỂ HOÀN TIỀN
+
+Inbox FB mình kèm thông tin sau:
+
+  Đã test PayOS:
+  Gói đã mua: Plus 3 ngày (5k) hoặc VIP 7 ngày (15k)
+  Số tiền: 5.000 hoặc 15.000 đ
+  Số tài khoản nhận: số tài khoản của bạn
+  Tên ngân hàng: Vietcombank, MB Bank, ...
+  Tên chủ tài khoản: tên đầy đủ
+
+Mình chuyển khoản lại trong 1-2 ngày:
+ĐỦ SỐ TIỀN ĐÃ TRẢ + 10.000đ CẢM ƠN.
+
+Lưu ý: chỉ cần test 1 trong 2 gói (Plus 5k hoặc VIP 15k).
+Khuyên dùng Plus 3 ngày 5.000đ vì rẻ hơn.
+
+
+============================================================
+PHẦN E — TÍNH NĂNG NÂNG CAO (skip nếu thiếu thời gian)
+============================================================
+
+Mình KHÔNG yêu cầu test các phần dưới, chỉ liệt kê để
+bạn biết app có những gì. Nếu rảnh và thấy thú vị thì
+thử, nhận xét tự nhiên cũng được.
+
+  - Theo dõi từ khoá: Cá nhân rồi Theo dõi từ khoá rồi
+    thêm vd "iPhone". Khi có bài mới khớp sẽ noti
+
+  - Follow user: Vào profile người khác rồi bấm Theo dõi.
+    Bài mới của họ sẽ ưu tiên hiện cho bạn
+
+  - Block / Report: Trong chat rồi 3 chấm rồi
+    Chặn người dùng / Báo cáo
+
+  - Đổi mật khẩu: Cá nhân rồi Đổi mật khẩu rồi
+    nhập cũ và mới
+
+  - Liên kết email (chỉ user đăng SĐT): Cá nhân rồi
+    Liên kết email dự phòng
+
+  - Đánh giá người mua/bán: sau khi hoàn thành 1 giao dịch
+    (request rồi accept rồi complete), cần 2 người
+
+
+============================================================
+PHẦN F — BÁO LỖI VÀ FEEDBACK
+============================================================
+
+CÁCH BÁO LỖI HIỆU QUẢ
+
+Mỗi lỗi gặp phải, hãy gửi mình:
+
+1. Chụp màn hình (rõ nhất là chụp ngay khi gặp lỗi)
+   - Android: Bấm đồng thời nút Nguồn + Giảm âm lượng
+   - Hoặc vuốt 3 ngón tay xuống (1 số máy)
+
+2. Mô tả ngắn:
+   - Đang làm gì: vd "Đang đăng bài, đến bước upload ảnh"
+   - Hiện lỗi gì: vd "App đứng yên 30 giây rồi tự thoát"
+   - Tái hiện được không: lặp lại 3 lần đều lỗi
+     hay chỉ 1 lần
+
+3. Thông tin máy:
+   - Tên điện thoại (vd Samsung A52)
+   - Phiên bản Android (Cài đặt rồi Giới thiệu điện thoại
+     rồi Phiên bản Android)
+
+
+FORMAT GỬI BÁO LỖI
+
+Copy template dưới rồi điền và gửi qua Messenger / Zalo:
+
+  [BUG] Tóm tắt lỗi 1 dòng
+
+  Đang làm:
+  Hiện lỗi:
+  Tái hiện được không:
+  Máy: Samsung A52, Android 12
+  Ảnh: (đính kèm)
+
+
+FEEDBACK NGOÀI BUG
+
+Sau khi test xong, mình rất muốn nghe ý kiến của bạn:
+
+  - Cảm giác chung khi dùng app: dễ hay khó dùng?
+  - Tính năng nào hữu ích nhất / dở nhất?
+  - Bạn có muốn dùng app này thật khi launch không?
+    Vì sao?
+  - Tên "Trao Tay" có dễ nhớ không?
+    Logo xanh có đẹp không?
+
+Cứ nhắn tự nhiên thoải mái, không cần format,
+mình ghi nhận hết.
+
+
+============================================================
+CẢM ƠN BẠN!
+============================================================
+
+Cảm ơn bạn đã dành thời gian giúp mình test app.
+Sau khi launch chính thức trên Play Store, mình sẽ
+ưu tiên các bạn được Closed Testing tiếp với phiên bản
+mới nhất.
+
+Có gì khúc mắc cứ inbox mình bất cứ lúc nào:
+https://www.facebook.com/vaykhap.troi/
+
+Một lần nữa, cảm ơn bạn nhiều!
