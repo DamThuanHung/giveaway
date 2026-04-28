@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
 
@@ -12,10 +13,11 @@ class NotificationProvider extends ChangeNotifier {
   int get unreadCount => _unreadCount;
   int get unreadMessageCount => _unreadMessageCount;
 
-  /// Gọi sau khi user đã login — kết nối socket realtime + fetch lần đầu
-  void start(String userId) {
+  /// Gọi sau khi user đã login — kết nối socket realtime + fetch lần đầu.
+  /// Backend lấy userId từ JWT trong auth_token nên không cần truyền tham số.
+  void start() {
     _fetchUnread();
-    _connectSocket(userId);
+    _connectSocket();
     // Fallback polling 60s để đồng bộ nếu socket mất kết nối
     _fallbackTimer = Timer.periodic(const Duration(seconds: 60), (_) => _fetchMessageCount());
   }
@@ -28,12 +30,19 @@ class NotificationProvider extends ChangeNotifier {
     _socket = null;
   }
 
-  void _connectSocket(String userId) {
+  void _connectSocket() async {
+    // Backend NotificationGateway lấy userId từ JWT (chống auth bypass).
+    // Pass token qua query — đường tin cậy nhất qua WebSocket-only transport.
+    final p = await SharedPreferences.getInstance();
+    final token = p.getString('auth_token');
+    if (token == null) return;
+
     _socket = IO.io(
       ApiService.baseUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .setQuery({'userId': userId})
+          .setAuth({'token': token})
+          .setQuery({'token': token})
           .enableAutoConnect()
           .build(),
     );
@@ -42,7 +51,6 @@ class NotificationProvider extends ChangeNotifier {
       final count = (data['count'] as num?)?.toInt() ?? 0;
       if (count != _unreadCount) {
         _unreadCount = count;
-
         notifyListeners();
       }
     });

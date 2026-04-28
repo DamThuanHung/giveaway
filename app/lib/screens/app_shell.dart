@@ -42,7 +42,7 @@ class _AppShellState extends State<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       if (auth.isAuth && auth.userId != null) {
-        context.read<NotificationProvider>().start(auth.userId!);
+        context.read<NotificationProvider>().start();
         _registerFcmToken();
       }
       // Cold-start: xử lý pending FCM message

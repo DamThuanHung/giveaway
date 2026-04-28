@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/image_compress.dart';
 import '../../theme/app_theme.dart';
 import '../auth/phone_login_screen.dart';
 import '../post/my_posts_screen.dart';
@@ -47,7 +48,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (picked == null || !mounted) return;
     setState(() => _avatarUploading = true);
     try {
-      final url = await ApiService.uploadAvatar(picked.path);
+      // Convert HEIC/HEIF (Realme/Samsung/iPhone) → JPEG trước khi upload
+      // Backend chỉ accept JPEG/PNG/WebP qua magic bytes detection
+      final compressed = await ImageCompress.compress(picked);
+      if (!mounted) return;
+      final url = await ApiService.uploadAvatar(compressed.path);
       if (!mounted) return;
       if (url != null) {
         context.read<AuthProvider>().updateAvatar(url);

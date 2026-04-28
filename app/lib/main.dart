@@ -10,7 +10,6 @@ import 'firebase_options.dart';
 import 'services/analytics.dart';
 import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
-import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/chat_screen.dart';
@@ -101,7 +100,6 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => PostProvider()),
-          ChangeNotifierProvider(create: (_) => ChatProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ],
         child: const MyApp(),
