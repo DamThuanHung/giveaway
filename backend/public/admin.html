@@ -526,6 +526,8 @@ async function api(path, opts = {}) {
 function handleContentClick(e) {
   const el = e.target.closest('[data-action]');
   if (!el) return;
+  // Tránh scroll-to-top khi click <a href="#"> trong audit log links
+  if (el.tagName === 'A') e.preventDefault();
   const a = el.dataset.action;
   const id = el.dataset.id;
   const idx = el.dataset.idx ? +el.dataset.idx : null;
