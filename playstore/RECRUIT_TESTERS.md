@@ -27,6 +27,7 @@ Mỗi điện thoại Android mỗi khác (Xiaomi, Samsung, Oppo, Realme, máy c
 - Tên (nick name nếu muốn) trong list "Người ủng hộ sớm" trên trang giới thiệu
 - Quyền truy cập sớm tất cả tính năng mới sau này
 - Chia sẻ ý kiến trực tiếp với mình → có thể ảnh hưởng đến hướng phát triển app
+- **Test thanh toán PayOS được hoàn 100% + tip 10k cảm ơn** (nếu bạn test phần này — chỉ trả 5k qua chuyển khoản, mình hoàn lại 15k sau)
 - Cảm ơn từ mình 🙇 — app này mình làm vì cộng đồng, không có công ty hay nhà đầu tư
 
 **Liên hệ mình:**
