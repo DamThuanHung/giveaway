@@ -13,6 +13,7 @@ import '../services/viewed_posts_service.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/follow_button.dart';
 import '../widgets/post_card.dart';
 import 'chat_screen.dart';
 import 'auth/phone_login_screen.dart';
@@ -891,29 +892,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ]),
                       ),
                       if (_post.authorId != null)
-                        _followSellerLoading
-                            ? const SizedBox(
-                                width: 18, height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
-                              )
-                            : GestureDetector(
-                                onTap: _toggleFollowSeller,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: _isFollowingSeller ? AppTheme.primaryLight : AppTheme.primary,
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    _isFollowingSeller ? 'Đang theo dõi' : '+ Theo dõi',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: _isFollowingSeller ? AppTheme.primary : Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                        FollowButton(
+                          isFollowing: _isFollowingSeller,
+                          loading: _followSellerLoading,
+                          onTap: _toggleFollowSeller,
+                          style: FollowButtonStyle.compact,
+                        ),
                       const SizedBox(width: 4),
                       Icon(Icons.chevron_right, color: Colors.grey.shade400),
                     ],

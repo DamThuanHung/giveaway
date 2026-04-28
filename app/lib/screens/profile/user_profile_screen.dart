@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../models/post.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_image.dart';
+import '../../widgets/follow_button.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/user_avatar.dart';
@@ -190,33 +191,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 12),
                             ),
                           const SizedBox(height: 12),
-                          // Nút Theo dõi
-                          _followLoading
-                              ? const SizedBox(
-                                  width: 20, height: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : OutlinedButton.icon(
-                                  onPressed: _toggleFollow,
-                                  icon: Icon(
-                                    _isFollowing ? Icons.check_rounded : Icons.add_rounded,
-                                    size: 16,
-                                    color: _isFollowing ? Colors.white : Colors.white,
-                                  ),
-                                  label: Text(
-                                    _isFollowing ? 'Đang theo dõi' : 'Theo dõi',
-                                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.white70),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    backgroundColor: _isFollowing
-                                        ? Colors.white.withOpacity(0.2)
-                                        : Colors.transparent,
-                                  ),
-                                ),
+                          // Nút Theo dõi — dùng widget chung để đồng nhất với
+                          // post_detail_screen (text + icon + behavior identical).
+                          FollowButton(
+                            isFollowing: _isFollowing,
+                            loading: _followLoading,
+                            onTap: _toggleFollow,
+                            style: FollowButtonStyle.hero,
+                          ),
                         ],
                       ),
                     ),
