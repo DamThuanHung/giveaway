@@ -155,8 +155,11 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
           ),
         );
 
+        // Poll boost status tối đa 15 giây — webhook PayOS có thể chậm hơn 6s
+        // trên 3G/4G yếu của VN, đặc biệt giờ peak. Nâng từ 6 → 15 để giảm
+        // số trường hợp user thấy "Thanh toán đã gửi nhưng chưa kích hoạt".
         bool confirmed = false;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 15; i++) {
           await Future.delayed(const Duration(seconds: 1));
           if (!mounted) return;
           final status = await ApiService.getBoostStatus(widget.postId);

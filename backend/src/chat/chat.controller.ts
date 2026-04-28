@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ChatService } from './chat.service';
 
@@ -80,10 +80,21 @@ export class ChatController {
     return this.chatService.getRoomById(roomId, req.user.id);
   }
 
-  /** Lấy tin nhắn trong room */
+  /** Lấy tin nhắn trong room. Query params:
+   *   - limit (1-100, default 50)
+   *   - before (id message cuối đã có) — cho infinite scroll lên trên
+   */
   @Get('room/:roomId/messages')
   @UseGuards(JwtAuthGuard)
-  getMessages(@Param('roomId') roomId: string, @Request() req) {
-    return this.chatService.getMessages(roomId, req.user.id);
+  getMessages(
+    @Param('roomId') roomId: string,
+    @Request() req,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
+  ) {
+    return this.chatService.getMessages(roomId, req.user.id, {
+      limit: limit ? parseInt(limit, 10) : undefined,
+      before: before || undefined,
+    });
   }
 }

@@ -18,7 +18,11 @@ const VALID_ITEM_CATEGORIES = [
   'sports', 'vehicles', 'beauty', 'pets', 'tools', 'food', 'baby',
   'music', 'realestate', 'service', 'jobs', 'other',
 ] as const;
-const VALID_LISTING_TYPES = ['sell', 'give', 'free', 'exchange'] as const;
+// Frontend chỉ có 2 option `sell` và `give` (xem create_post_tab + edit_post_screen).
+// Trước đây whitelist còn `free` + `exchange` → DB có thể chứa 2 giá trị này từ
+// API trực tiếp → DropdownButton edit screen crash khi không có item match.
+// Đã thu hẹp xuống 2 đúng với UI.
+const VALID_LISTING_TYPES = ['sell', 'give'] as const;
 const VALID_POST_TYPES = ['item', 'realestate', 'service', 'job'] as const;
 
 const MAX_TITLE_LEN = 120;
@@ -69,8 +73,9 @@ export class PostService {
     radius?: number; // km
     sortBy?: string; // newest | price_asc | price_desc
   }) {
-    const page = query.page || 1;
-    const limit = query.limit || 20;
+    const page = Math.max(1, query.page || 1);
+    // Cap limit để chống N+1 / OOM khi client request limit=10000.
+    const limit = Math.min(Math.max(1, query.limit || 20), 100);
     const skip = (page - 1) * limit;
 
     const where: any = { status: query.status ?? { in: ['available', 'reserved'] } };

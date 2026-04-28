@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -134,7 +134,7 @@ export class AdminService {
   async resolveReport(id: string, action: 'resolved' | 'dismissed') {
     // Runtime validate — TS type không enforce ở JS runtime
     if (action !== 'resolved' && action !== 'dismissed') {
-      throw new Error('action chỉ nhận "resolved" hoặc "dismissed"');
+      throw new BadRequestException('action chỉ nhận "resolved" hoặc "dismissed"');
     }
     const report = await this.prisma.report.update({ where: { id }, data: { status: action } });
     if (action === 'resolved') {

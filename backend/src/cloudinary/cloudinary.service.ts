@@ -14,12 +14,23 @@ export class CloudinaryService implements OnModuleInit {
     this.bucket = process.env.MINIO_BUCKET ?? 'traotay';
     this.publicUrl = (process.env.MINIO_PUBLIC_URL ?? 'http://localhost:9000').replace(/\/$/, '');
 
+    // Production phải set credentials thật. Fallback "minioadmin/minioadmin123" chỉ
+    // dùng cho dev local — nếu prod missing env, throw để fail fast thay vì chạy
+    // ngầm với credentials default (rủi ro: bucket policy + endpoint bị compromise).
+    const accessKey = process.env.MINIO_ACCESS_KEY ?? 'minioadmin';
+    const secretKey = process.env.MINIO_SECRET_KEY ?? 'minioadmin123';
+    if (process.env.NODE_ENV === 'production') {
+      if (!process.env.MINIO_ACCESS_KEY || !process.env.MINIO_SECRET_KEY) {
+        throw new Error('MINIO_ACCESS_KEY/MINIO_SECRET_KEY không được set ở production');
+      }
+    }
+
     this.client = new Minio.Client({
       endPoint: process.env.MINIO_ENDPOINT ?? 'localhost',
       port: parseInt(process.env.MINIO_PORT ?? '9000'),
       useSSL: (process.env.MINIO_USE_SSL ?? 'false') === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY ?? 'minioadmin',
-      secretKey: process.env.MINIO_SECRET_KEY ?? 'minioadmin123',
+      accessKey,
+      secretKey,
     });
 
     const exists = await this.client.bucketExists(this.bucket);

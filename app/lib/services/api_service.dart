@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'token_storage.dart';
 
 class ApiService {
   // Build với: flutter build apk --release --dart-define=API_URL=https://api.traotay.com.vn
@@ -19,8 +20,7 @@ class ApiService {
   }
 
   static Future<String?> _getToken() async {
-    final p = await SharedPreferences.getInstance();
-    return p.getString('auth_token');
+    return TokenStorage.getToken();
   }
 
   /// Check JWT exp claim local — trả true nếu token hết hạn hoặc malformed.
@@ -75,7 +75,7 @@ class ApiService {
       if (res.statusCode == 200 || res.statusCode == 201) {
         final d = jsonDecode(res.body);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await TokenStorage.setToken(d['accessToken'] ?? '');
         await prefs.setString('user_id', d['user']['id'] ?? '');
         await prefs.setString('user_name', d['user']['name'] ?? '');
         await prefs.setString('user_email', d['user']['email'] ?? '');
@@ -134,7 +134,7 @@ class ApiService {
       if (res.statusCode == 200 || res.statusCode == 201) {
         final d = jsonDecode(res.body);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await TokenStorage.setToken(d['accessToken'] ?? '');
         await prefs.setString('user_id', d['user']['id'] ?? '');
         await prefs.setString('user_name', d['user']['name'] ?? '');
         await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
@@ -153,9 +153,14 @@ class ApiService {
 
   static bool get isLocal => baseUrl.contains('localhost') || baseUrl.contains('192.168') || baseUrl.contains('10.0');
 
-  static const String _devSecret = 'traotay_dev_2024';
+  // Dev secret chỉ truyền qua --dart-define=DEV_SECRET=... lúc build dev.
+  // KHÔNG hardcode trong source — release APK trước đây có 'traotay_dev_2024'
+  // dễ tìm bằng `strings` trên file APK → nếu staging server cùng pattern
+  // env DEV_SECRET, attacker có thể login bypass.
+  static const String _devSecret = String.fromEnvironment('DEV_SECRET', defaultValue: '');
 
   static Future<Map<String, dynamic>?> devLogin(String email) async {
+    if (_devSecret.isEmpty) return null; // Release build không có DEV_SECRET → disable
     try {
       final res = await http.post(
         Uri.parse('$baseUrl/user/dev/login'),
@@ -165,7 +170,7 @@ class ApiService {
       if (res.statusCode == 200 || res.statusCode == 201) {
         final d = jsonDecode(res.body);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', d['accessToken'] ?? '');
+        await TokenStorage.setToken(d['accessToken'] ?? '');
         await prefs.setString('user_id', d['user']['id'] ?? '');
         await prefs.setString('user_name', d['user']['name'] ?? '');
         await prefs.setString('user_email', d['user']['email'] ?? '');
@@ -191,8 +196,8 @@ class ApiService {
       // Best effort — nếu fail (server down, network) vẫn phải logout local
     }
 
+    await TokenStorage.clearToken();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
     await prefs.remove('user_id');
     await prefs.remove('user_name');
     await prefs.remove('user_email');

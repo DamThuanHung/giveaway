@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body, Controller, Delete, Get, Param, Patch, Post, Request,
   UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
@@ -20,7 +21,7 @@ export class UserController {
   @Post('phone-login')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   phoneLogin(@Body() body: { idToken: string }) {
-    if (!body.idToken) throw new Error('Thiếu idToken');
+    if (!body.idToken) throw new BadRequestException('Thiếu idToken');
     return this.userService.phoneLogin(body.idToken);
   }
 
@@ -123,7 +124,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   linkPhone(@Request() req, @Body() body: { idToken: string }) {
-    if (!body.idToken) throw new Error('Thiếu idToken');
+    if (!body.idToken) throw new BadRequestException('Thiếu idToken');
     return this.userService.linkPhone(req.user.id, body.idToken);
   }
 

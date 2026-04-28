@@ -29,6 +29,30 @@ export class ChatGateway implements OnGatewayConnection {
     private readonly jwt: JwtService,
   ) {}
 
+  /// Token bucket cho WS message rate limit per user.
+  /// 30 message/phút/user. Dùng Map in-memory (single-instance OK; multi-instance cần Redis).
+  /// Chống flood spam tin nhắn → DB write + FCM push + notification storm.
+  private readonly _rateBuckets = new Map<string, { tokens: number; last: number }>();
+  private static readonly RATE_LIMIT = 30; // tokens
+  private static readonly RATE_REFILL_MS = 60_000; // 1 phút full refill
+
+  private _consumeRateToken(userId: string): boolean {
+    const now = Date.now();
+    let b = this._rateBuckets.get(userId);
+    if (!b) {
+      b = { tokens: ChatGateway.RATE_LIMIT, last: now };
+      this._rateBuckets.set(userId, b);
+    }
+    // Refill theo thời gian elapsed
+    const elapsed = now - b.last;
+    const refill = (elapsed / ChatGateway.RATE_REFILL_MS) * ChatGateway.RATE_LIMIT;
+    b.tokens = Math.min(ChatGateway.RATE_LIMIT, b.tokens + refill);
+    b.last = now;
+    if (b.tokens < 1) return false;
+    b.tokens -= 1;
+    return true;
+  }
+
   handleConnection(client: Socket) {
     // Token có thể ở auth.token (Socket.IO v4), query.token (đáng tin cậy nhất
     // qua WebSocket-only transport — query luôn truyền), hoặc Authorization header
@@ -87,6 +111,10 @@ export class ChatGateway implements OnGatewayConnection {
     const userId = client.data.userId as string;
     if (!data?.text || typeof data.text !== 'string' || data.text.length > 2000) {
       return { event: 'error', data: 'Nội dung không hợp lệ' };
+    }
+    // Rate limit 30 msg/phút/user — chống flood
+    if (!this._consumeRateToken(userId)) {
+      return { event: 'error', data: 'Bạn gửi tin nhắn quá nhanh, vui lòng đợi vài giây' };
     }
     if (!await this.canAccessRoom(data.roomId, userId)) {
       return { event: 'error', data: 'Không có quyền gửi vào phòng chat này' };

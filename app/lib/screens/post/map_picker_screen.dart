@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../../data/province_coords.dart';
@@ -104,6 +105,35 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     return v;
   }
 
+  /// Bay map đến vị trí GPS hiện tại của user. Dùng cho FAB "Vị trí của tôi".
+  Future<void> _moveToMyLocation() async {
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (!mounted) return;
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng cấp quyền vị trí trong Cài đặt')),
+        );
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      _mapController.move(latLng, 15);
+      _onMapTap(latLng); // Reverse geocode để hiện địa chỉ
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không lấy được vị trí: ${e.toString()}')),
+      );
+    }
+  }
+
   Future<void> _openProvinceSheet() async {
     final picked = await showModalBottomSheet<String>(
       context: context,
@@ -184,6 +214,26 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       const Icon(Icons.keyboard_arrow_down, size: 20, color: AppTheme.textSecondary),
                     ],
                   ),
+                ),
+              ),
+            ),
+          ),
+
+          // FAB "Vị trí của tôi" — bay map đến GPS hiện tại
+          Positioned(
+            top: 80,
+            right: 12,
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              elevation: 4,
+              shadowColor: Colors.black.withOpacity(0.15),
+              child: InkWell(
+                onTap: _moveToMyLocation,
+                borderRadius: BorderRadius.circular(24),
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(Icons.my_location, color: AppTheme.primary, size: 24),
                 ),
               ),
             ),

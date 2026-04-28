@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../services/analytics.dart';
 import '../providers/notification_provider.dart';
 import '../services/api_service.dart';
+import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
@@ -44,7 +44,9 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _showSafetyBanner = true;
-  late IO.Socket _socket;
+  // Nullable: nếu token null khi mở ChatScreen → _socket không được init
+  // → mọi access phải qua `?.` để tránh LateInitializationError ở dispose/typing.
+  IO.Socket? _socket;
   String? _myId;
   bool _otherIsTyping = false;
   bool _otherHasRead = false;
@@ -100,8 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _connectSocket() async {
     // Backend bắt buộc JWT trong handshake — chặn impersonate qua senderId giả
-    final p = await SharedPreferences.getInstance();
-    final token = p.getString('auth_token');
+    final token = await TokenStorage.getToken();
     if (token == null) return;
 
     _socket = IO.io(
@@ -117,13 +118,13 @@ class _ChatScreenState extends State<ChatScreen> {
           .build(),
     );
 
-    _socket.onConnect((_) {
-      _socket.emit('joinRoom', {'roomId': widget.roomId});
+    _socket?.onConnect((_) {
+      _socket?.emit('joinRoom', {'roomId': widget.roomId});
       // Thông báo cho người kia biết mình đã đọc (server lấy userId từ JWT)
-      _socket.emit('markRead', {'roomId': widget.roomId});
+      _socket?.emit('markRead', {'roomId': widget.roomId});
     });
 
-    _socket.on('receive_message', (data) {
+    _socket?.on('receive_message', (data) {
       if (!mounted) return;
       setState(() {
         _messages.add(data);
@@ -133,17 +134,17 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollToBottom();
       // Đánh dấu đã đọc và thông báo cho người kia
       ApiService.markRoomAsRead(widget.roomId);
-      _socket.emit('markRead', {'roomId': widget.roomId});
+      _socket?.emit('markRead', {'roomId': widget.roomId});
       if (mounted) context.read<NotificationProvider>().refresh();
     });
 
-    _socket.on('messages_read', (data) {
+    _socket?.on('messages_read', (data) {
       if (!mounted) return;
       // Người kia vừa đọc tin nhắn của mình
       setState(() => _otherHasRead = true);
     });
 
-    _socket.on('typing', (data) {
+    _socket?.on('typing', (data) {
       if (!mounted) return;
       if (data['senderId'] != _myId) {
         setState(() => _otherIsTyping = true);
@@ -151,7 +152,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
 
-    _socket.on('stop_typing', (data) {
+    _socket?.on('stop_typing', (data) {
       if (!mounted) return;
       if (data['senderId'] != _myId) {
         setState(() => _otherIsTyping = false);
@@ -162,14 +163,14 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onTextChanged(String text) {
     if (_myId == null) return;
     if (text.isNotEmpty) {
-      _socket.emit('typing', {'roomId': widget.roomId});
+      _socket?.emit('typing', {'roomId': widget.roomId});
       _typingTimer?.cancel();
       _typingTimer = Timer(const Duration(seconds: 2), () {
-        _socket.emit('stop_typing', {'roomId': widget.roomId});
+        _socket?.emit('stop_typing', {'roomId': widget.roomId});
       });
     } else {
       _typingTimer?.cancel();
-      _socket.emit('stop_typing', {'roomId': widget.roomId});
+      _socket?.emit('stop_typing', {'roomId': widget.roomId});
     }
   }
 
@@ -178,7 +179,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _typingTimer?.cancel();
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
-    _socket.disconnect();
+    _socket?.disconnect();
     super.dispose();
   }
 
@@ -218,7 +219,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _typingTimer?.cancel();
     // Server lấy senderId từ JWT, không gửi từ client để chống impersonate
-    _socket.emit('sendMessage', {
+    _socket?.emit('sendMessage', {
       'roomId': widget.roomId,
       'text': text,
     });

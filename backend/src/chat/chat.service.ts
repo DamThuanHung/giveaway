@@ -157,7 +157,7 @@ export class ChatService {
     return room;
   }
 
-  async getMessages(roomId: string, userId: string) {
+  async getMessages(roomId: string, userId: string, params?: { limit?: number; before?: string }) {
     const room = await this.prisma.chatRoom.findUnique({
       where: { id: roomId },
       select: { buyerId: true, sellerId: true },
@@ -165,10 +165,24 @@ export class ChatService {
     if (!room || (room.buyerId !== userId && room.sellerId !== userId)) {
       throw new ForbiddenException('Bạn không có quyền xem tin nhắn này');
     }
-    return this.prisma.message.findMany({
-      where: { roomId },
+    // Pagination: lấy 50 tin nhắn mới nhất (DESC) → reverse client-side để hiển thị
+    // theo thứ tự cũ → mới. `before` (id message cuối hiện có) cho infinite scroll lên trên.
+    const take = Math.min(Math.max(1, params?.limit ?? 50), 100);
+    const where: any = { roomId };
+    if (params?.before) {
+      const cursor = await this.prisma.message.findUnique({
+        where: { id: params.before },
+        select: { createdAt: true },
+      });
+      if (cursor) where.createdAt = { lt: cursor.createdAt };
+    }
+    const messages = await this.prisma.message.findMany({
+      where,
       include: { sender: { select: { id: true, name: true, avatar: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
+      take,
     });
+    // Reverse → asc cho client hiện như trước (oldest top → newest bottom)
+    return messages.reverse();
   }
 }

@@ -73,6 +73,14 @@ export class UserService {
     if (error) throw new Error(`Resend error: ${error.message}`);
   }
 
+  /// Escape HTML để chèn user-controlled string vào email mà không bị XSS injection.
+  /// Vd name = `<img src=x onerror=...>` sẽ thành text literal.
+  private escapeHtml(s: string): string {
+    return s.replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]!));
+  }
+
   /**
    * Welcome email sau khi user signup lần đầu — best effort, không block flow.
    * Engagement tuần đầu: giới thiệu 3 hành động đầu (đăng bài, follow, theo dõi keyword).
@@ -94,7 +102,7 @@ export class UserService {
               <p style="color:#6B7280;margin:4px 0 0">Chợ đồ cũ & trao tặng miễn phí</p>
             </div>
             <div style="background:white;padding:32px 24px;border-radius:12px">
-              <h2 style="color:#1A1A2E;margin-top:0">Xin chào ${name},</h2>
+              <h2 style="color:#1A1A2E;margin-top:0">Xin chào ${this.escapeHtml(name)},</h2>
               <p style="color:#374151;line-height:1.6">
                 Cảm ơn bạn đã tham gia cộng đồng <strong>Trao Tay</strong>!
                 Cùng nhau, chúng ta giúp những món đồ cũ tìm được chủ mới — giảm rác thải, sẻ chia yêu thương.
@@ -327,8 +335,17 @@ export class UserService {
 
   async sendEmailLoginOtp(email: string, adminOnly = false) {
     const emailLower = email.trim().toLowerCase();
+    // Admin-only: KHÔNG tiết lộ "email không phải admin" — chống enumeration.
+    // Trả về success generic, internally short-circuit không gửi email.
     if (adminOnly && !this.adminEmails.includes(emailLower)) {
-      throw new BadRequestException('Email này không có quyền truy cập trang quản trị');
+      return { message: 'Đã gửi mã OTP đến email' };
+    }
+    // Per-email cooldown: nếu OTP cũ vừa gửi <60s, KHÔNG gửi mới — chống harassment
+    // (attacker spam OTP về email victim) và rate limit theo từng email cụ thể.
+    const existing = this.otpStore.get(`login:${emailLower}`);
+    if (existing && existing.expiresAt - Date.now() > OTP_TTL_MS - 60_000) {
+      // OTP cũ vẫn còn trong 60s đầu → trả success generic, không gửi email mới
+      return { message: 'Đã gửi mã OTP đến email' };
     }
     const otp = this.generateOtp();
     this.otpStore.set(`login:${emailLower}`, { otp, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });

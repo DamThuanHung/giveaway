@@ -77,7 +77,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> _navigate() async {
-    await Future.delayed(const Duration(milliseconds: 2400));
+    // Đợi tối thiểu 800ms cho animation hiện logo + tagline mượt mà.
+    // KHÔNG đợi 2.4s như cũ — user đã login nhiều lần thì splash mỗi lần
+    // chậm sẽ gây phiền. Nếu user chưa login (lần đầu cài hoặc đã logout)
+    // → đợi đủ 2.4s để xem branding lần đầu.
+    final start = DateTime.now();
+    await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -85,6 +90,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (!mounted) return;
 
     if (!onboardingDone) {
+      // User mới — đợi thêm để hoàn thành 2.4s animation trước khi push Onboarding
+      final elapsed = DateTime.now().difference(start).inMilliseconds;
+      if (elapsed < 2400) {
+        await Future.delayed(Duration(milliseconds: 2400 - elapsed));
+      }
+      if (!mounted) return;
       Navigator.pushReplacement(context, _fadeRoute(const OnboardingScreen()));
       return;
     }
@@ -94,6 +105,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       await Future.delayed(const Duration(milliseconds: 100));
     }
     if (!mounted) return;
+
+    // User đã login → push ngay (đã đợi 800ms cho animation, đủ).
+    // User chưa login → đợi đủ 2.4s để xem branding nếu chưa.
+    if (!auth.isAuth) {
+      final elapsed = DateTime.now().difference(start).inMilliseconds;
+      if (elapsed < 2400) {
+        await Future.delayed(Duration(milliseconds: 2400 - elapsed));
+      }
+      if (!mounted) return;
+    }
 
     Navigator.pushReplacement(
       context,

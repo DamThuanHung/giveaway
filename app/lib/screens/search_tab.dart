@@ -339,6 +339,9 @@ class _SearchTabState extends State<SearchTab> {
                         tmpType = null; tmpCat = null; tmpProvince = null;
                         tmpSort = 'newest'; tmpPrice = const RangeValues(0, _maxPrice);
                         tmpRadius = null;
+                        tmpJobType = null; // Bug fix: nút "Đặt lại" trước đây không
+                                           // reset tmpJobType → user filter Việc làm rồi
+                                           // đổi category sẽ vẫn gửi subType cũ.
                       }),
                       child: const Text('Đặt lại', style: TextStyle(color: AppTheme.textSecondary)),
                     ),

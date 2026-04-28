@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
+import '../services/token_storage.dart';
 
 class NotificationProvider extends ChangeNotifier {
   int _unreadCount = 0;
@@ -33,8 +33,7 @@ class NotificationProvider extends ChangeNotifier {
   void _connectSocket() async {
     // Backend NotificationGateway lấy userId từ JWT (chống auth bypass).
     // Pass token qua query — đường tin cậy nhất qua WebSocket-only transport.
-    final p = await SharedPreferences.getInstance();
-    final token = p.getString('auth_token');
+    final token = await TokenStorage.getToken();
     if (token == null) return;
 
     _socket = IO.io(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../services/analytics.dart';
+import '../services/token_storage.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
@@ -33,7 +34,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> _tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await TokenStorage.getToken();
 
     // Token expired (JWT exp claim) → xóa local, user thấy login screen
     // thay vì empty screens do mọi API trả 401.
