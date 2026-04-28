@@ -39,7 +39,23 @@ async function bootstrap() {
   const httpAdapter = app.get(HttpAdapterHost);
   app.useGlobalFilters(new SentryExceptionFilter(httpAdapter.httpAdapter));
 
-  app.use(helmet());
+  // Helmet CSP default block inline <script> + onclick="" attributes →
+  // admin.html (toàn dùng inline) không hoạt động. Relax để cho phép inline
+  // (admin.html là page duy nhất user-facing, ít rủi ro XSS vì không render
+  // user input vào HTML page; rest của backend là JSON API không cần CSP).
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrcAttr: ["'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "https:", "data:"],
+      },
+    },
+  }));
 
   // CORS: production phải set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"
   // Mobile app không gửi Origin header nên không bị ảnh hưởng.
