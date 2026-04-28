@@ -150,7 +150,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _openChat() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)));
       return;
     }
     if (_post.authorId == null) return;
@@ -382,7 +382,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (isUpdatingFavorite) return;
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth || auth.userId == null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)));
       return;
     }
     final oldValue = localIsFavorite;
@@ -410,7 +410,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _requestDeal() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)));
       return;
     }
 

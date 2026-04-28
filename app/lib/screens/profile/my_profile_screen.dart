@@ -216,7 +216,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen())),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true))),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,

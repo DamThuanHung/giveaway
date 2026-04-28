@@ -72,7 +72,7 @@ class FavoritesTabState extends State<FavoritesTab> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const PhoneLoginScreen())),
+                MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true))),
             child: const Text('Đăng nhập'),
           ),
         ])),

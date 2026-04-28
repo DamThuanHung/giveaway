@@ -53,7 +53,7 @@ export class ChatGateway implements OnGatewayConnection {
     return true;
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     // Token có thể ở auth.token (Socket.IO v4), query.token (đáng tin cậy nhất
     // qua WebSocket-only transport — query luôn truyền), hoặc Authorization header
     // (chỉ hoạt động khi có polling transport).
@@ -67,15 +67,29 @@ export class ChatGateway implements OnGatewayConnection {
       return;
     }
 
+    let userId: string;
     try {
       const payload = this.jwt.verify(token, { secret: process.env.JWT_SECRET });
-      client.data.userId = payload.sub as string;
+      userId = payload.sub as string;
     } catch (err) {
       this.logger.warn(`Socket ${client.id} rejected: invalid token (${(err as Error).message})`);
       client.disconnect(true);
       return;
     }
 
+    // Re-check isBanned mỗi lần connect — JWT sống 7 ngày, admin ban user xong
+    // mà gateway chỉ verify signature → user vẫn chat được đến khi token expire.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isBanned: true },
+    });
+    if (!user || user.isBanned) {
+      this.logger.warn(`Socket ${client.id} rejected: user banned/missing`);
+      client.disconnect(true);
+      return;
+    }
+
+    client.data.userId = userId;
     const roomId = client.handshake.query.roomId as string | undefined;
     if (roomId) client.join(roomId);
   }

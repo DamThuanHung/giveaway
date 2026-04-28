@@ -451,7 +451,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
           label: 'Đăng nhập',
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
+            MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)),
           ),
         ),
       ),

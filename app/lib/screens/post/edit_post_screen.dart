@@ -32,8 +32,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
     ('give', 'Tặng / Cho miễn phí'),
   ];
 
-  static final _categories = AppCategories.list.map((c) => (c['value']!, c['label']!)).toList();
-
   static const _statuses = [
     ('available', 'Còn hàng'),
     ('reserved', 'Đang giữ chỗ'),

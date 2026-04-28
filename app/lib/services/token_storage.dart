@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TokenStorage {
   static const _key = 'auth_token';
   static const _legacyKey = 'auth_token';
-  static final _secure = const FlutterSecureStorage(
+  static const _secure = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );

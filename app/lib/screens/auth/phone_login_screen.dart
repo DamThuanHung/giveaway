@@ -11,7 +11,12 @@ import '../../widgets/app_logo.dart';
 import 'complete_profile_screen.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
-  const PhoneLoginScreen({super.key});
+  /// Nếu true, sau khi login thành công → pop về màn trước thay vì
+  /// pushAndRemoveUntil về AppShell. Dùng cho login prompt giữa flow
+  /// (vd tap ❤️ trong post detail → "vui lòng đăng nhập") để user tiếp
+  /// tục action gốc, không reset stack.
+  final bool popOnSuccess;
+  const PhoneLoginScreen({super.key, this.popOnSuccess = false});
 
   @override
   State<PhoneLoginScreen> createState() => _PhoneLoginScreenState();
@@ -22,9 +27,27 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   void _onSuccess(bool isNewUser) {
     if (!mounted) return;
-    final dest = isNewUser ? const CompleteProfileScreen() : const AppShell();
+    // User mới chưa có profile → bắt buộc qua CompleteProfileScreen.
+    if (isNewUser) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const CompleteProfileScreen()),
+        (_) => false,
+      );
+      return;
+    }
+    // User đã có account: nếu login từ prompt giữa flow (vd tap ❤️ trong post
+    // detail → "vui lòng đăng nhập") → pop về màn trước để user tiếp tục
+    // action gốc, không reset stack về Home tab.
+    if (widget.popOnSuccess && Navigator.canPop(context)) {
+      Navigator.pop(context, true);
+      return;
+    }
     Navigator.pushAndRemoveUntil(
-        context, MaterialPageRoute(builder: (_) => dest), (_) => false);
+      context,
+      MaterialPageRoute(builder: (_) => const AppShell()),
+      (_) => false,
+    );
   }
 
   @override

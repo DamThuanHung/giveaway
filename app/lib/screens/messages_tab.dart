@@ -75,7 +75,7 @@ class _MessagesTabState extends State<MessagesTab> {
           const Text('Đăng nhập để xem tin nhắn', style: TextStyle(color: AppTheme.textSecondary)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen())),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true))),
             child: const Text('Đăng nhập'),
           ),
         ])),

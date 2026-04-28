@@ -235,15 +235,57 @@ class _ChatScreenState extends State<ChatScreen> {
     _msgCtrl.clear();
   }
 
-  /// Pick ảnh từ gallery → upload qua MinIO → emit message với imageUrl.
+  /// Mở bottom sheet hỏi nguồn ảnh: chụp camera hay chọn từ thư viện.
+  /// "Gửi ảnh thực tế" rất quan trọng trong chợ đồ cũ — phải có CẢ 2 option:
+  /// chụp tươi để chứng minh đồ thật, hoặc chọn ảnh có sẵn.
+  Future<ImageSource?> _askImageSource() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_camera, color: AppTheme.primary),
+              title: const Text('Chụp ảnh'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppTheme.primary),
+              title: const Text('Chọn từ thư viện'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pick ảnh (camera hoặc gallery) → upload qua MinIO → emit message với imageUrl.
   /// Trong chợ đồ cũ, người mua thường yêu cầu "ảnh thực tế" của sản phẩm —
   /// quick reply có sẵn gợi ý này nhưng trước đây user không có cách gửi ảnh
   /// trong chat → phải chuyển sang Zalo (mất user).
   Future<void> _pickAndSendImage() async {
     if (_myId == null) return;
+    final source = await _askImageSource();
+    if (source == null || !mounted) return;
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
       maxWidth: 1600,
     );
