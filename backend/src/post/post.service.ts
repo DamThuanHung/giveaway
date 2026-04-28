@@ -13,6 +13,8 @@ const BASE_URL = process.env.BASE_URL ?? '';
 // Đã sync lên 18 mục đúng Flutter — kèm SQL migration `migrate-categories-2026.sql`
 // để convert data cũ trong production DB.
 const VALID_POST_STATUSES = ['available', 'reserved', 'done', 'hidden'] as const;
+// Status do admin set khi soft-delete bài. KHÔNG bao giờ được expose ra public listing.
+const DELETED_BY_ADMIN_STATUS = 'deleted_by_admin';
 const VALID_ITEM_CATEGORIES = [
   'electronics', 'furniture', 'clothing', 'kitchen', 'books', 'toys',
   'sports', 'vehicles', 'beauty', 'pets', 'tools', 'food', 'baby',
@@ -78,7 +80,14 @@ export class PostService {
     const limit = Math.min(Math.max(1, query.limit || 20), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { status: query.status ?? { in: ['available', 'reserved'] } };
+    // Public listing không bao giờ trả bài bị admin xóa, dù caller pass status nào.
+    if (query.status === DELETED_BY_ADMIN_STATUS) {
+      return { data: [], meta: { page, limit, total: 0, totalPages: 0 } };
+    }
+    const where: any = {
+      status: query.status ?? { in: ['available', 'reserved'] },
+      NOT: { status: DELETED_BY_ADMIN_STATUS },
+    };
 
     // Lọc bài của người bị chặn bởi viewer
     if (query.viewerId) {
@@ -168,13 +177,17 @@ export class PostService {
       where: { id },
       include: { author: { select: { id: true, name: true, avatar: true, createdAt: true } } },
     });
-    if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
+    if (!post || post.status === DELETED_BY_ADMIN_STATUS) {
+      throw new NotFoundException('Không tìm thấy bài đăng');
+    }
     await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
     return formatPost(post);
   }
 
   async getMyPosts(userId: string, status?: string) {
-    const where: any = { authorId: userId };
+    // User không được thấy bài bị admin xóa trong profile của mình.
+    if (status === DELETED_BY_ADMIN_STATUS) return [];
+    const where: any = { authorId: userId, NOT: { status: DELETED_BY_ADMIN_STATUS } };
     if (status) where.status = status;
     const posts = await this.prisma.post.findMany({
       where,

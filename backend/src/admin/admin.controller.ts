@@ -1,4 +1,5 @@
-import { Controller, Get, Patch, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Param, Query, Body, UseGuards, Request, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
 
@@ -13,6 +14,11 @@ export class AdminController {
     return this.adminService.getStats();
   }
 
+  @Get('top')
+  getTop(@Query('limit') limit = '5') {
+    return this.adminService.getTop(+limit);
+  }
+
   // ─── Posts ────────────────────────────────────────
   @Get('posts')
   getPosts(
@@ -25,13 +31,13 @@ export class AdminController {
   }
 
   @Patch('posts/:id/hide')
-  hidePost(@Param('id') id: string) {
-    return this.adminService.hidePost(id);
+  hidePost(@Request() req, @Param('id') id: string) {
+    return this.adminService.hidePost(req.user.id, id);
   }
 
   @Patch('posts/:id/unhide')
-  unhidePost(@Param('id') id: string) {
-    return this.adminService.unhidePost(id);
+  unhidePost(@Request() req, @Param('id') id: string) {
+    return this.adminService.unhidePost(req.user.id, id);
   }
 
   @Get('posts/:id')
@@ -40,8 +46,8 @@ export class AdminController {
   }
 
   @Delete('posts/:id')
-  deletePost(@Param('id') id: string) {
-    return this.adminService.deletePost(id);
+  deletePost(@Request() req, @Param('id') id: string, @Body('reason') reason?: string) {
+    return this.adminService.deletePost(req.user.id, id, reason);
   }
 
   // ─── Users ────────────────────────────────────────
@@ -50,18 +56,20 @@ export class AdminController {
     @Query('page') page = '1',
     @Query('limit') limit = '20',
     @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('banned') banned?: string,
   ) {
-    return this.adminService.getAllUsers(+page, +limit, search);
+    return this.adminService.getAllUsers(+page, +limit, search, role, banned);
   }
 
   @Patch('users/:id/ban')
-  banUser(@Param('id') id: string, @Body('isBanned') isBanned: boolean) {
-    return this.adminService.banUser(id, isBanned);
+  banUser(@Request() req, @Param('id') id: string, @Body('isBanned') isBanned: boolean, @Body('reason') reason?: string) {
+    return this.adminService.banUser(req.user.id, id, isBanned, reason);
   }
 
   @Patch('users/:id/role')
-  setUserRole(@Param('id') id: string, @Body('role') role: 'admin' | 'user') {
-    return this.adminService.setUserRole(id, role);
+  setUserRole(@Request() req, @Param('id') id: string, @Body('role') role: 'admin' | 'user') {
+    return this.adminService.setUserRole(req.user.id, id, role);
   }
 
   @Get('users/:id')
@@ -79,9 +87,14 @@ export class AdminController {
     return this.adminService.getAllReports(+page, +limit, status);
   }
 
+  @Get('reports/:id')
+  getReportDetail(@Param('id') id: string) {
+    return this.adminService.getReportDetail(id);
+  }
+
   @Patch('reports/:id')
-  resolveReport(@Param('id') id: string, @Body('action') action: 'resolved' | 'dismissed') {
-    return this.adminService.resolveReport(id, action);
+  resolveReport(@Request() req, @Param('id') id: string, @Body('action') action: 'resolved' | 'dismissed') {
+    return this.adminService.resolveReport(req.user.id, id, action);
   }
 
   // ─── Revenue / BumpOrders ─────────────────────────
@@ -91,8 +104,12 @@ export class AdminController {
   }
 
   @Get('revenue/timeline')
-  getRevenueTimeline(@Query('days') days = '30') {
-    return this.adminService.getRevenueTimeline(+days);
+  getRevenueTimeline(
+    @Query('days') days = '30',
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.adminService.getRevenueTimeline(+days, from, to);
   }
 
   @Get('bump-orders')
@@ -102,6 +119,33 @@ export class AdminController {
     @Query('status') status?: string,
   ) {
     return this.adminService.getBumpOrders(+page, +limit, status);
+  }
+
+  /// Export full CSV — không phân trang, scope theo from/to. Cap 10.000 dòng.
+  @Get('bump-orders/export')
+  async exportBumpOrders(
+    @Res() res: Response,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('status') status?: string,
+  ) {
+    const csv = await this.adminService.exportBumpOrdersCsv(from, to, status);
+    const ts = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="traotay-orders-${ts}.csv"`);
+    res.send('﻿' + csv);
+  }
+
+  // ─── Audit log ────────────────────────────────────
+  @Get('audit')
+  getAuditLog(
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+    @Query('targetType') targetType?: string,
+    @Query('targetId') targetId?: string,
+    @Query('adminId') adminId?: string,
+  ) {
+    return this.adminService.getAuditLog(+page, +limit, targetType, targetId, adminId);
   }
 
   // ─── System health ────────────────────────────────

@@ -13,6 +13,7 @@
   --bg:#F7F8FA;--white:#fff;--border:#E2E5EA;--radius:10px;
 }
 body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+body.modal-open{overflow:hidden}
 button{font-family:inherit}
 /* AUTH */
 #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
@@ -34,11 +35,12 @@ input:focus{border-color:var(--primary)}
 .btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .btn-link{background:none;color:var(--primary);padding:8px 4px;font-size:13px;width:auto;margin-top:8px}
 .btn-link:hover{text-decoration:underline}
+.btn-link:disabled{opacity:.5;cursor:not-allowed;text-decoration:none}
 .form-group{margin-bottom:16px}
 .err{color:var(--error);font-size:13px;margin-top:10px;display:none}
 /* LAYOUT */
 #app-screen{display:none;min-height:100vh}
-header{position:fixed;top:0;left:0;right:0;height:56px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100}
+header{position:fixed;top:0;left:0;right:0;height:56px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:100}
 header .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
 header .logo-icon{width:30px;height:30px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:15px}
 header .spacer{flex:1}
@@ -47,6 +49,8 @@ header .user-info{font-size:13px;color:var(--text2)}
 .btn-logout:hover{color:var(--error);border-color:var(--error)}
 .btn-refresh{background:var(--primary-light);border:none;color:var(--primary-dark);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
 .btn-refresh:hover{background:#A7F3D0}
+.auto-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none}
+.auto-toggle input{width:auto;margin:0}
 .content{margin-top:56px;padding:20px}
 /* TABS */
 .tabs{display:flex;background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:56px;z-index:90}
@@ -57,7 +61,10 @@ header .user-info{font-size:13px;color:var(--text2)}
 .stat-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:6px}
 .stat-value{font-size:28px;font-weight:800}
 .stat-label{font-size:12px;color:var(--text2);font-weight:500}
-.section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.stat-sub.pos{color:var(--primary-dark)}
+.stat-sub.neg{color:var(--error)}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .mini-stats{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
 .mini-stat{flex:1;min-width:90px;background:var(--primary-light);border-radius:10px;padding:14px;text-align:center}
 .mini-stat .v{font-size:22px;font-weight:800;color:var(--primary-dark)}
@@ -110,29 +117,52 @@ header .user-info{font-size:13px;color:var(--text2)}
 .user-info-col{flex:1;min-width:0}
 .user-info-col .name{font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .user-info-col .sub{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* PAGINATION INDICATOR */
+.pagination-info{display:flex;justify-content:space-between;align-items:center;padding:12px 0;font-size:12px;color:var(--text2)}
+.pagination-info strong{color:var(--text)}
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
 .modal-overlay.show{display:flex}
-.modal{background:var(--white);border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.15)}
+.modal{background:var(--white);border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.15)}
 .modal-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--white);z-index:1}
 .modal-header h3{font-size:16px;font-weight:700;flex:1}
 .modal-close{background:none;border:none;font-size:22px;color:var(--text2);cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .modal-close:hover{background:var(--bg);color:var(--text)}
 .modal-body{padding:20px}
-.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px;gap:12px}
 .kv:last-child{border-bottom:none}
-.kv .k{color:var(--text2);font-weight:500}
-.kv .v{font-weight:600;text-align:right;max-width:60%;word-break:break-all}
+.kv .k{color:var(--text2);font-weight:500;flex-shrink:0}
+.kv .v{font-weight:600;text-align:right;word-break:break-word;flex:1}
 .modal-images{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px}
 .modal-images img{width:100px;height:100px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer}
 .modal-actions{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;background:var(--bg);border-radius:0 0 16px 16px}
+.history-row{font-size:12px;color:var(--text2);padding:6px 10px;background:var(--bg);border-radius:6px;margin-bottom:6px}
+.history-row b{color:var(--text)}
+/* TOP WIDGETS */
+.top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.top-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:16px}
+.top-card h4{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text2)}
+.top-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px;cursor:pointer}
+.top-row:last-child{border-bottom:none}
+.top-row:hover{background:var(--bg);margin:0 -8px;padding:8px;border-radius:6px}
+.top-row .rank{font-weight:700;color:var(--text3);width:18px;flex-shrink:0}
+.top-row .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.top-row .stat{color:var(--primary-dark);font-weight:700;flex-shrink:0;font-size:12px}
 /* TIMELINE CHART */
 .chart-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:20px}
-.chart-svg{width:100%;height:120px}
+.chart-svg{width:100%;height:140px}
 .chart-bar{fill:var(--primary);opacity:.85;transition:opacity .15s}
 .chart-bar:hover{opacity:1}
 .chart-axis{stroke:var(--border);stroke-width:1}
 .chart-label{font-size:10px;fill:var(--text3)}
+.range-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.range-toolbar input[type=date]{flex:0 0 auto;width:auto;min-width:140px}
+/* AUDIT LOG */
+.audit-row{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px}
+.audit-row .meta{font-size:11px;color:var(--text3);margin-top:2px}
+.audit-action{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:var(--primary-light);color:var(--primary-dark);margin-right:8px}
+.audit-action.danger{background:#FEE2E2;color:var(--error)}
+.audit-action.warn{background:#FEF3C7;color:#92400E}
 /* LOADING */
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2);gap:10px}
 .spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
@@ -149,6 +179,8 @@ header .user-info{font-size:13px;color:var(--text2)}
   .content{padding:12px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .stat-value{font-size:22px}
+  header{padding:0 12px;gap:6px}
+  .auto-toggle{display:none}
 }
 </style>
 </head>
@@ -171,16 +203,17 @@ header .user-info{font-size:13px;color:var(--text2)}
         <input id="email-input" type="email" placeholder="admin@example.com" autocomplete="email"/>
       </div>
       <div class="err" id="email-err"></div>
-      <button class="btn btn-primary" id="send-otp-btn" onclick="sendOtp()">Gửi mã OTP</button>
+      <button class="btn btn-primary" id="send-otp-btn">Gửi mã OTP</button>
     </div>
 
     <div id="step-otp" style="display:none">
       <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Nhập mã OTP đã gửi đến <strong id="otp-email-display"></strong></p>
       <div class="otp-row" id="otp-row"></div>
       <div class="err" id="otp-err"></div>
-      <button class="btn btn-primary" id="verify-otp-btn" onclick="verifyOtp()">Xác nhận</button>
-      <div style="text-align:center;margin-top:10px">
-        <button class="btn btn-link" onclick="backToEmail()">← Đổi email</button>
+      <button class="btn btn-primary" id="verify-otp-btn">Xác nhận</button>
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:4px">
+        <button class="btn btn-link" id="resend-otp-btn" disabled>Gửi lại sau 60s</button>
+        <button class="btn btn-link" id="back-email-btn">← Đổi email</button>
       </div>
     </div>
   </div>
@@ -191,18 +224,22 @@ header .user-info{font-size:13px;color:var(--text2)}
   <header>
     <div class="logo"><div class="logo-icon">🤝</div>Trao Tay Admin</div>
     <div class="spacer"></div>
-    <button class="btn-refresh" onclick="refreshCurrent()" title="Làm mới tab hiện tại">🔄</button>
+    <label class="auto-toggle" title="Tự cập nhật mỗi 30s khi đang ở tab Tổng quan">
+      <input type="checkbox" id="auto-refresh-toggle"/> Tự cập nhật
+    </label>
+    <button class="btn-refresh" id="refresh-btn" title="Làm mới tab hiện tại">🔄</button>
     <span class="user-info" id="header-user"></span>
-    <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+    <button class="btn-logout" id="logout-btn">Đăng xuất</button>
   </header>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab(0)">📊 Tổng quan</button>
-    <button class="tab" onclick="switchTab(1)">📦 Bài đăng</button>
-    <button class="tab" onclick="switchTab(2)">👤 Người dùng</button>
-    <button class="tab" onclick="switchTab(3)">🚩 Báo cáo</button>
-    <button class="tab" onclick="switchTab(4)">💰 Doanh thu</button>
-    <button class="tab" onclick="switchTab(5)">⚙️ Hệ thống</button>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="0">📊 Tổng quan</button>
+    <button class="tab" data-tab="1">📦 Bài đăng</button>
+    <button class="tab" data-tab="2">👤 Người dùng</button>
+    <button class="tab" data-tab="3">🚩 Báo cáo</button>
+    <button class="tab" data-tab="4">💰 Doanh thu</button>
+    <button class="tab" data-tab="5">📜 Lịch sử admin</button>
+    <button class="tab" data-tab="6">⚙️ Hệ thống</button>
   </div>
 
   <div class="content">
@@ -211,16 +248,17 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-users" style="display:none"></div>
     <div id="tab-reports" style="display:none"></div>
     <div id="tab-revenue" style="display:none"></div>
+    <div id="tab-audit" style="display:none"></div>
     <div id="tab-system" style="display:none"></div>
   </div>
 </div>
 
 <!-- MODAL -->
-<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-title"></h3>
-      <button class="modal-close" onclick="closeModal()">×</button>
+      <button class="modal-close" id="modal-close">×</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-actions" id="modal-actions"></div>
@@ -230,17 +268,64 @@ header .user-info{font-size:13px;color:var(--text2)}
 <div id="toast"></div>
 
 <script>
-const BASE = ''; // same-origin
+const BASE = '';
 let token = localStorage.getItem('admin_token') || '';
 let currentTab = 0;
+let autoRefreshTimer = null;
+let resendTimer = null;
+let resendSecondsLeft = 0;
+
+const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system'];
+
 const state = {
-  posts: [], postsPage: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
-  users: [], usersPage: 0, usersTotalPages: 1, usersSearch: '', usersFilter: 'all',
-  reports: [], reportsPage: 0, reportsTotalPages: 1, reportsStatus: '',
-  orders: [], ordersPage: 0, ordersTotalPages: 1, revenueLoaded: false, revenueData: null, timeline: null,
+  posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
+  users: [], usersPage: 0, usersTotal: 0, usersTotalPages: 1, usersSearch: '', usersRole: '', usersBanned: '',
+  reports: [], reportsPage: 0, reportsTotal: 0, reportsTotalPages: 1, reportsStatus: '',
+  orders: [], ordersPage: 0, ordersTotal: 0, ordersTotalPages: 1,
+  revenueData: null, timeline: null, timelineFrom: '', timelineTo: '',
+  audit: [], auditPage: 0, auditTotal: 0, auditTotalPages: 1, auditTargetType: '',
+  topData: null,
 };
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Auth screen
+  on('send-otp-btn', 'click', sendOtp);
+  on('verify-otp-btn', 'click', verifyOtp);
+  on('back-email-btn', 'click', backToEmail);
+  on('resend-otp-btn', 'click', resendOtp);
+  on('email-input', 'keydown', e => { if(e.key==='Enter') sendOtp(); });
+
+  // App
+  on('refresh-btn', 'click', refreshCurrent);
+  on('logout-btn', 'click', logout);
+  on('auto-refresh-toggle', 'change', toggleAutoRefresh);
+  on('modal-close', 'click', closeModal);
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target.id === 'modal') closeModal();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Tabs
+  document.getElementById('tabs').addEventListener('click', e => {
+    const tab = e.target.closest('[data-tab]');
+    if (tab) switchTab(+tab.dataset.tab);
+  });
+
+  // Delegated content actions (data-action)
+  document.querySelector('.content').addEventListener('click', handleContentClick);
+  document.querySelector('.content').addEventListener('keydown', handleContentKeydown);
+  document.querySelector('.content').addEventListener('change', handleContentChange);
+
+  // Modal action delegation
+  document.getElementById('modal-actions').addEventListener('click', handleModalAction);
+
+  if (token) initApp();
+});
+
+function on(id, ev, fn) { document.getElementById(id).addEventListener(ev, fn); }
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
 async function sendOtp() {
   const email = document.getElementById('email-input').value.trim().toLowerCase();
@@ -259,21 +344,57 @@ async function sendOtp() {
     document.getElementById('step-email').style.display = 'none';
     document.getElementById('step-otp').style.display = 'block';
     buildOtpBoxes();
-  } catch(e) { showErr('email-err', 'Không kết nối được server'); btn.disabled=false; btn.textContent='Gửi mã OTP'; }
+    startResendCountdown(60);
+  } catch(e) {
+    showErr('email-err', 'Không kết nối được server');
+    btn.disabled = false; btn.textContent = 'Gửi mã OTP';
+  }
+}
+
+async function resendOtp() {
+  const btn = document.getElementById('resend-otp-btn');
+  if (btn.disabled) return;
+  // reset OTP boxes + send again
+  buildOtpBoxes();
+  document.getElementById('send-otp-btn').disabled = false;
+  document.getElementById('send-otp-btn').textContent = 'Gửi mã OTP';
+  await sendOtp();
+}
+
+function startResendCountdown(seconds) {
+  resendSecondsLeft = seconds;
+  const btn = document.getElementById('resend-otp-btn');
+  btn.disabled = true;
+  if (resendTimer) clearInterval(resendTimer);
+  const tick = () => {
+    if (resendSecondsLeft <= 0) {
+      btn.disabled = false;
+      btn.textContent = 'Gửi lại mã';
+      clearInterval(resendTimer); resendTimer = null;
+      return;
+    }
+    btn.textContent = `Gửi lại sau ${resendSecondsLeft}s`;
+    resendSecondsLeft--;
+  };
+  tick();
+  resendTimer = setInterval(tick, 1000);
 }
 
 function buildOtpBoxes() {
   const row = document.getElementById('otp-row');
   row.innerHTML = '';
-  for(let i=0;i<6;i++) {
+  for (let i = 0; i < 6; i++) {
     const inp = document.createElement('input');
-    inp.type='tel'; inp.maxLength=1; inp.id=`otp-${i}`;
+    inp.type = 'tel'; inp.maxLength = 1; inp.id = `otp-${i}`; inp.inputMode = 'numeric';
     inp.addEventListener('input', e => {
-      if(e.target.value.length===1 && i<5) document.getElementById(`otp-${i+1}`).focus();
-      if(e.target.value.length===1 && i===5) verifyOtp();
+      if (e.target.value.length === 1 && i < 5) document.getElementById(`otp-${i+1}`).focus();
+      if (e.target.value.length === 1 && i === 5) verifyOtp();
     });
     inp.addEventListener('keydown', e => {
-      if(e.key==='Backspace' && !e.target.value && i>0) { document.getElementById(`otp-${i-1}`).focus(); document.getElementById(`otp-${i-1}`).value=''; }
+      if (e.key === 'Backspace' && !e.target.value && i > 0) {
+        const prev = document.getElementById(`otp-${i-1}`);
+        prev.focus(); prev.value = '';
+      }
     });
     row.appendChild(inp);
   }
@@ -283,102 +404,270 @@ function buildOtpBoxes() {
 async function verifyOtp() {
   const email = document.getElementById('email-input').value.trim().toLowerCase();
   let code = '';
-  for(let i=0;i<6;i++) code += document.getElementById(`otp-${i}`)?.value || '';
-  if(code.length !== 6) { showErr('otp-err','Nhập đủ 6 chữ số'); return; }
-  showErr('otp-err','');
+  for (let i = 0; i < 6; i++) code += document.getElementById(`otp-${i}`)?.value || '';
+  if (code.length !== 6) { showErr('otp-err', 'Nhập đủ 6 chữ số'); return; }
+  showErr('otp-err', '');
   const btn = document.getElementById('verify-otp-btn');
-  btn.disabled=true; btn.textContent='Đang xác nhận...';
+  btn.disabled = true; btn.textContent = 'Đang xác nhận...';
   try {
     const res = await fetch(`${BASE}/user/email-login/verify`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({email, otp: code}),
     });
     const data = await res.json();
-    if(!res.ok) { showErr('otp-err', data.message || 'OTP không đúng'); btn.disabled=false; btn.textContent='Xác nhận'; return; }
-    if(data.user?.role !== 'admin') {
-      showErr('otp-err','Tài khoản này không có quyền admin'); btn.disabled=false; btn.textContent='Xác nhận'; return;
+    if (!res.ok) { showErr('otp-err', data.message || 'OTP không đúng'); btn.disabled=false; btn.textContent='Xác nhận'; return; }
+    if (data.user?.role !== 'admin') {
+      showErr('otp-err', 'Tài khoản này không có quyền admin');
+      btn.disabled = false; btn.textContent = 'Xác nhận';
+      return;
     }
     token = data.accessToken;
     localStorage.setItem('admin_token', token);
     localStorage.setItem('admin_name', data.user?.name || email);
     initApp();
-  } catch(e) { showErr('otp-err','Lỗi xác nhận'); btn.disabled=false; btn.textContent='Xác nhận'; }
+  } catch(e) {
+    showErr('otp-err', 'Lỗi xác nhận');
+    btn.disabled = false; btn.textContent = 'Xác nhận';
+  }
 }
 
 function backToEmail() {
-  document.getElementById('step-otp').style.display='none';
-  document.getElementById('step-email').style.display='block';
-  document.getElementById('send-otp-btn').disabled=false;
-  document.getElementById('send-otp-btn').textContent='Gửi mã OTP';
+  if (resendTimer) { clearInterval(resendTimer); resendTimer = null; }
+  document.getElementById('step-otp').style.display = 'none';
+  document.getElementById('step-email').style.display = 'block';
+  document.getElementById('send-otp-btn').disabled = false;
+  document.getElementById('send-otp-btn').textContent = 'Gửi mã OTP';
 }
 
 function logout() {
-  token=''; localStorage.removeItem('admin_token'); localStorage.removeItem('admin_name');
-  document.getElementById('app-screen').style.display='none';
-  document.getElementById('auth-screen').style.display='flex';
-  document.getElementById('step-email').style.display='block';
-  document.getElementById('step-otp').style.display='none';
-  document.getElementById('send-otp-btn').disabled=false;
-  document.getElementById('send-otp-btn').textContent='Gửi mã OTP';
+  token = ''; localStorage.removeItem('admin_token'); localStorage.removeItem('admin_name');
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  backToEmail();
 }
 
-// ── App init ──────────────────────────────────────────────────────────────────
+// ─── App init ─────────────────────────────────────────────────────────────────
 
 function initApp() {
-  document.getElementById('auth-screen').style.display='none';
-  document.getElementById('app-screen').style.display='block';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
   document.getElementById('header-user').textContent = localStorage.getItem('admin_name') || '';
   switchTab(0);
 }
 
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===tab));
-  ['stats','posts','users','reports','revenue','system'].forEach((id,i) => {
-    document.getElementById(`tab-${id}`).style.display = i===tab?'block':'none';
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === tab));
+  TAB_IDS.forEach((id, i) => {
+    document.getElementById(`tab-${id}`).style.display = i === tab ? 'block' : 'none';
   });
-  if(tab===0) loadStats();
-  else if(tab===1 && state.posts.length===0) loadPosts(true);
-  else if(tab===2 && state.users.length===0) loadUsers(true);
-  else if(tab===3 && state.reports.length===0) loadReports(true);
-  else if(tab===4 && !state.revenueLoaded) loadRevenue(true);
-  else if(tab===5) loadSystem();
+  // Cancel auto-refresh khi rời tab Tổng quan
+  if (tab !== 0 && autoRefreshTimer) {
+    clearInterval(autoRefreshTimer); autoRefreshTimer = null;
+    document.getElementById('auto-refresh-toggle').checked = false;
+  }
+  loadCurrent();
+}
+
+function loadCurrent(force = false) {
+  switch (currentTab) {
+    case 0: loadStats(); break;
+    case 1: if (force || state.posts.length === 0) loadPosts(true); break;
+    case 2: if (force || state.users.length === 0) loadUsers(true); break;
+    case 3: if (force || state.reports.length === 0) loadReports(true); break;
+    case 4: if (force || !state.revenueData) loadRevenue(true); break;
+    case 5: if (force || state.audit.length === 0) loadAudit(true); break;
+    case 6: loadSystem(); break;
+  }
 }
 
 function refreshCurrent() {
-  if(currentTab===0) loadStats();
-  else if(currentTab===1) loadPosts(true);
-  else if(currentTab===2) loadUsers(true);
-  else if(currentTab===3) loadReports(true);
-  else if(currentTab===4) loadRevenue(true);
-  else if(currentTab===5) loadSystem();
+  loadCurrent(true);
   toast('Đã làm mới');
 }
 
-// ── API helpers ───────────────────────────────────────────────────────────────
-
-async function api(path, opts={}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    headers: {'Content-Type':'application/json', 'Authorization':`Bearer ${token}`, ...(opts.headers||{})},
-  });
-  if(res.status===401) { logout(); return null; }
-  return res.ok ? res.json() : null;
+function toggleAutoRefresh(e) {
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  if (e.target.checked && currentTab === 0) {
+    autoRefreshTimer = setInterval(() => loadStats(), 30000);
+    toast('Tự cập nhật bật — mỗi 30 giây');
+  }
 }
 
-// ── Stats ─────────────────────────────────────────────────────────────────────
+// ─── API helper ───────────────────────────────────────────────────────────────
+
+async function api(path, opts = {}) {
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 15000);
+    const res = await fetch(`${BASE}${path}`, {
+      ...opts,
+      signal: ctrl.signal,
+      headers: {'Content-Type':'application/json', 'Authorization':`Bearer ${token}`, ...(opts.headers||{})},
+    });
+    clearTimeout(timeoutId);
+    if (res.status === 401 || res.status === 403) { logout(); return null; }
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); if (j.message) msg = j.message; } catch {}
+      toast('Lỗi: ' + msg);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    toast(e.name === 'AbortError' ? 'Request timeout' : 'Network error');
+    return null;
+  }
+}
+
+// ─── Content event delegation ─────────────────────────────────────────────────
+
+function handleContentClick(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const a = el.dataset.action;
+  const id = el.dataset.id;
+  const idx = el.dataset.idx ? +el.dataset.idx : null;
+  const extra = el.dataset.extra;
+
+  switch (a) {
+    case 'open-post': openPostDetail(id); break;
+    case 'open-user': openUserDetail(id); break;
+    case 'open-report': openReportDetail(id); break;
+    case 'view-post-from-modal': closeModal(); openPostDetail(id); break;
+
+    case 'hide-post': e.stopPropagation(); hidePost(id, idx); break;
+    case 'unhide-post': e.stopPropagation(); unhidePost(id, idx); break;
+    case 'delete-post': e.stopPropagation(); deletePost(id, idx, extra); break;
+
+    case 'resolve-report': resolveReport(id, idx, 'resolved'); break;
+    case 'dismiss-report': resolveReport(id, idx, 'dismissed'); break;
+
+    case 'switch-tab': switchTab(+el.dataset.target); break;
+
+    case 'load-more': {
+      const target = el.dataset.target;
+      if (target === 'posts') loadPosts();
+      else if (target === 'users') loadUsers();
+      else if (target === 'reports') loadReports();
+      else if (target === 'revenue') loadRevenue();
+      else if (target === 'audit') loadAudit();
+      break;
+    }
+
+    case 'set-posts-status':
+      state.postsStatus = el.dataset.value || '';
+      loadPosts(true);
+      break;
+    case 'set-users-role':
+      state.usersRole = el.dataset.value || '';
+      loadUsers(true);
+      break;
+    case 'set-users-banned':
+      state.usersBanned = el.dataset.value || '';
+      loadUsers(true);
+      break;
+    case 'set-reports-status':
+      state.reportsStatus = el.dataset.value || '';
+      loadReports(true);
+      break;
+    case 'set-audit-target':
+      state.auditTargetType = el.dataset.value || '';
+      loadAudit(true);
+      break;
+
+    case 'do-search-posts': {
+      state.postsSearch = document.getElementById('posts-search').value;
+      loadPosts(true); break;
+    }
+    case 'do-search-users': {
+      state.usersSearch = document.getElementById('users-search').value;
+      loadUsers(true); break;
+    }
+
+    case 'set-range-quick': {
+      const days = +el.dataset.value;
+      const today = new Date();
+      const from = new Date(); from.setDate(today.getDate() - days + 1);
+      state.timelineFrom = from.toISOString().slice(0, 10);
+      state.timelineTo = today.toISOString().slice(0, 10);
+      reloadTimeline();
+      break;
+    }
+    case 'apply-range': {
+      const f = document.getElementById('range-from')?.value;
+      const t = document.getElementById('range-to')?.value;
+      if (!f || !t) { toast('Chọn cả 2 ngày'); break; }
+      state.timelineFrom = f; state.timelineTo = t;
+      reloadTimeline();
+      break;
+    }
+    case 'export-csv-server': exportCsvServer(); break;
+  }
+}
+
+function handleContentKeydown(e) {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'posts-search') { state.postsSearch = e.target.value; loadPosts(true); }
+  else if (e.target.id === 'users-search') { state.usersSearch = e.target.value; loadUsers(true); }
+}
+
+function handleContentChange(e) {
+  // (range pickers use button to apply; not auto-trigger)
+}
+
+function handleModalAction(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const a = el.dataset.action;
+  const id = el.dataset.id;
+  const extra = el.dataset.extra;
+  switch (a) {
+    case 'modal-hide-post': modalHidePost(id); break;
+    case 'modal-unhide-post': modalUnhidePost(id); break;
+    case 'modal-delete-post': modalDeletePost(id, extra); break;
+    case 'modal-ban-user': modalBanUser(id, true); break;
+    case 'modal-unban-user': modalBanUser(id, false); break;
+    case 'modal-make-admin': modalSetRole(id, 'admin'); break;
+    case 'modal-revoke-admin': modalSetRole(id, 'user'); break;
+    case 'modal-resolve-report': modalResolveReport(id, 'resolved'); break;
+    case 'modal-dismiss-report': modalResolveReport(id, 'dismissed'); break;
+    case 'modal-close': closeModal(); break;
+    case 'modal-view-post': closeModal(); openPostDetail(id); break;
+    case 'modal-view-user': closeModal(); openUserDetail(id); break;
+  }
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
 
 async function loadStats() {
   const el = document.getElementById('tab-stats');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
-  const data = await api('/admin/stats');
-  if(!data) { el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Không tải được dữ liệu</p></div>'; return; }
-  const ov=data.overview||{}, td=data.today||{}, posts=data.posts||{}, mod=data.moderation||{};
-  const colors=['#10B981','#3B82F6','#F59E0B','#8B5CF6'];
+  if (state.topData == null) {
+    el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+  }
+  const [data, top] = await Promise.all([
+    api('/admin/stats'),
+    api('/admin/top?limit=5'),
+  ]);
+  if (!data) { el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Không tải được dữ liệu</p></div>'; return; }
+  state.topData = top;
+  const ov = data.overview || {}, td = data.today || {}, posts = data.posts || {}, mod = data.moderation || {};
+  const colors = ['#10B981','#3B82F6','#F59E0B','#8B5CF6'];
+
+  const alertHtml = mod.pendingReports > 0
+    ? `<div class="alert-card"><span class="icon">⚠️</span><span class="msg">Có ${mod.pendingReports} báo cáo chờ xử lý</span><button class="btn-sm btn-orange" data-action="switch-tab" data-target="3">Xem ngay</button></div>`
+    : '';
+
   el.innerHTML = `
-    ${mod.pendingReports>0?`<div class="alert-card"><span class="icon">⚠️</span><span class="msg">Có ${mod.pendingReports} báo cáo chờ xử lý</span><button class="btn-sm btn-orange" onclick="switchTab(3)">Xem ngay</button></div>`:''}
+    ${alertHtml}
     <div class="stats-grid">
-      ${[['Người dùng',ov.totalUsers||0,'👤',colors[0]],['Bài đăng',ov.totalPosts||0,'📦',colors[1]],['Giao dịch',ov.totalDeals||0,'🤝',colors[2]],['Đánh giá TB',(data.avgRating||0)+'⭐','⭐',colors[3]]].map(([l,v,ic,c])=>`
+      ${[
+        ['Người dùng', ov.totalUsers || 0, '👤', colors[0]],
+        ['Bài đăng', ov.totalPosts || 0, '📦', colors[1]],
+        ['Giao dịch', ov.totalDeals || 0, '🤝', colors[2]],
+        ['Đánh giá TB', (data.avgRating || 0) + '⭐', '⭐', colors[3]],
+      ].map(([l,v,ic,c]) => `
       <div class="stat-card">
         <div style="font-size:24px">${ic}</div>
         <div class="stat-value" style="color:${c}">${v}</div>
@@ -396,264 +685,357 @@ async function loadStats() {
       ${barRow('Đang hiển thị', posts.available||0, ov.totalPosts||1, '#10B981')}
       ${barRow('Đã hoàn tất', posts.done||0, ov.totalPosts||1, '#3B82F6')}
       ${barRow('Trạng thái khác', posts.other||0, ov.totalPosts||1, '#F59E0B')}
+      ${posts.deletedByAdmin > 0 ? `<div style="margin-top:10px;font-size:12px;color:var(--text2)">Đã xóa bởi admin: <strong>${posts.deletedByAdmin}</strong></div>` : ''}
+    </div>
+    ${renderTopWidgets(state.topData)}
+  `;
+}
+
+function renderTopWidgets(top) {
+  if (!top) return '';
+  const tu = top.topUsersByPosts || [];
+  const ts = top.topSpenders || [];
+  const tp = top.topPostsByViews || [];
+  return `
+    <div class="section-title">Bảng xếp hạng</div>
+    <div class="top-grid">
+      <div class="top-card">
+        <h4>👤 Top user nhiều bài đăng</h4>
+        ${tu.length === 0 ? '<div class="empty" style="padding:20px"><p>Chưa có dữ liệu</p></div>' : tu.map((u,i) => `
+          <div class="top-row" data-action="open-user" data-id="${esc(u.id)}">
+            <span class="rank">#${i+1}</span>
+            <span class="name">${esc(u.name||'Ẩn danh')}</span>
+            <span class="stat">${u._count?.posts||0} bài</span>
+          </div>`).join('')}
+      </div>
+      <div class="top-card">
+        <h4>💰 Top user chi tiêu (Bump)</h4>
+        ${ts.length === 0 ? '<div class="empty" style="padding:20px"><p>Chưa có đơn nào</p></div>' : ts.map((u,i) => `
+          <div class="top-row" data-action="open-user" data-id="${esc(u.id||'')}">
+            <span class="rank">#${i+1}</span>
+            <span class="name">${esc(u.name||'Ẩn danh')}</span>
+            <span class="stat">${fmoneyFull(u.totalSpent||0)}</span>
+          </div>`).join('')}
+      </div>
+      <div class="top-card">
+        <h4>🔥 Top bài lượt xem</h4>
+        ${tp.length === 0 ? '<div class="empty" style="padding:20px"><p>Chưa có bài nào</p></div>' : tp.map((p,i) => `
+          <div class="top-row" data-action="open-post" data-id="${esc(p.id)}">
+            <span class="rank">#${i+1}</span>
+            <span class="name">${esc(p.title||'(không tên)')}</span>
+            <span class="stat">${p.viewCount||0} 👁️</span>
+          </div>`).join('')}
+      </div>
     </div>
   `;
 }
 
 function barRow(label, value, total, color) {
-  const pct = total>0 ? Math.round(value/total*100) : 0;
+  const pct = total > 0 ? Math.round(value/total*100) : 0;
   return `<div class="bar-row">
     <div class="bar-meta"><span>${label}</span><strong style="color:${color}">${value}</strong></div>
     <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
   </div>`;
 }
 
-// ── Posts ─────────────────────────────────────────────────────────────────────
+// ─── Posts ────────────────────────────────────────────────────────────────────
 
-async function loadPosts(reset=false) {
-  if(reset) { state.posts=[]; state.postsPage=0; state.postsTotalPages=1; }
+async function loadPosts(reset = false) {
+  if (reset) { state.posts = []; state.postsPage = 0; state.postsTotalPages = 1; state.postsTotal = 0; }
   renderPosts(true);
-  const page = state.postsPage+1;
+  const page = state.postsPage + 1;
   const params = new URLSearchParams({page, limit:20});
-  if(state.postsSearch) params.set('search', state.postsSearch);
-  if(state.postsStatus) params.set('status', state.postsStatus);
+  if (state.postsSearch) params.set('search', state.postsSearch);
+  if (state.postsStatus) params.set('status', state.postsStatus);
   const data = await api(`/admin/posts?${params}`);
-  if(!data) return;
+  if (!data) return;
   state.posts.push(...(data.data||[]));
   state.postsPage = data.meta?.page || page;
   state.postsTotalPages = data.meta?.totalPages || 1;
+  state.postsTotal = data.meta?.total || 0;
   renderPosts(false);
 }
 
 function renderPosts(loading) {
   const el = document.getElementById('tab-posts');
+  const statuses = ['','available','hidden','done','reserved','deleted_by_admin'];
   const filterChips = `
     <div class="filter-chips">
-      ${['','available','hidden','done','reserved'].map(s => `
-        <button class="fchip ${state.postsStatus===s?'active':''}" onclick="state.postsStatus='${s}';loadPosts(true)">${s===''?'Tất cả':statusLabel(s)}</button>
+      ${statuses.map(s => `
+        <button class="fchip ${state.postsStatus===s?'active':''}" data-action="set-posts-status" data-value="${s}">${s===''?'Tất cả':statusLabel(s)}</button>
       `).join('')}
     </div>`;
   const searchHtml = `<div class="toolbar">
-    <input id="posts-search" type="text" placeholder="🔍 Tìm theo tiêu đề..." value="${state.postsSearch}" onkeydown="if(event.key==='Enter'){state.postsSearch=this.value;loadPosts(true)}"/>
-    <button class="btn-sm btn-green" onclick="state.postsSearch=document.getElementById('posts-search').value;loadPosts(true)">Tìm</button>
+    <input id="posts-search" type="text" placeholder="🔍 Tìm theo tiêu đề..." value="${esc(state.postsSearch)}"/>
+    <button class="btn-sm btn-green" data-action="do-search-posts">Tìm</button>
   </div>${filterChips}`;
-  if(loading && state.posts.length===0) { el.innerHTML=searchHtml+'<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
-  if(!loading && state.posts.length===0) { el.innerHTML=searchHtml+'<div class="empty"><div class="empty-icon">📦</div><p>Không có bài đăng nào</p></div>'; return; }
-  const items = state.posts.map((p,i) => {
-    const isHidden = p.status==='hidden';
+
+  if (loading && state.posts.length === 0) {
+    el.innerHTML = searchHtml + '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+    return;
+  }
+  if (!loading && state.posts.length === 0) {
+    el.innerHTML = searchHtml + '<div class="empty"><div class="empty-icon">📦</div><p>Không có bài đăng nào</p></div>';
+    return;
+  }
+  const items = state.posts.map((p, i) => {
+    const isHidden = p.status === 'hidden';
+    const isDeleted = p.status === 'deleted_by_admin';
+    const titleHtml = esc(p.title || '');
     return `
-    <div class="item-card" onclick="openPostDetail('${p.id}')">
+    <div class="item-card" data-action="open-post" data-id="${esc(p.id)}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div class="title">${esc(p.title||'')}</div>
+        <div class="title">${titleHtml}</div>
         ${chipStatus(p.status)}
       </div>
       <div class="meta">${esc(p.author?.name||'Ẩn danh')} · ${p.viewCount||0} lượt xem · ${fmoney(p.price||0)}</div>
-      <div class="item-actions" onclick="event.stopPropagation()">
+      ${isDeleted ? '' : `<div class="item-actions">
         ${isHidden
-          ? `<button class="btn-sm btn-green" onclick="unhidePost('${p.id}',${i})">Hiện lại</button>`
-          : `<button class="btn-sm btn-orange" onclick="hidePost('${p.id}',${i})">Ẩn bài</button>`}
-        <button class="btn-sm btn-red" onclick="deletePost('${p.id}',${i},'${esc(p.title||'')}')">Xóa</button>
-      </div>
+          ? `<button class="btn-sm btn-green" data-action="unhide-post" data-id="${esc(p.id)}" data-idx="${i}">Hiện lại</button>`
+          : `<button class="btn-sm btn-orange" data-action="hide-post" data-id="${esc(p.id)}" data-idx="${i}">Ẩn bài</button>`}
+        <button class="btn-sm btn-red" data-action="delete-post" data-id="${esc(p.id)}" data-idx="${i}" data-extra="${esc(p.title||'')}">Xóa</button>
+      </div>`}
     </div>`;
   }).join('');
+  const pagination = paginationInfo('posts', state.postsPage, state.postsTotalPages, state.postsTotal, state.posts.length);
   const loadMore = state.postsPage < state.postsTotalPages
-    ? `<div class="load-more"><button onclick="loadPosts()">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
-  el.innerHTML = searchHtml + items + loadMore;
+    ? `<div class="load-more"><button data-action="load-more" data-target="posts">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
+  el.innerHTML = searchHtml + pagination + items + loadMore;
 }
 
 async function hidePost(id, idx) {
-  if(!confirm('Ẩn bài đăng này?')) return;
+  if (!confirm('Ẩn bài đăng này?')) return;
   await api(`/admin/posts/${id}/hide`, {method:'PATCH'});
-  state.posts[idx].status='hidden'; renderPosts(false); toast('Đã ẩn bài');
+  if (state.posts[idx]) state.posts[idx].status = 'hidden';
+  renderPosts(false); toast('Đã ẩn bài');
 }
 
 async function unhidePost(id, idx) {
   await api(`/admin/posts/${id}/unhide`, {method:'PATCH'});
-  state.posts[idx].status='available'; renderPosts(false); toast('Đã hiện lại bài');
+  if (state.posts[idx]) state.posts[idx].status = 'available';
+  renderPosts(false); toast('Đã hiện lại bài');
 }
 
 async function deletePost(id, idx, title) {
-  if(!confirm(`Xóa bài "${title}"? Không thể khôi phục.`)) return;
-  await api(`/admin/posts/${id}`, {method:'DELETE'});
-  state.posts.splice(idx,1); renderPosts(false); toast('Đã xóa bài');
+  const reason = prompt(`Xóa bài "${title||''}"?\n\nNhập lý do xóa (ghi vào audit log):`);
+  if (reason === null) return; // user cancel
+  await api(`/admin/posts/${id}`, {method:'DELETE', body: JSON.stringify({reason: reason || ''})});
+  if (state.posts[idx]) state.posts[idx].status = 'deleted_by_admin';
+  renderPosts(false); toast('Đã xóa bài (soft delete)');
 }
 
 async function openPostDetail(id) {
   showModal('Chi tiết bài đăng', '<div class="loading"><div class="spinner"></div> Đang tải...</div>', '');
   const p = await api(`/admin/posts/${id}`);
-  if(!p) { closeModal(); toast('Không tải được'); return; }
+  if (!p) { closeModal(); return; }
   const images = (p.images||[]).filter(Boolean);
-  const author = p.author||{};
-  const counts = p._count||{};
+  const author = p.author || {};
+  const counts = p._count || {};
+  const isHidden = p.status === 'hidden';
+  const isDeleted = p.status === 'deleted_by_admin';
+
   const body = `
-    ${images.length>0 ? `<div class="modal-images">${images.map(u => `<img src="${esc(u)}" onerror="this.style.display='none'"/>`).join('')}</div>` : ''}
+    ${images.length > 0 ? `<div class="modal-images">${images.map(u => `<img src="${esc(u)}"/>`).join('')}</div>` : ''}
     <div class="kv"><span class="k">Tiêu đề</span><span class="v">${esc(p.title||'')}</span></div>
     <div class="kv"><span class="k">Trạng thái</span><span class="v">${chipStatus(p.status)}</span></div>
     <div class="kv"><span class="k">Loại</span><span class="v">${esc(p.listingType||'')} · ${esc(p.itemCategory||'')}</span></div>
-    <div class="kv"><span class="k">Giá</span><span class="v">${fmoney(p.price||0)}</span></div>
+    <div class="kv"><span class="k">Giá</span><span class="v">${fmoneyFull(p.price||0)}</span></div>
     <div class="kv"><span class="k">Khu vực</span><span class="v">${esc(p.province||'')} ${p.district?'· '+esc(p.district):''}</span></div>
     <div class="kv"><span class="k">Lượt xem</span><span class="v">${p.viewCount||0}</span></div>
     <div class="kv"><span class="k">Yêu thích / Deal / Báo cáo</span><span class="v">${counts.favorites||0} / ${counts.deals||0} / ${counts.reports||0}</span></div>
     <div class="kv"><span class="k">Đăng lúc</span><span class="v">${fmtDate(p.createdAt)}</span></div>
-    <div class="kv"><span class="k">Mô tả</span><span class="v" style="font-weight:400;text-align:left;max-width:100%">${esc(p.description||'').replace(/\n/g,'<br>')}</span></div>
+    <div class="kv"><span class="k">Mô tả</span><span class="v" style="font-weight:400">${esc(p.description||'').replace(/\n/g,'<br>')}</span></div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
     <div style="font-weight:700;margin-bottom:8px">Người đăng</div>
-    <div class="kv"><span class="k">Tên</span><span class="v">${esc(author.name||'')} ${author.role==='admin'?'<span class="chip chip-blue">Admin</span>':''} ${author.isBanned?'<span class="chip chip-red">Bị khóa</span>':''}</span></div>
+    <div class="kv"><span class="k">Tên</span><span class="v"><button class="btn-sm btn-blue" data-action="modal-view-user" data-id="${esc(author.id||'')}" style="padding:2px 8px;font-size:12px">${esc(author.name||'')}</button> ${author.role==='admin'?'<span class="chip chip-blue">Admin</span>':''} ${author.isBanned?'<span class="chip chip-red">Bị khóa</span>':''}</span></div>
     <div class="kv"><span class="k">Email</span><span class="v">${esc(author.email||'—')}</span></div>
     <div class="kv"><span class="k">SĐT</span><span class="v">${esc(author.phone||'—')}</span></div>
   `;
-  const isHidden = p.status==='hidden';
-  const actions = `
-    ${isHidden
-      ? `<button class="btn-sm btn-green" onclick="unhidePostFromModal('${p.id}')">Hiện lại</button>`
-      : `<button class="btn-sm btn-orange" onclick="hidePostFromModal('${p.id}')">Ẩn bài</button>`}
-    <button class="btn-sm btn-red" onclick="deletePostFromModal('${p.id}','${esc(p.title||'')}')">Xóa bài</button>
-    <button class="btn-sm btn-grey" onclick="closeModal()">Đóng</button>
-  `;
+  const actions = isDeleted
+    ? `<button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
+    : `${isHidden
+        ? `<button class="btn-sm btn-green" data-action="modal-unhide-post" data-id="${esc(p.id)}">Hiện lại</button>`
+        : `<button class="btn-sm btn-orange" data-action="modal-hide-post" data-id="${esc(p.id)}">Ẩn bài</button>`}
+      <button class="btn-sm btn-red" data-action="modal-delete-post" data-id="${esc(p.id)}" data-extra="${esc(p.title||'')}">Xóa bài</button>
+      <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`;
   showModal('Chi tiết bài đăng', body, actions);
 }
 
-async function hidePostFromModal(id) {
-  if(!confirm('Ẩn bài đăng này?')) return;
+async function modalHidePost(id) {
+  if (!confirm('Ẩn bài đăng này?')) return;
   await api(`/admin/posts/${id}/hide`, {method:'PATCH'});
   closeModal(); loadPosts(true); toast('Đã ẩn bài');
 }
-async function unhidePostFromModal(id) {
+async function modalUnhidePost(id) {
   await api(`/admin/posts/${id}/unhide`, {method:'PATCH'});
   closeModal(); loadPosts(true); toast('Đã hiện lại bài');
 }
-async function deletePostFromModal(id, title) {
-  if(!confirm(`Xóa bài "${title}"? Không thể khôi phục.`)) return;
-  await api(`/admin/posts/${id}`, {method:'DELETE'});
-  closeModal(); loadPosts(true); toast('Đã xóa bài');
+async function modalDeletePost(id, title) {
+  const reason = prompt(`Xóa bài "${title||''}"?\n\nNhập lý do xóa:`);
+  if (reason === null) return;
+  await api(`/admin/posts/${id}`, {method:'DELETE', body: JSON.stringify({reason: reason || ''})});
+  closeModal(); loadPosts(true); toast('Đã xóa bài (soft delete)');
 }
 
-// ── Users ─────────────────────────────────────────────────────────────────────
+// ─── Users ────────────────────────────────────────────────────────────────────
 
-async function loadUsers(reset=false) {
-  if(reset) { state.users=[]; state.usersPage=0; state.usersTotalPages=1; }
+async function loadUsers(reset = false) {
+  if (reset) { state.users = []; state.usersPage = 0; state.usersTotalPages = 1; state.usersTotal = 0; }
   renderUsers(true);
-  const page = state.usersPage+1;
+  const page = state.usersPage + 1;
   const params = new URLSearchParams({page, limit:20});
-  if(state.usersSearch) params.set('search', state.usersSearch);
+  if (state.usersSearch) params.set('search', state.usersSearch);
+  if (state.usersRole) params.set('role', state.usersRole);
+  if (state.usersBanned) params.set('banned', state.usersBanned);
   const data = await api(`/admin/users?${params}`);
-  if(!data) return;
+  if (!data) return;
   state.users.push(...(data.data||[]));
   state.usersPage = data.meta?.page || page;
   state.usersTotalPages = data.meta?.totalPages || 1;
+  state.usersTotal = data.meta?.total || 0;
   renderUsers(false);
-}
-
-function filteredUsers() {
-  if(state.usersFilter==='admin') return state.users.filter(u => u.role==='admin');
-  if(state.usersFilter==='banned') return state.users.filter(u => u.isBanned);
-  return state.users;
 }
 
 function renderUsers(loading) {
   const el = document.getElementById('tab-users');
-  const filterChips = `
-    <div class="filter-chips">
-      ${[['all','Tất cả'],['admin','Admin'],['banned','Đang khóa']].map(([k,l]) => `
-        <button class="fchip ${state.usersFilter===k?'active':''}" onclick="state.usersFilter='${k}';renderUsers(false)">${l}</button>
-      `).join('')}
-    </div>`;
+  const roleChips = [['','Tất cả'],['admin','Admin'],['user','User thường']]
+    .map(([k,l]) => `<button class="fchip ${state.usersRole===k?'active':''}" data-action="set-users-role" data-value="${k}">${l}</button>`).join('');
+  const banChips = [['','Tất cả trạng thái'],['true','Bị khóa'],['false','Hoạt động']]
+    .map(([k,l]) => `<button class="fchip ${state.usersBanned===k?'active':''}" data-action="set-users-banned" data-value="${k}">${l}</button>`).join('');
   const searchHtml = `<div class="toolbar">
-    <input id="users-search" type="text" placeholder="🔍 Tìm theo tên/email..." value="${state.usersSearch}" onkeydown="if(event.key==='Enter'){state.usersSearch=this.value;loadUsers(true)}"/>
-    <button class="btn-sm btn-green" onclick="state.usersSearch=document.getElementById('users-search').value;loadUsers(true)">Tìm</button>
-  </div>${filterChips}`;
-  if(loading && state.users.length===0) { el.innerHTML=searchHtml+'<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
-  const list = filteredUsers();
-  if(!loading && list.length===0) { el.innerHTML=searchHtml+'<div class="empty"><div class="empty-icon">👤</div><p>Không có người dùng nào</p></div>'; return; }
-  const items = list.map((u) => {
-    const banned = u.isBanned===true;
-    const cnt = u._count||{};
-    const avatarColor = avatarBg(u.name||'U');
-    const initials = (u.name||'U')[0].toUpperCase();
-    return `<div class="item-card" onclick="openUserDetail('${u.id}')">
+    <input id="users-search" type="text" placeholder="🔍 Tìm theo tên/email/SĐT..." value="${esc(state.usersSearch)}"/>
+    <button class="btn-sm btn-green" data-action="do-search-users">Tìm</button>
+  </div>
+  <div class="filter-chips">${roleChips}</div>
+  <div class="filter-chips">${banChips}</div>`;
+
+  if (loading && state.users.length === 0) {
+    el.innerHTML = searchHtml + '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+    return;
+  }
+  if (!loading && state.users.length === 0) {
+    el.innerHTML = searchHtml + '<div class="empty"><div class="empty-icon">👤</div><p>Không có người dùng nào khớp</p></div>';
+    return;
+  }
+  const items = state.users.map(u => {
+    const banned = u.isBanned === true;
+    const cnt = u._count || {};
+    const initials = (u.name || 'U')[0].toUpperCase();
+    const avatarColor = avatarBg(u.name || 'U');
+    return `<div class="item-card" data-action="open-user" data-id="${esc(u.id)}">
       <div class="user-row">
-        <div class="avatar" style="background:${avatarColor}">${u.avatar?`<img src="${esc(u.avatar)}" onerror="this.style.display='none'"/>`:initials}</div>
+        <div class="avatar" style="background:${avatarColor}">${u.avatar?`<img src="${esc(u.avatar)}"/>`:initials}</div>
         <div class="user-info-col">
           <div class="name">${esc(u.name||'Không tên')}
             ${u.role==='admin'?'<span class="chip chip-blue">Admin</span>':''}
             ${banned?'<span class="chip chip-red">Bị khóa</span>':''}
+            ${u.deletedAt?'<span class="chip chip-grey">Đã xóa TK</span>':''}
           </div>
           <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài · ${cnt.dealsAsRequester||0} deal</div>
         </div>
       </div>
     </div>`;
   }).join('');
+  const pagination = paginationInfo('users', state.usersPage, state.usersTotalPages, state.usersTotal, state.users.length);
   const loadMore = state.usersPage < state.usersTotalPages
-    ? `<div class="load-more"><button onclick="loadUsers()">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
-  el.innerHTML = searchHtml + items + loadMore;
+    ? `<div class="load-more"><button data-action="load-more" data-target="users">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
+  el.innerHTML = searchHtml + pagination + items + loadMore;
 }
 
 async function openUserDetail(id) {
+  if (!id) return;
   showModal('Chi tiết người dùng', '<div class="loading"><div class="spinner"></div> Đang tải...</div>', '');
   const u = await api(`/admin/users/${id}`);
-  if(!u) { closeModal(); toast('Không tải được'); return; }
-  const cnt = u._count||{};
+  if (!u) { closeModal(); return; }
+  const cnt = u._count || {};
+  const history = u.adminHistory || [];
+
+  const historyHtml = history.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:14px;font-size:12px">Chưa có hành động admin nào trên user này</div>'
+    : history.map(h => {
+        const meta = h.metadata || {};
+        const summary = h.action === 'user.role'
+          ? `${esc(meta.previousRole||'?')} → ${esc(meta.newRole||'?')}`
+          : (meta.reason ? `Lý do: ${esc(meta.reason)}` : '');
+        return `<div class="history-row">
+          <span class="audit-action ${actionTone(h.action)}">${esc(h.action)}</span>
+          bởi <b>${esc(h.admin?.name||h.admin?.email||'—')}</b> ${summary}
+          <div class="meta">${fmtDate(h.createdAt)}</div>
+        </div>`;
+      }).join('');
+
   const body = `
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <div class="avatar" style="width:64px;height:64px;font-size:24px;background:${avatarBg(u.name||'U')}">${u.avatar?`<img src="${esc(u.avatar)}" onerror="this.style.display='none'"/>`:(u.name||'U')[0].toUpperCase()}</div>
+      <div class="avatar" style="width:64px;height:64px;font-size:24px;background:${avatarBg(u.name||'U')}">${u.avatar?`<img src="${esc(u.avatar)}"/>`:(u.name||'U')[0].toUpperCase()}</div>
       <div>
         <div style="font-size:16px;font-weight:700">${esc(u.name||'Không tên')}</div>
         <div style="margin-top:4px">
           ${u.role==='admin'?'<span class="chip chip-blue">Admin</span> ':''}
           ${u.isBanned?'<span class="chip chip-red">Bị khóa</span>':'<span class="chip chip-green">Hoạt động</span>'}
           ${u.isPhoneVerified?'<span class="chip chip-purple">SĐT đã xác minh</span>':''}
+          ${u.deletedAt?'<span class="chip chip-grey">Đã xóa TK</span>':''}
         </div>
       </div>
     </div>
     <div class="kv"><span class="k">Email</span><span class="v">${esc(u.email||'—')}</span></div>
     <div class="kv"><span class="k">SĐT</span><span class="v">${esc(u.phone||'—')}</span></div>
     <div class="kv"><span class="k">Bài đăng</span><span class="v">${cnt.posts||0}</span></div>
-    <div class="kv"><span class="k">Deal (gửi yêu cầu / nhận yêu cầu)</span><span class="v">${cnt.dealsAsRequester||0} / ${cnt.dealsAsOwner||0}</span></div>
+    <div class="kv"><span class="k">Deal (gửi / nhận)</span><span class="v">${cnt.dealsAsRequester||0} / ${cnt.dealsAsOwner||0}</span></div>
     <div class="kv"><span class="k">Đánh giá nhận được</span><span class="v">${cnt.reviewsReceived||0} (TB ${u.avgRating!=null?u.avgRating+'⭐':'—'})</span></div>
     <div class="kv"><span class="k">Yêu thích</span><span class="v">${cnt.favorites||0}</span></div>
-    <div class="kv"><span class="k">Bump đơn (đã trả)</span><span class="v">${u.bumpOrderCount||0} đơn · ${fmoney(u.totalSpent||0)}</span></div>
+    <div class="kv"><span class="k">Bump (đã trả)</span><span class="v">${u.bumpOrderCount||0} đơn · ${fmoneyFull(u.totalSpent||0)}</span></div>
     <div class="kv"><span class="k">Đăng ký lúc</span><span class="v">${fmtDate(u.createdAt)}</span></div>
     ${u.deletedAt?`<div class="kv"><span class="k">Đã xóa lúc</span><span class="v">${fmtDate(u.deletedAt)}</span></div>`:''}
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <div style="font-weight:700;margin-bottom:8px">Lịch sử admin action (20 gần nhất)</div>
+    ${historyHtml}
   `;
   const actions = `
     ${u.isBanned
-      ? `<button class="btn-sm btn-green" onclick="banUserFromModal('${u.id}',false)">Mở khóa</button>`
-      : `<button class="btn-sm btn-red" onclick="banUserFromModal('${u.id}',true)">Khóa tài khoản</button>`}
+      ? `<button class="btn-sm btn-green" data-action="modal-unban-user" data-id="${esc(u.id)}">Mở khóa</button>`
+      : `<button class="btn-sm btn-red" data-action="modal-ban-user" data-id="${esc(u.id)}">Khóa tài khoản</button>`}
     ${u.role==='admin'
-      ? `<button class="btn-sm btn-grey" onclick="setRoleFromModal('${u.id}','user')">Hạ quyền Admin</button>`
-      : `<button class="btn-sm btn-purple" onclick="setRoleFromModal('${u.id}','admin')">Cấp quyền Admin</button>`}
-    <button class="btn-sm btn-grey" onclick="closeModal()">Đóng</button>
+      ? `<button class="btn-sm btn-grey" data-action="modal-revoke-admin" data-id="${esc(u.id)}">Hạ quyền Admin</button>`
+      : `<button class="btn-sm btn-purple" data-action="modal-make-admin" data-id="${esc(u.id)}">Cấp quyền Admin</button>`}
+    <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>
   `;
   showModal('Chi tiết người dùng', body, actions);
 }
 
-async function banUserFromModal(id, ban) {
-  const msg = ban ? 'Khóa tài khoản này? User sẽ không thể login + không nhận message.' : 'Mở khóa tài khoản này?';
-  if(!confirm(msg)) return;
-  await api(`/admin/users/${id}/ban`, {method:'PATCH', body:JSON.stringify({isBanned:ban})});
+async function modalBanUser(id, ban) {
+  let reason = '';
+  if (ban) {
+    const r = prompt('Khóa tài khoản này?\nUser sẽ không login + email/SĐT bị blacklist.\n\nNhập lý do khóa (ghi vào audit log):');
+    if (r === null) return;
+    reason = r;
+  } else {
+    if (!confirm('Mở khóa tài khoản này?')) return;
+  }
+  await api(`/admin/users/${id}/ban`, {method:'PATCH', body: JSON.stringify({isBanned:ban, reason})});
   closeModal(); loadUsers(true); toast(ban ? 'Đã khóa tài khoản' : 'Đã mở khóa');
 }
 
-async function setRoleFromModal(id, role) {
-  const msg = role==='admin' ? 'Cấp quyền Admin cho user này? Họ sẽ truy cập được trang này.' : 'Hạ quyền Admin?';
-  if(!confirm(msg)) return;
-  await api(`/admin/users/${id}/role`, {method:'PATCH', body:JSON.stringify({role})});
+async function modalSetRole(id, role) {
+  const msg = role === 'admin' ? 'Cấp quyền Admin? User sẽ truy cập được trang quản trị này.' : 'Hạ quyền Admin?';
+  if (!confirm(msg)) return;
+  await api(`/admin/users/${id}/role`, {method:'PATCH', body: JSON.stringify({role})});
   closeModal(); loadUsers(true); toast(role==='admin'?'Đã cấp quyền Admin':'Đã hạ quyền');
 }
 
-// ── Reports ───────────────────────────────────────────────────────────────────
+// ─── Reports ──────────────────────────────────────────────────────────────────
 
-async function loadReports(reset=false) {
-  if(reset) { state.reports=[]; state.reportsPage=0; state.reportsTotalPages=1; }
+async function loadReports(reset = false) {
+  if (reset) { state.reports = []; state.reportsPage = 0; state.reportsTotalPages = 1; state.reportsTotal = 0; }
   renderReports(true);
-  const page = state.reportsPage+1;
+  const page = state.reportsPage + 1;
   const params = new URLSearchParams({page, limit:20});
-  if(state.reportsStatus) params.set('status', state.reportsStatus);
+  if (state.reportsStatus) params.set('status', state.reportsStatus);
   const data = await api(`/admin/reports?${params}`);
-  if(!data) return;
+  if (!data) return;
   state.reports.push(...(data.data||[]));
   state.reportsPage = data.meta?.page || page;
   state.reportsTotalPages = data.meta?.totalPages || 1;
+  state.reportsTotal = data.meta?.total || 0;
   renderReports(false);
 }
 
@@ -662,95 +1044,197 @@ function renderReports(loading) {
   const filterChips = `
     <div class="filter-chips">
       ${[['',`Tất cả`],['pending','Chờ xử lý'],['resolved','Đã xử lý'],['dismissed','Đã bỏ qua']].map(([k,l]) => `
-        <button class="fchip ${state.reportsStatus===k?'active':''}" onclick="state.reportsStatus='${k}';loadReports(true)">${l}</button>
+        <button class="fchip ${state.reportsStatus===k?'active':''}" data-action="set-reports-status" data-value="${k}">${l}</button>
       `).join('')}
     </div>`;
-  if(loading && state.reports.length===0) { el.innerHTML=filterChips+'<div class="loading"><div class="spinner"></div> Đang tải...</div>'; return; }
-  if(!loading && state.reports.length===0) { el.innerHTML=filterChips+'<div class="empty"><div class="empty-icon">🚩</div><p>Không có báo cáo nào</p></div>'; return; }
-  const items = state.reports.map((r,i) => {
-    const isPending = r.status==='pending';
-    return `<div class="item-card" style="${isPending?'border-color:#FCD34D':''}">
+  if (loading && state.reports.length === 0) {
+    el.innerHTML = filterChips + '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+    return;
+  }
+  if (!loading && state.reports.length === 0) {
+    el.innerHTML = filterChips + '<div class="empty"><div class="empty-icon">🚩</div><p>Không có báo cáo nào</p></div>';
+    return;
+  }
+  const items = state.reports.map((r, i) => {
+    const isPending = r.status === 'pending';
+    return `<div class="item-card" style="${isPending?'border-color:#FCD34D':''}" data-action="open-report" data-id="${esc(r.id)}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div class="title">${esc(r.post?.title||'(Bài đã xóa)')}</div>
         ${chipStatus(r.status)}
       </div>
-      <div class="meta">📌 Lý do: ${esc(r.reason||'(không ghi)')}</div>
+      <div class="meta">📌 Lý do: ${esc((r.reason||'(không ghi)').slice(0, 120))}${(r.reason||'').length>120?'…':''}</div>
       <div class="meta">👤 Báo bởi: ${esc(r.user?.name||r.user?.email||'—')} · ${fmtDate(r.createdAt)}</div>
       ${isPending?`<div class="item-actions">
-        <button class="btn-sm btn-orange" onclick="resolveReport('${r.id}',${i},'resolved')">Ẩn bài & xử lý</button>
-        <button class="btn-sm btn-grey" onclick="resolveReport('${r.id}',${i},'dismissed')">Bỏ qua</button>
+        <button class="btn-sm btn-orange" data-action="resolve-report" data-id="${esc(r.id)}" data-idx="${i}">Ẩn bài & xử lý</button>
+        <button class="btn-sm btn-grey" data-action="dismiss-report" data-id="${esc(r.id)}" data-idx="${i}">Bỏ qua</button>
       </div>`:''}
     </div>`;
   }).join('');
+  const pagination = paginationInfo('reports', state.reportsPage, state.reportsTotalPages, state.reportsTotal, state.reports.length);
   const loadMore = state.reportsPage < state.reportsTotalPages
-    ? `<div class="load-more"><button onclick="loadReports()">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
-  el.innerHTML = filterChips + items + loadMore;
+    ? `<div class="load-more"><button data-action="load-more" data-target="reports">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
+  el.innerHTML = filterChips + pagination + items + loadMore;
 }
 
 async function resolveReport(id, idx, action) {
-  await api(`/admin/reports/${id}`, {method:'PATCH', body:JSON.stringify({action})});
-  state.reports[idx].status=action; renderReports(false);
-  toast(action==='resolved' ? 'Đã xử lý & ẩn bài' : 'Đã bỏ qua báo cáo');
+  if (action === 'resolved' && !confirm('Xử lý báo cáo này? Bài sẽ bị ẩn.')) return;
+  await api(`/admin/reports/${id}`, {method:'PATCH', body: JSON.stringify({action})});
+  if (state.reports[idx]) state.reports[idx].status = action;
+  renderReports(false);
+  toast(action === 'resolved' ? 'Đã xử lý & ẩn bài' : 'Đã bỏ qua báo cáo');
 }
 
-// ── Revenue ───────────────────────────────────────────────────────────────────
+async function openReportDetail(id) {
+  showModal('Chi tiết báo cáo', '<div class="loading"><div class="spinner"></div> Đang tải...</div>', '');
+  const r = await api(`/admin/reports/${id}`);
+  if (!r) { closeModal(); return; }
+  const post = r.post || {};
+  const reporter = r.user || {};
+  const author = post.author || {};
+  const images = (post.images || []).filter(Boolean);
+  const isPending = r.status === 'pending';
 
-async function loadRevenue(reset=false) {
-  if(reset) { state.orders=[]; state.ordersPage=0; state.ordersTotalPages=1; state.revenueData=null; state.timeline=null; }
+  const body = `
+    <div class="kv"><span class="k">Trạng thái</span><span class="v">${chipStatus(r.status)}</span></div>
+    <div class="kv"><span class="k">Báo cáo lúc</span><span class="v">${fmtDate(r.createdAt)}</span></div>
+    <div class="kv"><span class="k">Lý do</span><span class="v" style="font-weight:400;text-align:left">${esc(r.reason||'(không ghi)')}</span></div>
+    <div class="kv"><span class="k">Báo bởi</span><span class="v">${esc(reporter.name||reporter.email||'—')} (${esc(reporter.email||reporter.phone||'—')})</span></div>
+    ${r.otherReportsOnSamePost > 0 ? `<div class="kv"><span class="k">⚠️ Báo cáo khác cùng bài này</span><span class="v" style="color:var(--error)">${r.otherReportsOnSamePost} báo cáo</span></div>` : ''}
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <div style="font-weight:700;margin-bottom:8px">Bài bị báo cáo</div>
+    ${images.length>0?`<div class="modal-images">${images.map(u=>`<img src="${esc(u)}"/>`).join('')}</div>`:''}
+    <div class="kv"><span class="k">Tiêu đề</span><span class="v">${esc(post.title||'(Bài đã xóa)')}</span></div>
+    <div class="kv"><span class="k">Trạng thái bài</span><span class="v">${chipStatus(post.status)}</span></div>
+    <div class="kv"><span class="k">Giá</span><span class="v">${fmoneyFull(post.price||0)}</span></div>
+    <div class="kv"><span class="k">Khu vực</span><span class="v">${esc(post.province||'')} ${post.district?'· '+esc(post.district):''}</span></div>
+    <div class="kv"><span class="k">Đăng lúc</span><span class="v">${fmtDate(post.createdAt)}</span></div>
+    <div class="kv"><span class="k">Mô tả</span><span class="v" style="font-weight:400;text-align:left">${esc(post.description||'').replace(/\n/g,'<br>')}</span></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <div style="font-weight:700;margin-bottom:8px">Người đăng bài</div>
+    <div class="kv"><span class="k">Tên</span><span class="v">${esc(author.name||'—')} ${author.role==='admin'?'<span class="chip chip-blue">Admin</span>':''} ${author.isBanned?'<span class="chip chip-red">Bị khóa</span>':''}</span></div>
+    <div class="kv"><span class="k">Email</span><span class="v">${esc(author.email||'—')}</span></div>
+  `;
+  const actions = isPending
+    ? `<button class="btn-sm btn-orange" data-action="modal-resolve-report" data-id="${esc(r.id)}">Ẩn bài & xử lý</button>
+       <button class="btn-sm btn-grey" data-action="modal-dismiss-report" data-id="${esc(r.id)}">Bỏ qua</button>
+       ${post.id?`<button class="btn-sm btn-blue" data-action="modal-view-post" data-id="${esc(post.id)}">Xem bài</button>`:''}
+       <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
+    : `${post.id?`<button class="btn-sm btn-blue" data-action="modal-view-post" data-id="${esc(post.id)}">Xem bài</button>`:''}
+       <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`;
+  showModal('Chi tiết báo cáo', body, actions);
+}
+
+async function modalResolveReport(id, action) {
+  if (action === 'resolved' && !confirm('Xử lý báo cáo này? Bài sẽ bị ẩn.')) return;
+  await api(`/admin/reports/${id}`, {method:'PATCH', body: JSON.stringify({action})});
+  closeModal(); loadReports(true);
+  toast(action === 'resolved' ? 'Đã xử lý & ẩn bài' : 'Đã bỏ qua');
+}
+
+// ─── Revenue ──────────────────────────────────────────────────────────────────
+
+async function loadRevenue(reset = false) {
+  if (reset) {
+    state.orders = []; state.ordersPage = 0; state.ordersTotalPages = 1; state.ordersTotal = 0;
+    state.revenueData = null; state.timeline = null;
+  }
   const el = document.getElementById('tab-revenue');
-  if(state.orders.length===0) el.innerHTML='<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+  if (state.orders.length === 0 && !state.revenueData) {
+    el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+  }
+  const tlParams = new URLSearchParams();
+  if (state.timelineFrom && state.timelineTo) {
+    tlParams.set('from', state.timelineFrom);
+    tlParams.set('to', state.timelineTo);
+  } else {
+    tlParams.set('days', '30');
+  }
+
   const [rev, ord, tl] = await Promise.all([
-    api('/admin/revenue'),
+    state.revenueData ? Promise.resolve(state.revenueData) : api('/admin/revenue'),
     api(`/admin/bump-orders?page=${state.ordersPage+1}&limit=20`),
-    !state.timeline ? api('/admin/revenue/timeline?days=30') : Promise.resolve(state.timeline),
+    api(`/admin/revenue/timeline?${tlParams}`),
   ]);
-  if(!rev) return;
-  state.revenueData = rev;
-  state.timeline = tl;
-  state.orders.push(...(ord?.data||[]));
-  state.ordersPage = ord?.meta?.page || 1;
-  state.ordersTotalPages = ord?.meta?.totalPages || 1;
-  state.revenueLoaded = true;
+  if (rev) state.revenueData = rev;
+  if (tl) state.timeline = tl;
+  if (ord) {
+    state.orders.push(...(ord.data||[]));
+    state.ordersPage = ord.meta?.page || 1;
+    state.ordersTotalPages = ord.meta?.totalPages || 1;
+    state.ordersTotal = ord.meta?.total || 0;
+  }
   renderRevenue();
+}
+
+async function reloadTimeline() {
+  const tlParams = new URLSearchParams();
+  if (state.timelineFrom && state.timelineTo) {
+    tlParams.set('from', state.timelineFrom); tlParams.set('to', state.timelineTo);
+  } else {
+    tlParams.set('days', '30');
+  }
+  const tl = await api(`/admin/revenue/timeline?${tlParams}`);
+  if (tl) {
+    state.timeline = tl;
+    renderRevenue();
+  }
 }
 
 function renderRevenue() {
   const el = document.getElementById('tab-revenue');
-  const rev = state.revenueData||{};
-  const tl = state.timeline||[];
+  const rev = state.revenueData || {};
+  const tl = state.timeline || [];
   const statusLabel2 = {paid:'Đã thanh toán',pending:'Chờ thanh toán',expired:'Hết hạn',cancelled:'Đã huỷ'};
   const statusColor = {paid:'chip-green',pending:'chip-orange',expired:'chip-grey',cancelled:'chip-red'};
   const pkgLabel = {'plus_3d':'Plus 3 ngày','vip_7d':'VIP 7 ngày'};
 
-  const orderRows = state.orders.map((o) => `
+  const orderRows = state.orders.map(o => `
     <div class="item-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div>
           <div class="title">${esc(o.post?.title||'—')}</div>
-          <div class="meta">${esc(o.user?.name||o.user?.email||'—')} · ${pkgLabel[o.package]||o.package} · ${fmtDate(o.createdAt)}</div>
+          <div class="meta">${esc(o.user?.name||o.user?.email||'—')} · ${pkgLabel[o.package]||esc(o.package)} · ${fmtDate(o.createdAt)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <span class="chip ${statusColor[o.status]||'chip-grey'}">${statusLabel2[o.status]||o.status}</span>
-          <div style="font-weight:700;color:#E53935;margin-top:4px">${fmoney(o.amount)}</div>
+          <span class="chip ${statusColor[o.status]||'chip-grey'}">${statusLabel2[o.status]||esc(o.status)}</span>
+          <div style="font-weight:700;color:#E53935;margin-top:4px">${fmoneyFull(o.amount)}</div>
         </div>
       </div>
     </div>`).join('');
 
+  const pagination = paginationInfo('revenue', state.ordersPage, state.ordersTotalPages, state.ordersTotal, state.orders.length);
   const loadMore = state.ordersPage < state.ordersTotalPages
-    ? `<div class="load-more"><button onclick="loadRevenue()">Tải thêm</button></div>` : '';
+    ? `<div class="load-more"><button data-action="load-more" data-target="revenue">Tải thêm</button></div>` : '';
+
+  const momHtml = rev.momPct == null ? ''
+    : (rev.momPct >= 0
+        ? `<div class="stat-sub pos">▲ ${rev.momPct}% so với tháng trước</div>`
+        : `<div class="stat-sub neg">▼ ${Math.abs(rev.momPct)}% so với tháng trước</div>`);
+
+  const isCustomRange = state.timelineFrom && state.timelineTo;
 
   el.innerHTML = `
     <div class="stats-grid">
-      <div class="stat-card"><div style="font-size:24px">💰</div><div class="stat-value" style="color:#10B981">${fmoney(rev.total)}</div><div class="stat-label">Tổng doanh thu</div></div>
-      <div class="stat-card"><div style="font-size:24px">📅</div><div class="stat-value" style="color:#F59E0B">${fmoney(rev.thisMonth)}</div><div class="stat-label">Tháng này</div></div>
-      <div class="stat-card"><div style="font-size:24px">☀️</div><div class="stat-value" style="color:#3B82F6">${fmoney(rev.today)}</div><div class="stat-label">Hôm nay</div></div>
+      <div class="stat-card"><div style="font-size:24px">💰</div><div class="stat-value" style="color:#10B981">${fmoneyFull(rev.total)}</div><div class="stat-label">Tổng doanh thu</div></div>
+      <div class="stat-card"><div style="font-size:24px">📅</div><div class="stat-value" style="color:#F59E0B">${fmoneyFull(rev.thisMonth)}</div><div class="stat-label">Tháng này</div>${momHtml}</div>
+      <div class="stat-card"><div style="font-size:24px">☀️</div><div class="stat-value" style="color:#3B82F6">${fmoneyFull(rev.today)}</div><div class="stat-label">Hôm nay</div></div>
       <div class="stat-card"><div style="font-size:24px">🚀</div><div class="stat-value" style="color:#8B5CF6">${rev.activeBoosts||0}</div><div class="stat-label">Đang boost</div></div>
     </div>
 
     <div class="chart-card">
-      <div class="section-title" style="margin-bottom:6px">
-        <span>Doanh thu 30 ngày gần nhất</span>
-        <button class="btn-sm btn-green" onclick="exportOrdersCSV()">📥 Xuất CSV</button>
+      <div class="section-title" style="margin-bottom:12px">
+        <span>Doanh thu ${isCustomRange ? `${state.timelineFrom} → ${state.timelineTo}` : '30 ngày gần nhất'}</span>
+        <button class="btn-sm btn-green" data-action="export-csv-server">📥 Xuất CSV (full)</button>
+      </div>
+      <div class="range-toolbar">
+        <button class="fchip" data-action="set-range-quick" data-value="7">7 ngày</button>
+        <button class="fchip" data-action="set-range-quick" data-value="30">30 ngày</button>
+        <button class="fchip" data-action="set-range-quick" data-value="90">90 ngày</button>
+        <button class="fchip" data-action="set-range-quick" data-value="365">1 năm</button>
+        <span style="color:var(--text3);font-size:12px">|</span>
+        <input type="date" id="range-from" value="${esc(state.timelineFrom)}"/>
+        <input type="date" id="range-to" value="${esc(state.timelineTo)}"/>
+        <button class="btn-sm btn-green" data-action="apply-range">Áp dụng</button>
       </div>
       ${renderTimelineChart(tl)}
     </div>
@@ -761,60 +1245,130 @@ function renderRevenue() {
       <div class="mini-stat"><div class="v">${rev.breakdown?.vip||0}</div><div class="l">VIP (15k)</div></div>
     </div>
     <div class="section-title" style="margin-top:20px">Đơn hàng gần nhất</div>
-    ${state.orders.length===0?'<div class="empty"><div class="empty-icon">💰</div><p>Chưa có đơn nào</p></div>':orderRows+loadMore}
+    ${state.orders.length===0?'<div class="empty"><div class="empty-icon">💰</div><p>Chưa có đơn nào</p></div>':pagination+orderRows+loadMore}
   `;
 }
 
 function renderTimelineChart(data) {
-  if(!data || data.length===0) return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có dữ liệu</div>';
+  if (!data || data.length === 0) return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có dữ liệu</div>';
   const max = Math.max(...data.map(d => d.amount), 1);
-  const w = 100; // % SVG viewBox width
-  const h = 100;
+  const w = 100, h = 100;
   const barW = w / data.length;
   return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
     <line class="chart-axis" x1="0" y1="${h}" x2="${w}" y2="${h}"/>
-    ${data.map((d,i) => {
+    ${data.map((d, i) => {
       const bh = (d.amount/max) * (h-4);
       const x = i*barW;
-      return `<rect class="chart-bar" x="${x+0.3}" y="${h-bh}" width="${barW-0.6}" height="${bh}"><title>${d.date}: ${fmoney(d.amount)}</title></rect>`;
+      return `<rect class="chart-bar" x="${x+0.3}" y="${h-bh}" width="${barW-0.6}" height="${bh}"><title>${d.date}: ${fmoneyFull(d.amount)}</title></rect>`;
     }).join('')}
   </svg>
   <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:11px;margin-top:6px">
     <span>${data[0]?.date||''}</span>
-    <span>Cao nhất: ${fmoney(max)}</span>
+    <span>Cao nhất: ${fmoneyFull(max)}</span>
     <span>${data[data.length-1]?.date||''}</span>
   </div>`;
 }
 
-function exportOrdersCSV() {
-  if(state.orders.length===0) { toast('Không có đơn để xuất'); return; }
-  const header = ['ID','Ngày','User','Email','Bài','Gói','Số tiền','Trạng thái'];
-  const rows = state.orders.map(o => [
-    o.id, fmtDate(o.createdAt), o.user?.name||'', o.user?.email||'', o.post?.title||'',
-    o.package||'', o.amount||0, o.status||'',
-  ]);
-  const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `traotay-orders-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click(); URL.revokeObjectURL(url);
-  toast(`Đã tải ${state.orders.length} đơn`);
+/// Server-side CSV export — tải hết orders trong phạm vi đã filter.
+function exportCsvServer() {
+  const params = new URLSearchParams();
+  if (state.timelineFrom) params.set('from', state.timelineFrom);
+  if (state.timelineTo) params.set('to', state.timelineTo);
+  const url = `/admin/bump-orders/export?${params}`;
+  // dùng fetch để gắn Authorization header, sau đó tạo blob download
+  toast('Đang chuẩn bị CSV...');
+  fetch(url, {headers: {'Authorization':`Bearer ${token}`}})
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    })
+    .then(blob => {
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().slice(0, 10);
+      a.href = dlUrl; a.download = `traotay-orders-${ts}.csv`;
+      a.click();
+      URL.revokeObjectURL(dlUrl);
+      toast('Đã tải CSV');
+    })
+    .catch(e => toast('Lỗi xuất CSV: ' + e.message));
 }
 
-// ── System ────────────────────────────────────────────────────────────────────
+// ─── Audit log tab ────────────────────────────────────────────────────────────
+
+async function loadAudit(reset = false) {
+  if (reset) { state.audit = []; state.auditPage = 0; state.auditTotalPages = 1; state.auditTotal = 0; }
+  renderAudit(true);
+  const params = new URLSearchParams({page: state.auditPage+1, limit:50});
+  if (state.auditTargetType) params.set('targetType', state.auditTargetType);
+  const data = await api(`/admin/audit?${params}`);
+  if (!data) return;
+  state.audit.push(...(data.data||[]));
+  state.auditPage = data.meta?.page || (state.auditPage+1);
+  state.auditTotalPages = data.meta?.totalPages || 1;
+  state.auditTotal = data.meta?.total || 0;
+  renderAudit(false);
+}
+
+function renderAudit(loading) {
+  const el = document.getElementById('tab-audit');
+  const filterChips = `
+    <div class="filter-chips">
+      ${[['','Tất cả'],['post','Bài đăng'],['user','Người dùng'],['report','Báo cáo']].map(([k,l]) => `
+        <button class="fchip ${state.auditTargetType===k?'active':''}" data-action="set-audit-target" data-value="${k}">${l}</button>
+      `).join('')}
+    </div>`;
+  if (loading && state.audit.length === 0) {
+    el.innerHTML = filterChips + '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+    return;
+  }
+  if (!loading && state.audit.length === 0) {
+    el.innerHTML = filterChips + '<div class="empty"><div class="empty-icon">📜</div><p>Chưa có hành động admin nào</p></div>';
+    return;
+  }
+  const items = state.audit.map(h => {
+    const meta = h.metadata || {};
+    let summary = '';
+    if (h.action === 'user.role') summary = ` ${esc(meta.previousRole||'?')} → ${esc(meta.newRole||'?')}`;
+    else if (h.action === 'post.delete') summary = ` "${esc(meta.title||h.targetId)}"${meta.reason?` — ${esc(meta.reason)}`:''}`;
+    else if (meta.reason) summary = ` — ${esc(meta.reason)}`;
+    const link = h.targetType === 'user'
+      ? `<a href="#" data-action="open-user" data-id="${esc(h.targetId)}" style="color:var(--info)">${esc(h.targetId.slice(0,8))}…</a>`
+      : h.targetType === 'post'
+        ? `<a href="#" data-action="open-post" data-id="${esc(h.targetId)}" style="color:var(--info)">${esc(h.targetId.slice(0,8))}…</a>`
+        : esc(h.targetId.slice(0, 12));
+    return `<div class="audit-row">
+      <span class="audit-action ${actionTone(h.action)}">${esc(h.action)}</span>
+      <b>${esc(h.admin?.name||h.admin?.email||'—')}</b>
+      → ${esc(h.targetType)} ${link}${summary}
+      <div class="meta">${fmtDate(h.createdAt)}</div>
+    </div>`;
+  }).join('');
+  const pagination = paginationInfo('audit', state.auditPage, state.auditTotalPages, state.auditTotal, state.audit.length);
+  const loadMore = state.auditPage < state.auditTotalPages
+    ? `<div class="load-more"><button data-action="load-more" data-target="audit">${loading?'Đang tải...':'Tải thêm'}</button></div>` : '';
+  el.innerHTML = filterChips + pagination + items + loadMore;
+}
+
+function actionTone(action) {
+  if (action.includes('delete') || action.includes('ban')) return 'danger';
+  if (action.includes('hide') || action.includes('resolve')) return 'warn';
+  return '';
+}
+
+// ─── System ───────────────────────────────────────────────────────────────────
 
 async function loadSystem() {
   const el = document.getElementById('tab-system');
   el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang kiểm tra...</div>';
   const data = await api('/admin/health-detail');
-  if(!data) { el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Không tải được</p></div>'; return; }
-  const checks = data.checks||{};
-  const proc = data.process||{};
-  const checkRows = Object.entries(checks).map(([k,v]) => `
+  if (!data) return;
+  const checks = data.checks || {};
+  const proc = data.process || {};
+  const checkRows = Object.entries(checks).map(([k, v]) => `
     <div class="kv">
       <span class="k">${esc(k)}</span>
-      <span class="v">${v.ok?'<span class="chip chip-green">OK</span>':'<span class="chip chip-red">FAIL</span>'} ${esc(v.info||v.error||'')}</span>
+      <span class="v">${v.ok?'<span class="chip chip-green">OK</span>':'<span class="chip chip-red">FAIL</span>'} ${v.latencyMs!=null?`<span style="color:var(--text3)">${v.latencyMs}ms</span> `:''}${esc(v.info||v.error||'')}</span>
     </div>`).join('');
   el.innerHTML = `
     <div class="section-title">Kiểm tra dịch vụ</div>
@@ -831,60 +1385,92 @@ async function loadSystem() {
 }
 
 function formatUptime(s) {
-  if(s<60) return s+'s';
-  if(s<3600) return Math.floor(s/60)+'m '+(s%60)+'s';
-  const h = Math.floor(s/3600);
-  const m = Math.floor((s%3600)/60);
-  return h+'h '+m+'m';
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm ' + (s%60) + 's';
+  if (s < 86400) return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
+  return Math.floor(s/86400) + 'd ' + Math.floor((s%86400)/3600) + 'h';
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
+// ─── Modal ────────────────────────────────────────────────────────────────────
 
 function showModal(title, body, actions) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = body;
   document.getElementById('modal-actions').innerHTML = actions;
   document.getElementById('modal').classList.add('show');
+  document.body.classList.add('modal-open');
 }
 function closeModal() {
   document.getElementById('modal').classList.remove('show');
+  document.body.classList.remove('modal-open');
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function paginationInfo(scope, page, totalPages, total, loaded) {
+  if (total === 0) return '';
+  return `<div class="pagination-info">
+    <span>Trang <strong>${page}</strong>/${totalPages} · <strong>${loaded}</strong>/${total} đã tải</span>
+    <span>${scope}</span>
+  </div>`;
+}
 
 function chipStatus(s) {
-  const map={available:['Hiển thị','chip-green'],hidden:['Ẩn','chip-grey'],done:['Xong','chip-blue'],reserved:['Đang giữ','chip-orange'],pending:['Chờ xử lý','chip-orange'],resolved:['Đã xử lý','chip-green'],dismissed:['Bỏ qua','chip-grey']};
-  const [l,c]=map[s]||[s,'chip-grey'];
-  return `<span class="chip ${c}" style="flex-shrink:0">${l}</span>`;
+  const map = {
+    available:['Hiển thị','chip-green'],
+    hidden:['Ẩn','chip-grey'],
+    done:['Xong','chip-blue'],
+    reserved:['Đang giữ','chip-orange'],
+    pending:['Chờ xử lý','chip-orange'],
+    resolved:['Đã xử lý','chip-green'],
+    dismissed:['Bỏ qua','chip-grey'],
+    deleted_by_admin:['Đã xóa bởi admin','chip-red'],
+  };
+  const [l, c] = map[s] || [s, 'chip-grey'];
+  return `<span class="chip ${c}" style="flex-shrink:0">${esc(l)}</span>`;
 }
 function statusLabel(s) {
-  const map={available:'Hiển thị',hidden:'Ẩn',done:'Đã xong',reserved:'Đang giữ'};
-  return map[s]||s;
+  const map = {
+    available:'Hiển thị', hidden:'Ẩn', done:'Đã xong', reserved:'Đang giữ',
+    deleted_by_admin:'Đã xóa',
+  };
+  return map[s] || s;
 }
 function fmoney(n) {
-  n = n||0;
-  if(n>=1000000) return (n/1000000).toFixed(1)+'tr';
-  if(n>=1000) return Math.round(n/1000)+'k';
-  return n+'đ';
+  n = n || 0;
+  if (n >= 1_000_000) return (n/1_000_000).toFixed(1) + 'tr';
+  if (n >= 1_000) return Math.round(n/1_000) + 'k';
+  return n + 'đ';
+}
+function fmoneyFull(n) {
+  n = n || 0;
+  return n.toLocaleString('vi-VN') + 'đ';
 }
 function fmtDate(s) {
-  if(!s) return '—';
+  if (!s) return '—';
   const d = new Date(s);
   return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
 }
-function esc(s){ const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML; }
-function showErr(id,msg){ const el=document.getElementById(id);el.textContent=msg;el.style.display=msg?'block':'none'; }
-function toast(msg){ const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500); }
-function avatarBg(name) {
-  const colors=['#26A69A','#42A5F5','#EF5350','#AB47BC','#FF7043','#66BB6A','#EC407A','#5C6BC0'];
-  return colors[name.charCodeAt(0)%colors.length];
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
 }
-
-// ESC closes modal
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
-
-// ── Startup ───────────────────────────────────────────────────────────────────
-if(token) initApp();
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+function avatarBg(name) {
+  const colors = ['#26A69A','#42A5F5','#EF5350','#AB47BC','#FF7043','#66BB6A','#EC407A','#5C6BC0'];
+  return colors[(name || 'U').charCodeAt(0) % colors.length];
+}
 </script>
 </body>
 </html>

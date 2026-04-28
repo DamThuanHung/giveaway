@@ -39,6 +39,7 @@ model User {
   reviewsGiven     Review[]       @relation("ReviewGiven")
   keywordAlerts    KeywordAlert[]
   bumpOrders       BumpOrder[]
+  adminActions     AdminActionLog[] @relation("AdminActionLog_admin")
 }
 
 model Post {
@@ -251,4 +252,19 @@ model BannedIdentity {
   email     String?  @unique
   phone     String?  @unique
   createdAt DateTime @default(now())
+}
+
+model AdminActionLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String   // post.hide, post.unhide, post.delete, user.ban, user.unban, user.role, report.resolve, report.dismiss, post.softdelete
+  targetType String   // post | user | report
+  targetId   String
+  metadata   Json?    // {oldRole, newRole, reason, isBanned, ...}
+  createdAt  DateTime @default(now())
+  admin      User     @relation("AdminActionLog_admin", fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }
