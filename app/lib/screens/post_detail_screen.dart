@@ -6,6 +6,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../data/categories.dart';
 import '../models/post.dart';
 import '../services/api_service.dart';
 import '../services/analytics.dart';
@@ -68,6 +69,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (_post.authorId == null) return;
     final isFollowing = await ApiService.getFollowStatus(_post.authorId!);
     if (mounted) setState(() => _isFollowingSeller = isFollowing);
+  }
+
+  /// Mở UserProfileScreen + refresh follow state khi quay về.
+  /// Fix bug: user follow trong profile → quay lại post detail vẫn thấy "Theo dõi"
+  /// vì post_detail chỉ check follow status 1 lần ở init.
+  Future<void> _openSellerProfile() async {
+    if (_post.authorId == null) return;
+    await Navigator.push(context, MaterialPageRoute(
+      builder: (_) => UserProfileScreen(
+        userId: _post.authorId!,
+        userName: _post.authorName,
+      ),
+    ));
+    if (mounted) _checkFollowStatus();
   }
 
   Future<void> _toggleFollowSeller() async {
@@ -699,7 +714,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     _StatusBadge(status: _post.status, label: _post.statusLabel),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
+                // Category chip — user cần biết bài đang ở danh mục nào
+                if (_post.itemCategory.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            AppCategories.iconOf(_post.itemCategory),
+                            width: 14, height: 14,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.category_outlined, size: 14, color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            AppCategories.labelOf(_post.itemCategory),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -842,14 +891,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const Text('Người đăng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: _post.authorId != null
-                      ? () => Navigator.push(context, MaterialPageRoute(
-                            builder: (_) => UserProfileScreen(
-                              userId: _post.authorId!,
-                              userName: _post.authorName,
-                            ),
-                          ))
-                      : null,
+                  onTap: _post.authorId != null ? _openSellerProfile : null,
                   child: Row(
                     children: [
                       Builder(builder: (_) {
@@ -933,12 +975,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ),
                         if (_sellerPosts.length > 3 && _post.authorId != null)
                           GestureDetector(
-                            onTap: () => Navigator.push(context, MaterialPageRoute(
-                              builder: (_) => UserProfileScreen(
-                                userId: _post.authorId!,
-                                userName: _post.authorName,
-                              ),
-                            )),
+                            onTap: _openSellerProfile,
                             child: const Text('Xem tất cả', style: TextStyle(
                               fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w500,
                             )),

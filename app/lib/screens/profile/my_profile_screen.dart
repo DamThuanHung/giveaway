@@ -239,9 +239,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       final email = (_trustData?['email'] as String?) ?? '';
       final hasEmail = email.isNotEmpty;
       final hasPhone = phone.isNotEmpty;
-      // Lấy từ _trustData (DB tươi) thay vì auth cache để subtitle update ngay
-      // sau khi user vừa liên kết email/SĐT trong cùng session.
-      final subtitle = hasEmail ? email : phone;
 
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -289,8 +286,26 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (subtitle.isNotEmpty)
-                    Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary)),
+                  // Hiện CẢ email + phone (nếu có), mỗi cái 1 dòng kèm icon nhỏ.
+                  // Trước đây chỉ hiện 1 → user nghĩ thiếu thông tin.
+                  if (hasPhone)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.phone_outlined, size: 14, color: AppTheme.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(phone, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                      ]),
+                    ),
+                  if (hasEmail)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.email_outlined, size: 14, color: AppTheme.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(email, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                      ]),
+                    ),
                 ],
               ),
             ),

@@ -1,10 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../data/categories.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
+import '../../services/image_compress.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_image.dart';
 import '../../widgets/category_picker_sheet.dart';
+import '../../widgets/image_source_picker.dart';
 
 class EditPostScreen extends StatefulWidget {
   final Post post;
@@ -26,6 +31,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
   late String _subType;     // jobs: job type | realestate: rent/sell
   late String _priceUnit;   // jobs/realestate/service: đơn vị giá
   bool _isSubmitting = false;
+
+  /// Ảnh hiện có trong DB (URL string). User có thể xoá → list giảm.
+  late List<String> _existingImages;
+
+  /// Ảnh user vừa pick nhưng chưa upload. Submit sẽ upload từng ảnh.
+  final List<XFile> _newImages = [];
+
+  static const _maxImages = 10;
 
   static const _listingTypes = [
     ('sell', 'Bán thanh lý'),
@@ -56,6 +69,41 @@ class _EditPostScreenState extends State<EditPostScreen> {
     _status       = p.status;
     _subType      = p.subType ?? (p.isJob ? 'full-time' : 'rent');
     _priceUnit    = p.priceUnit ?? 'month';
+    _existingImages = List<String>.from(p.images ?? const []);
+  }
+
+  int get _totalImages => _existingImages.length + _newImages.length;
+
+  Future<void> _pickImage() async {
+    if (_totalImages >= _maxImages) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tối đa $_maxImages ảnh'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    final source = await showImageSourceSheet(context);
+    if (source == null || !mounted) return;
+    final picker = ImagePicker();
+    final remaining = _maxImages - _totalImages;
+    final List<XFile> picked;
+    if (source == ImageSource.camera) {
+      final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+      picked = f == null ? [] : [f];
+    } else {
+      picked = await picker.pickMultiImage(imageQuality: 85, limit: remaining);
+    }
+    if (picked.isEmpty || !mounted) return;
+    final compressed = await ImageCompress.compressBatch(picked.take(remaining).toList());
+    if (!mounted) return;
+    setState(() => _newImages.addAll(compressed));
+  }
+
+  void _removeExisting(int idx) {
+    setState(() => _existingImages.removeAt(idx));
+  }
+
+  void _removeNew(int idx) {
+    setState(() => _newImages.removeAt(idx));
   }
 
   @override
@@ -69,7 +117,30 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_totalImages == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bài đăng phải có ít nhất 1 ảnh'), behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
+
+    // Upload tuần tự ảnh mới → lấy URL. Nếu fail → abort, giữ form.
+    final newUrls = <String>[];
+    for (final f in _newImages) {
+      final url = await ApiService.uploadPostImage(f.path);
+      if (url == null) {
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tải ảnh thất bại. Vui lòng thử lại.'), backgroundColor: AppTheme.error),
+        );
+        return;
+      }
+      newUrls.add(url);
+    }
+
+    final finalImages = [..._existingImages, ...newUrls];
 
     final data = <String, dynamic>{
       'title':       _titleCtrl.text.trim(),
@@ -78,6 +149,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       'listingType': (_isJob || _isRealestate) ? 'sell' : _listingType,
       'itemCategory': _itemCategory,
       'status':      _status,
+      'images':      finalImages,
       if (_isJob) ...{
         'postType':   'job',
         'subType':    _subType,
@@ -133,6 +205,45 @@ class _EditPostScreenState extends State<EditPostScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Ảnh — row scroll horizontal với nút xoá + thêm
+              _Label('Ảnh ($_totalImages/$_maxImages)'),
+              SizedBox(
+                height: 96,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    // Existing images (URLs)
+                    ..._existingImages.asMap().entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _ImageTile(
+                        child: AppImage(url: e.value, fit: BoxFit.cover),
+                        onRemove: () => _removeExisting(e.key),
+                      ),
+                    )),
+                    // New images (XFile local)
+                    ..._newImages.asMap().entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _ImageTile(
+                        child: Image.file(
+                          File(e.value.path),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const ColoredBox(
+                            color: AppTheme.background,
+                            child: Center(child: Icon(Icons.broken_image_outlined, color: AppTheme.textSecondary)),
+                          ),
+                        ),
+                        onRemove: () => _removeNew(e.key),
+                        isNew: true,
+                      ),
+                    )),
+                    // Add button
+                    if (_totalImages < _maxImages)
+                      _AddImageButton(onTap: _pickImage),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Tiêu đề
               const _Label('Tiêu đề *'),
               TextFormField(
@@ -392,4 +503,80 @@ class _DropdownField<T> extends StatelessWidget {
       child: DropdownButton<T>(value: value, items: items, onChanged: onChanged, isExpanded: true),
     ),
   );
+}
+
+class _ImageTile extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onRemove;
+  final bool isNew;
+  const _ImageTile({required this.child, required this.onRemove, this.isNew = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96, height: 96,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(width: 96, height: 96, child: child),
+          ),
+          if (isNew)
+            Positioned(
+              left: 4, bottom: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Mới', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          Positioned(
+            top: 2, right: 2,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddImageButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddImageButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 96, height: 96,
+        decoration: BoxDecoration(
+          color: AppTheme.background,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.border, style: BorderStyle.solid, width: 1.5),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_a_photo_outlined, color: AppTheme.primary, size: 28),
+            SizedBox(height: 4),
+            Text('Thêm ảnh', style: TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -108,17 +108,44 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   /// Bay map đến vị trí GPS hiện tại của user. Dùng cho FAB "Vị trí của tôi".
   Future<void> _moveToMyLocation() async {
     try {
+      // Check service GPS có bật không (user có thể tắt trong cài đặt nhanh)
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!mounted) return;
+      if (!serviceEnabled) {
+        await _showPermissionDialog(
+          title: 'Định vị đang TẮT',
+          message: 'Vui lòng bật Định vị (GPS) trong cài đặt nhanh hoặc Cài đặt → Vị trí.',
+          openLocationSettings: true,
+        );
+        return;
+      }
+
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
       if (!mounted) return;
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng cấp quyền vị trí trong Cài đặt')),
+
+      if (perm == LocationPermission.deniedForever) {
+        // User đã chọn "Don't ask again" → không thể request thêm, chỉ vào Settings
+        await _showPermissionDialog(
+          title: 'Cần quyền vị trí',
+          message: 'Bạn đã từ chối quyền vị trí vĩnh viễn. Mở Cài đặt → Quyền → Vị trí và bật cho Trao Tay.',
+          openAppSettings: true,
         );
         return;
       }
+      if (perm == LocationPermission.denied) {
+        // User vừa từ chối → giải thích lý do cần quyền
+        await _showPermissionDialog(
+          title: 'Trao Tay cần quyền vị trí',
+          message: 'Để tự động ghim vị trí món đồ, app cần truy cập GPS của bạn. Vui lòng cấp quyền.',
+          retry: _moveToMyLocation,
+        );
+        return;
+      }
+
+      // Có quyền + GPS bật → lấy vị trí
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       ).timeout(const Duration(seconds: 8));
@@ -132,6 +159,52 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         SnackBar(content: Text('Không lấy được vị trí: ${e.toString()}')),
       );
     }
+  }
+
+  /// Dialog yêu cầu quyền vị trí với CTA rõ ràng. Tuỳ tham số:
+  /// - [openAppSettings]: mở Cài đặt → Quyền của app (cho deniedForever).
+  /// - [openLocationSettings]: mở Cài đặt → Vị trí hệ thống (cho GPS off).
+  /// - [retry]: callback để thử lại sau khi user cấp quyền.
+  Future<void> _showPermissionDialog({
+    required String title,
+    required String message,
+    bool openAppSettings = false,
+    bool openLocationSettings = false,
+    Future<void> Function()? retry,
+  }) async {
+    return showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Huỷ'),
+          ),
+          if (retry != null)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                retry();
+              },
+              child: const Text('Thử lại'),
+            )
+          else
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                if (openAppSettings) {
+                  await Geolocator.openAppSettings();
+                } else if (openLocationSettings) {
+                  await Geolocator.openLocationSettings();
+                }
+              },
+              child: const Text('Mở Cài đặt'),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openProvinceSheet() async {

@@ -259,6 +259,18 @@ export class PostService {
     if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
     if (post.authorId !== userId) throw new ForbiddenException('Không có quyền sửa bài này');
 
+    // Validate images: array of URLs, mỗi URL ≤ 500 chars, max 10 ảnh.
+    let imagesPayload: string[] | undefined;
+    if (Array.isArray(data.images)) {
+      const filtered: string[] = (data.images as any[])
+        .filter((u: any) => typeof u === 'string' && u.length > 0 && u.length <= 500)
+        .slice(0, 10);
+      if (filtered.length === 0) {
+        throw new BadRequestException('Bài đăng phải có ít nhất 1 ảnh');
+      }
+      imagesPayload = filtered;
+    }
+
     return this.prisma.post.update({
       where: { id },
       data: {
@@ -271,6 +283,12 @@ export class PostService {
         ...(data.addressDetail && { addressDetail: String(data.addressDetail).slice(0, 200) }),
         ...(data.listingType && VALID_LISTING_TYPES.includes(data.listingType) && { listingType: data.listingType }),
         ...(data.itemCategory && VALID_ITEM_CATEGORIES.includes(data.itemCategory) && { itemCategory: data.itemCategory }),
+        // Sửa ảnh: nhận full list URLs từ client (existing giữ + new đã upload xong).
+        // Set imageLabel = ảnh đầu tiên cho compatibility với code cũ build URL từ label.
+        ...(imagesPayload !== undefined ? {
+          images: imagesPayload,
+          imageLabel: imagesPayload[0],
+        } : {}),
         // status update phải qua endpoint /status riêng (deal state machine có thể phụ thuộc)
       },
     }).then(formatPost);

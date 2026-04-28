@@ -199,14 +199,20 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
                               onTap: () => setState(() => _selected = region['all'] as String),
                             ),
                             const Divider(height: 1, indent: 56),
-                            for (final p in region['provinces'] as List<String>) ...[
+                            // Sort A-Z theo tiếng Việt — user dễ scan tìm tỉnh.
+                            // Trước đây list theo thứ tự địa lý (cố định trong _regions)
+                            // làm user phải scroll qua tỉnh không liên quan.
+                            for (final p in (() {
+                              final list = List<String>.from(region['provinces'] as List<String>);
+                              list.sort((a, b) => a.compareTo(b));
+                              return list;
+                            })()) ...[
                               _buildRadioRow(
                                 label: p,
                                 value: p,
                                 onTap: () => setState(() => _selected = p),
                               ),
-                              if (p != (region['provinces'] as List<String>).last)
-                                const Divider(height: 1, indent: 56),
+                              const Divider(height: 1, indent: 56),
                             ],
                           ],
                           const SizedBox(height: 16),

@@ -1,9 +1,9 @@
 import {
   BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post,
-  Query, Request, UploadedFiles, UseGuards, UseInterceptors,
+  Query, Request, UploadedFile, UploadedFiles, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
@@ -91,6 +91,26 @@ export class PostController {
   @UseGuards(JwtAuthGuard)
   updatePost(@Param('id') id: string, @Request() req, @Body() body: any) {
     return this.postService.updatePost(id, req.user.id, body);
+  }
+
+  /// Upload 1 ảnh cho post — trả URL public. Dùng khi user thêm ảnh mới
+  /// trong màn Sửa bài đăng (edit). Frontend sau đó gọi PATCH /post/:id với
+  /// body.images = [URLs cũ giữ + URL mới upload].
+  @Post('upload-image')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @UseInterceptors(FileInterceptor('image', {
+    storage: memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
+  async uploadPostImage(@UploadedFile() file: any) {
+    if (!file || !file.buffer) throw new BadRequestException('Thiếu file');
+    try {
+      const url = await this.cloudinaryService.uploadBuffer(file.buffer, 'traotay/posts', file.mimetype);
+      return { url };
+    } catch (e: any) {
+      throw new BadRequestException(`Upload thất bại: ${e?.message ?? 'unknown'}`);
+    }
   }
 
   @Patch(':id/status')

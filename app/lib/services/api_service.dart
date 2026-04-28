@@ -258,6 +258,26 @@ class ApiService {
     }
   }
 
+  /// Upload 1 ảnh cho post (dùng khi sửa bài, thêm ảnh mới). Trả URL public.
+  /// Folder MinIO: `traotay/posts`. Auth bắt buộc.
+  static Future<String?> uploadPostImage(String filePath) async {
+    try {
+      final headers = await _authHeaders();
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/post/upload-image'));
+      request.headers.addAll(headers);
+      request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      final streamed = await request.send().timeout(const Duration(seconds: 30));
+      final res = await http.Response.fromStream(streamed);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = jsonDecode(res.body);
+        return data['url']?.toString();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Upload ảnh chat. Trả về URL public của ảnh trên MinIO, hoặc null nếu lỗi.
   /// Frontend sau đó emit WS `sendMessage` với imageUrl set.
   static Future<String?> uploadChatImage(String filePath) async {
