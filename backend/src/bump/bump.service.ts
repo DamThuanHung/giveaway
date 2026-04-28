@@ -232,6 +232,66 @@ export class BumpService {
     };
   }
 
+  // ── Cron: verify pending orders với PayOS API ─────────────────────────────
+  // Webhook PayOS có thể fail nếu backend đang restart hoặc network glitch.
+  // Tự poll PayOS API mỗi 5 phút: với mỗi pending order > 2 phút, hỏi PayOS
+  // status thực tế. Nếu đã PAID → mark + boost (giống logic handleWebhook).
+  //
+  // Tránh lặp lại bug Meow Meow 2026-04-28: user trả tiền lúc backend restart
+  // → 4 webhook miss → đơn pending mãi → admin phải fix tay.
+  async verifyPendingOrders(): Promise<{ checked: number; recovered: number }> {
+    // Chỉ check order > 2 phút (cho user thời gian thanh toán bình thường) +
+    // < 30 phút (sau đó cancelStalePending sẽ huỷ).
+    const minAge = new Date(Date.now() - 2 * 60 * 1000);
+    const maxAge = new Date(Date.now() - 30 * 60 * 1000);
+    const pending = await this.prisma.bumpOrder.findMany({
+      where: {
+        status: 'pending',
+        createdAt: { lt: minAge, gt: maxAge },
+        payosOrderId: { not: null },
+      },
+      take: 50,
+      orderBy: { createdAt: 'asc' },
+    });
+
+    let recovered = 0;
+    for (const order of pending) {
+      try {
+        const orderCodeNum = Number(order.payosOrderId);
+        if (!orderCodeNum) continue;
+        const info = await this.paymentRequests.get(orderCodeNum);
+        if (info.status !== 'PAID') continue;
+        // Verify amount khớp DB (chống PayOS data lỗi)
+        if (info.amountPaid !== order.amount) {
+          this.logger.warn(
+            `[Cron verify] Amount mismatch order=${order.id}: PayOS=${info.amountPaid} vs DB=${order.amount}, skip`,
+          );
+          continue;
+        }
+        const config = BUMP_PACKAGES[order.package as BumpPackageKey];
+        const expiredAt = new Date(Date.now() + config.days * 24 * 60 * 60 * 1000);
+        await this.prisma.$transaction([
+          this.prisma.bumpOrder.update({
+            where: { id: order.id },
+            data: { status: 'paid', expiredAt },
+          }),
+          this.prisma.post.update({
+            where: { id: order.postId },
+            data: { boostTier: order.tier, bumpedAt: new Date() },
+          }),
+        ]);
+        recovered++;
+        this.logger.log(
+          `[Cron verify] Recovered missed webhook: order=${order.id} payosOrderId=${order.payosOrderId} tier=${order.tier} amount=${order.amount}`,
+        );
+      } catch (err) {
+        // Không throw — tiếp tục check các order khác.
+        this.logger.warn(`[Cron verify] Error checking order=${order.id}: ${(err as Error).message}`);
+      }
+    }
+    return { checked: pending.length, recovered };
+  }
+
   // ── Cron: huỷ pending orders cũ hơn 30 phút ──────────────────────────────
   // User tạo đơn nhưng không thanh toán → pending rác trong DB.
   // PayOS không tự gửi webhook cancel → phải tự dọn.

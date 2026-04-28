@@ -14,6 +14,18 @@ export class BumpCronService {
     if (count > 0) this.logger.log(`Reset ${count} expired boost orders`);
   }
 
+  // Mỗi 5 phút: verify pending orders với PayOS API (chống miss webhook).
+  // Nếu PayOS confirm PAID → tự mark + boost mà không cần webhook.
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async verifyPendingOrders() {
+    const result = await this.bump.verifyPendingOrders();
+    if (result.recovered > 0) {
+      this.logger.log(
+        `[Cron] Verify pending orders: recovered ${result.recovered}/${result.checked}`,
+      );
+    }
+  }
+
   // Mỗi 30 phút: huỷ pending orders cũ hơn 30 phút (user bỏ ngang)
   @Cron(CronExpression.EVERY_30_MINUTES)
   async cancelStalePending() {
