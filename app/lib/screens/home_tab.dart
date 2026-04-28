@@ -64,25 +64,21 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   List<Post> _followFeed = [];
   bool _followFeedLoading = false;
 
+  // Cập nhật theo Nghị quyết 202/2025/QH15 — 34 đơn vị hành chính cấp tỉnh.
   static const _regionProvinces = {
     'Toàn miền Bắc': [
-      'Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Hải Dương', 'Hưng Yên',
-      'Thái Bình', 'Nam Định', 'Ninh Bình', 'Hà Nam', 'Bắc Ninh',
-      'Vĩnh Phúc', 'Phú Thọ', 'Thái Nguyên', 'Bắc Giang', 'Lạng Sơn',
-      'Cao Bằng', 'Bắc Kạn', 'Tuyên Quang', 'Hà Giang', 'Yên Bái',
-      'Lào Cai', 'Điện Biên', 'Lai Châu', 'Sơn La', 'Hòa Bình',
+      'Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Hưng Yên', 'Ninh Bình',
+      'Bắc Ninh', 'Phú Thọ', 'Thái Nguyên', 'Lạng Sơn', 'Cao Bằng',
+      'Tuyên Quang', 'Lào Cai', 'Điện Biên', 'Lai Châu', 'Sơn La',
     ],
     'Toàn miền Trung': [
-      'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Bình', 'Quảng Trị',
-      'Thừa Thiên Huế', 'Đà Nẵng', 'Quảng Nam', 'Quảng Ngãi', 'Bình Định',
-      'Phú Yên', 'Khánh Hòa', 'Ninh Thuận', 'Bình Thuận',
-      'Kon Tum', 'Gia Lai', 'Đắk Lắk', 'Đắk Nông', 'Lâm Đồng',
+      'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Trị', 'Huế',
+      'Đà Nẵng', 'Quảng Ngãi', 'Khánh Hòa', 'Lâm Đồng',
+      'Gia Lai', 'Đắk Lắk',
     ],
     'Toàn miền Nam': [
-      'TP. Hồ Chí Minh', 'Bình Dương', 'Đồng Nai', 'Bà Rịa - Vũng Tàu',
-      'Tây Ninh', 'Bình Phước', 'Long An', 'Tiền Giang', 'Bến Tre',
-      'Trà Vinh', 'Vĩnh Long', 'Đồng Tháp', 'An Giang', 'Kiên Giang',
-      'Cần Thơ', 'Hậu Giang', 'Sóc Trăng', 'Bạc Liêu', 'Cà Mau',
+      'TP. Hồ Chí Minh', 'Đồng Nai', 'Tây Ninh', 'Vĩnh Long',
+      'Đồng Tháp', 'An Giang', 'Cần Thơ', 'Cà Mau',
     ],
   };
 
@@ -117,8 +113,11 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final addr = data['address'] as Map<String, dynamic>? ?? {};
-      final province = (addr['city'] ?? addr['state'] ?? '').toString().trim();
-      if (province.isEmpty) return;
+      final rawProvince = (addr['city'] ?? addr['state'] ?? '').toString().trim();
+      if (rawProvince.isEmpty) return;
+
+      // Map tỉnh cũ (Nominatim có thể trả về tên cũ) → tên mới sau sáp nhập.
+      final province = AppProvinces.normalize(rawProvince);
 
       String normalize(String s) => s
           .toLowerCase()
