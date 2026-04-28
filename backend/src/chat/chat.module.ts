@@ -7,6 +7,7 @@ import { ChatService } from './chat.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtStrategy } from '../auth/jwt.strategy';
 import { NotificationModule } from '../notification/notification.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { NotificationModule } from '../notification/notification.module';
     // chung với gateway — nếu khai báo riêng trong providers, sẽ tạo instance độc
     // lập không có gateway → realtime badge unread không fire.
     NotificationModule,
+    // CloudinaryModule cho upload ảnh trong chat (POST /chat/upload-image).
+    CloudinaryModule,
   ],
   controllers: [ChatController],
   providers: [ChatGateway, ChatService, PrismaService, JwtStrategy],

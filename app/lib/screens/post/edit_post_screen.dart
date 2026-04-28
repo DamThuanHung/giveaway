@@ -4,6 +4,7 @@ import '../../data/categories.dart';
 import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/category_picker_sheet.dart';
 
 class EditPostScreen extends StatefulWidget {
   final Post post;
@@ -154,16 +155,46 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Danh mục
+              // Danh mục — tap mở grid 3 cột (đồng nhất với create_post_tab)
               const _Label('Danh mục'),
-              _DropdownField<String>(
-                value: _itemCategory,
-                items: _categories.map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2))).toList(),
-                onChanged: (v) => setState(() {
-                  _itemCategory = v!;
-                  if (v == 'jobs') { _subType = 'full-time'; _priceUnit = 'month'; }
-                  else if (v == 'realestate') { _subType = 'rent'; _priceUnit = 'month'; }
-                }),
+              InkWell(
+                onTap: () async {
+                  final picked = await CategoryPickerSheet.show(context, selected: _itemCategory);
+                  if (picked == null) return;
+                  setState(() {
+                    _itemCategory = picked;
+                    if (picked == 'jobs') { _subType = 'full-time'; _priceUnit = 'month'; }
+                    else if (picked == 'realestate') { _subType = 'rent'; _priceUnit = 'month'; }
+                  });
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        AppCategories.iconOf(_itemCategory),
+                        width: 22, height: 22,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.category_outlined, size: 22, color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          AppCategories.labelOf(_itemCategory),
+                          style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
+                        ),
+                      ),
+                      const Icon(Icons.keyboard_arrow_down, color: AppTheme.textSecondary),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
 

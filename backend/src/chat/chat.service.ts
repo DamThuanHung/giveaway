@@ -84,10 +84,18 @@ export class ChatService {
     }));
   }
 
-  async sendMessage(roomId: string, senderId: string, text: string) {
+  /// Gửi text message hoặc image message.
+  /// - Text-only: pass `text`, để `imageUrl` undefined.
+  /// - Image: pass `imageUrl` (URL từ MinIO sau khi upload qua POST /chat/upload-image).
+  ///   `text` có thể rỗng hoặc caption ngắn. Metadata được set thành JSON `{type:"image",url:"..."}`
+  ///   để client biết render bubble dạng image thay vì text.
+  async sendMessage(roomId: string, senderId: string, text: string, imageUrl?: string) {
+    const metadata = imageUrl
+      ? JSON.stringify({ type: 'image', url: imageUrl })
+      : null;
     const [message, room] = await Promise.all([
       this.prisma.message.create({
-        data: { roomId, senderId, text },
+        data: { roomId, senderId, text, metadata },
         include: { sender: { select: { id: true, name: true, avatar: true } } },
       }),
       this.prisma.chatRoom.update({
@@ -102,9 +110,10 @@ export class ChatService {
     const senderName = (message.sender as any)?.name ?? 'Ai đó';
     const postTitle = (room as any).post?.title ?? '';
     const postImageLabel = (room as any).post?.imageLabel ?? '';
+    const previewText = imageUrl ? '🖼️ [Hình ảnh]' : text;
     const notifBody = postTitle
-      ? `Bạn nhận được tin nhắn mới từ "${senderName}" về bài viết "${postTitle}"`
-      : `Bạn nhận được tin nhắn mới từ "${senderName}"`;
+      ? `Tin nhắn mới từ "${senderName}" về "${postTitle}": ${previewText}`
+      : `Tin nhắn mới từ "${senderName}": ${previewText}`;
     await this.notificationService.createNotification(
       recipientId,
       'chat',

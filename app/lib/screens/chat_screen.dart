@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../providers/auth_provider.dart';
@@ -233,6 +235,65 @@ class _ChatScreenState extends State<ChatScreen> {
     _msgCtrl.clear();
   }
 
+  /// Pick ảnh từ gallery → upload qua MinIO → emit message với imageUrl.
+  /// Trong chợ đồ cũ, người mua thường yêu cầu "ảnh thực tế" của sản phẩm —
+  /// quick reply có sẵn gợi ý này nhưng trước đây user không có cách gửi ảnh
+  /// trong chat → phải chuyển sang Zalo (mất user).
+  Future<void> _pickAndSendImage() async {
+    if (_myId == null) return;
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1600,
+    );
+    if (picked == null || !mounted) return;
+
+    // Hiện loading bubble tạm thời với placeholder local
+    setState(() {
+      _messages.add({
+        'text': '',
+        'senderId': _myId,
+        'metadata': '{"type":"image","url":"_uploading_"}',
+        'createdAt': DateTime.now().toIso8601String(),
+        '_uploading': true,
+      });
+    });
+    _scrollToBottom();
+
+    final url = await ApiService.uploadChatImage(picked.path);
+    if (!mounted) return;
+    if (url == null) {
+      setState(() {
+        _messages.removeWhere((m) => m['_uploading'] == true);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không gửi được ảnh, vui lòng thử lại')),
+      );
+      return;
+    }
+
+    _socket?.emit('sendMessage', {
+      'roomId': widget.roomId,
+      'text': '',
+      'imageUrl': url,
+    });
+    Analytics.chatMessageSend(roomId: widget.roomId);
+
+    // Replace placeholder bằng message thật với URL
+    setState(() {
+      final idx = _messages.indexWhere((m) => m['_uploading'] == true);
+      if (idx >= 0) {
+        _messages[idx] = {
+          'text': '',
+          'senderId': _myId,
+          'metadata': '{"type":"image","url":"$url"}',
+          'createdAt': DateTime.now().toIso8601String(),
+        };
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -351,6 +412,7 @@ class _ChatScreenState extends State<ChatScreen> {
             controller: _msgCtrl,
             onSend: _sendMessage,
             onChanged: _onTextChanged,
+            onPickImage: _pickAndSendImage,
             quickReplies: (!_isLoading && _messages.isEmpty) ? _quickReplies() : const [],
           ),
         ],
@@ -385,32 +447,95 @@ class _MessageBubble extends StatelessWidget {
   final bool showRead;
   const _MessageBubble({required this.message, required this.isMe, this.showRead = false});
 
+  /// Parse metadata JSON nếu có. Trả về null nếu không phải image message.
+  String? _imageUrlFromMeta() {
+    final meta = message['metadata'];
+    if (meta is! String || meta.isEmpty || !meta.contains('"image"')) return null;
+    try {
+      final parsed = jsonDecode(meta) as Map<String, dynamic>;
+      if (parsed['type'] == 'image' && parsed['url'] is String) {
+        return parsed['url'] as String;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final imageUrl = _imageUrlFromMeta();
+    final hasText = (message['text'] as String? ?? '').isNotEmpty;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-            decoration: BoxDecoration(
-              color: isMe ? AppTheme.primary : Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(16),
-                topRight: const Radius.circular(16),
-                bottomLeft: Radius.circular(isMe ? 16 : 4),
-                bottomRight: Radius.circular(isMe ? 4 : 16),
+          // Image bubble: render fullwidth ảnh, optional text caption bên dưới
+          if (imageUrl != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 2),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.6),
+              child: ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isMe ? 16 : 4),
+                  bottomRight: Radius.circular(isMe ? 4 : 16),
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        backgroundColor: Colors.black,
+                        appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+                        body: Center(
+                          child: PhotoView(imageProvider: NetworkImage(imageUrl)),
+                        ),
+                      ),
+                    ));
+                  },
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (_, child, progress) => progress == null
+                        ? child
+                        : Container(
+                            width: 160, height: 160,
+                            color: AppTheme.background,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 160, height: 160,
+                      color: AppTheme.background,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.broken_image_outlined, color: AppTheme.textSecondary),
+                    ),
+                  ),
+                ),
               ),
-              border: isMe ? null : Border.all(color: AppTheme.border),
             ),
-            child: Text(
-              message['text'] ?? '',
-              style: TextStyle(color: isMe ? Colors.white : AppTheme.textPrimary, fontSize: 14),
+          // Text bubble (nếu có): cùng image hoặc đứng riêng
+          if (hasText)
+            Container(
+              margin: const EdgeInsets.only(bottom: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+              decoration: BoxDecoration(
+                color: isMe ? AppTheme.primary : Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isMe ? 16 : 4),
+                  bottomRight: Radius.circular(isMe ? 4 : 16),
+                ),
+                border: isMe ? null : Border.all(color: AppTheme.border),
+              ),
+              child: Text(
+                message['text'] ?? '',
+                style: TextStyle(color: isMe ? Colors.white : AppTheme.textPrimary, fontSize: 14),
+              ),
             ),
-          ),
           if (showRead)
             const Padding(
               padding: EdgeInsets.only(bottom: 6, right: 2),
@@ -594,12 +719,14 @@ class _DealCardState extends State<_DealCard> {
 class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
+  final VoidCallback? onPickImage;
   final ValueChanged<String>? onChanged;
   final List<String> quickReplies;
 
   const _InputBar({
     required this.controller,
     required this.onSend,
+    this.onPickImage,
     this.onChanged,
     this.quickReplies = const [],
   });
@@ -653,6 +780,12 @@ class _InputBar extends StatelessWidget {
             ),
             child: Row(
               children: [
+                if (onPickImage != null)
+                  IconButton(
+                    onPressed: onPickImage,
+                    icon: const Icon(Icons.photo_camera_outlined, color: AppTheme.textSecondary),
+                    tooltip: 'Gửi ảnh',
+                  ),
                 Expanded(
                   child: TextField(
                     controller: controller,

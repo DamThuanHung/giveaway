@@ -106,11 +106,19 @@ export class ChatGateway implements OnGatewayConnection {
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { roomId: string; text: string },
+    @MessageBody() data: { roomId: string; text: string; imageUrl?: string },
   ) {
     const userId = client.data.userId as string;
-    if (!data?.text || typeof data.text !== 'string' || data.text.length > 2000) {
+    const text = (typeof data?.text === 'string' ? data.text : '').trim();
+    const imageUrl = (typeof data?.imageUrl === 'string' && data.imageUrl.startsWith('http'))
+      ? data.imageUrl
+      : undefined;
+    // Phải có text HOẶC imageUrl. Cả 2 cùng rỗng → invalid.
+    if (!text && !imageUrl) {
       return { event: 'error', data: 'Nội dung không hợp lệ' };
+    }
+    if (text.length > 2000) {
+      return { event: 'error', data: 'Tin nhắn quá dài (tối đa 2000 ký tự)' };
     }
     // Rate limit 30 msg/phút/user — chống flood
     if (!this._consumeRateToken(userId)) {
@@ -121,7 +129,7 @@ export class ChatGateway implements OnGatewayConnection {
     }
 
     // senderId LẤY TỪ TOKEN, không từ body — chống impersonate.
-    const message = await this.chatService.sendMessage(data.roomId, userId, data.text);
+    const message = await this.chatService.sendMessage(data.roomId, userId, text, imageUrl);
     client.to(data.roomId).emit('receive_message', message);
     client.to(data.roomId).emit('stop_typing', { senderId: userId });
     return message;

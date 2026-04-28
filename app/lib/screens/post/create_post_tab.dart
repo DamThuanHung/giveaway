@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'map_picker_screen.dart';
 import '../../data/categories.dart';
+import '../../widgets/category_picker_sheet.dart';
 import '../../services/analytics.dart';
 import '../../services/image_compress.dart';
 import '../../services/api_service.dart';
@@ -730,18 +731,49 @@ class _CreatePostTabState extends State<CreatePostTab> {
   }
 
   Widget _buildCategoryDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _itemCategory,
-      decoration: InputDecoration(
-        labelText: 'Danh mục *',
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primary, width: 1.5)),
+    // Tap → mở CategoryPickerSheet (grid 3 cột với icon).
+    // Trước đây dùng DropdownButtonFormField 18 mục flat — vi phạm Miller's Law
+    // 7±2 và Hick's Law (user phải scan dài). Người lớn tuổi/sinh viên dễ chọn nhầm.
+    return InkWell(
+      onTap: () async {
+        final picked = await CategoryPickerSheet.show(context, selected: _itemCategory);
+        if (picked != null) setState(() => _itemCategory = picked);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Row(
+          children: [
+            Image.asset(
+              AppCategories.iconOf(_itemCategory),
+              width: 24, height: 24,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.category_outlined, size: 24, color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Danh mục *', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 2),
+                  Text(
+                    AppCategories.labelOf(_itemCategory),
+                    style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down, color: AppTheme.textSecondary),
+          ],
+        ),
       ),
-      items: AppCategories.list.map((c) => DropdownMenuItem(value: c['value'], child: Text(c['label']!))).toList(),
-      onChanged: (v) => setState(() => _itemCategory = v!),
     );
   }
 

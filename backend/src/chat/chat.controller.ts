@@ -1,10 +1,17 @@
-import { Body, Controller, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ChatService } from './chat.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   /** Lấy hoặc tạo room chat giữa buyer và seller — 1 phòng/cặp người dùng */
   @Post('room')
@@ -96,5 +103,22 @@ export class ChatController {
       limit: limit ? parseInt(limit, 10) : undefined,
       before: before || undefined,
     });
+  }
+
+  /// Upload ảnh cho chat. Trả về URL public của ảnh trên MinIO.
+  /// Frontend sau khi nhận URL → emit `sendMessage` qua WS với `imageUrl` set.
+  /// Multipart field name: `image`. Max 5MB (cùng config với avatar upload).
+  @Post('upload-image')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @UseInterceptors(FileInterceptor('image', {
+    storage: memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
+  async uploadImage(@UploadedFile() file: any) {
+    const url = await this.cloudinaryService.uploadBuffer(
+      file.buffer, 'traotay/chat', file.mimetype,
+    );
+    return { url };
   }
 }
