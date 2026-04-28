@@ -30,8 +30,11 @@ export class ChatGateway implements OnGatewayConnection {
   ) {}
 
   handleConnection(client: Socket) {
-    // Token có thể ở auth.token (SocketIO v4) hoặc Authorization header
+    // Token có thể ở auth.token (Socket.IO v4), query.token (đáng tin cậy nhất
+    // qua WebSocket-only transport — query luôn truyền), hoặc Authorization header
+    // (chỉ hoạt động khi có polling transport).
     const token = (client.handshake.auth?.token as string)
+      ?? (client.handshake.query?.token as string)
       ?? (client.handshake.headers?.authorization as string | undefined)?.replace(/^Bearer\s+/i, '');
 
     if (!token) {

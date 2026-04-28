@@ -27,9 +27,9 @@ class ChatSocketService {
       socket = IO.io(_serverUrl, IO.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': token})
-          // Fallback Authorization header — đường truyền tin cậy hơn setAuth
-          // qua CF Proxy + WS-only transport
-          .setExtraHeaders({'Authorization': 'Bearer $token'})
+          // Pass token qua QUERY — đường tin cậy nhất cho WebSocket-only.
+          // setExtraHeaders chỉ work cho polling transport; query truyền mọi nơi.
+          .setQuery({'token': token})
           .enableAutoConnect()
           .build());
 
