@@ -48,32 +48,6 @@ class ApiService {
     };
   }
 
-  // ─── AUTH ────────────────────────────────────────────
-  static Future<Map<String, dynamic>?> login(String email, String password) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/user/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 15));
-
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final d = jsonDecode(res.body);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', d['accessToken'] ?? d['access_token'] ?? '');
-        await prefs.setString('user_id', d['user']['id'] ?? '');
-        await prefs.setString('user_name', d['user']['name'] ?? '');
-        await prefs.setString('user_email', d['user']['email'] ?? '');
-        await prefs.setString('user_avatar', d['user']['avatar'] ?? '');
-        await prefs.setString('user_role', d['user']['role'] ?? 'user');
-        return d['user'];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
   // ─── Email OTP Login ──────────────────────────────────────────────────────
 
   static Future<String?> sendEmailLoginOtp(String email) async {
@@ -197,29 +171,6 @@ class ApiService {
         await prefs.setString('user_email', d['user']['email'] ?? '');
         await prefs.setString('user_avatar', '');
         await prefs.setString('user_role', 'user');
-        return d['user'];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  static Future<Map<String, dynamic>?> register(String name, String email, String password) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/user'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name, 'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 15));
-
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final d = jsonDecode(res.body);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', d['accessToken'] ?? '');
-        await prefs.setString('user_id', d['user']['id'] ?? '');
-        await prefs.setString('user_name', d['user']['name'] ?? '');
-        await prefs.setString('user_email', d['user']['email'] ?? '');
         return d['user'];
       }
       return null;
@@ -890,45 +841,19 @@ class ApiService {
     } catch (_) {}
   }
 
-  static Future<String?> sendForgotPasswordOtp(String email) async {
+  static Future<String?> linkPhone(String idToken) async {
     try {
       final res = await http.post(
-        Uri.parse('$baseUrl/user/forgot-password/send'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      ).timeout(const Duration(seconds: 15));
-      if (res.statusCode == 200 || res.statusCode == 201) return null; // null = success
-      final body = jsonDecode(res.body);
-      return body['message'] ?? 'Không gửi được OTP';
-    } catch (_) {
-      return 'Không kết nối được server';
-    }
-  }
-
-  static Future<String?> resetPassword(String email, String otp, String newPassword) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/user/forgot-password/reset'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'otp': otp, 'newPassword': newPassword}),
-      ).timeout(const Duration(seconds: 15));
-      if (res.statusCode == 200 || res.statusCode == 201) return null; // null = success
-      final body = jsonDecode(res.body);
-      return body['message'] ?? 'Đặt lại mật khẩu thất bại';
-    } catch (_) {
-      return 'Không kết nối được server';
-    }
-  }
-
-  static Future<bool> changePassword(String oldPassword, String newPassword) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/user/change-password'),
+        Uri.parse('$baseUrl/user/link-phone'),
         headers: await _authHeaders(),
-        body: jsonEncode({'oldPassword': oldPassword, 'newPassword': newPassword}),
-      );
-      return res.statusCode == 200 || res.statusCode == 201;
-    } catch (_) { return false; }
+        body: jsonEncode({'idToken': idToken}),
+      ).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      final body = jsonDecode(res.body);
+      return body['message'] ?? 'Liên kết số điện thoại thất bại';
+    } catch (_) {
+      return 'Không kết nối được server';
+    }
   }
 
   static Future<List<dynamic>> getSimilarPosts(String postId, {String? category, String? province}) async {

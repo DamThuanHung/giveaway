@@ -2,7 +2,6 @@ import {
   BadRequestException, Injectable, NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import * as admin from 'firebase-admin';
 import { Resend } from 'resend';
@@ -136,51 +135,6 @@ export class UserService {
     return { accessToken, user: { id: user.id, email: user.email, name: user.name } };
   }
 
-  async createUser(data: any) {
-    const email = data?.email?.toString().trim().toLowerCase();
-    const password = data?.password?.toString();
-    const name = data?.name?.toString().trim();
-
-    if (!email || !password || !name) throw new BadRequestException('Thiếu name, email hoặc password');
-    if (password.length < 6) throw new BadRequestException('Mật khẩu phải có ít nhất 6 ký tự');
-
-    const existed = await this.prisma.user.findUnique({ where: { email } });
-    if (existed) throw new BadRequestException('Email đã tồn tại');
-
-    const banned = await this.prisma.bannedIdentity.findUnique({ where: { email } });
-    if (banned) throw new BadRequestException('Email này không thể đăng ký tài khoản mới');
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await this.prisma.user.create({ data: { email, password: hashedPassword, name } });
-    const accessToken = await this.signToken(user);
-
-    // Welcome email — fire-and-forget, không block response
-    this.sendWelcomeEmail(email, name).catch(() => {});
-
-    return { message: 'Tạo tài khoản thành công', accessToken, user: { id: user.id, email: user.email, name: user.name } };
-  }
-
-  async login(data: any) {
-    const email = data?.email?.toString().trim().toLowerCase();
-    const password = data?.password?.toString();
-
-    if (!email || !password) throw new BadRequestException('Thiếu email hoặc password');
-
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.password) throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
-
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
-    if (user.isBanned) throw new UnauthorizedException('Tài khoản đã bị khóa');
-
-    const accessToken = await this.signToken(user);
-    return {
-      message: 'Đăng nhập thành công',
-      accessToken,
-      user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar, role: user.role },
-    };
-  }
-
   async getUserById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -219,18 +173,6 @@ export class UserService {
       },
       select: { id: true, email: true, name: true, avatar: true },
     });
-  }
-
-  async changePassword(userId: string, oldPassword: string, newPassword: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    const ok = await bcrypt.compare(oldPassword, user.password);
-    if (!ok) throw new BadRequestException('Mật khẩu cũ không đúng');
-    if (!newPassword || newPassword.length < 6) throw new BadRequestException('Mật khẩu mới phải có ít nhất 6 ký tự');
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
-    return { message: 'Đổi mật khẩu thành công' };
   }
 
   async uploadAvatar(userId: string, avatarUrl: string) {
@@ -341,7 +283,6 @@ export class UserService {
           phone: null,
           avatar: null,
           fcmToken: null,
-          password: null,
         },
       }),
     ]);
@@ -400,36 +341,6 @@ export class UserService {
     };
   }
 
-  // ─── Quên mật khẩu ───────────────────────────────────────────────────────
-
-  async sendForgotPasswordOtp(email: string) {
-    const emailLower = email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
-
-    // Silent response — không leak email tồn tại hay không (chống enumeration).
-    // Chỉ thực sự gửi OTP nếu user tồn tại và có password.
-    if (user && user.password) {
-      const otp = this.generateOtp();
-      this.otpStore.set(`reset:${emailLower}`, { otp, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
-      await this.sendEmailOtp(emailLower, otp);
-    }
-    return { message: 'Nếu email này có đăng ký, mã OTP đã được gửi' };
-  }
-
-  async resetPassword(email: string, otp: string, newPassword: string) {
-    const emailLower = email.trim().toLowerCase();
-    if (!newPassword || newPassword.length < 6) {
-      throw new BadRequestException('Mật khẩu mới phải có ít nhất 6 ký tự');
-    }
-    if (!this.consumeOtp(`reset:${emailLower}`, otp)) {
-      throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { email: emailLower }, data: { password: hashedPassword } });
-    return { message: 'Đặt lại mật khẩu thành công' };
-  }
-
   // ─── Liên kết email dự phòng (user đã đăng nhập) ─────────────────────────
 
   async sendLinkEmailOtp(userId: string, email: string) {
@@ -444,6 +355,47 @@ export class UserService {
       await this.sendEmailOtp(emailLower, otp);
     }
     return { message: 'Nếu email hợp lệ, mã OTP đã được gửi' };
+  }
+
+  // ─── Liên kết SĐT dự phòng (user đã đăng nhập) ───────────────────────────
+
+  /**
+   * Đối xứng với confirmLinkEmail: user đăng nhập bằng email → liên kết SĐT để recovery.
+   * Firebase đã verify SMS OTP ở client → server chỉ cần verify ID token + check collision.
+   */
+  async linkPhone(userId: string, idToken: string) {
+    let decoded: admin.auth.DecodedIdToken;
+    try {
+      decoded = await admin.auth().verifyIdToken(idToken);
+    } catch {
+      throw new UnauthorizedException('Token Firebase không hợp lệ');
+    }
+
+    const phone = decoded.phone_number;
+    if (!phone) throw new BadRequestException('Token không chứa số điện thoại');
+
+    const banned = await this.prisma.bannedIdentity.findUnique({ where: { phone } });
+    if (banned) throw new BadRequestException('Số điện thoại này không thể sử dụng');
+
+    const existed = await this.prisma.user.findUnique({ where: { phone } });
+    if (existed && existed.id !== userId) {
+      throw new BadRequestException('Số điện thoại này đã được sử dụng bởi tài khoản khác');
+    }
+
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { phone, isPhoneVerified: true },
+      });
+    } catch (err: any) {
+      // Race condition: 2 user link cùng phone → check existed pass nhưng update P2002.
+      // Bắt cụ thể để trả 400 thay vì 500.
+      if (err?.code === 'P2002') {
+        throw new BadRequestException('Số điện thoại này đã được sử dụng bởi tài khoản khác');
+      }
+      throw err;
+    }
+    return { message: 'Liên kết số điện thoại thành công' };
   }
 
   async confirmLinkEmail(userId: string, email: string, otp: string) {

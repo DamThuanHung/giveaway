@@ -4,7 +4,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from './notification.service';
 import { FcmService } from '../fcm/fcm.service';
 import { KeywordAlertService } from '../keyword-alert/keyword-alert.service';
-import * as bcrypt from 'bcrypt';
 
 @Controller('notification')
 export class NotificationController {
@@ -596,15 +595,13 @@ export class NotificationController {
     let totalPosts = 0;
     const createdUsers: { email: string; phone: string; posts: number }[] = [];
 
-    const hashedPassword = await bcrypt.hash('123456', 10);
-
     for (let i = 0; i < 10; i++) {
       const phone = `+8490000000${i + 1}`;
       const email = `${i + 1}@test.com`;
       const name = `Test User ${i + 1}`;
       const user = await this.prisma.user.create({
         data: {
-          phone, email, name, password: hashedPassword,
+          phone, email, name,
           avatar: `https://picsum.photos/seed/testuser${i + 1}/100/100`,
         },
       });
@@ -637,7 +634,7 @@ export class NotificationController {
       createdUsers.push({ email, phone, posts: categories.length });
     }
 
-    return { ok: true, users: createdUsers.length, totalPosts, password: '123456', accounts: createdUsers };
+    return { ok: true, users: createdUsers.length, totalPosts, accounts: createdUsers };
   }
 
   // Tạo tất cả loại thông báo để test ngay lập tức

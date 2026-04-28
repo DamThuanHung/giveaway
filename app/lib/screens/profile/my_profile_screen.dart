@@ -11,13 +11,14 @@ import '../deal/deals_screen.dart';
 import 'seller_stats_screen.dart';
 import 'my_reviews_screen.dart';
 import 'blocked_users_screen.dart';
-import 'change_password_screen.dart';
 import 'keyword_alerts_screen.dart';
 import 'link_email_screen.dart';
+import 'link_phone_screen.dart';
 import '../favorites_tab.dart';
 import '../admin/admin_dashboard_screen.dart';
 import 'user_profile_screen.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/image_source_picker.dart';
 import '../../widgets/user_avatar.dart';
 // Alias để tránh conflict
 typedef DealsScreenImport = DealsScreen;
@@ -44,7 +45,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   Future<void> _changeAvatar() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 512);
+    final source = await showImageSourceSheet(context);
+    if (source == null || !mounted) return;
+    final picked = await ImagePicker().pickImage(source: source, imageQuality: 80, maxWidth: 512);
     if (picked == null || !mounted) return;
     setState(() => _avatarUploading = true);
     try {
@@ -232,11 +235,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         );
       }
 
-      final hasPassword = auth.userEmail != null && auth.userEmail!.isNotEmpty;
       final phone = _trustData?['phone']?.toString() ?? '';
-      final subtitle = auth.userEmail?.isNotEmpty == true
-          ? auth.userEmail!
-          : phone;
+      final email = (_trustData?['email'] as String?) ?? '';
+      final hasEmail = email.isNotEmpty;
+      final hasPhone = phone.isNotEmpty;
+      // Lấy từ _trustData (DB tươi) thay vì auth cache để subtitle update ngay
+      // sau khi user vừa liên kết email/SĐT trong cùng session.
+      final subtitle = hasEmail ? email : phone;
 
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -408,22 +413,26 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KeywordAlertsScreen())),
             ),
             const Divider(height: 32),
+            // Liên kết phương thức dự phòng — đối xứng theo cách user đăng nhập:
+            // user phone-only → liên kết email; user email-only → liên kết SĐT.
             _MenuItem(
               icon: Icons.email_rounded,
-              label: _trustData?['email'] != null ? 'Email dự phòng (đã liên kết)' : 'Liên kết email dự phòng',
+              label: hasEmail ? 'Email dự phòng (đã liên kết)' : 'Liên kết email dự phòng',
               iconBgColor: const Color(0xFF9E9E9E),
-              onTap: _trustData?['email'] != null ? () {} : () => Navigator.push(
+              onTap: hasEmail ? () {} : () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const LinkEmailScreen()),
               ).then((ok) { if (ok == true) _loadTrust(); }),
             ),
-            if (hasPassword)
-              _MenuItem(
-                icon: Icons.lock_rounded,
-                label: 'Đổi mật khẩu',
-                iconBgColor: const Color(0xFF9E9E9E),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
-              ),
+            _MenuItem(
+              icon: Icons.phone_android_rounded,
+              label: hasPhone ? 'SĐT dự phòng (đã liên kết)' : 'Liên kết SĐT dự phòng',
+              iconBgColor: const Color(0xFF9E9E9E),
+              onTap: hasPhone ? () {} : () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LinkPhoneScreen()),
+              ).then((ok) { if (ok == true) _loadTrust(); }),
+            ),
             _MenuItem(
               icon: Icons.logout_rounded,
               label: 'Đăng xuất',

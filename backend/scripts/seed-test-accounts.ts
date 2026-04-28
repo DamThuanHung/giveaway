@@ -4,13 +4,10 @@
  * Không xóa dữ liệu cũ.
  */
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const hash = await bcrypt.hash('123456', 10);
-
   console.log('👤 Tạo 3 tài khoản test...');
 
   const [a1, a2, a3] = await Promise.all([
@@ -20,7 +17,6 @@ async function main() {
       create: {
         email: 'test.an@chovatang.vn',
         name: 'Nguyễn Văn An (Test)',
-        password: hash,
         avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=An',
       },
     }),
@@ -30,7 +26,6 @@ async function main() {
       create: {
         email: 'test.binh@chovatang.vn',
         name: 'Trần Thị Bình (Test)',
-        password: hash,
         avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Binh',
       },
     }),
@@ -40,7 +35,6 @@ async function main() {
       create: {
         email: 'test.cuong@chovatang.vn',
         name: 'Lê Văn Cường (Test)',
-        password: hash,
         avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Cuong',
       },
     }),
@@ -49,7 +43,7 @@ async function main() {
   console.log(`   ✅ Acc 1: test.an@chovatang.vn`);
   console.log(`   ✅ Acc 2: test.binh@chovatang.vn`);
   console.log(`   ✅ Acc 3: test.cuong@chovatang.vn`);
-  console.log(`   🔑 Password: 123456`);
+  console.log(`   ℹ Login bằng email OTP qua Resend (xem inbox để lấy mã)`);
 
   console.log('\n📦 Tạo bài đăng...');
 

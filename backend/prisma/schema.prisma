@@ -14,7 +14,6 @@ model User {
   email            String?        @unique
   name             String?
   createdAt        DateTime       @default(now())
-  password         String?
   avatar           String?
   fcmToken         String?
   isBanned         Boolean        @default(false)

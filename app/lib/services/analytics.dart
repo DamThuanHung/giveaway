@@ -24,7 +24,7 @@ class Analytics {
 
   // ─── Acquisition / Activation ───────────────────────────────────
   static Future<void> signUp({required String method}) async {
-    // method: phone | email_otp | email_password
+    // method: phone | email_otp
     await _analytics.logSignUp(signUpMethod: method);
   }
 

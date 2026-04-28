@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -102,7 +101,6 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log('👤 Tạo 10 tài khoản test...');
-  const hash = await bcrypt.hash('123456', 10);
 
   const users = await Promise.all(
     Array.from({ length: 10 }, (_, i) =>
@@ -110,7 +108,6 @@ async function main() {
         data: {
           email: `${i + 1}@test.com`,
           name: `User ${i + 1}`,
-          password: hash,
           avatar: `https://api.dicebear.com/7.x/initials/svg?seed=User${i + 1}`,
         },
       })

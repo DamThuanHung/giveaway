@@ -16,17 +16,6 @@ export class UserController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  @Post()
-  createUser(@Body() body: any) {
-    return this.userService.createUser(body);
-  }
-
-  @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  login(@Body() body: any) {
-    return this.userService.login(body);
-  }
-
   @Post('phone-login')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   phoneLogin(@Body() body: { idToken: string }) {
@@ -54,15 +43,6 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   updateUser(@Param('id') id: string, @Request() req, @Body() body: any) {
     return this.userService.updateUser(id, req.user.id, body);
-  }
-
-  @Post('change-password')
-  @UseGuards(JwtAuthGuard)
-  changePassword(
-    @Request() req,
-    @Body() body: { oldPassword: string; newPassword: string },
-  ) {
-    return this.userService.changePassword(req.user.id, body.oldPassword, body.newPassword);
   }
 
   @Post('avatar')
@@ -120,18 +100,6 @@ export class UserController {
     return this.userService.verifyEmailLoginOtp(body.email, body.otp);
   }
 
-  // ─── Quên mật khẩu ───────────────────────────────────────────────────────
-  @Post('forgot-password/send')
-  @Throttle({ default: { limit: 3, ttl: 300_000 } })
-  sendForgotPasswordOtp(@Body() body: { email: string }) {
-    return this.userService.sendForgotPasswordOtp(body.email);
-  }
-
-  @Post('forgot-password/reset')
-  resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
-    return this.userService.resetPassword(body.email, body.otp, body.newPassword);
-  }
-
   // ─── Liên kết email dự phòng ──────────────────────────────────────────────
   @Post('link-email/send')
   @UseGuards(JwtAuthGuard)
@@ -143,6 +111,15 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   confirmLinkEmail(@Request() req, @Body() body: { email: string; otp: string }) {
     return this.userService.confirmLinkEmail(req.user.id, body.email, body.otp);
+  }
+
+  // ─── Liên kết SĐT dự phòng ────────────────────────────────────────────────
+  @Post('link-phone')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  linkPhone(@Request() req, @Body() body: { idToken: string }) {
+    if (!body.idToken) throw new Error('Thiếu idToken');
+    return this.userService.linkPhone(req.user.id, body.idToken);
   }
 
   @Get('block/check/:targetId')

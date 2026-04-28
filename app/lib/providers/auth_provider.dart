@@ -81,24 +81,6 @@ class AuthProvider with ChangeNotifier {
     return 'Đăng nhập thất bại';
   }
 
-  Future<String?> login(String email, String password) async {
-    final user = await ApiService.login(email, password);
-    if (user != null) {
-      _userId = user['id'];
-      _userName = user['name'];
-      _userEmail = user['email'];
-      _userAvatar = user['avatar'];
-      _userRole = user['role'];
-      _isAuthenticated = true;
-      notifyListeners();
-      _sendFcmToken();
-      Analytics.setUser(_userId!);
-      Analytics.login(method: 'email_password');
-      return null;
-    }
-    return 'Email hoặc mật khẩu không đúng';
-  }
-
   Future<String?> loginWithEmailOtp(String email, String otp) async {
     final result = await ApiService.verifyEmailLoginOtp(email, otp);
     if (result != null) {
@@ -136,21 +118,6 @@ class AuthProvider with ChangeNotifier {
       return null;
     }
     return 'Đăng nhập bằng SĐT thất bại. Vui lòng thử lại.';
-  }
-
-  Future<String?> register(String name, String email, String password) async {
-    final user = await ApiService.register(name, email, password);
-    if (user != null) {
-      _userId = user['id'];
-      _userName = user['name'];
-      _userEmail = user['email'];
-      _isAuthenticated = true;
-      notifyListeners();
-      Analytics.setUser(_userId!);
-      Analytics.signUp(method: 'email_password');
-      return null;
-    }
-    return 'Đăng ký thất bại. Email có thể đã tồn tại.';
   }
 
   Future<void> logout() async {

@@ -3,7 +3,6 @@
  * Chạy: npx ts-node scripts/reset-data.ts
  */
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -20,25 +19,21 @@ async function main() {
   await prisma.user.deleteMany();
   console.log('   ✅ Đã xóa hết\n');
 
-  const hash = await bcrypt.hash('123456', 10);
-
   console.log('👤 Tạo 2 tài khoản...');
   const [a1, a2] = await Promise.all([
     prisma.user.create({ data: {
       email: 'nguyen.an@chovatang.vn',
       name: 'Nguyễn Văn An',
-      password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=An',
     }}),
     prisma.user.create({ data: {
       email: 'tran.binh@chovatang.vn',
       name: 'Trần Thị Bình',
-      password: hash,
       avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Binh',
     }}),
   ]);
-  console.log('   ✅ nguyen.an@chovatang.vn / 123456');
-  console.log('   ✅ tran.binh@chovatang.vn / 123456\n');
+  console.log('   ✅ nguyen.an@chovatang.vn (login bằng email OTP)');
+  console.log('   ✅ tran.binh@chovatang.vn (login bằng email OTP)\n');
 
   console.log('📦 Tạo bài đăng...');
   const posts = [
