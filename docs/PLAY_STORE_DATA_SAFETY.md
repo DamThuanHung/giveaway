@@ -100,10 +100,8 @@ Tick các option sau:
 ## Section 5 — Privacy policy URL
 
 ```
-https://damthuanhung.github.io/giveaway/privacy.html
+https://traotay.com.vn/privacy.html
 ```
-
-(Sau khi deploy AWS xong, đổi sang `https://traotay.com.vn/privacy`.)
 
 ---
 
@@ -120,7 +118,7 @@ có quyền xóa toàn bộ thông qua chức năng "Xóa tài khoản" trong ap
 
 **Privacy policy URL:**
 ```
-https://damthuanhung.github.io/giveaway/privacy.html
+https://traotay.com.vn/privacy.html
 ```
 
 **Support email:**
@@ -148,3 +146,4 @@ https://traotay.com.vn
 | Ngày | Thay đổi |
 |---|---|
 | 2026-04-25 | Tạo template từ codebase audit |
+| 2026-04-30 | Cập nhật privacy URL → `traotay.com.vn/privacy.html` (đã live) |
