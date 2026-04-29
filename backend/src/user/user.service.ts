@@ -333,8 +333,32 @@ export class UserService {
     return raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
   }
 
+  /// Backdoor login dành riêng cho Google Play reviewer.
+  /// Trao Tay dùng OTP, không có password cố định → reviewer không thể tự nhận OTP.
+  /// Nếu env GOOGLE_REVIEW_EMAIL + GOOGLE_REVIEW_OTP đều set → email + otp khớp = login OK,
+  /// bỏ qua việc gửi/lưu OTP thật. KHÔNG để creds này lọt ra ngoài Console review.
+  private get googleReviewEmail(): string {
+    return (process.env.GOOGLE_REVIEW_EMAIL ?? '').trim().toLowerCase();
+  }
+  private get googleReviewOtp(): string {
+    return (process.env.GOOGLE_REVIEW_OTP ?? '').trim();
+  }
+  private isGoogleReviewLogin(email: string, otp?: string): boolean {
+    const re = this.googleReviewEmail;
+    const ro = this.googleReviewOtp;
+    if (!re || !ro) return false; // safety: nếu env chưa set, disable backdoor
+    if (email.trim().toLowerCase() !== re) return false;
+    if (otp !== undefined && otp !== ro) return false;
+    return true;
+  }
+
   async sendEmailLoginOtp(email: string, adminOnly = false) {
     const emailLower = email.trim().toLowerCase();
+    // Backdoor reviewer: trả success generic, không gửi email thật, không tạo OTP store.
+    // Reviewer biết OTP cố định riêng nên không cần nhận email.
+    if (this.isGoogleReviewLogin(emailLower)) {
+      return { message: 'Đã gửi mã OTP đến email' };
+    }
     // Admin-only: KHÔNG tiết lộ "email không phải admin" — chống enumeration.
     // Trả về success generic, internally short-circuit không gửi email.
     if (adminOnly && !this.adminEmails.includes(emailLower)) {
@@ -355,8 +379,11 @@ export class UserService {
 
   async verifyEmailLoginOtp(email: string, otp: string) {
     const emailLower = email.trim().toLowerCase();
-    if (!this.consumeOtp(`login:${emailLower}`, otp)) {
-      throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+    // Backdoor reviewer: bypass OTP store, không consume — không ảnh hưởng OTP user thường.
+    if (!this.isGoogleReviewLogin(emailLower, otp)) {
+      if (!this.consumeOtp(`login:${emailLower}`, otp)) {
+        throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
+      }
     }
 
     let user = await this.prisma.user.findUnique({ where: { email: emailLower } });
