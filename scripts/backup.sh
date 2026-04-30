@@ -1,70 +1,69 @@
 #!/usr/bin/env bash
 # ══════════════════════════════════════════════════════════════════
-# backup.sh — Backup Postgres + MinIO lên Backblaze B2
+# backup.sh — Backup Postgres + MinIO local + Backblaze B2
 #
-# Chạy daily qua cron (3h sáng):
-#   0 3 * * * /opt/traotay/scripts/backup.sh >> /var/log/traotay-backup.log 2>&1
+# 2-tier backup strategy:
+#   - Local: /opt/traotay/backups/db-*.sql.gz (giữ 14 ngày, recovery nhanh)
+#   - Cloud B2: bucket traotay-backup-prod/ (giữ 30 ngày, disaster recovery)
 #
-# Setup rclone trước:
-#   rclone config
-#   → n (new remote)
-#   → name: b2
-#   → storage: b2
-#   → account: <Backblaze Key ID>
-#   → key: <Backblaze Application Key>
-#   → ...
+# Cron daily 3h sáng VN (= 20:00 UTC), chạy bằng root:
+#   0 20 * * * /opt/traotay/repo/scripts/backup.sh >> /var/log/traotay-backup.log 2>&1
+#
+# Setup rclone (1 lần):
+#   sudo mkdir -p /root/.config/rclone
+#   sudo tee /root/.config/rclone/rclone.conf <<EOF
+#   [b2]
+#   type = b2
+#   account = <keyID 25 chars>
+#   key = <applicationKey K00x...>
+#   hard_delete = true
+#   EOF
+#   sudo chmod 600 /root/.config/rclone/rclone.conf
+#
+# Test thủ công:
+#   sudo /opt/traotay/repo/scripts/backup.sh
 # ══════════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
-BUCKET="traotay-backups"             # Bucket B2 (tạo trước trên backblaze.com)
-RETENTION_DAYS=30                     # Xóa backup cũ hơn 30 ngày
-TMPDIR="/tmp/traotay-backup-$(date +%s)"
+BUCKET="traotay-backup-prod"                          # Bucket B2 đã tạo
+RETENTION_DAYS_LOCAL=14                                # Local backup retention
+RETENTION_DAYS_B2=30                                   # B2 backup retention
+LOCAL_DIR=/opt/traotay/backups
 DATE=$(date +%Y-%m-%d_%H%M)
+DB_FILE="db-${DATE}.sql.gz"
+MINIO_VOLUME=/var/lib/docker/volumes/repo_minio_data/_data
 
-# Load env để lấy POSTGRES_USER/PASSWORD/DB
-if [ -f /opt/traotay/.env.docker ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source /opt/traotay/.env.docker
-  set +a
-fi
+# Đọc credentials DB từ .env.docker (avoid sourcing whole file vì có FCM JSON multi-line)
+PGUSER=$(grep '^POSTGRES_USER=' /opt/traotay/repo/.env.docker | cut -d= -f2)
+PGDB=$(grep '^POSTGRES_DB=' /opt/traotay/repo/.env.docker | cut -d= -f2)
 
-mkdir -p "$TMPDIR"
-trap 'rm -rf "$TMPDIR"' EXIT
+mkdir -p "$LOCAL_DIR"
+chown traotay:traotay "$LOCAL_DIR"
 
-# ─── [1/3] Postgres dump ────────────────────────────────────────────
-echo ">>> [$(date)] Backup Postgres → $TMPDIR"
-docker exec traotay_db pg_dump \
-  -U "${POSTGRES_USER:-postgres}" \
-  "${POSTGRES_DB:-traotay}" \
-  | gzip > "$TMPDIR/db-${DATE}.sql.gz"
+# ─── [1/4] Postgres dump → local ─────────────────────────────────────
+echo ">>> [$(date)] Dump Postgres → ${LOCAL_DIR}/${DB_FILE}"
+docker exec traotay_db pg_dump -U "$PGUSER" "$PGDB" \
+  | gzip > "${LOCAL_DIR}/${DB_FILE}"
 
-DB_SIZE=$(du -h "$TMPDIR/db-${DATE}.sql.gz" | cut -f1)
-echo "    DB backup: $DB_SIZE"
+DB_SIZE=$(du -h "${LOCAL_DIR}/${DB_FILE}" | cut -f1)
+echo "    DB size: $DB_SIZE"
 
-# ─── [2/3] Upload lên B2 ────────────────────────────────────────────
-echo ">>> Upload Postgres dump lên b2:$BUCKET/db/"
-rclone copy "$TMPDIR/db-${DATE}.sql.gz" "b2:${BUCKET}/db/" --progress
+# ─── [2/4] Upload DB dump → B2 ───────────────────────────────────────
+echo ">>> Upload DB → b2:${BUCKET}/db/"
+rclone copy "${LOCAL_DIR}/${DB_FILE}" "b2:${BUCKET}/db/"
 
-echo ">>> Sync MinIO ảnh lên b2:$BUCKET/minio/"
-# Dùng sync thay vì copy — chỉ upload file mới/thay đổi
-# MinIO data volume mount tại /var/lib/docker/volumes/traotay_minio_data/_data
-rclone sync /var/lib/docker/volumes/traotay_minio_data/_data \
-  "b2:${BUCKET}/minio/" \
+# ─── [3/4] Sync MinIO ảnh → B2 (incremental) ─────────────────────────
+echo ">>> Sync MinIO ảnh → b2:${BUCKET}/minio/"
+rclone sync "$MINIO_VOLUME" "b2:${BUCKET}/minio/" \
   --transfers 4 \
   --fast-list
 
-# ─── [3/3] Dọn backup cũ trên B2 ────────────────────────────────────
-echo ">>> Xóa backup DB cũ hơn ${RETENTION_DAYS} ngày..."
-rclone delete "b2:${BUCKET}/db/" \
-  --min-age "${RETENTION_DAYS}d"
+# ─── [4/4] Cleanup retention ─────────────────────────────────────────
+echo ">>> Cleanup local backups > ${RETENTION_DAYS_LOCAL} ngày..."
+find "$LOCAL_DIR" -name 'db-*.sql.gz' -mtime +$RETENTION_DAYS_LOCAL -delete
 
-# ─── Alert nếu có lỗi qua Resend ────────────────────────────────────
-# (Optional — thêm sau khi Resend đã verify domain)
-# if [ $? -ne 0 ]; then
-#   curl -X POST https://api.resend.com/emails ...
-# fi
+echo ">>> Cleanup B2 db backups > ${RETENTION_DAYS_B2} ngày..."
+rclone delete "b2:${BUCKET}/db/" --min-age "${RETENTION_DAYS_B2}d"
 
-echo ""
 echo "✅ Backup xong $(date)"
