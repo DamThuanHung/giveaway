@@ -115,7 +115,20 @@ Liên hệ: damhungtpt@gmail.com
 
 > Dùng cho mỗi lần cập nhật. Giới hạn 500 ký tự.
 
-### Phiên bản 1.0.1 (đang dùng cho lần submit hiện tại)
+### Phiên bản 1.0.2 (đang dùng cho lần submit hiện tại)
+
+```
+Phiên bản 1.0.2 — Vá lỗi từ phản hồi tester
+• Đăng bài: chọn lại ảnh khi sửa, hỗ trợ HEIC (Realme/Samsung/iPhone)
+• Chat: chụp ảnh + gửi ảnh ổn định hơn
+• Thông báo: badge real-time, không cần refresh
+• 34 tỉnh thành theo Nghị quyết 2025
+• 45+ fix nhỏ giao diện, độ ổn định, bảo mật
+Cảm ơn tester Phase 1!
+Phản hồi: damhungtpt@gmail.com
+```
+
+### Phiên bản 1.0.1 (Phase 1 — tester đầu tiên)
 
 ```
 Phiên bản 1.0.1 — Làm mới giao diện chào mừng

@@ -2,7 +2,7 @@ name: traotay
 description: "Trao Tay — Ứng dụng mua bán & trao tặng đồ cũ cộng đồng"
 publish_to: 'none'
 
-version: 1.0.1+2
+version: 1.0.2+4
 
 # ĐÂY LÀ ĐOẠN ANH ĐANG THIẾU (Sửa lỗi hình 11)
 environment:
