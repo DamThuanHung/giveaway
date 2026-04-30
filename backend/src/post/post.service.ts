@@ -12,7 +12,7 @@ const BASE_URL = process.env.BASE_URL ?? '';
 // thành `other` ở dòng cuối validate. Hậu quả: bài "Áo Zara" lưu DB là `other`.
 // Đã sync lên 18 mục đúng Flutter — kèm SQL migration `migrate-categories-2026.sql`
 // để convert data cũ trong production DB.
-const VALID_POST_STATUSES = ['available', 'reserved', 'done', 'hidden'] as const;
+const VALID_POST_STATUSES = ['available', 'reserved', 'done', 'hidden', 'archived'] as const;
 // Status do admin set khi soft-delete bài. KHÔNG bao giờ được expose ra public listing.
 const DELETED_BY_ADMIN_STATUS = 'deleted_by_admin';
 const VALID_ITEM_CATEGORIES = [
@@ -311,10 +311,86 @@ export class PostService {
     if (!VALID_POST_STATUSES.includes(status as any)) {
       throw new BadRequestException('Trạng thái không hợp lệ');
     }
+    // 'done' phải đi qua completePost() để có completedWithUserId — chống bypass
+    if (status === 'done') {
+      throw new BadRequestException('Dùng /post/:id/complete để đánh dấu hoàn thành');
+    }
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
     if (post.authorId !== userId) throw new ForbiddenException('Không có quyền');
     return this.prisma.post.update({ where: { id }, data: { status } }).then(formatPost);
+  }
+
+  /**
+   * Author đánh dấu bài đã hoàn thành giao dịch với partner cụ thể.
+   * Idempotent: nếu đã 'done' rồi thì return luôn không lỗi.
+   * Partner phải đã từng chat về bài này (chống fake — author tự chọn user random).
+   */
+  async completePost(id: string, userId: string, partnerId: string) {
+    if (!partnerId || typeof partnerId !== 'string') {
+      throw new BadRequestException('Thiếu thông tin đối tác giao dịch');
+    }
+    if (partnerId === userId) {
+      throw new BadRequestException('Không thể giao dịch với chính mình');
+    }
+
+    const post = await this.prisma.post.findUnique({ where: { id } });
+    if (!post) throw new NotFoundException('Không tìm thấy bài đăng');
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('Chỉ chủ bài đăng mới có quyền đánh dấu hoàn thành');
+    }
+
+    // Idempotent: nếu đã hoàn thành với cùng partner → return luôn
+    if (post.status === 'done' && post.completedWithUserId === partnerId) {
+      return formatPost(post);
+    }
+    if (post.status === 'done') {
+      throw new BadRequestException('Bài đăng đã được đánh dấu hoàn thành');
+    }
+    if (post.status !== 'available' && post.status !== 'reserved') {
+      throw new BadRequestException('Chỉ đánh dấu hoàn thành được khi bài còn hoạt động');
+    }
+
+    // Verify partner đã từng chat về bài này (chống author chọn random user)
+    const room = await this.prisma.chatRoom.findFirst({
+      where: { postId: id, OR: [{ buyerId: partnerId }, { sellerId: partnerId }] },
+    });
+    if (!room) {
+      throw new BadRequestException('Đối tác giao dịch phải đã từng chat về bài này');
+    }
+
+    const partner = await this.prisma.user.findUnique({
+      where: { id: partnerId },
+      select: { id: true, name: true },
+    });
+    if (!partner) throw new NotFoundException('Không tìm thấy đối tác');
+
+    const updated = await this.prisma.post.update({
+      where: { id },
+      data: {
+        status: 'done',
+        completedWithUserId: partnerId,
+        completedAt: new Date(),
+      },
+    });
+
+    // Notify partner — best effort, không block flow chính nếu fail
+    const author = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    this.notification.createNotification(
+      partnerId,
+      'transaction_completed',
+      `${author?.name ?? 'Đối tác'} đã xác nhận giao dịch xong`,
+      `Hãy đánh giá ${author?.name ?? 'họ'} để cộng đồng tin tưởng hơn nhé!`,
+      JSON.stringify({ postId: id, partnerId: userId, action: 'review' }),
+    ).catch((err) => {
+      // log nhưng không throw — notification fail không nên block transaction complete
+      console.error('completePost notification failed:', err);
+    });
+
+    return formatPost(updated);
   }
 
   async deletePost(id: string, userId: string) {
@@ -347,7 +423,7 @@ export class PostService {
   }
 
   async getMyStats(userId: string) {
-    const [totalPosts, availablePosts, donePosts, totalViews, totalFavorites, totalDeals] =
+    const [totalPosts, availablePosts, donePosts, totalViews, totalFavorites] =
       await Promise.all([
         this.prisma.post.count({ where: { authorId: userId } }),
         this.prisma.post.count({ where: { authorId: userId, status: 'available' } }),
@@ -356,14 +432,13 @@ export class PostService {
         this.prisma.favorite.count({
           where: { post: { authorId: userId } },
         }),
-        this.prisma.deal.count({ where: { ownerId: userId } }),
       ]);
 
     return {
       posts: { total: totalPosts, available: availablePosts, done: donePosts },
       totalViews: totalViews._sum.viewCount || 0,
       totalFavorites,
-      totalDeals,
+      totalCompleted: donePosts, // alias rõ nghĩa: số giao dịch hoàn thành
     };
   }
 }

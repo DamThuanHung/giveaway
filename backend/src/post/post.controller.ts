@@ -125,6 +125,22 @@ export class PostController {
     return this.postService.bumpPost(id, req.user.id);
   }
 
+  /**
+   * Author đánh dấu bài đã hoàn thành giao dịch với 1 partner cụ thể.
+   * → status='done' + completedWithUserId + completedAt
+   * → Notification cho partner: "X đã xác nhận giao dịch xong với bạn"
+   * → Cả 2 có thể tạo review từ giờ.
+   */
+  @Post(':id/complete')
+  @UseGuards(JwtAuthGuard)
+  completePost(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() body: { partnerId: string },
+  ) {
+    return this.postService.completePost(id, req.user.id, body.partnerId);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   deletePost(@Param('id') id: string, @Request() req) {

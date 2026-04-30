@@ -82,14 +82,14 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                       const SizedBox(height: 12),
                       Row(children: [
                         _StatCard(
-                          icon: Icons.swap_horiz_outlined,
-                          label: 'Giao dịch nhận',
-                          value: _fmt(_stats!['totalDeals']),
+                          icon: Icons.check_circle_outline,
+                          label: 'Đã giao dịch',
+                          value: _fmt(_stats!['totalCompleted']),
                           color: AppTheme.success,
                         ),
                         const SizedBox(width: 12),
                         _StatCard(
-                          icon: Icons.check_circle_outline,
+                          icon: Icons.handshake_outlined,
                           label: 'Đã giao thành công',
                           value: _fmt(_stats!['posts']?['done']),
                           color: AppTheme.warning,

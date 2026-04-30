@@ -608,13 +608,15 @@ class ApiService {
     }
   }
 
-  // ─── DEAL ────────────────────────────────────────────
-  static Future<Map<String, dynamic>?> createDeal(String postId, {String? message}) async {
+  // ─── COMPLETE TRANSACTION ─────────────────────────────
+  /// Author bấm "Hoàn thành giao dịch" với partner cụ thể.
+  /// Backend set status='done' + completedWithUserId + notify partner.
+  static Future<Map<String, dynamic>?> completePost(String postId, String partnerId) async {
     try {
       final res = await http.post(
-        Uri.parse('$baseUrl/deal'),
+        Uri.parse('$baseUrl/post/$postId/complete'),
         headers: await _authHeaders(),
-        body: jsonEncode({'postId': postId, if (message != null) 'message': message}),
+        body: jsonEncode({'partnerId': partnerId}),
       ).timeout(const Duration(seconds: 10));
       if (res.statusCode == 201 || res.statusCode == 200) return jsonDecode(res.body);
       return null;
@@ -623,48 +625,15 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getIncomingDeals() async {
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/deal/incoming'), headers: await _authHeaders())
-          .timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body);
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<List<dynamic>> getOutgoingDeals() async {
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/deal/outgoing'), headers: await _authHeaders())
-          .timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body);
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<bool> updateDealStatus(String dealId, String status) async {
-    try {
-      final res = await http.patch(
-        Uri.parse('$baseUrl/deal/$dealId/status'),
-        headers: await _authHeaders(),
-        body: jsonEncode({'status': status}),
-      ).timeout(const Duration(seconds: 10));
-      return res.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
-
   // ─── REVIEW ──────────────────────────────────────────
-  static Future<bool> createReview(String dealId, int rating, {String? comment}) async {
+  /// Tạo review cho 1 bài đăng đã hoàn thành. Server tự xác định reviewee
+  /// dựa vào reviewerId (nếu là author → reviewee = partner, ngược lại).
+  static Future<bool> createReview(String postId, int rating, {String? comment}) async {
     try {
       final res = await http.post(
         Uri.parse('$baseUrl/review'),
         headers: await _authHeaders(),
-        body: jsonEncode({'dealId': dealId, 'rating': rating, if (comment != null) 'comment': comment}),
+        body: jsonEncode({'postId': postId, 'rating': rating, if (comment != null) 'comment': comment}),
       ).timeout(const Duration(seconds: 10));
       return res.statusCode == 201 || res.statusCode == 200;
     } catch (e) {
@@ -672,16 +641,30 @@ class ApiService {
     }
   }
 
-  static Future<bool> checkReviewed(String dealId) async {
+  /// Sửa review trong 24h sau submit, sau đó freeze.
+  static Future<bool> updateReview(String postId, int rating, {String? comment}) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('$baseUrl/review/$postId'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'rating': rating, if (comment != null) 'comment': comment}),
+      ).timeout(const Duration(seconds: 10));
+      return res.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> checkReviewed(String postId) async {
     try {
       final res = await http.get(
-        Uri.parse('$baseUrl/review/check/$dealId'),
+        Uri.parse('$baseUrl/review/check/$postId'),
         headers: await _authHeaders(),
       ).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) return jsonDecode(res.body)['hasReviewed'] == true;
-      return false;
+      if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+      return {'hasReviewed': false};
     } catch (_) {
-      return false;
+      return {'hasReviewed': false};
     }
   }
 

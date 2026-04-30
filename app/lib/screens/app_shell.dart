@@ -9,7 +9,6 @@ import 'profile_tab.dart';
 import 'post/create_post_tab.dart';
 import 'notifications_screen.dart';
 import 'chat_screen.dart';
-import 'deal/deals_screen.dart';
 import 'profile/my_reviews_screen.dart';
 import 'auth/phone_login_screen.dart';
 import '../providers/post_provider.dart';
@@ -59,19 +58,16 @@ class _AppShellState extends State<AppShell> {
     final type = data['type']?.toString() ?? '';
     final roomId = data['roomId']?.toString();
 
-    if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+    if (type == 'chat' && roomId != null && roomId.isNotEmpty) {
       await _openChatFromRoomId(roomId);
       return;
     }
-    if (type == 'review') {
+    if (type == 'review' || type == 'transaction_completed') {
       setState(() => _selectedIndex = 4);
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
       Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
       return;
-    }
-    if (type == 'deal') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
     }
   }
 

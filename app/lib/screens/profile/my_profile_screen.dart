@@ -7,7 +7,6 @@ import '../../services/image_compress.dart';
 import '../../theme/app_theme.dart';
 import '../auth/phone_login_screen.dart';
 import '../post/my_posts_screen.dart';
-import '../deal/deals_screen.dart';
 import 'seller_stats_screen.dart';
 import 'my_reviews_screen.dart';
 import 'blocked_users_screen.dart';
@@ -20,8 +19,6 @@ import 'user_profile_screen.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/image_source_picker.dart';
 import '../../widgets/user_avatar.dart';
-// Alias để tránh conflict
-typedef DealsScreenImport = DealsScreen;
 
 class MyProfileScreen extends StatefulWidget {
   const MyProfileScreen({super.key});
@@ -330,7 +327,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     const _TrustBadge(icon: Icons.verified, label: 'Đã xác minh SĐT', color: AppTheme.primary),
                   _TrustBadge(
                     icon: Icons.handshake_outlined,
-                    label: '${_trustData!['completedDeals'] ?? 0} deal thành công',
+                    label: '${_trustData!['completedTransactions'] ?? 0} giao dịch thành công',
                     color: AppTheme.success,
                   ),
                   if (_trustData!['createdAt'] != null)
@@ -402,12 +399,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               label: 'Bài viết đã lưu',
               iconBgColor: AppTheme.primary,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesTab())),
-            ),
-            _MenuItem(
-              icon: Icons.swap_horiz_outlined,
-              label: 'Giao dịch của tôi',
-              iconBgColor: AppTheme.primary,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreenImport())),
             ),
             _MenuItem(
               icon: Icons.star_rounded,

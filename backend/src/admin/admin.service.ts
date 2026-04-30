@@ -31,17 +31,17 @@ export class AdminService {
     today.setHours(0, 0, 0, 0);
 
     const [
-      totalUsers, totalPosts, totalDeals, totalReviews,
-      newUsersToday, newPostsToday, newDealsToday,
+      totalUsers, totalPosts, totalCompleted, totalReviews,
+      newUsersToday, newPostsToday, newCompletedToday,
       pendingReports, availablePosts, donePosts, deletedPosts,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.post.count({ where: { NOT: { status: DELETED_BY_ADMIN } } }),
-      this.prisma.deal.count(),
+      this.prisma.post.count({ where: { status: 'done' } }),
       this.prisma.review.count(),
       this.prisma.user.count({ where: { createdAt: { gte: today } } }),
       this.prisma.post.count({ where: { createdAt: { gte: today }, NOT: { status: DELETED_BY_ADMIN } } }),
-      this.prisma.deal.count({ where: { createdAt: { gte: today } } }),
+      this.prisma.post.count({ where: { status: 'done', completedAt: { gte: today } } }),
       this.prisma.report.count({ where: { status: 'pending' } }),
       this.prisma.post.count({ where: { status: 'available' } }),
       this.prisma.post.count({ where: { status: 'done' } }),
@@ -51,8 +51,8 @@ export class AdminService {
     const avgRating = await this.prisma.review.aggregate({ _avg: { rating: true } });
 
     return {
-      overview: { totalUsers, totalPosts, totalDeals, totalReviews },
-      today: { newUsers: newUsersToday, newPosts: newPostsToday, newDeals: newDealsToday },
+      overview: { totalUsers, totalPosts, totalCompleted, totalReviews },
+      today: { newUsers: newUsersToday, newPosts: newPostsToday, newCompleted: newCompletedToday },
       posts: { available: availablePosts, done: donePosts, other: totalPosts - availablePosts - donePosts, deletedByAdmin: deletedPosts },
       moderation: { pendingReports },
       avgRating: avgRating._avg.rating ? +avgRating._avg.rating.toFixed(2) : 0,
@@ -68,7 +68,7 @@ export class AdminService {
         orderBy: { posts: { _count: 'desc' } },
         select: {
           id: true, name: true, email: true, avatar: true,
-          _count: { select: { posts: true, dealsAsRequester: true } },
+          _count: { select: { posts: true } },
         },
       }),
       this.prisma.bumpOrder.groupBy({
@@ -145,7 +145,7 @@ export class AdminService {
       where: { id },
       include: {
         author: { select: { id: true, name: true, email: true, phone: true, role: true, isBanned: true, createdAt: true } },
-        _count: { select: { favorites: true, deals: true, reports: true } },
+        _count: { select: { favorites: true, reports: true } },
       },
     });
   }
@@ -189,7 +189,7 @@ export class AdminService {
         select: {
           id: true, name: true, email: true, phone: true, role: true,
           isBanned: true, deletedAt: true, createdAt: true, avatar: true,
-          _count: { select: { posts: true, dealsAsRequester: true, reviewsReceived: true } },
+          _count: { select: { posts: true, reviewsReceived: true } },
         },
       }),
       this.prisma.user.count({ where }),
@@ -253,8 +253,7 @@ export class AdminService {
         _count: {
           select: {
             posts: true,
-            dealsAsRequester: true,
-            dealsAsOwner: true,
+            postsCompletedWith: true,
             reviewsReceived: true,
             favorites: true,
           },

@@ -40,7 +40,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   late bool localIsFavorite;
   bool isUpdatingFavorite = false;
   bool _isChatLoading = false;
-  bool _isDealLoading = false;
   int _currentImageIndex = 0;
   late Post _post;
   List<Post> _similarPosts = [];
@@ -422,104 +421,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (mounted) setState(() => isUpdatingFavorite = false);
   }
 
-  Future<void> _requestDeal() async {
-    final auth = context.read<AuthProvider>();
-    if (!auth.isAuth) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)));
-      return;
-    }
-
-    // Lời nhắn: bài bán (sell) BẮT BUỘC để giảm spam request (1.000 user thử
-    // request 1 lúc thì seller bị flood). Bài tặng (give) thì để trống cũng OK
-    // — chợ đồ cũ người Việt thường chat ngắn "còn không?" rồi hẹn gặp.
-    final isGive = _post.listingType == 'give' || _post.listingType == 'free';
-    final msgCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(isGive ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
-        content: SingleChildScrollView(
-          child: Form(
-          key: formKey,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(_post.title,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                maxLines: 2, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Text(
-              isGive
-                  ? 'Có thể nhắn thêm hoặc để trống cũng được — người tặng sẽ liên lạc với bạn.'
-                  : 'Hãy nhắn một lời để người bán biết bạn quan tâm nhé!',
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: msgCtrl,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: isGive
-                    ? '(Tuỳ chọn) VD: Chào bạn, mình muốn nhận món này...'
-                    : 'VD: Chào bạn, mình quan tâm đến món này...',
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              maxLength: 200,
-              validator: (v) {
-                if (isGive) return null; // bài tặng — không bắt buộc
-                return (v == null || v.trim().isEmpty) ? 'Vui lòng nhập lời nhắn' : null;
-              },
-            ),
-          ]),
-        ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                // Auto-fill default message cho bài tặng nếu user để trống
-                if (isGive && msgCtrl.text.trim().isEmpty) {
-                  msgCtrl.text = 'Chào bạn, mình muốn nhận đồ này. Còn không ạ?';
-                }
-                Navigator.pop(context, true);
-              }
-            },
-            child: const Text('Gửi yêu cầu', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    setState(() => _isDealLoading = true);
-    final result = await ApiService.createDeal(_post.id, message: msgCtrl.text.trim());
-    if (!mounted) return;
-    setState(() => _isDealLoading = false);
-
-    if (result != null) {
-      Analytics.dealCreate(postId: _post.id);
-      final roomId = result['roomId']?.toString();
-      if (roomId != null && mounted) {
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            roomId: roomId,
-            otherUserName: _post.authorName ?? 'Người đăng',
-            postTitle: _post.title,
-            postImageLabel: _post.imageLabel,
-            postId: _post.id,
-          ),
-        ));
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Không thể gửi yêu cầu. Bạn có thể đã gửi rồi.'),
-        backgroundColor: AppTheme.error,
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
-  }
+  // Deal feature đã bỏ. Người mua/nhận chat trực tiếp với author qua
+  // bottom bar "Nhắn tin". Author bấm "Hoàn thành" trong chat header sau
+  // khi giao dịch xong → trigger review flow.
 
   Widget _buildBottomBar(AuthProvider auth) {
     final isOwn = auth.isAuth && auth.userId == _post.authorId;

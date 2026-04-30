@@ -9,7 +9,6 @@ import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/empty_state.dart';
 import 'chat_screen.dart';
-import 'deal/deals_screen.dart';
 import 'post_detail_screen.dart';
 import 'profile/my_reviews_screen.dart';
 import 'profile/user_profile_screen.dart';
@@ -54,15 +53,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (!mounted) return;
 
-    if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+    if (type == 'chat' && roomId != null && roomId.isNotEmpty) {
       await _openChat(roomId);
       return;
     }
-    if (type == 'deal' || type == 'deal_reminder') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const DealsScreen()));
-      return;
-    }
-    if (type == 'review') {
+    if (type == 'review' || type == 'transaction_completed') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
       return;
     }
@@ -106,8 +101,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   IconData _iconFor(String type) {
     switch (type) {
-      case 'deal':
-      case 'deal_reminder':  return Icons.swap_horiz_rounded;
+      case 'transaction_completed': return Icons.handshake_rounded;
       case 'chat':           return Icons.chat_bubble_rounded;
       case 'review':         return Icons.star_rounded;
       case 'follow':         return Icons.person_add_rounded;
@@ -122,8 +116,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Color _colorFor(String type) {
     switch (type) {
-      case 'deal':
-      case 'deal_reminder':  return AppTheme.success;
+      case 'transaction_completed': return AppTheme.success;
       case 'chat':           return AppTheme.primary;
       case 'review':         return AppTheme.warning;
       case 'follow':         return const Color(0xFF9C27B0);

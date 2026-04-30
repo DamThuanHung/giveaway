@@ -10,72 +10,76 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  email            String?        @unique
-  name             String?
-  createdAt        DateTime       @default(now())
-  avatar           String?
-  fcmToken         String?
-  isBanned         Boolean        @default(false)
-  role             String         @default("user")
-  updatedAt        DateTime       @updatedAt
-  phone            String?        @unique
-  isPhoneVerified  Boolean        @default(false)
-  deletedAt        DateTime?
-  blockedByUsers   BlockedUser[]  @relation("BlockedRelation")
-  blockedUsers     BlockedUser[]  @relation("BlockerRelation")
-  followers        Follow[]       @relation("FollowingRelation")
-  following        Follow[]       @relation("FollowerRelation")
-  chatAsBuyer      ChatRoom[]     @relation("BuyerRooms")
-  chatAsSeller     ChatRoom[]     @relation("SellerRooms")
-  dealsAsOwner     Deal[]         @relation("DealOwner")
-  dealsAsRequester Deal[]         @relation("DealRequester")
-  favorites        Favorite[]
-  sentMessages     Message[]      @relation("MessageSender")
-  notifications    Notification[]
-  posts            Post[]
-  reports          Report[]
-  reviewsReceived  Review[]       @relation("ReviewReceived")
-  reviewsGiven     Review[]       @relation("ReviewGiven")
-  keywordAlerts    KeywordAlert[]
-  bumpOrders       BumpOrder[]
-  adminActions     AdminActionLog[] @relation("AdminActionLog_admin")
+  id                 String           @id @default(cuid())
+  email              String?          @unique
+  name               String?
+  createdAt          DateTime         @default(now())
+  avatar             String?
+  fcmToken           String?
+  isBanned           Boolean          @default(false)
+  role               String           @default("user")
+  updatedAt          DateTime         @updatedAt
+  phone              String?          @unique
+  isPhoneVerified    Boolean          @default(false)
+  deletedAt          DateTime?
+  blockedByUsers     BlockedUser[]    @relation("BlockedRelation")
+  blockedUsers       BlockedUser[]    @relation("BlockerRelation")
+  followers          Follow[]         @relation("FollowingRelation")
+  following          Follow[]         @relation("FollowerRelation")
+  chatAsBuyer        ChatRoom[]       @relation("BuyerRooms")
+  chatAsSeller       ChatRoom[]       @relation("SellerRooms")
+  favorites          Favorite[]
+  sentMessages       Message[]        @relation("MessageSender")
+  notifications      Notification[]
+  posts              Post[]
+  reports            Report[]
+  reviewsReceived    Review[]         @relation("ReviewReceived")
+  reviewsGiven       Review[]         @relation("ReviewGiven")
+  postsCompletedWith Post[]           @relation("PostCompletedPartner")
+  keywordAlerts      KeywordAlert[]
+  bumpOrders         BumpOrder[]
+  adminActions       AdminActionLog[] @relation("AdminActionLog_admin")
 }
 
 model Post {
-  title         String
-  description   String
-  price         Int        @default(0)
-  createdAt     DateTime   @default(now())
-  addressDetail String     @default("")
-  district      String     @default("")
-  imageLabel    String     @default("")
-  images        String[]
-  itemCategory  String     @default("other")
-  listingType   String     @default("sell")
-  province      String     @default("")
-  status        String     @default("available")
-  ward          String     @default("")
-  id            String     @id @default(cuid())
-  latitude      Float      @default(0.0)
-  longitude     Float      @default(0.0)
-  authorId      String?
-  updatedAt     DateTime   @updatedAt
-  viewCount     Int        @default(0)
-  bumpedAt      DateTime?
-  boostTier     Int        @default(0)  // 0=none 1=free 2=plus 3=vip
-  postType      String     @default("item")      // item | realestate | service
-  subType       String?                           // rent | sell (BĐS)
-  area          Float?                            // m² (BĐS)
-  bedrooms      Int?                              // số phòng ngủ (BĐS)
-  priceUnit     String?                           // month | total | sqm | hour | day
-  serviceArea   String?                           // phạm vi phục vụ (Dịch vụ & Thợ)
-  chatRooms     ChatRoom[]
-  deals         Deal[]
-  favorites     Favorite[]
-  bumpOrders    BumpOrder[]
-  author        User?      @relation(fields: [authorId], references: [id])
-  reports       Report[]
+  title               String
+  description         String
+  price               Int         @default(0)
+  createdAt           DateTime    @default(now())
+  addressDetail       String      @default("")
+  district            String      @default("")
+  imageLabel          String      @default("")
+  images              String[]
+  itemCategory        String      @default("other")
+  listingType         String      @default("sell")
+  province            String      @default("")
+  status              String      @default("available")
+  ward                String      @default("")
+  id                  String      @id @default(cuid())
+  latitude            Float       @default(0.0)
+  longitude           Float       @default(0.0)
+  authorId            String?
+  updatedAt           DateTime    @updatedAt
+  viewCount           Int         @default(0)
+  bumpedAt            DateTime?
+  boostTier           Int         @default(0) // 0=none 1=free 2=plus 3=vip
+  postType            String      @default("item") // item | realestate | service
+  subType             String? // rent | sell (BĐS)
+  area                Float? // m² (BĐS)
+  bedrooms            Int? // số phòng ngủ (BĐS)
+  priceUnit           String? // month | total | sqm | hour | day
+  serviceArea         String? // phạm vi phục vụ (Dịch vụ & Thợ)
+  // Trạng thái giao dịch hoàn tất — author bấm "Hoàn thành" → set 2 field này
+  // status đổi sang 'done'. Reviews chỉ tạo được khi post đã 'done'.
+  completedWithUserId String? // partner mà author đã giao dịch
+  completedAt         DateTime?
+  chatRooms           ChatRoom[]
+  favorites           Favorite[]
+  bumpOrders          BumpOrder[]
+  reviews             Review[]
+  author              User?       @relation(fields: [authorId], references: [id])
+  completedWith       User?       @relation("PostCompletedPartner", fields: [completedWithUserId], references: [id])
+  reports             Report[]
 
   @@index([status])
   @@index([province])
@@ -90,18 +94,18 @@ model Post {
 }
 
 model BumpOrder {
-  id            String    @id @default(cuid())
-  userId        String
-  postId        String
-  package       String    // "plus_3d" | "vip_7d"
-  tier          Int       // 2=plus | 3=vip
-  amount        Int       // giá VNĐ: 5000 | 15000
-  status        String    @default("pending") // pending | paid | expired | cancelled
-  payosOrderId  String?   @unique            // mã đơn PayOS
-  expiredAt     DateTime?                    // null khi chưa paid
-  createdAt     DateTime  @default(now())
-  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  userId       String
+  postId       String
+  package      String // "plus_3d" | "vip_7d"
+  tier         Int // 2=plus | 3=vip
+  amount       Int // giá VNĐ: 5000 | 15000
+  status       String    @default("pending") // pending | paid | expired | cancelled
+  payosOrderId String?   @unique // mã đơn PayOS
+  expiredAt    DateTime? // null khi chưa paid
+  createdAt    DateTime  @default(now())
+  post         Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([postId])
@@ -177,38 +181,26 @@ model Notification {
   @@index([userId, isRead])
 }
 
-model Deal {
-  id          String   @id @default(cuid())
-  postId      String
-  requesterId String
-  ownerId     String
-  status      String   @default("pending")
-  message     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  owner       User     @relation("DealOwner", fields: [ownerId], references: [id])
-  post        Post     @relation(fields: [postId], references: [id])
-  requester   User     @relation("DealRequester", fields: [requesterId], references: [id])
-  reviews     Review[]
-
-  @@index([requesterId])
-  @@index([ownerId])
-  @@index([status])
-}
-
+// Review user-to-user gắn với 1 bài đăng cụ thể.
+// Chỉ tạo được khi post.status='done' (author đã bấm "Hoàn thành").
+// Cả 2 chiều: author review buyer/recipient + buyer/recipient review author.
+// Cho edit trong 24h sau submit, sau đó freeze.
 model Review {
   id         String   @id @default(cuid())
-  dealId     String
+  postId     String
   reviewerId String
   revieweeId String
-  rating     Int
+  rating     Int // 1-5
   comment    String?
   createdAt  DateTime @default(now())
-  deal       Deal     @relation(fields: [dealId], references: [id])
+  updatedAt  DateTime @updatedAt
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   reviewee   User     @relation("ReviewReceived", fields: [revieweeId], references: [id])
   reviewer   User     @relation("ReviewGiven", fields: [reviewerId], references: [id])
 
-  @@unique([dealId, reviewerId])
+  @@unique([postId, reviewerId])
+  @@index([revieweeId])
+  @@index([postId])
 }
 
 model BlockedUser {
@@ -257,10 +249,10 @@ model BannedIdentity {
 model AdminActionLog {
   id         String   @id @default(cuid())
   adminId    String
-  action     String   // post.hide, post.unhide, post.delete, user.ban, user.unban, user.role, report.resolve, report.dismiss, post.softdelete
-  targetType String   // post | user | report
+  action     String // post.hide, post.unhide, post.delete, user.ban, user.unban, user.role, report.resolve, report.dismiss, post.softdelete
+  targetType String // post | user | report
   targetId   String
-  metadata   Json?    // {oldRole, newRole, reason, isBanned, ...}
+  metadata   Json? // {oldRole, newRole, reason, isBanned, ...}
   createdAt  DateTime @default(now())
   admin      User     @relation("AdminActionLog_admin", fields: [adminId], references: [id])
 

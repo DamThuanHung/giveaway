@@ -9,7 +9,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🗑️  Xóa toàn bộ dữ liệu cũ...');
   await prisma.review.deleteMany();
-  await prisma.deal.deleteMany();
   await prisma.message.deleteMany();
   await prisma.chatRoom.deleteMany();
   await prisma.notification.deleteMany();

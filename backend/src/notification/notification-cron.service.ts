@@ -18,38 +18,19 @@ export class NotificationCronService {
     private notification: NotificationService,
   ) {}
 
-  // Group 2a: Nhắc deal pending quá 24 giờ chưa xử lý (chạy mỗi giờ)
-  // Dedup: chỉ nhắc nếu chưa gửi deal_reminder cho deal này trong 24h qua
-  @Cron('0 * * * *')
-  async remindPendingDeals() {
-    const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const deals = await this.prisma.deal.findMany({
-      where: { status: 'pending', createdAt: { lt: cutoff24h } },
-      include: {
-        post: { select: { id: true, title: true } },
-        requester: { select: { name: true } },
-      },
+  // Auto-archive bài available > 30 ngày — không có activity (deal feature gone).
+  // Bài cũ sẽ ẩn khỏi feed, không cho complete/review nữa.
+  // Author vẫn thấy trong "Bài của tôi" với status 'archived' để biết.
+  @Cron('30 4 * * *') // 4:30 sáng UTC = 11:30 sáng VN
+  async autoArchiveStalePosts() {
+    const cutoff30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const stale = await this.prisma.post.updateMany({
+      where: { status: 'available', createdAt: { lt: cutoff30d } },
+      data: { status: 'archived' },
     });
-
-    await runInBatches(deals, async (deal) => {
-      const alreadyNotified = await this.prisma.notification.findFirst({
-        where: {
-          userId: deal.ownerId,
-          type: 'deal_reminder',
-          data: { contains: deal.id },
-          createdAt: { gte: cutoff24h },
-        },
-      });
-      if (alreadyNotified) return;
-
-      await this.notification.createNotification(
-        deal.ownerId,
-        'deal_reminder',
-        'Bạn có yêu cầu chưa xử lý',
-        `${deal.requester?.name ?? 'Ai đó'} đang chờ phản hồi cho bài "${deal.post?.title}". Đừng để họ chờ lâu nhé!`,
-        JSON.stringify({ dealId: deal.id, postId: deal.postId }),
-      ).catch(() => {});
-    });
+    if (stale.count > 0) {
+      console.log(`[NotifCron] Auto-archived ${stale.count} bài available > 30 ngày`);
+    }
   }
 
   // Group 2b: Nhắc bài đăng 7 ngày không có tương tác (chạy lúc 9:00 sáng)
@@ -65,7 +46,8 @@ export class NotificationCronService {
     await runInBatches(posts, async (post) => {
       if (!post.authorId) return;
 
-      const recentActivity = await this.prisma.deal.count({
+      // Đo "tương tác" qua chat rooms — bài có người chat trong 7 ngày = active
+      const recentActivity = await this.prisma.chatRoom.count({
         where: { postId: post.id, createdAt: { gte: cutoff7d } },
       });
       if (recentActivity > 0) return;

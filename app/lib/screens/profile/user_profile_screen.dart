@@ -227,8 +227,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 ),
                                 _divider(),
                                 _StatCol(
-                                  '${_user?['completedDeals'] ?? 0}',
-                                  'Deal xong',
+                                  '${_user?['completedTransactions'] ?? 0}',
+                                  'Giao dịch xong',
                                   icon: Icons.handshake_outlined,
                                   iconColor: AppTheme.success,
                                 ),

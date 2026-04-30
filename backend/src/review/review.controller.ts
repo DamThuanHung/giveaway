@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ReviewService } from './review.service';
 
@@ -10,19 +10,37 @@ export class ReviewController {
   @UseGuards(JwtAuthGuard)
   createReview(
     @Request() req,
-    @Body() body: { dealId: string; rating: number; comment?: string },
+    @Body() body: { postId: string; rating: number; comment?: string },
   ) {
-    return this.reviewService.createReview(req.user.id, body.dealId, body.rating, body.comment);
+    return this.reviewService.createReview(req.user.id, body.postId, body.rating, body.comment);
   }
 
-  @Get('check/:dealId')
+  @Patch(':postId')
   @UseGuards(JwtAuthGuard)
-  hasReviewed(@Request() req, @Param('dealId') dealId: string) {
-    return this.reviewService.hasReviewed(req.user.id, dealId);
+  updateReview(
+    @Request() req,
+    @Param('postId') postId: string,
+    @Body() body: { rating: number; comment?: string },
+  ) {
+    return this.reviewService.updateReview(req.user.id, postId, body.rating, body.comment);
+  }
+
+  @Get('check/:postId')
+  @UseGuards(JwtAuthGuard)
+  hasReviewed(@Request() req, @Param('postId') postId: string) {
+    return this.reviewService.hasReviewed(req.user.id, postId);
   }
 
   @Get('user/:userId')
-  getUserReviews(@Param('userId') userId: string) {
-    return this.reviewService.getUserReviews(userId);
+  getUserReviews(
+    @Param('userId') userId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.reviewService.getUserReviews(
+      userId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 }

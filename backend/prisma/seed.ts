@@ -89,7 +89,6 @@ const coords: Record<string, { lat: number; lng: number }> = {
 async function main() {
   console.log('🗑️  Xóa toàn bộ data cũ...');
   await prisma.review.deleteMany();
-  await prisma.deal.deleteMany();
   await prisma.message.deleteMany();
   await prisma.chatRoom.deleteMany();
   await prisma.notification.deleteMany();

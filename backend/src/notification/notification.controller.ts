@@ -450,24 +450,25 @@ export class NotificationController {
       });
     }
 
-    // Tìm post của userId để tạo deal
+    // Tìm post của userId, set completed với reviewer
     const post = await this.prisma.post.findFirst({ where: { authorId: body.userId } });
     if (!post) return { error: 'Tạo post trước bằng dev/seed-posts' };
 
-    // Tạo deal completed
-    let deal: any;
     try {
-      deal = await this.prisma.deal.create({
-        data: { postId: post.id, requesterId: reviewer.id, ownerId: body.userId, status: 'completed' },
+      await this.prisma.post.update({
+        where: { id: post.id },
+        data: { status: 'done', completedWithUserId: reviewer.id, completedAt: new Date() },
       });
     } catch (e: any) {
-      return { error: 'deal_create_failed', detail: e.message };
+      return { error: 'post_complete_failed', detail: e.message };
     }
 
-    // Tạo review
+    // Tạo review (upsert để idempotent)
     try {
-      await this.prisma.review.create({
-        data: { dealId: deal.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
+      await this.prisma.review.upsert({
+        where: { postId_reviewerId: { postId: post.id, reviewerId: reviewer.id } },
+        update: { rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
+        create: { postId: post.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
       });
     } catch (e: any) {
       return { error: 'review_create_failed', detail: e.message };
@@ -478,7 +479,7 @@ export class NotificationController {
       body.userId, 'review',
       'Trần Thị Test đã đánh giá bạn ⭐⭐⭐⭐⭐',
       '"Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!"',
-      JSON.stringify({ dealId: deal.id }),
+      JSON.stringify({ postId: post.id }),
     );
     return { ok: true };
   }
@@ -491,15 +492,7 @@ export class NotificationController {
 
     const testReviewer = await this.prisma.user.findFirst({ where: { phone: '+841111111111' } });
     if (testReviewer) {
-      const reviewIds = (await this.prisma.review.findMany({
-        where: { reviewerId: testReviewer.id },
-        select: { id: true, dealId: true },
-      }));
-      const dealIds = reviewIds.map(r => r.dealId);
       await this.prisma.review.deleteMany({ where: { reviewerId: testReviewer.id } });
-      if (dealIds.length > 0) {
-        await this.prisma.deal.deleteMany({ where: { id: { in: dealIds } } });
-      }
     }
 
     // Tạo lại đúng 1 review
@@ -512,11 +505,12 @@ export class NotificationController {
     const post = await this.prisma.post.findFirst({ where: { authorId: body.userId } });
     if (!post) return { error: 'Tạo post trước bằng dev/seed-posts' };
 
-    const deal = await this.prisma.deal.create({
-      data: { postId: post.id, requesterId: reviewer.id, ownerId: body.userId, status: 'completed' },
+    await this.prisma.post.update({
+      where: { id: post.id },
+      data: { status: 'done', completedWithUserId: reviewer.id, completedAt: new Date() },
     });
     await this.prisma.review.create({
-      data: { dealId: deal.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
+      data: { postId: post.id, reviewerId: reviewer.id, revieweeId: body.userId, rating: 5, comment: 'Người bán rất nhiệt tình, hàng đúng mô tả. Rất hài lòng!' },
     });
 
     return { ok: true, deleted: testReviewer ? 'all previous reviews' : 'none', created: 1 };
@@ -540,17 +534,6 @@ export class NotificationController {
     return { ok: true, deleted: count };
   }
 
-  // Cancel tất cả pending deals của userId — dừng cron deal_reminder gửi liên tục
-  @Post('dev/cancel-pending-deals')
-  async cancelPendingDeals(@Body() body: { userId: string; secret?: string }) {
-    if (!this.checkDevSecret(body.secret)) return { error: 'unauthorized' };
-    if (!body.userId) return { error: 'userId required' };
-    const { count } = await this.prisma.deal.updateMany({
-      where: { ownerId: body.userId, status: 'pending' },
-      data: { status: 'cancelled' },
-    });
-    return { ok: true, cancelled: count };
-  }
 
   // Dọn sạch toàn bộ dữ liệu test + tạo 10 acc test + bài đăng đủ category
   @Post('dev/reset-test-data')
@@ -690,11 +673,11 @@ export class NotificationController {
 
     if (post) {
       await this.notificationService.createNotification(
-        userId, 'deal_reminder', 'Bạn có yêu cầu chưa xử lý',
-        `${otherUser?.name ?? 'Ai đó'} đang chờ phản hồi cho bài "${post.title}". Đừng để họ chờ lâu nhé!`,
-        JSON.stringify({ postId: post.id }),
+        userId, 'transaction_completed', 'Đối tác đã xác nhận giao dịch',
+        `${otherUser?.name ?? 'Ai đó'} đã xác nhận giao dịch xong với bạn cho bài "${post.title}". Hãy đánh giá họ!`,
+        JSON.stringify({ postId: post.id, partnerId: otherUser?.id, action: 'review' }),
       );
-      created.push('deal_reminder');
+      created.push('transaction_completed');
 
       await this.notificationService.createNotification(
         userId, 'post_reminder', 'Bài đăng của bạn cần được chú ý',

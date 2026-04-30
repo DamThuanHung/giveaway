@@ -180,7 +180,7 @@ class _MyAppState extends State<MyApp> {
     final nav = _navigatorKey.currentState;
     if (nav == null) return;
 
-    if ((type == 'chat' || type == 'deal') && roomId != null && roomId.isNotEmpty) {
+    if (type == 'chat' && roomId != null && roomId.isNotEmpty) {
       try {
         final room = await ApiService.getRoomById(roomId);
         if (room == null) return;
@@ -202,12 +202,10 @@ class _MyAppState extends State<MyApp> {
       return;
     }
 
-    if (type == 'review') {
+    if (type == 'review' || type == 'transaction_completed') {
       nav.push(MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
       return;
     }
-    // Note: type=='deal' đã được handle ở trên (cùng nhánh với 'chat' khi có roomId).
-    // Nếu deal notification không có roomId thì không có route phù hợp — fall through.
   }
 
   void _trySendToken() {

@@ -54,12 +54,118 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _otherHasRead = false;
   Timer? _typingTimer;
 
+  // Post info — fetch khi mở chat để biết tôi là author hay buyer.
+  // Author = sellerId của room (người đăng bài).
+  String? _postAuthorId;
+  String? _partnerId;        // user còn lại trong room
+  String _postStatus = 'available';
+  bool _completing = false;
+
+  bool get _iAmAuthor => _myId != null && _postAuthorId != null && _myId == _postAuthorId;
+  bool get _canComplete => _iAmAuthor && (_postStatus == 'available' || _postStatus == 'reserved') && _partnerId != null;
+
   @override
   void initState() {
     super.initState();
     _myId = context.read<AuthProvider>().userId;
     _loadHistory();
+    _loadRoomMeta();
     _connectSocket();
+  }
+
+  /// Lấy meta của room → biết tôi là seller hay buyer + status post hiện tại.
+  /// Cần để hiện nút "Hoàn thành" cho author + ẩn cho người mua.
+  Future<void> _loadRoomMeta() async {
+    try {
+      final room = await ApiService.getRoomById(widget.roomId);
+      if (!mounted || room == null) return;
+      final post = room['post'] as Map?;
+      setState(() {
+        _postAuthorId = room['sellerId']?.toString();
+        _partnerId = room['buyerId']?.toString() == _myId
+            ? room['sellerId']?.toString()
+            : room['buyerId']?.toString();
+        _postStatus = (post?['status']?.toString()) ?? 'available';
+      });
+    } catch (e) {
+      debugPrint('❌ _loadRoomMeta error: $e');
+    }
+  }
+
+  /// Author bấm "Hoàn thành giao dịch" → confirm dialog → API → snackbar +
+  /// auto-prompt review. Memory feedback_self_test_before_handoff: confirm rõ
+  /// hành động không thể huỷ để tránh user bấm nhầm.
+  Future<void> _completeTransaction() async {
+    if (!_canComplete || _completing) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xác nhận giao dịch hoàn tất?'),
+        content: Text(
+          'Bạn xác nhận đã giao dịch xong với ${widget.otherUserName}?\n\n'
+          'Sau khi xác nhận, bài đăng sẽ chuyển sang "Đã giao dịch" và '
+          'không thể quay lại trạng thái cũ.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xác nhận', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _completing = true);
+    final result = await ApiService.completePost(widget.postId!, _partnerId!);
+    if (!mounted) return;
+    setState(() => _completing = false);
+
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Không thể đánh dấu hoàn thành. Vui lòng thử lại.'),
+        backgroundColor: AppTheme.error,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+
+    setState(() => _postStatus = 'done');
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('🎉 Đã đánh dấu giao dịch xong!'),
+      backgroundColor: AppTheme.success,
+      behavior: SnackBarBehavior.floating,
+    ));
+
+    // Prompt review — tự nguyện, không force
+    final wantsReview = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Đánh giá ${widget.otherUserName}?'),
+        content: const Text(
+          'Đánh giá giúp cộng đồng tin tưởng hơn.\n'
+          'Bạn có thể quay lại đánh giá sau từ trang cá nhân của họ.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Để sau')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Đánh giá ngay'),
+          ),
+        ],
+      ),
+    );
+    if (wantsReview != true || !mounted) return;
+
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => WriteReviewScreen(
+        postId: widget.postId!,
+        revieweeName: widget.otherUserName,
+        postTitle: widget.postTitle,
+      ),
+    ));
   }
 
   Future<void> _loadHistory() async {
@@ -342,6 +448,30 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(widget.otherUserName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        actions: [
+          if (_canComplete)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton.icon(
+                onPressed: _completing ? null : _completeTransaction,
+                icon: _completing
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.check_circle_outline, size: 18, color: AppTheme.success),
+                label: const Text('Hoàn thành',
+                    style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          if (_postStatus == 'done')
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(children: const [
+                Icon(Icons.check_circle, size: 18, color: AppTheme.success),
+                SizedBox(width: 4),
+                Text('Đã giao dịch',
+                    style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.w600, fontSize: 13)),
+              ]),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -416,29 +546,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (ctx, i) {
                           final msg = _messages[i];
                           final isMe = msg['senderId'] == _myId;
-                          // Detect deal card
                           final metaStr = msg['metadata']?.toString();
-                          // Tin nhắn hệ thống (đổi sản phẩm hỏi)
+                          // Tin nhắn hệ thống (vd: "Đã đánh dấu giao dịch xong")
                           if (metaStr == 'system') {
                             return _SystemMessage(text: msg['text']?.toString() ?? '');
                           }
-                          if (metaStr != null && metaStr.isNotEmpty) {
-                            try {
-                              final meta = jsonDecode(metaStr) as Map;
-                              if (meta['type'] == 'deal') {
-                                return _DealCard(
-                                  meta: meta,
-                                  isMe: isMe,
-                                  myId: _myId ?? '',
-                                  otherUserName: widget.otherUserName,
-                                  onUpdateStatus: (dealId, status) async {
-                                    final ok = await ApiService.updateDealStatus(dealId, status);
-                                    if (ok) _loadHistory();
-                                  },
-                                );
-                              }
-                            } catch (_) {}
-                          }
+                          // Legacy deal cards từ data cũ — render thành plain bubble (deal feature đã bỏ)
                           final isLastMyMsg = isMe &&
                               i == _messages.lastIndexWhere((m) => m['senderId'] == _myId);
                           return _MessageBubble(
@@ -593,166 +706,6 @@ class _MessageBubble extends StatelessWidget {
           else
             const SizedBox(height: 6),
         ],
-      ),
-    );
-  }
-}
-
-class _DealCard extends StatefulWidget {
-  final Map meta;
-  final bool isMe;
-  final String myId;
-  final String otherUserName;
-  final Future<void> Function(String dealId, String status) onUpdateStatus;
-
-  const _DealCard({required this.meta, required this.isMe, required this.myId, required this.otherUserName, required this.onUpdateStatus});
-
-  @override
-  State<_DealCard> createState() => _DealCardState();
-}
-
-class _DealCardState extends State<_DealCard> {
-  bool _reviewed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final status = widget.meta['status']?.toString() ?? '';
-    final dealId = widget.meta['dealId']?.toString() ?? '';
-    if (status == 'completed' && dealId.isNotEmpty) {
-      ApiService.checkReviewed(dealId).then((has) {
-        if (mounted && has) setState(() => _reviewed = true);
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final status = widget.meta['status']?.toString() ?? 'pending';
-    final dealId = widget.meta['dealId']?.toString() ?? '';
-    final postTitle = widget.meta['postTitle']?.toString() ?? '';
-    final userMessage = widget.meta['userMessage']?.toString();
-
-    // Người bán = không phải người gửi deal (isMe = false với người bán)
-    final isSeller = !widget.isMe;
-
-    Color borderColor;
-    String statusLabel;
-    Color statusColor;
-    switch (status) {
-      case 'accepted':
-        borderColor = AppTheme.success;
-        statusLabel = '✅ Đã đồng ý';
-        statusColor = AppTheme.success;
-        break;
-      case 'rejected':
-        borderColor = AppTheme.error;
-        statusLabel = '❌ Đã từ chối';
-        statusColor = AppTheme.error;
-        break;
-      case 'completed':
-        borderColor = AppTheme.primary;
-        statusLabel = '🎉 Đã giao xong';
-        statusColor = AppTheme.primary;
-        break;
-      default:
-        borderColor = Colors.orange;
-        statusLabel = '⏳ Chờ phản hồi';
-        statusColor = Colors.orange;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Center(
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: borderColor, width: 1.5),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Header
-            Row(children: [
-              const Icon(Icons.handshake_outlined, size: 18, color: AppTheme.primary),
-              const SizedBox(width: 6),
-              const Text('Yêu cầu nhận đồ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
-              ),
-            ]),
-            if (postTitle.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(postTitle, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-            ],
-            if (userMessage != null && userMessage.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(8)),
-                child: Text('"$userMessage"',
-                    style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: AppTheme.textSecondary)),
-              ),
-            ],
-            // Nút hành động — chỉ người bán thấy
-            if (isSeller && status == 'pending') ...[
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error, side: const BorderSide(color: AppTheme.error)),
-                  onPressed: () => widget.onUpdateStatus(dealId, 'rejected'),
-                  child: const Text('Từ chối'),
-                )),
-                const SizedBox(width: 10),
-                Expanded(child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-                  onPressed: () => widget.onUpdateStatus(dealId, 'accepted'),
-                  child: const Text('Đồng ý', style: TextStyle(color: Colors.white)),
-                )),
-              ]),
-            ],
-            if (isSeller && status == 'accepted') ...[
-              const SizedBox(height: 12),
-              SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-                onPressed: () => widget.onUpdateStatus(dealId, 'completed'),
-                icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                label: const Text('Đã giao xong', style: TextStyle(color: Colors.white)),
-              )),
-            ],
-            // Cả hai đều có thể viết đánh giá khi deal hoàn thành
-            if (status == 'completed') ...[
-              const SizedBox(height: 12),
-              if (_reviewed)
-                const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.check_circle, color: AppTheme.success, size: 16),
-                  SizedBox(width: 6),
-                  Text('Đã gửi đánh giá', style: TextStyle(color: AppTheme.success, fontSize: 13, fontWeight: FontWeight.w500)),
-                ])
-              else
-                SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
-                  onPressed: () async {
-                    final done = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(builder: (_) => WriteReviewScreen(
-                        dealId: dealId,
-                        revieweeName: widget.otherUserName,
-                      )),
-                    );
-                    if (done == true) setState(() => _reviewed = true);
-                  },
-                  icon: const Icon(Icons.star_rounded, color: Colors.white, size: 18),
-                  label: const Text('Viết đánh giá', style: TextStyle(color: Colors.white)),
-                )),
-            ],
-          ]),
-        ),
       ),
     );
   }

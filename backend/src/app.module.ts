@@ -14,8 +14,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtStrategy } from './auth/jwt.strategy';
 import { ChatModule } from './chat/chat.module';
-import { DealController } from './deal/deal.controller';
-import { DealService } from './deal/deal.service';
 import { FavoriteController } from './favorite/favorite.controller';
 import { FavoriteService } from './favorite/favorite.service';
 import { FollowController } from './follow/follow.controller';
@@ -66,7 +64,6 @@ import { BumpModule } from './bump/bump.module';
     ReportController,
     FavoriteController,
     FollowController,
-    DealController,
     ReviewController,
     // NotificationController moved into NotificationModule
   ],
@@ -80,7 +77,6 @@ import { BumpModule } from './bump/bump.module';
     ReportService,
     FavoriteService,
     FollowService,
-    DealService,
     ReviewService,
     // NotificationService/Gateway/Cron + FcmService moved into NotificationModule
     // KeywordAlertService comes from KeywordAlertModule (exported)

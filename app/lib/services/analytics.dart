@@ -59,12 +59,8 @@ class Analytics {
     });
   }
 
-  static Future<void> dealCreate({required String postId}) async {
-    await _analytics.logEvent(name: 'deal_create', parameters: {'post_id': postId});
-  }
-
-  static Future<void> dealComplete({required String dealId}) async {
-    await _analytics.logEvent(name: 'deal_complete', parameters: {'deal_id': dealId});
+  static Future<void> transactionComplete({required String postId}) async {
+    await _analytics.logEvent(name: 'transaction_complete', parameters: {'post_id': postId});
   }
 
   static Future<void> reviewSubmit({required int rating}) async {

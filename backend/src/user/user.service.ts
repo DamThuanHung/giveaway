@@ -176,19 +176,16 @@ export class UserService {
         role: true,
         createdAt: true,
         isPhoneVerified: true,
-        _count: {
-          select: {
-            posts: true,
-            dealsAsOwner: { where: { status: 'completed' } },
-            dealsAsRequester: { where: { status: 'completed' } },
-          },
-        },
+        _count: { select: { posts: true, postsCompletedWith: true, reviewsReceived: true } },
       },
     });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    const myCompletedAsAuthor = await this.prisma.post.count({
+      where: { authorId: id, status: 'done' },
+    });
     return {
       ...user,
-      completedDeals: (user._count.dealsAsOwner ?? 0) + (user._count.dealsAsRequester ?? 0),
+      completedTransactions: myCompletedAsAuthor + (user._count.postsCompletedWith ?? 0),
     };
   }
 
@@ -204,19 +201,16 @@ export class UserService {
         role: true,
         createdAt: true,
         isPhoneVerified: true,
-        _count: {
-          select: {
-            posts: true,
-            dealsAsOwner: { where: { status: 'completed' } },
-            dealsAsRequester: { where: { status: 'completed' } },
-          },
-        },
+        _count: { select: { posts: true, postsCompletedWith: true, reviewsReceived: true } },
       },
     });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    const myCompletedAsAuthor = await this.prisma.post.count({
+      where: { authorId: id, status: 'done' },
+    });
     return {
       ...user,
-      completedDeals: (user._count.dealsAsOwner ?? 0) + (user._count.dealsAsRequester ?? 0),
+      completedTransactions: myCompletedAsAuthor + (user._count.postsCompletedWith ?? 0),
     };
   }
 
@@ -326,7 +320,6 @@ export class UserService {
       this.prisma.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followingId: userId }] } }),
       this.prisma.blockedUser.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } }),
       this.prisma.review.deleteMany({ where: { OR: [{ reviewerId: userId }, { revieweeId: userId }] } }),
-      this.prisma.deal.deleteMany({ where: { OR: [{ requesterId: userId }, { ownerId: userId }] } }),
       this.prisma.message.deleteMany({ where: { senderId: userId } }),
       this.prisma.chatRoom.deleteMany({ where: { OR: [{ buyerId: userId }, { sellerId: userId }] } }),
       this.prisma.post.deleteMany({ where: { authorId: userId } }),

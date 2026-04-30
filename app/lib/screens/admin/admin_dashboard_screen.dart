@@ -229,7 +229,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               _StatTile('Người dùng', '${overview['totalUsers'] ?? 0}', Icons.people_outline, AppTheme.primary),
               _StatTile('Bài đăng', '${overview['totalPosts'] ?? 0}', Icons.article_outlined, AppTheme.success),
-              _StatTile('Giao dịch', '${overview['totalDeals'] ?? 0}', Icons.swap_horiz, AppTheme.warning),
+              _StatTile('Giao dịch xong', '${overview['totalCompleted'] ?? 0}', Icons.swap_horiz, AppTheme.warning),
               _StatTile('Đánh giá TB', '${_stats!['avgRating'] ?? 0}⭐', Icons.star_outline, Colors.orange),
             ],
           ),
@@ -241,7 +241,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(width: 8),
             _MiniStat('Bài mới', '${today['newPosts'] ?? 0}', Colors.green),
             const SizedBox(width: 8),
-            _MiniStat('Deal mới', '${today['newDeals'] ?? 0}', Colors.orange),
+            _MiniStat('Hoàn thành', '${today['newCompleted'] ?? 0}', Colors.orange),
           ]),
           const SizedBox(height: 20),
           const _Section('Trạng thái bài đăng'),
@@ -390,7 +390,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ]),
                 Text(u['email'] ?? u['phone'] ?? '—', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                Text('${count['posts'] ?? 0} bài  •  ${count['dealsAsRequester'] ?? 0} deal',
+                Text('${count['posts'] ?? 0} bài  •  ${count['reviewsReceived'] ?? 0} đánh giá',
                     style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
               ])),
               if (!isDeleted && u['role'] != 'admin')
