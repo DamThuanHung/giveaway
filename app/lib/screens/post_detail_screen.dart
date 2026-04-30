@@ -429,13 +429,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       return;
     }
 
-    // Bắt buộc nhập lời nhắn
+    // Lời nhắn: bài bán (sell) BẮT BUỘC để giảm spam request (1.000 user thử
+    // request 1 lúc thì seller bị flood). Bài tặng (give) thì để trống cũng OK
+    // — chợ đồ cũ người Việt thường chat ngắn "còn không?" rồi hẹn gặp.
+    final isGive = _post.listingType == 'give' || _post.listingType == 'free';
     final msgCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(_post.listingType == 'give' ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
+        title: Text(isGive ? 'Tôi muốn nhận' : 'Tôi quan tâm'),
         content: SingleChildScrollView(
           child: Form(
           key: formKey,
@@ -445,8 +448,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Text(
-              _post.listingType == 'give'
-                  ? 'Hãy nhắn một lời để người đăng biết bạn muốn nhận nhé!'
+              isGive
+                  ? 'Có thể nhắn thêm hoặc để trống cũng được — người tặng sẽ liên lạc với bạn.'
                   : 'Hãy nhắn một lời để người bán biết bạn quan tâm nhé!',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
@@ -455,14 +458,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               controller: msgCtrl,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: _post.listingType == 'give'
-                    ? 'VD: Chào bạn, mình muốn nhận món này...'
+                hintText: isGive
+                    ? '(Tuỳ chọn) VD: Chào bạn, mình muốn nhận món này...'
                     : 'VD: Chào bạn, mình quan tâm đến món này...',
                 border: const OutlineInputBorder(),
               ),
               maxLines: 3,
               maxLength: 200,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập lời nhắn' : null,
+              validator: (v) {
+                if (isGive) return null; // bài tặng — không bắt buộc
+                return (v == null || v.trim().isEmpty) ? 'Vui lòng nhập lời nhắn' : null;
+              },
             ),
           ]),
         ),
@@ -472,7 +478,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
             onPressed: () {
-              if (formKey.currentState!.validate()) Navigator.pop(context, true);
+              if (formKey.currentState!.validate()) {
+                // Auto-fill default message cho bài tặng nếu user để trống
+                if (isGive && msgCtrl.text.trim().isEmpty) {
+                  msgCtrl.text = 'Chào bạn, mình muốn nhận đồ này. Còn không ạ?';
+                }
+                Navigator.pop(context, true);
+              }
             },
             child: const Text('Gửi yêu cầu', style: TextStyle(color: Colors.white)),
           ),

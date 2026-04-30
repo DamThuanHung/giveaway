@@ -1,3 +1,5 @@
+import '../utils/price_format.dart';
+
 class Post {
   final String id;
   final String title;
@@ -152,9 +154,11 @@ class Post {
     final days = remaining.inDays;
     final hours = remaining.inHours % 24;
     final minutes = remaining.inMinutes % 60;
-    if (days > 0) return 'Còn $days ngày $hours giờ';
-    if (remaining.inHours > 0) return 'Còn ${remaining.inHours}g ${minutes}p';
-    return 'Còn $minutes phút';
+    // Text rõ ràng cho người Việt 30-50 tuổi không quen viết tắt "g/p" (dễ
+    // nhầm "g" với "GB"). Dùng "giờ"/"phút" đầy đủ.
+    if (days > 0) return 'Đẩy lại sau $days ngày $hours giờ';
+    if (remaining.inHours > 0) return 'Đẩy lại sau ${remaining.inHours} giờ $minutes phút';
+    return 'Đẩy lại sau $minutes phút';
   }
 
   bool get isFree => listingType == 'give' || listingType == 'free';
@@ -208,7 +212,13 @@ class Post {
     return parts.isEmpty ? 'Chưa cập nhật' : parts.join(', ');
   }
 
-  String get displayPrice => listingType == 'free' ? 'Miễn phí' : '$priceđ';
+  /// Format giá hiển thị cho user. 1.500.000đ thay vì 1500000đ — chuẩn VN.
+  /// Dùng [formatVndPrice] từ utils/price_format.dart cho thống nhất.
+  String get displayPrice {
+    if (listingType == 'give' || listingType == 'free') return 'Miễn phí';
+    if (price == 0) return 'Thương lượng';
+    return formatVndPrice(price);
+  }
 
   Post copyWith({String? status, DateTime? bumpedAt, bool clearBumpedAt = false}) {
     return Post(

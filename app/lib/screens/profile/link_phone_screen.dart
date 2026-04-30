@@ -151,7 +151,7 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
     if (value.length == 1) {
       if (index < 5) {
         _otpFocuses[index + 1].requestFocus();
-      } else { _otpFocuses[index].unfocus(); _verifyOtp(); }
+      } else { _otpFocuses[index].unfocus(); /* không auto-verify — user xem lại rồi bấm Xác nhận */ }
     }
   }
 
