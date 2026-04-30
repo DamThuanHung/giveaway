@@ -89,26 +89,43 @@ export class FollowService {
     return { followersCount, followingCount };
   }
 
-  // Feed bài đăng từ những người mình đang theo dõi
+  // Feed bài đăng từ những người mình đang theo dõi.
+  // Loại bài của user mình đã block — Follow + Block conflict resolved theo Block
+  // (block "thắng" follow). Nếu A follow B rồi block B, A sẽ không thấy bài B.
   async getFeed(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
-    const followingIds = await this.prisma.follow
-      .findMany({ where: { followerId: userId }, select: { followingId: true } })
-      .then((rows) => rows.map((r) => r.followingId));
+    // Bound limit + page để tránh query DB load lớn
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+    const safePage = Math.max(page, 1);
 
-    if (followingIds.length === 0) return { data: [], total: 0 };
+    const [followingRows, blockedRows] = await Promise.all([
+      this.prisma.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      }),
+      this.prisma.blockedUser.findMany({
+        where: { blockerId: userId },
+        select: { blockedId: true },
+      }),
+    ]);
 
+    const blockedIds = new Set(blockedRows.map((r) => r.blockedId));
+    const visibleAuthorIds = followingRows
+      .map((r) => r.followingId)
+      .filter((id) => !blockedIds.has(id));
+
+    if (visibleAuthorIds.length === 0) return { data: [], total: 0 };
+
+    const where = { authorId: { in: visibleAuthorIds }, status: 'available' };
     const [data, total] = await Promise.all([
       this.prisma.post.findMany({
-        where: { authorId: { in: followingIds }, status: 'available' },
+        where,
         include: { author: { select: { id: true, name: true, avatar: true } } },
         orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
       }),
-      this.prisma.post.count({
-        where: { authorId: { in: followingIds }, status: 'available' },
-      }),
+      this.prisma.post.count({ where }),
     ]);
 
     return { data, total };

@@ -21,6 +21,26 @@ export class UserService {
   // attempts để chống brute force: 5 lần sai → xóa OTP, user phải request lại.
   private readonly otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
 
+  // Rate limit per-email (chống spam OTP cho 1 email từ nhiều IP).
+  // 10 OTP / 1 giờ / email. Vượt → trả success generic không leak info.
+  private readonly otpRateLimit = new Map<string, number[]>();
+  private readonly OTP_RATE_LIMIT_PER_HOUR = 10;
+
+  private checkOtpRateLimit(emailKey: string): boolean {
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+    const timestamps = (this.otpRateLimit.get(emailKey) ?? []).filter(
+      (t) => t > oneHourAgo,
+    );
+    if (timestamps.length >= this.OTP_RATE_LIMIT_PER_HOUR) {
+      this.otpRateLimit.set(emailKey, timestamps);
+      return false;
+    }
+    timestamps.push(now);
+    this.otpRateLimit.set(emailKey, timestamps);
+    return true;
+  }
+
   private generateOtp(): string {
     // crypto.randomInt — cryptographically secure, không phải Math.random
     return randomInt(100000, 1000000).toString();
@@ -369,6 +389,11 @@ export class UserService {
     const existing = this.otpStore.get(`login:${emailLower}`);
     if (existing && existing.expiresAt - Date.now() > OTP_TTL_MS - 60_000) {
       // OTP cũ vẫn còn trong 60s đầu → trả success generic, không gửi email mới
+      return { message: 'Đã gửi mã OTP đến email' };
+    }
+    // Per-email hourly rate limit (chống attacker dùng nhiều IP spam cùng email):
+    // tối đa 10 OTP/giờ/email. Vượt → success generic, không gửi.
+    if (!this.checkOtpRateLimit(`login:${emailLower}`)) {
       return { message: 'Đã gửi mã OTP đến email' };
     }
     const otp = this.generateOtp();
