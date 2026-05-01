@@ -641,6 +641,8 @@ function handleContentClick(e) {
       loadChats(true); break;
     case 'open-chat-room': openChatRoom(id); break;
     case 'delete-message': deleteMessagePrompt(id); break;
+
+    case 'refund-order': refundOrderPrompt(id, +extra); break;
   }
 }
 
@@ -1225,20 +1227,22 @@ function renderRevenue() {
   const el = document.getElementById('tab-revenue');
   const rev = state.revenueData || {};
   const tl = state.timeline || [];
-  const statusLabel2 = {paid:'Đã thanh toán',pending:'Chờ thanh toán',expired:'Hết hạn',cancelled:'Đã huỷ'};
-  const statusColor = {paid:'chip-green',pending:'chip-orange',expired:'chip-grey',cancelled:'chip-red'};
+  const statusLabel2 = {paid:'Đã thanh toán',pending:'Chờ thanh toán',expired:'Hết hạn',cancelled:'Đã huỷ',refunded:'Đã hoàn tiền'};
+  const statusColor = {paid:'chip-green',pending:'chip-orange',expired:'chip-grey',cancelled:'chip-red',refunded:'chip-blue'};
   const pkgLabel = {'plus_3d':'Plus 3 ngày','vip_7d':'VIP 7 ngày'};
 
   const orderRows = state.orders.map(o => `
     <div class="item-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div>
+        <div style="flex:1">
           <div class="title">${esc(o.post?.title||'—')}</div>
           <div class="meta">${esc(o.user?.name||o.user?.email||'—')} · ${pkgLabel[o.package]||esc(o.package)} · ${fmtDate(o.createdAt)}</div>
+          ${o.status === 'refunded' && o.refundReason ? `<div class="meta" style="color:var(--info);margin-top:3px">↩ ${esc(o.refundReason)}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0">
           <span class="chip ${statusColor[o.status]||'chip-grey'}">${statusLabel2[o.status]||esc(o.status)}</span>
           <div style="font-weight:700;color:#E53935;margin-top:4px">${fmoneyFull(o.amount)}</div>
+          ${o.status === 'paid' ? `<button class="btn-sm btn-orange" data-action="refund-order" data-id="${esc(o.id)}" data-extra="${esc(o.amount)}" style="margin-top:6px">Hoàn tiền</button>` : ''}
         </div>
       </div>
     </div>`).join('');
@@ -1395,6 +1399,25 @@ function actionTone(action) {
   if (action.includes('delete') || action.includes('ban')) return 'danger';
   if (action.includes('hide') || action.includes('resolve')) return 'warn';
   return '';
+}
+
+// ─── Refund ───────────────────────────────────────────────────────────────────
+
+async function refundOrderPrompt(orderId, amount) {
+  const reason = prompt(`Lý do hoàn ${amount.toLocaleString('vi-VN')}đ (sẽ ghi audit log + thông báo user):`);
+  if (reason === null) return;
+  if (!reason.trim()) { toast('Phải nhập lý do'); return; }
+  if (!confirm(`Xác nhận hoàn ${amount.toLocaleString('vi-VN')}đ?\n\nGhi chú: chỉ đánh dấu refunded trong DB. Bạn phải tự hoàn tiền thật qua PayOS dashboard hoặc chuyển khoản ngược.`)) return;
+
+  const res = await api(`/admin/bump-orders/${orderId}/refund`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason.trim() }),
+  });
+  if (!res) return;
+  toast(`Đã đánh dấu hoàn ${res.refundedAmount.toLocaleString('vi-VN')}đ`);
+  // Reload revenue tab to refresh
+  state.orders = []; state.ordersPage = 0; state.revenueData = null;
+  loadRevenue(true);
 }
 
 // ─── Chat moderation ──────────────────────────────────────────────────────────

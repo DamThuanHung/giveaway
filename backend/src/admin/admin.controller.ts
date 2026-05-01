@@ -136,6 +136,12 @@ export class AdminController {
     res.send('﻿' + csv);
   }
 
+  // ─── Refund management ────────────────────────────
+  @Post('bump-orders/:id/refund')
+  refundBumpOrder(@Request() req, @Param('id') id: string, @Body('reason') reason?: string) {
+    return this.adminService.refundBumpOrder(req.user.id, id, reason);
+  }
+
   // ─── Chat moderation ──────────────────────────────
   @Get('chats')
   getChats(

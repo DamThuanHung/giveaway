@@ -100,10 +100,15 @@ model BumpOrder {
   package      String // "plus_3d" | "vip_7d"
   tier         Int // 2=plus | 3=vip
   amount       Int // giá VNĐ: 5000 | 15000
-  status       String    @default("pending") // pending | paid | expired | cancelled
+  status       String    @default("pending") // pending | paid | expired | cancelled | refunded
   payosOrderId String?   @unique // mã đơn PayOS
   expiredAt    DateTime? // null khi chưa paid
   createdAt    DateTime  @default(now())
+  // Khi admin hoàn tiền: set status='refunded' + 2 field này. Tiền thật do
+  // admin tự hoàn qua dashboard PayOS hoặc chuyển khoản ngược. Field này chỉ
+  // tracking internal + reverse boost effect (post.boostTier về 0).
+  refundedAt   DateTime?
+  refundReason String?
   post         Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 

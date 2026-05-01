@@ -532,6 +532,59 @@ export class AdminService {
       .join('\n');
   }
 
+  // ─── Refund management ────────────────────────────
+  /// Hoàn tiền 1 bump order — set status='refunded' + reverse boost effect.
+  /// Tiền thật admin tự hoàn qua PayOS dashboard / bank transfer.
+  /// Notify user qua notification + audit log.
+  async refundBumpOrder(adminId: string, orderId: string, reason?: string) {
+    const order = await this.prisma.bumpOrder.findUnique({
+      where: { id: orderId },
+      include: { post: { select: { id: true, title: true, boostTier: true } } },
+    });
+    if (!order) throw new NotFoundException('Đơn không tồn tại');
+    if (order.status !== 'paid') {
+      throw new BadRequestException(`Chỉ refund được đơn paid. Đơn này status='${order.status}'`);
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.bumpOrder.update({
+        where: { id: orderId },
+        data: {
+          status: 'refunded',
+          refundedAt: new Date(),
+          refundReason: reason ?? null,
+        },
+      }),
+      // Reverse boost: nếu post đang được boost bởi đơn này → reset boostTier=0
+      this.prisma.post.updateMany({
+        where: { id: order.postId, boostTier: order.tier },
+        data: { boostTier: 0, bumpedAt: null },
+      }),
+    ]);
+
+    // Notify user (best effort, không block refund nếu fail)
+    await this.prisma.notification.create({
+      data: {
+        userId: order.userId,
+        type: 'admin_refund',
+        title: 'Đơn bump đã được hoàn tiền',
+        body: `Đơn ${order.package} cho bài "${order.post?.title || ''}" đã được hoàn ${order.amount.toLocaleString('vi-VN')}đ. Lý do: ${reason || 'không nêu'}`,
+        data: JSON.stringify({ orderId, postId: order.postId }),
+      },
+    }).catch(() => {});
+
+    await this.audit(adminId, 'bumporder.refund', 'bumporder', orderId, {
+      postId: order.postId,
+      userId: order.userId,
+      package: order.package,
+      amount: order.amount,
+      payosOrderId: order.payosOrderId,
+      reason: reason ?? null,
+    });
+
+    return { ok: true, orderId, refundedAmount: order.amount };
+  }
+
   // ─── Chat moderation ──────────────────────────────
   /// List chat rooms order by recent activity (updatedAt). Filter optionally
   /// theo postId hoặc userId (xem chat của 1 user/post cụ thể).
