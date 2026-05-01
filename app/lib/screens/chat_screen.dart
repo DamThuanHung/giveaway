@@ -651,24 +651,9 @@ class _MessageBubble extends StatelessWidget {
                       ),
                     ));
                   },
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (_, child, progress) => progress == null
-                        ? child
-                        : Container(
-                            width: 160, height: 160,
-                            color: AppTheme.background,
-                            alignment: Alignment.center,
-                            child: const CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 160, height: 160,
-                      color: AppTheme.background,
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.broken_image_outlined, color: AppTheme.textSecondary),
-                    ),
-                  ),
+                  // PB1 (Tier 4): dùng AppImage để cached thay vì Image.network
+                  // raw — chống re-fetch ảnh mỗi lần scroll history (data + lag).
+                  child: AppImage(url: imageUrl, width: 160, height: 160),
                 ),
               ),
             ),

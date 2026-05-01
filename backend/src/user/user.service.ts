@@ -15,7 +15,13 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    // PM3 (Tier 4): TTL cleanup chống Map unbounded growth (memory leak).
+    // OTP_TTL_MS = 5 phút → entries quá 5 phút coi như expired, xoá.
+    // otpRateLimit timestamps quá 1 giờ → xoá.
+    // Run every 60s — không block event loop, chỉ vài Map ops nhanh.
+    setInterval(() => this.cleanupExpiredOtps(), 60_000);
+  }
 
   // OTP store tạm thời (production scale >1 instance nên chuyển Redis).
   // attempts để chống brute force: 5 lần sai → xóa OTP, user phải request lại.
@@ -25,6 +31,22 @@ export class UserService {
   // 10 OTP / 1 giờ / email. Vượt → trả success generic không leak info.
   private readonly otpRateLimit = new Map<string, number[]>();
   private readonly OTP_RATE_LIMIT_PER_HOUR = 10;
+
+  /** PM3 (Tier 4): cleanup Map entries hết hạn — chống memory leak. */
+  private cleanupExpiredOtps() {
+    const now = Date.now();
+    // OTP store: xoá entries hết TTL
+    for (const [key, value] of this.otpStore) {
+      if (now > value.expiresAt) this.otpStore.delete(key);
+    }
+    // Rate limit: xoá emails không có timestamp nào còn trong 1h qua
+    const oneHourAgo = now - 60 * 60 * 1000;
+    for (const [email, timestamps] of this.otpRateLimit) {
+      const valid = timestamps.filter((t) => t > oneHourAgo);
+      if (valid.length === 0) this.otpRateLimit.delete(email);
+      else if (valid.length !== timestamps.length) this.otpRateLimit.set(email, valid);
+    }
+  }
 
   private checkOtpRateLimit(emailKey: string): boolean {
     const now = Date.now();

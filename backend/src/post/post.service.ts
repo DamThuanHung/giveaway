@@ -243,21 +243,33 @@ export class PostService {
       },
     });
 
-    // Thông báo cho tất cả followers của tác giả
+    // PM1 (Tier 4): Notification fan-out với batch processing.
+    // Trước đây Promise.all parallel cho ALL followers → user 5K followers
+    // → 5K parallel DB calls → connection pool exhaustion (default 10 conns).
+    // Giờ batch chunks 50, sequential giữa các batch với delay 100ms.
     if (userId) {
       this.prisma.follow.findMany({ where: { followingId: userId }, select: { followerId: true } })
         .then(async (follows) => {
           if (follows.length === 0) return;
           const author = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-          await Promise.all(follows.map(f =>
-            this.notification.createNotification(
-              f.followerId,
-              'new_post',
-              'Bài đăng mới từ người bạn theo dõi',
-              `${author?.name ?? 'Ai đó'} vừa đăng: "${post.title}"`,
-              JSON.stringify({ postId: post.id }),
-            ).catch(() => {}),
-          ));
+          const authorName = author?.name ?? 'Ai đó';
+          const BATCH_SIZE = 50;
+          for (let i = 0; i < follows.length; i += BATCH_SIZE) {
+            const batch = follows.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map(f =>
+              this.notification.createNotification(
+                f.followerId,
+                'new_post',
+                'Bài đăng mới từ người bạn theo dõi',
+                `${authorName} vừa đăng: "${post.title}"`,
+                JSON.stringify({ postId: post.id }),
+              ).catch(() => {}),
+            ));
+            // Delay nhỏ giữa batches — cho event loop xử lý request khác
+            if (i + BATCH_SIZE < follows.length) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
         }).catch(() => {});
     }
 

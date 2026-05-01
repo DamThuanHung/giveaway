@@ -54,6 +54,14 @@ android {
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        // Native debug symbols cho Play Console — khi user crash ANR,
+        // Crashlytics + Play Console hiển thị stack trace có symbol thay
+        // vì hex addresses (libxxx.so+0x1234). Symbols.zip auto-include
+        // trong AAB output (~5MB) → upload bundle là Play Console nhận.
+        ndk {
+            debugSymbolLevel 'FULL'
+        }
     }
 
     signingConfigs {
