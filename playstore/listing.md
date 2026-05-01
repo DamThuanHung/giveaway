@@ -115,7 +115,20 @@ Liên hệ: damhungtpt@gmail.com
 
 > Dùng cho mỗi lần cập nhật. Giới hạn 500 ký tự.
 
-### Phiên bản 1.0.2 (đang dùng cho lần submit hiện tại)
+### Phiên bản 1.0.3 (đang dùng cho lần submit hiện tại)
+
+```
+Phiên bản 1.0.3 — Hoàn thành giao dịch + Đánh giá 2 chiều
+• Mới: Nút "Hoàn thành" trong chat — đánh dấu giao dịch xong
+• Mới: Đánh giá người mua/người tặng sau giao dịch (cả 2 chiều)
+• Mới: Sửa đánh giá trong 24h sau khi gửi
+• Giá hiển thị 1.500.000đ thay vì 1500000đ — dễ đọc hơn
+• Bảo mật: chống spam OTP qua proxy, bảo vệ email
+• Thanh toán Bump ổn định hơn cho mạng 3G/4G yếu
+Phản hồi: damhungtpt@gmail.com
+```
+
+### Phiên bản 1.0.2 (Phase 2 đầu — đã thay bằng 1.0.3)
 
 ```
 Phiên bản 1.0.2 — Vá lỗi từ phản hồi tester
