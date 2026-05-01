@@ -242,8 +242,8 @@ class _ChatScreenState extends State<ChatScreen> {
         if (data['senderId'] != _myId) _otherHasRead = false;
       });
       _scrollToBottom();
-      // Đánh dấu đã đọc và thông báo cho người kia
-      ApiService.markRoomAsRead(widget.roomId);
+      // Đánh dấu đã đọc và thông báo cho người kia (best-effort, fire-and-forget)
+      ApiService.markRoomAsRead(widget.roomId).catchError((_) {});
       _socket?.emit('markRead', {'roomId': widget.roomId});
       if (mounted) context.read<NotificationProvider>().refresh();
     });

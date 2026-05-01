@@ -408,15 +408,37 @@ class PayOSWebView extends StatefulWidget {
 class _PayOSWebViewState extends State<PayOSWebView> {
   late final WebViewController _controller;
   bool _loading = true;
+  String? _loadError;  // TM5 (Tier 2): track network/load error để show retry UI
 
   @override
   void initState() {
     super.initState();
+    _initController();
+  }
+
+  void _initController() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
-        onPageStarted: (_) => setState(() => _loading = true),
-        onPageFinished: (_) => setState(() => _loading = false),
+        onPageStarted: (_) {
+          if (mounted) setState(() { _loading = true; _loadError = null; });
+        },
+        onPageFinished: (_) {
+          if (mounted) setState(() => _loading = false);
+        },
+        // TM5 (Tier 2): handle PayOS load fail — chỉ catch network error chính
+        // (errorType.host/connection), KHÔNG catch sub-resource fail (favicon
+        // miss, analytics blocked) để tránh false positive.
+        onWebResourceError: (err) {
+          if (!mounted) return;
+          // Chỉ treat as fatal nếu là main frame error
+          final isMainFrame = err.isForMainFrame ?? false;
+          if (!isMainFrame) return;
+          setState(() {
+            _loading = false;
+            _loadError = 'Không tải được trang thanh toán. Mạng yếu hoặc PayOS đang bảo trì.';
+          });
+        },
         onNavigationRequest: (req) {
           // Bắt URL callback ngay khi PayOS redirect (trước khi WebView
           // load ngrok interstitial hoặc đợi backend redirect về deep link)
@@ -443,6 +465,11 @@ class _PayOSWebViewState extends State<PayOSWebView> {
       ..loadRequest(Uri.parse(widget.url));
   }
 
+  void _retry() {
+    setState(() { _loadError = null; _loading = true; });
+    _controller.loadRequest(Uri.parse(widget.url));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -458,8 +485,37 @@ class _PayOSWebViewState extends State<PayOSWebView> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (_loading)
+          if (_loading && _loadError == null)
             const Center(child: CircularProgressIndicator()),
+          // TM5 (Tier 2): error state với nút retry
+          if (_loadError != null)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 64, color: Color(0xFFE57373)),
+                    const SizedBox(height: 16),
+                    Text(_loadError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A2E))),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _retry,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Thử lại'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Đóng và thanh toán sau'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
