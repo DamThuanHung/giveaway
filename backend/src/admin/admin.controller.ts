@@ -136,6 +136,37 @@ export class AdminController {
     res.send('﻿' + csv);
   }
 
+  // ─── Chat moderation ──────────────────────────────
+  @Get('chats')
+  getChats(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('search') search?: string,
+    @Query('postId') postId?: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.adminService.getAllChatRooms(+page, +limit, search, postId, userId);
+  }
+
+  @Get('chats/:roomId')
+  getChatRoom(@Param('roomId') roomId: string) {
+    return this.adminService.getChatRoomDetail(roomId);
+  }
+
+  @Get('chats/:roomId/messages')
+  getChatMessages(
+    @Param('roomId') roomId: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    return this.adminService.getChatMessages(roomId, +page, +limit);
+  }
+
+  @Delete('chats/messages/:messageId')
+  deleteMessage(@Request() req, @Param('messageId') messageId: string, @Body('reason') reason?: string) {
+    return this.adminService.deleteMessage(req.user.id, messageId, reason);
+  }
+
   // ─── Review moderation ────────────────────────────
   @Get('reviews')
   getReviews(

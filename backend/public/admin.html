@@ -242,6 +242,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="6">⚙️ Hệ thống</button>
     <button class="tab" data-tab="7">📢 Broadcast</button>
     <button class="tab" data-tab="8">⭐ Đánh giá</button>
+    <button class="tab" data-tab="9">💬 Chat</button>
   </div>
 
   <div class="content">
@@ -254,6 +255,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-system" style="display:none"></div>
     <div id="tab-broadcast" style="display:none"></div>
     <div id="tab-reviews" style="display:none"></div>
+    <div id="tab-chats" style="display:none"></div>
   </div>
 </div>
 
@@ -279,7 +281,7 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats'];
 
 const state = {
   posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
@@ -291,6 +293,7 @@ const state = {
   topData: null,
   broadcastSegment: 'all', broadcastPreview: null, broadcastHistory: [],
   reviews: [], reviewsPage: 0, reviewsTotal: 0, reviewsTotalPages: 1, reviewsRating: '', reviewsSearch: '',
+  chats: [], chatsPage: 0, chatsTotal: 0, chatsTotalPages: 1, chatsSearch: '', currentChatRoom: null, currentChatMessages: [],
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -487,6 +490,7 @@ function loadCurrent(force = false) {
     case 6: loadSystem(); break;
     case 7: loadBroadcast(); break;
     case 8: if (force || state.reviews.length === 0) loadReviews(true); break;
+    case 9: if (force || state.chats.length === 0) loadChats(true); break;
   }
 }
 
@@ -564,6 +568,7 @@ function handleContentClick(e) {
       else if (target === 'revenue') loadRevenue();
       else if (target === 'audit') loadAudit();
       else if (target === 'reviews') loadReviews();
+      else if (target === 'chats') loadChats();
       break;
     }
 
@@ -630,6 +635,12 @@ function handleContentClick(e) {
       loadReviews(true); break;
     case 'open-review': openReviewDetail(id); break;
     case 'delete-review': e.stopPropagation(); deleteReviewPrompt(id, idx); break;
+
+    case 'do-search-chats':
+      state.chatsSearch = document.getElementById('chats-search').value;
+      loadChats(true); break;
+    case 'open-chat-room': openChatRoom(id); break;
+    case 'delete-message': deleteMessagePrompt(id); break;
   }
 }
 
@@ -638,6 +649,7 @@ function handleContentKeydown(e) {
   if (e.target.id === 'posts-search') { state.postsSearch = e.target.value; loadPosts(true); }
   else if (e.target.id === 'users-search') { state.usersSearch = e.target.value; loadUsers(true); }
   else if (e.target.id === 'reviews-search') { state.reviewsSearch = e.target.value; loadReviews(true); }
+  else if (e.target.id === 'chats-search') { state.chatsSearch = e.target.value; loadChats(true); }
 }
 
 function handleContentChange(e) {
@@ -664,6 +676,7 @@ function handleModalAction(e) {
     case 'modal-view-post': closeModal(); openPostDetail(id); break;
     case 'modal-view-user': closeModal(); openUserDetail(id); break;
     case 'delete-review': deleteReviewPrompt(id); break;
+    case 'delete-message': deleteMessagePrompt(id); break;
   }
 }
 
@@ -1382,6 +1395,125 @@ function actionTone(action) {
   if (action.includes('delete') || action.includes('ban')) return 'danger';
   if (action.includes('hide') || action.includes('resolve')) return 'warn';
   return '';
+}
+
+// ─── Chat moderation ──────────────────────────────────────────────────────────
+
+async function loadChats(reset = false) {
+  if (reset) {
+    state.chats = []; state.chatsPage = 0; state.chatsTotal = 0; state.chatsTotalPages = 1;
+  }
+  const next = state.chatsPage + 1;
+  if (state.chats.length > 0 && next > state.chatsTotalPages) return;
+
+  const params = new URLSearchParams({ page: String(next), limit: '20' });
+  if (state.chatsSearch) params.set('search', state.chatsSearch);
+  const res = await api(`/admin/chats?${params}`);
+  if (!res) return;
+
+  state.chats = state.chats.concat(res.data);
+  state.chatsPage = res.meta.page;
+  state.chatsTotal = res.meta.total;
+  state.chatsTotalPages = res.meta.totalPages;
+  renderChats();
+}
+
+function renderChats() {
+  const el = document.getElementById('tab-chats');
+
+  const rows = state.chats.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:30px">Chưa có phòng chat</div>'
+    : state.chats.map((r) => {
+        const lastMsg = r.messages?.[0];
+        const lastText = lastMsg ? (lastMsg.text.length > 80 ? lastMsg.text.slice(0, 80) + '...' : lastMsg.text) : '(chưa có tin nhắn)';
+        return `
+          <div class="row" data-action="open-chat-room" data-id="${esc(r.id)}" style="cursor:pointer">
+            <div class="row-main">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-weight:600">${esc(r.buyer?.name||'?')}</span>
+                <span style="color:var(--text3)">↔</span>
+                <span style="font-weight:600">${esc(r.seller?.name||'?')}</span>
+                <span style="color:var(--text3);font-size:12px">· ${r._count?.messages||0} tin · ${fmtDate(r.updatedAt)}</span>
+              </div>
+              <div style="color:var(--text2);font-size:13px;margin-top:3px">📦 ${esc(r.post?.title||'?')} ${chipStatus(r.post?.status)}</div>
+              <div style="color:var(--text2);font-size:13px;margin-top:4px;font-style:italic">${esc(lastText)}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+  el.innerHTML = `
+    <div class="filter-bar">
+      <div class="search-row">
+        <input id="chats-search" placeholder="Tìm theo tên buyer/seller/title bài..." value="${esc(state.chatsSearch)}"/>
+        <button class="btn-sm btn-green" data-action="do-search-chats">Tìm</button>
+      </div>
+    </div>
+    ${paginationInfo('chats', state.chatsPage, state.chatsTotalPages, state.chatsTotal, state.chats.length)}
+    <div class="list">${rows}</div>
+    ${state.chatsPage < state.chatsTotalPages ? `<div style="text-align:center;margin-top:14px"><button class="btn-sm btn-grey" data-action="load-more" data-target="chats">Tải thêm</button></div>` : ''}
+  `;
+}
+
+async function openChatRoom(roomId) {
+  showModal('Đang tải...', '<div class="loading"><div class="spinner"></div></div>', '');
+  const [room, messages] = await Promise.all([
+    api(`/admin/chats/${roomId}`),
+    api(`/admin/chats/${roomId}/messages?page=1&limit=100`),
+  ]);
+  if (!room) { closeModal(); return; }
+  state.currentChatRoom = room;
+  state.currentChatMessages = messages?.data || [];
+  renderChatRoomModal();
+}
+
+function renderChatRoomModal() {
+  const r = state.currentChatRoom;
+  if (!r) return;
+  const msgs = state.currentChatMessages;
+
+  const msgRows = msgs.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:20px">Chưa có tin nhắn</div>'
+    : msgs.map((m) => {
+        const isBuyer = m.senderId === r.buyerId;
+        const align = isBuyer ? 'flex-start' : 'flex-end';
+        const bg = isBuyer ? 'var(--bg)' : 'var(--primary-light)';
+        return `
+          <div style="display:flex;justify-content:${align};margin-bottom:10px">
+            <div style="max-width:75%;background:${bg};padding:10px 12px;border-radius:12px;position:relative">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:3px">${esc(m.sender?.name||'?')} · ${fmtDate(m.createdAt)}</div>
+              <div style="white-space:pre-wrap;word-break:break-word;font-size:13px">${esc(m.text)}</div>
+              <button class="btn-sm btn-red" data-action="delete-message" data-id="${esc(m.id)}" style="margin-top:6px;font-size:11px;padding:3px 8px">Xóa</button>
+            </div>
+          </div>`;
+      }).join('');
+
+  showModal(
+    `Chat: ${esc(r.buyer?.name||'?')} ↔ ${esc(r.seller?.name||'?')}`,
+    `<div class="kv-list" style="margin-bottom:14px">
+      <div class="kv"><span class="k">Buyer</span><span class="v">${esc(r.buyer?.name||'?')} ${r.buyer?.isBanned?'<span class="chip chip-red">Đã ban</span>':''} <span style="color:var(--text3);font-size:12px">${esc(r.buyer?.email||r.buyer?.phone||'')}</span></span></div>
+      <div class="kv"><span class="k">Seller</span><span class="v">${esc(r.seller?.name||'?')} ${r.seller?.isBanned?'<span class="chip chip-red">Đã ban</span>':''} <span style="color:var(--text3);font-size:12px">${esc(r.seller?.email||r.seller?.phone||'')}</span></span></div>
+      <div class="kv"><span class="k">Bài đăng</span><span class="v">${esc(r.post?.title||'?')} ${chipStatus(r.post?.status)} · ${fmoneyFull(r.post?.price||0)}</span></div>
+      <div class="kv"><span class="k">Số tin nhắn</span><span class="v">${r._count?.messages||0}</span></div>
+      <div class="kv"><span class="k">Tạo lúc</span><span class="v">${fmtDate(r.createdAt)}</span></div>
+    </div>
+    <div class="section-title" style="font-size:13px;margin-bottom:8px">Tin nhắn (100 gần nhất)</div>
+    <div style="max-height:400px;overflow-y:auto;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:12px">${msgRows}</div>`,
+    `<button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
+  );
+}
+
+async function deleteMessagePrompt(messageId) {
+  const reason = prompt('Lý do xóa tin nhắn (sẽ ghi vào audit log):');
+  if (reason === null) return;
+  const res = await api(`/admin/chats/messages/${messageId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ reason: reason.trim() || null }),
+  });
+  if (!res) return;
+  toast('Đã xóa tin nhắn');
+  // Remove from local state + re-render modal
+  state.currentChatMessages = state.currentChatMessages.filter((m) => m.id !== messageId);
+  renderChatRoomModal();
 }
 
 // ─── Reviews moderation ───────────────────────────────────────────────────────

@@ -532,6 +532,93 @@ export class AdminService {
       .join('\n');
   }
 
+  // ─── Chat moderation ──────────────────────────────
+  /// List chat rooms order by recent activity (updatedAt). Filter optionally
+  /// theo postId hoặc userId (xem chat của 1 user/post cụ thể).
+  async getAllChatRooms(page = 1, limit = 20, search?: string, postId?: string, userId?: string) {
+    const where: Prisma.ChatRoomWhereInput = {};
+    if (postId) where.postId = postId;
+    if (userId) where.OR = [{ buyerId: userId }, { sellerId: userId }];
+    if (search) {
+      // Search theo tên user (buyer hoặc seller) hoặc title bài
+      where.AND = [
+        ...(where.AND as any[] || []),
+        {
+          OR: [
+            { buyer: { name: { contains: search, mode: 'insensitive' } } },
+            { seller: { name: { contains: search, mode: 'insensitive' } } },
+            { post: { title: { contains: search, mode: 'insensitive' } } },
+          ],
+        },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const [rooms, total] = await Promise.all([
+      this.prisma.chatRoom.findMany({
+        where, skip, take: limit,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          buyer: { select: { id: true, name: true, email: true, avatar: true } },
+          seller: { select: { id: true, name: true, email: true, avatar: true } },
+          post: { select: { id: true, title: true, status: true } },
+          messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+          _count: { select: { messages: true } },
+        },
+      }),
+      this.prisma.chatRoom.count({ where }),
+    ]);
+    return { data: rooms, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getChatRoomDetail(roomId: string) {
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      include: {
+        buyer: { select: { id: true, name: true, email: true, phone: true, avatar: true, isBanned: true } },
+        seller: { select: { id: true, name: true, email: true, phone: true, avatar: true, isBanned: true } },
+        post: { select: { id: true, title: true, status: true, price: true, images: true } },
+        _count: { select: { messages: true } },
+      },
+    });
+    if (!room) throw new NotFoundException('Phòng chat không tồn tại');
+    return room;
+  }
+
+  /// Lấy messages trong room theo thứ tự thời gian (chat history).
+  /// Pagination từ cũ → mới (page 1 = cũ nhất). Cap limit 100 để tránh OOM.
+  async getChatMessages(roomId: string, page = 1, limit = 50) {
+    const room = await this.prisma.chatRoom.findUnique({ where: { id: roomId }, select: { id: true } });
+    if (!room) throw new NotFoundException('Phòng chat không tồn tại');
+    const safe = Math.min(Math.max(1, limit), 100);
+    const skip = (page - 1) * safe;
+    const [messages, total] = await Promise.all([
+      this.prisma.message.findMany({
+        where: { roomId },
+        skip, take: safe,
+        orderBy: { createdAt: 'asc' },
+        include: { sender: { select: { id: true, name: true, avatar: true } } },
+      }),
+      this.prisma.message.count({ where: { roomId } }),
+    ]);
+    return { data: messages, meta: { page, limit: safe, total, totalPages: Math.ceil(total / safe) } };
+  }
+
+  /// Hard delete message — text/ảnh xấu phải biến mất khỏi chat 2 user.
+  /// Audit log preserves original text + sender + room cho evidence.
+  async deleteMessage(adminId: string, messageId: string, reason?: string) {
+    const before = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!before) throw new NotFoundException('Tin nhắn không tồn tại');
+    await this.prisma.message.delete({ where: { id: messageId } });
+    await this.audit(adminId, 'message.delete', 'message', messageId, {
+      roomId: before.roomId,
+      senderId: before.senderId,
+      text: before.text,
+      reason: reason ?? null,
+    });
+    return { ok: true };
+  }
+
   // ─── Review moderation ────────────────────────────
   async getAllReviews(page = 1, limit = 20, rating?: number, search?: string, postId?: string) {
     const where: Prisma.ReviewWhereInput = {};
