@@ -69,6 +69,20 @@ Future<void> main() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
+    // Guard release build: baseUrl phải là HTTPS production. Nếu thiếu
+    // --dart-define=API_URL=https://api.traotay.com.vn → crash ngay với error
+    // rõ ràng thay vì silent fail (default trỏ LAN dev, mọi API call sẽ fail).
+    if (kReleaseMode &&
+        (ApiService.baseUrl.contains('192.168') ||
+            ApiService.baseUrl.contains('localhost') ||
+            ApiService.baseUrl.contains('127.0.0.1') ||
+            ApiService.baseUrl.startsWith('http://'))) {
+      throw UnsupportedError(
+        'Release build PHẢI dùng --dart-define=API_URL=https://api.traotay.com.vn '
+        '— baseUrl hiện tại: ${ApiService.baseUrl}',
+      );
+    }
+
     if (!kIsWeb) {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
