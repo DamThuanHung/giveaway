@@ -737,7 +737,26 @@ class _CreatePostTabState extends State<CreatePostTab> {
     return InkWell(
       onTap: () async {
         final picked = await CategoryPickerSheet.show(context, selected: _itemCategory);
-        if (picked != null) setState(() => _itemCategory = picked);
+        if (picked != null && picked != _itemCategory) {
+          // TM8 (Tier 2): clear field cũ khi đổi category — chống orphan data
+          // (vd: bedrooms=3 leftover khi đổi từ realestate sang item).
+          setState(() {
+            _itemCategory = picked;
+            _areaController.clear();
+            _serviceAreaController.clear();
+            _bedrooms = 1;
+            // Reset listingType về 'sell' nếu category không phù hợp 'give'
+            if (picked == 'realestate' || picked == 'jobs' || picked == 'service') {
+              _listingType = 'sell';
+            }
+            // priceUnit default theo category
+            if (picked == 'realestate') {
+              _priceUnit = 'month';
+            } else if (picked == 'service' || picked == 'jobs') {
+              _priceUnit = 'hour';
+            }
+          });
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(

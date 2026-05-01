@@ -110,6 +110,39 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
       return;
     }
 
+    // TM4 (Tier 2): confirm dialog trước khi mở PayOS — chống user bấm nhầm
+    // mất tiền. Người Việt 30-50 tuổi nhìn nhanh dễ bấm sai gói.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xác nhận thanh toán'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Gói: ${pkg.label}', style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('Số tiền: ${_formatPrice(pkg.amount)}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+            const SizedBox(height: 12),
+            const Text(
+              'Bạn sẽ được chuyển đến trang thanh toán PayOS. '
+              'Vui lòng kiểm tra số tiền trước khi xác nhận giao dịch ngân hàng.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Tiếp tục thanh toán'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     // Plus / VIP — tạo đơn PayOS
     setState(() => _loading = true);
     Analytics.bumpInitiate(tier: pkg.key, amount: pkg.amount);

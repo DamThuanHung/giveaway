@@ -162,6 +162,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _openChat() async {
+    // TM10 (Tier 2): re-entry guard chống rapid taps tạo nhiều chat room.
+    // Button đã disabled khi _isChatLoading nhưng race window vẫn tồn tại
+    // giữa render frame và setState.
+    if (_isChatLoading) return;
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)));

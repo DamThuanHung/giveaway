@@ -185,7 +185,9 @@ class _ChatScreenState extends State<ChatScreen> {
         _otherHasRead = alreadyRead;
       });
       _scrollToBottom();
-      ApiService.markRoomAsRead(widget.roomId);
+      // TM3 (Tier 2): wrap fire-and-forget vào catch — chống uncaught async error
+      // gây crash background isolate. markRoomAsRead fail = không ảnh hưởng chat.
+      ApiService.markRoomAsRead(widget.roomId).catchError((_) {});
       if (mounted) context.read<NotificationProvider>().refresh();
     } catch (e) {
       debugPrint('❌ ChatScreen._loadHistory error: $e');
