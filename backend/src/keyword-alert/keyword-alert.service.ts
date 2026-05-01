@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 
@@ -42,6 +43,7 @@ export class KeywordAlertService {
   async notifyMatchingUsers(postId: string, postTitle: string, postDescription: string, authorId: string) {
     const titleLower = postTitle.toLowerCase();
     const descLower = postDescription.toLowerCase();
+    const combinedText = `${titleLower} ${descLower}`;
 
     // Exclude những user đã block author hoặc bị author block (privacy)
     const blockedIds = await this.prisma.blockedUser.findMany({
@@ -53,14 +55,26 @@ export class KeywordAlertService {
       ...blockedIds.flatMap(b => [b.blockerId, b.blockedId]),
     ]);
 
-    const alerts = await this.prisma.keywordAlert.findMany({
-      where: { userId: { notIn: [...excludedUserIds] } },
-      select: { userId: true, keyword: true },
-    });
-
-    const matched = alerts.filter(a =>
-      titleLower.includes(a.keyword) || descLower.includes(a.keyword),
-    );
+    // PB3 (Tier 4): Filter ở DB level dùng SQL WHERE thay vì JS filter.
+    // Trước đây findMany ALL keywordAlerts (10k+ at scale) → filter JS — full
+    // table scan + memory load. Giờ raw SQL với ILIKE — tận dụng index keyword.
+    //
+    // Logic: "title + desc" CONTAINS keyword → match.
+    // Vd: title="Áo Zara", keyword="zara" → ILIKE '%zara%' → match.
+    // Prisma.join() để parameterize IDs an toàn (chống SQL injection).
+    const excludedArray = Array.from(excludedUserIds);
+    const matched = excludedArray.length > 0
+      ? await this.prisma.$queryRaw<{ userId: string; keyword: string }[]>`
+          SELECT DISTINCT "userId", keyword
+          FROM "KeywordAlert"
+          WHERE "userId" NOT IN (${Prisma.join(excludedArray)})
+            AND ${combinedText} ILIKE '%' || keyword || '%'
+        `
+      : await this.prisma.$queryRaw<{ userId: string; keyword: string }[]>`
+          SELECT DISTINCT "userId", keyword
+          FROM "KeywordAlert"
+          WHERE ${combinedText} ILIKE '%' || keyword || '%'
+        `;
 
     // Gom theo userId để không gửi nhiều notification cho cùng 1 user
     const byUser = new Map<string, string[]>();

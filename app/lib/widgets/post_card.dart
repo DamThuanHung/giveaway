@@ -51,13 +51,17 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     if (widget.post.effectiveTier == 3) {
+      // PB2 (Tier 4): tăng duration animation VIP 3s→6s, 4s→8s.
+      // Trước: ListView 30 cards có VIP = 60 controllers tick 60fps đồng thời
+      // → frame drop <20fps trên Galaxy J6/Redmi 8 (1-2GB RAM).
+      // Tăng duration giảm tần số rebuild ~50% nhưng vẫn giữ visual VIP feel.
       _vipCtrl = AnimationController(
         vsync: this,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 6),
       )..repeat();
       _shimmerCtrl = AnimationController(
         vsync: this,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 8),
       )..repeat();
     }
   }

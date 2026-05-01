@@ -237,6 +237,9 @@ model KeywordAlert {
 
   @@unique([userId, keyword])
   @@index([userId])
+  // PB3 (Tier 4): index keyword cho fast lookup trong notifyMatchingUsers SQL.
+  // Khi scale 10k+ alerts, tránh full-table scan.
+  @@index([keyword])
 }
 
 model BannedIdentity {
