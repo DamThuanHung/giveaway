@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
-import { fetchAllPostIds } from "@/lib/api";
+import { fetchAllPostIds, fetchAllAuthorIds } from "@/lib/api";
 
 const BASE = "https://traotay.com.vn";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await fetchAllPostIds().catch(() => []);
+  const [posts, users] = await Promise.all([
+    fetchAllPostIds().catch(() => []),
+    fetchAllAuthorIds().catch(() => []),
+  ]);
 
   const staticEntries: MetadataRoute.Sitemap = [
     {
@@ -43,5 +46,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticEntries, ...postEntries];
+  const userEntries: MetadataRoute.Sitemap = users.map((u) => ({
+    url: `${BASE}/users/${u.id}/`,
+    changeFrequency: "weekly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticEntries, ...postEntries, ...userEntries];
 }

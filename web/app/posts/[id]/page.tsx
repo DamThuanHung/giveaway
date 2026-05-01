@@ -186,7 +186,15 @@ export default async function PostDetailPage({
                 )}
                 <div className="flex justify-between gap-3">
                   <dt className="text-gray-500 shrink-0">Người đăng</dt>
-                  <dd className="text-right font-medium">{post.author?.name || "Ẩn danh"}</dd>
+                  <dd className="text-right font-medium">
+                    {post.author?.id ? (
+                      <Link href={`/users/${post.author.id}/`} className="text-primary hover:underline">
+                        {post.author.name || "Ẩn danh"}
+                      </Link>
+                    ) : (
+                      post.author?.name || "Ẩn danh"
+                    )}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-gray-500 shrink-0">Ngày đăng</dt>

@@ -100,6 +100,25 @@ export async function fetchAllPostIds(): Promise<{ id: string }[]> {
   return allIds.slice(0, MAX_POSTS);
 }
 
+/// Fetch unique author IDs từ posts để pre-render /users/[id]/.
+/// Phase 3 cap 200 user. Static export → user mới hơn sẽ 404 đến khi rebuild.
+export async function fetchAllAuthorIds(): Promise<{ id: string }[]> {
+  const seen = new Set<string>();
+  let page = 1;
+  const LIMIT = 100;
+  const MAX_AUTHORS = 200;
+  while (seen.size < MAX_AUTHORS) {
+    const res = await fetchPosts({ page, limit: LIMIT });
+    if (res.data.length === 0) break;
+    for (const p of res.data) {
+      if (p.author?.id) seen.add(p.author.id);
+    }
+    if (page >= res.meta.totalPages) break;
+    page++;
+  }
+  return Array.from(seen).slice(0, MAX_AUTHORS).map((id) => ({ id }));
+}
+
 export function formatPrice(amount: number): string {
   if (amount === 0) return "Miễn phí";
   if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)} tỷ`;
