@@ -101,6 +101,32 @@ export async function loginVerifyOtp(
   };
 }
 
+/// Update name của user hiện tại. Trả về user mới sau update.
+export async function updateMyName(userId: string, name: string): Promise<AuthUser | null> {
+  const res = await authFetch(`/user/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name: name.trim() }),
+  });
+  if (!res.ok) return null;
+  return fetchMyProfile();
+}
+
+/// Upload avatar — multipart form. Trả URL avatar mới.
+export async function uploadAvatarFile(file: File): Promise<string | null> {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("avatar", file);
+  // KHÔNG set Content-Type: browser auto set với boundary.
+  const res = await fetch(`${API_BASE}/user/avatar`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.avatar ?? null;
+}
+
 /// Verify token còn valid + sync user state. Gọi khi mount app.
 export async function fetchMyProfile(): Promise<AuthUser | null> {
   const res = await authFetch("/user/me");
