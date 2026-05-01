@@ -263,12 +263,21 @@ services:
 ### 🚨 CRITICAL — Hardcode IP LAN
 - [x] ~~`api_service.dart:7` + `chat_socket_service.dart:11`~~ ✅ commit `ca4c421` — dùng `String.fromEnvironment('API_URL', defaultValue: 'http://192.168.0.108:3800')`
 
-**Build production (bắt buộc `--dart-define`):**
+**Build production (bắt buộc `--dart-define` + symbols):**
 ```bash
-flutter build appbundle --release --dart-define=API_URL=https://api.traotay.com.vn
-flutter build apk --release --dart-define=API_URL=https://api.traotay.com.vn
+flutter build appbundle --release --dart-define=API_URL=https://api.traotay.com.vn --split-debug-info=build/symbols --obfuscate
+flutter build apk --release --dart-define=API_URL=https://api.traotay.com.vn --split-debug-info=build/symbols --obfuscate
 ```
-**Dev:** không cần `--dart-define` — dùng fallback LAN IP
+
+Sau khi build:
+1. AAB ở `app/build/app/outputs/bundle/release/app-release.aab`
+2. Symbols ở `app/build/symbols/` (3 files: arm, arm64, x64 — mỗi file ~3MB)
+3. **Upload symbols lên Play Console**: App integrity → Native debug symbols → upload từng file `.symbols` HOẶC zip cả thư mục `symbols/` rồi upload
+4. Crashlytics tự symbolicate (nếu Firebase Crashlytics đã active)
+
+Tại sao cần `--split-debug-info`: Flutter ship `libapp.so`/`libflutter.so` đã pre-stripped. AGP `ndk { debugSymbolLevel 'FULL' }` không hoạt động vì không có symbols để extract. Cần Flutter tự xuất qua flag này.
+
+**Dev:** không cần các flag — dùng fallback LAN IP, không obfuscate cho dễ debug
 
 ### ⚠️ HIGH — `isLocal` guard dev features
 - [ ] Tìm mọi chỗ hiển thị "Dev login" / "Seed data" trong UI — disable khi `!baseUrl.contains('192.168')` hoặc better: dùng build flavor `kDebugMode`
