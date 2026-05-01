@@ -71,8 +71,28 @@ class ImageCompress {
     }
   }
 
-  /// Nén loạt ảnh song song.
-  static Future<List<XFile>> compressBatch(List<XFile> originals) async {
-    return Future.wait(originals.map(compress));
+  /// Nén loạt ảnh TUẦN TỰ (không phải song song).
+  ///
+  /// TM6 (Tier 2 audit): trước đây dùng `Future.wait(...)` chạy parallel:
+  /// 10 ảnh × 5MB load đồng thời vào memory → 50MB+ uncompressed in-flight.
+  /// Trên máy yếu (Galaxy J6, Redmi 8, 1-2GB RAM) → OOM crash app trước khi
+  /// nén xong. Sequential thì chậm hơn ~2-3x nhưng KHÔNG crash.
+  ///
+  /// Trade-off chấp nhận:
+  /// - Mạng tốt + máy mạnh: chậm hơn 2-3 giây cho 10 ảnh — không đáng kể
+  /// - Mạng yếu + máy yếu: KHÔNG crash, user upload thành công thay vì mất bài
+  ///
+  /// Optional callback `onProgress(current, total)` để UI hiện progress bar.
+  static Future<List<XFile>> compressBatch(
+    List<XFile> originals, {
+    void Function(int current, int total)? onProgress,
+  }) async {
+    final result = <XFile>[];
+    for (var i = 0; i < originals.length; i++) {
+      onProgress?.call(i, originals.length);
+      result.add(await compress(originals[i]));
+    }
+    onProgress?.call(originals.length, originals.length);
+    return result;
   }
 }
