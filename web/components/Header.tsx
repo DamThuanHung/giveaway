@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { HeaderSearchBox } from "./HeaderSearchBox";
+import { UserMenu } from "./UserMenu";
 
 export function Header() {
   return (
@@ -16,17 +17,17 @@ export function Header() {
           <HeaderSearchBox />
         </Suspense>
 
-        <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-gray-700 shrink-0">
-          <Link href="/posts/" className="hover:text-primary">Tin đăng</Link>
-          <Link href="/#faq" className="hover:text-primary">Câu hỏi</Link>
+        <nav className="flex items-center gap-3 md:gap-5 text-sm font-medium text-gray-700 shrink-0">
+          <Link href="/posts/" className="hidden md:inline hover:text-primary">Tin đăng</Link>
           <a
             href="https://play.google.com/store/apps/details?id=vn.traotay.app"
             target="_blank"
             rel="noopener"
-            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg font-semibold"
+            className="hidden md:inline-flex bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg font-semibold"
           >
             Tải app
           </a>
+          <UserMenu />
         </nav>
       </div>
     </header>

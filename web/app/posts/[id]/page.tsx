@@ -13,6 +13,7 @@ import {
   CATEGORIES,
 } from "@/lib/api";
 import { PostCard } from "@/components/PostCard";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 // Pre-render mọi /posts/[id]/ tại build time. Cap 500 posts mới nhất.
 export async function generateStaticParams() {
@@ -206,15 +207,18 @@ export default async function PostDetailPage({
                 </div>
               </dl>
 
-              <a
-                href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-                target="_blank"
-                rel="noopener"
-                className="block w-full bg-primary hover:bg-primary-dark text-white text-center font-bold py-3.5 rounded-xl transition"
-              >
-                💬 Tải app để chat người bán
-              </a>
-              <p className="text-xs text-gray-500 text-center mt-2">
+              <div className="flex gap-2 mb-2">
+                <a
+                  href="https://play.google.com/store/apps/details?id=vn.traotay.app"
+                  target="_blank"
+                  rel="noopener"
+                  className="flex-1 bg-primary hover:bg-primary-dark text-white text-center font-bold py-3.5 rounded-xl transition"
+                >
+                  💬 Tải app để chat
+                </a>
+                <FavoriteButton postId={post.id} size="lg" className="!w-14 !h-14 !rounded-xl" />
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-1">
                 Liên hệ + giao dịch qua app Trao Tay
               </p>
             </div>

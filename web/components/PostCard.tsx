@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Post, formatPrice, formatLocation, CATEGORIES } from "@/lib/api";
+import { FavoriteButton } from "./FavoriteButton";
 
 export function PostCard({ post }: { post: Post }) {
   const isVip = post.boostTier === 3;
@@ -31,10 +32,13 @@ export function PostCard({ post }: { post: Post }) {
           </span>
         )}
         {isFree && (
-          <span className="absolute top-2 right-2 px-2 py-1 rounded-md text-xs font-bold bg-primary text-white">
+          <span className="absolute top-2 left-2 px-2 py-1 rounded-md text-xs font-bold bg-primary text-white" style={{ marginTop: isVip || isPlus ? "30px" : "0" }}>
             🎁 Tặng
           </span>
         )}
+        <div className="absolute top-2 right-2">
+          <FavoriteButton postId={post.id} size="sm" />
+        </div>
       </div>
       <div className="p-3 flex-1 flex flex-col">
         <h3 className="font-semibold text-sm line-clamp-2 mb-1 text-navy group-hover:text-primary">
