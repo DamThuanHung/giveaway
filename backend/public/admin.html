@@ -240,6 +240,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="4">💰 Doanh thu</button>
     <button class="tab" data-tab="5">📜 Lịch sử admin</button>
     <button class="tab" data-tab="6">⚙️ Hệ thống</button>
+    <button class="tab" data-tab="7">📢 Broadcast</button>
   </div>
 
   <div class="content">
@@ -250,6 +251,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-revenue" style="display:none"></div>
     <div id="tab-audit" style="display:none"></div>
     <div id="tab-system" style="display:none"></div>
+    <div id="tab-broadcast" style="display:none"></div>
   </div>
 </div>
 
@@ -275,7 +277,7 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast'];
 
 const state = {
   posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
@@ -285,6 +287,7 @@ const state = {
   revenueData: null, timeline: null, timelineFrom: '', timelineTo: '',
   audit: [], auditPage: 0, auditTotal: 0, auditTotalPages: 1, auditTargetType: '',
   topData: null,
+  broadcastSegment: 'all', broadcastPreview: null, broadcastHistory: [],
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -479,6 +482,7 @@ function loadCurrent(force = false) {
     case 4: if (force || !state.revenueData) loadRevenue(true); break;
     case 5: if (force || state.audit.length === 0) loadAudit(true); break;
     case 6: loadSystem(); break;
+    case 7: loadBroadcast(); break;
   }
 }
 
@@ -606,6 +610,12 @@ function handleContentClick(e) {
       break;
     }
     case 'export-csv-server': exportCsvServer(); break;
+
+    case 'set-broadcast-segment':
+      state.broadcastSegment = el.dataset.value || 'all';
+      previewBroadcastSegment();
+      break;
+    case 'do-broadcast': doBroadcast(); break;
   }
 }
 
@@ -1356,6 +1366,107 @@ function actionTone(action) {
   if (action.includes('delete') || action.includes('ban')) return 'danger';
   if (action.includes('hide') || action.includes('resolve')) return 'warn';
   return '';
+}
+
+// ─── Broadcast notification ───────────────────────────────────────────────────
+
+async function loadBroadcast() {
+  const el = document.getElementById('tab-broadcast');
+  const segments = [
+    ['all', '🌐 Tất cả'],
+    ['active_30d', '🟢 Active 30 ngày'],
+    ['inactive_30d', '😴 Inactive 30 ngày'],
+    ['admin', '🔧 Chỉ admin (test)'],
+  ];
+
+  // Fetch history first time
+  if (state.broadcastHistory.length === 0) {
+    const res = await api('/admin/notification/broadcasts?page=1&limit=20');
+    if (res?.data) state.broadcastHistory = res.data;
+  }
+
+  el.innerHTML = `
+    <div class="section-title">📢 Gửi thông báo broadcast</div>
+    <div class="bar-card" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="margin-bottom:8px">Đối tượng nhận</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${segments.map(([v, l]) => `
+            <button class="fchip ${state.broadcastSegment===v?'active':''}" data-action="set-broadcast-segment" data-value="${v}">${l}</button>
+          `).join('')}
+        </div>
+        <div id="broadcast-preview" style="margin-top:8px;font-size:13px;color:var(--text2)">
+          ${state.broadcastPreview ? `→ Sẽ gửi tới <strong>${state.broadcastPreview.total}</strong> user (${state.broadcastPreview.withFcm} có FCM token)` : 'Chọn segment để xem preview'}
+        </div>
+      </div>
+      <div>
+        <label>Tiêu đề <span style="color:var(--text3)">(1-100 ký tự)</span></label>
+        <input id="broadcast-title" type="text" maxlength="100" placeholder="VD: Bảo trì hệ thống">
+      </div>
+      <div>
+        <label>Nội dung <span style="color:var(--text3)">(1-500 ký tự)</span></label>
+        <textarea id="broadcast-body" rows="4" maxlength="500" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit;resize:vertical" placeholder="VD: Hệ thống bảo trì từ 22h-23h hôm nay. Cảm ơn bạn đã thông cảm."></textarea>
+      </div>
+      <div>
+        <button class="btn btn-primary" data-action="do-broadcast" style="width:auto;padding:12px 24px">🚀 Gửi broadcast</button>
+        <span style="color:var(--warning);font-size:12px;margin-left:12px">⚠ Hành động không thể hoàn tác. Mọi user trong segment sẽ nhận push.</span>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">📜 Lịch sử broadcast</div>
+    <div class="bar-card">
+      ${state.broadcastHistory.length === 0
+        ? '<div style="color:var(--text2);text-align:center;padding:20px">Chưa có broadcast nào</div>'
+        : state.broadcastHistory.map(h => {
+            const m = h.metadata || {};
+            const segLabel = segments.find(([v]) => v === m.segment)?.[1] || m.segment;
+            return `
+              <div style="border-bottom:1px solid var(--border);padding:12px 0">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+                  <span>${esc(h.admin?.name||h.admin?.email||'?')} · ${fmtDate(h.createdAt)}</span>
+                  <span>${esc(segLabel)} · ${m.sent||0}/${m.totalUsers||0} ✓</span>
+                </div>
+                <div style="font-weight:600;margin-top:4px">${esc(m.title||'')}</div>
+                <div style="color:var(--text2);font-size:13px">${esc(m.body||'')}</div>
+              </div>`;
+          }).join('')
+      }
+    </div>
+  `;
+
+  if (!state.broadcastPreview) previewBroadcastSegment();
+}
+
+async function previewBroadcastSegment() {
+  const seg = state.broadcastSegment;
+  const res = await api(`/admin/notification/segment-preview?segment=${seg}`);
+  if (!res) return;
+  state.broadcastPreview = res;
+  const el = document.getElementById('broadcast-preview');
+  if (el) {
+    el.innerHTML = `→ Sẽ gửi tới <strong>${res.total}</strong> user (${res.withFcm} có FCM token, sẽ nhận push notification)`;
+  }
+}
+
+async function doBroadcast() {
+  const title = document.getElementById('broadcast-title').value.trim();
+  const body = document.getElementById('broadcast-body').value.trim();
+  if (!title || title.length > 100) { toast('Tiêu đề 1-100 ký tự'); return; }
+  if (!body || body.length > 500) { toast('Nội dung 1-500 ký tự'); return; }
+  const segLabel = state.broadcastPreview?.total ?? '?';
+  if (!confirm(`Gửi broadcast tới ${segLabel} user?\n\nTiêu đề: ${title}\nNội dung: ${body}\n\nKhông thể hoàn tác.`)) return;
+
+  toast('Đang gửi broadcast...');
+  const res = await api('/admin/notification/broadcast', {
+    method: 'POST',
+    body: JSON.stringify({ segment: state.broadcastSegment, title, body }),
+  });
+  if (!res) return;
+  toast(`Đã gửi: ${res.sent}/${res.totalUsers} ✓ · ${res.failed} thất bại`);
+  document.getElementById('broadcast-title').value = '';
+  document.getElementById('broadcast-body').value = '';
+  state.broadcastHistory = [];
+  loadBroadcast();
 }
 
 // ─── System ───────────────────────────────────────────────────────────────────

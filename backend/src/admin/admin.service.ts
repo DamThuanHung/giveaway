@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FcmService } from '../fcm/fcm.service';
 import { Prisma } from '@prisma/client';
 
 const DELETED_BY_ADMIN = 'deleted_by_admin';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private fcm: FcmService,
+  ) {}
 
   /// Ghi 1 dòng audit log cho mọi mutation của admin. Lỗi log không block action.
   private async audit(adminId: string, action: string, targetType: string, targetId: string, metadata?: Record<string, any>) {
@@ -526,6 +530,126 @@ export class AdminService {
     return [header, ...rows]
       .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
       .join('\n');
+  }
+
+  /// Broadcast notification cho 1 segment user. Insert notification rows + bắn FCM push.
+  /// Dùng PM1 batch pattern (50/lần + sleep 100ms) để không sốc DB + FCM rate limit.
+  /// Audit log để xem lịch sử broadcast (segment, count sent/failed) qua tab Audit.
+  async broadcastNotification(
+    adminId: string,
+    segment: 'all' | 'active_30d' | 'inactive_30d' | 'admin',
+    title: string,
+    body: string,
+    data?: string,
+  ) {
+    const t = (title || '').trim();
+    const b = (body || '').trim();
+    if (!t || t.length > 100) throw new BadRequestException('Tiêu đề 1-100 ký tự');
+    if (!b || b.length > 500) throw new BadRequestException('Nội dung 1-500 ký tự');
+    if (!['all', 'active_30d', 'inactive_30d', 'admin'].includes(segment)) {
+      throw new BadRequestException('segment không hợp lệ');
+    }
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const where: Prisma.UserWhereInput = { isBanned: false, deletedAt: null };
+    if (segment === 'admin') {
+      where.role = 'admin';
+    } else if (segment === 'active_30d') {
+      where.posts = { some: { createdAt: { gte: thirtyDaysAgo } } };
+    } else if (segment === 'inactive_30d') {
+      where.AND = [
+        { createdAt: { lt: thirtyDaysAgo } },
+        { posts: { none: { createdAt: { gte: thirtyDaysAgo } } } },
+      ];
+    }
+
+    const users = await this.prisma.user.findMany({
+      where,
+      select: { id: true, fcmToken: true },
+    });
+
+    if (users.length === 0) {
+      await this.audit(adminId, 'notification.broadcast', 'notification', 'broadcast', {
+        segment, title: t, body: b, totalUsers: 0, sent: 0, failed: 0,
+      });
+      return { totalUsers: 0, sent: 0, failed: 0, segment };
+    }
+
+    // Bulk insert notification rows
+    await this.prisma.notification.createMany({
+      data: users.map((u) => ({
+        userId: u.id,
+        type: 'admin_broadcast',
+        title: t,
+        body: b,
+        data: data ?? null,
+      })),
+    });
+
+    // Send FCM push cho user có fcmToken — batch 50 + sleep 100ms
+    const tokenedUsers = users.filter((u) => u.fcmToken).map((u) => ({ id: u.id, token: u.fcmToken! }));
+    let sent = 0, failed = 0;
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < tokenedUsers.length; i += BATCH_SIZE) {
+      const batch = tokenedUsers.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(batch.map(async ({ id, token }) => {
+        const r = await this.fcm.sendToToken(token, t, b, { type: 'admin_broadcast' })
+          .catch(() => ({ ok: false, invalidToken: false }));
+        if (r.invalidToken) {
+          await this.prisma.user.update({ where: { id }, data: { fcmToken: null } }).catch(() => {});
+        }
+        return r.ok;
+      }));
+      sent += results.filter(Boolean).length;
+      failed += results.filter((x) => !x).length;
+      if (i + BATCH_SIZE < tokenedUsers.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    await this.audit(adminId, 'notification.broadcast', 'notification', 'broadcast', {
+      segment, title: t, body: b, totalUsers: users.length, sent, failed,
+    });
+
+    return { totalUsers: users.length, sent, failed, segment };
+  }
+
+  /// Lấy lịch sử broadcast từ audit log (action='notification.broadcast').
+  async getBroadcastHistory(page = 1, limit = 20) {
+    const where = { action: 'notification.broadcast' };
+    const skip = (page - 1) * limit;
+    const [logs, total] = await Promise.all([
+      this.prisma.adminActionLog.findMany({
+        where, skip, take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { admin: { select: { id: true, name: true, email: true } } },
+      }),
+      this.prisma.adminActionLog.count({ where }),
+    ]);
+    return { data: logs, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  /// Preview count cho 1 segment trước khi gửi — admin biết broadcast tới bao nhiêu user.
+  async previewBroadcastSegment(segment: 'all' | 'active_30d' | 'inactive_30d' | 'admin') {
+    if (!['all', 'active_30d', 'inactive_30d', 'admin'].includes(segment)) {
+      throw new BadRequestException('segment không hợp lệ');
+    }
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const where: Prisma.UserWhereInput = { isBanned: false, deletedAt: null };
+    if (segment === 'admin') where.role = 'admin';
+    else if (segment === 'active_30d') where.posts = { some: { createdAt: { gte: thirtyDaysAgo } } };
+    else if (segment === 'inactive_30d') {
+      where.AND = [
+        { createdAt: { lt: thirtyDaysAgo } },
+        { posts: { none: { createdAt: { gte: thirtyDaysAgo } } } },
+      ];
+    }
+
+    const [total, withFcm] = await Promise.all([
+      this.prisma.user.count({ where }),
+      this.prisma.user.count({ where: { ...where, fcmToken: { not: null } } }),
+    ]);
+    return { segment, total, withFcm };
   }
 
   async getAuditLog(page = 1, limit = 50, targetType?: string, targetId?: string, adminId?: string) {

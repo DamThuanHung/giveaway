@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Delete, Param, Query, Body, UseGuards, Request, Res } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Param, Query, Body, UseGuards, Request, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
@@ -134,6 +134,31 @@ export class AdminController {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="traotay-orders-${ts}.csv"`);
     res.send('﻿' + csv);
+  }
+
+  // ─── Broadcast notification ───────────────────────
+  @Post('notification/broadcast')
+  broadcast(
+    @Request() req,
+    @Body() body: { segment: 'all' | 'active_30d' | 'inactive_30d' | 'admin'; title: string; body: string; data?: string },
+  ) {
+    return this.adminService.broadcastNotification(
+      req.user.id,
+      body.segment,
+      body.title,
+      body.body,
+      body.data,
+    );
+  }
+
+  @Get('notification/broadcasts')
+  getBroadcasts(@Query('page') page = '1', @Query('limit') limit = '20') {
+    return this.adminService.getBroadcastHistory(+page, +limit);
+  }
+
+  @Get('notification/segment-preview')
+  previewSegment(@Query('segment') segment: 'all' | 'active_30d' | 'inactive_30d' | 'admin') {
+    return this.adminService.previewBroadcastSegment(segment);
   }
 
   // ─── Audit log ────────────────────────────────────

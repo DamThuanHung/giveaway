@@ -26,6 +26,8 @@ export class AdminGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user || user.role !== 'admin') throw new ForbiddenException('Chỉ admin mới có quyền truy cập');
+    if (user.isBanned) throw new ForbiddenException('Tài khoản đã bị cấm');
+    if (user.deletedAt) throw new ForbiddenException('Tài khoản đã bị xóa');
 
     req.user = { id: user.id, role: user.role };
     return true;
