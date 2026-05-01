@@ -254,6 +254,23 @@ model BannedIdentity {
   createdAt DateTime @default(now())
 }
 
+/// Danh mục cho Post.itemCategory. Hiện tại Post.itemCategory là String —
+/// admin quản lý Category table này, client fetch danh sách qua /category.
+/// Khi admin disable 1 category: bài cũ vẫn giữ value, nhưng UI client sẽ
+/// không hiện trong picker → không có post mới với category đó.
+model Category {
+  id        String   @id @default(cuid())
+  value     String   @unique // slug "electronics" — match Post.itemCategory
+  label     String // "Điện tử"
+  icon      String? // path asset hoặc URL icon
+  sortOrder Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
 model AdminActionLog {
   id         String   @id @default(cuid())
   adminId    String

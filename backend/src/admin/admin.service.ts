@@ -1,16 +1,55 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FcmService } from '../fcm/fcm.service';
 import { Prisma } from '@prisma/client';
 
 const DELETED_BY_ADMIN = 'deleted_by_admin';
 
+/// 18 categories mặc định — match `app/lib/data/categories.dart` AppCategories.list.
+/// Nếu Category table rỗng (deploy đầu hoặc DB mới), seed tự động ở onModuleInit.
+const DEFAULT_CATEGORIES = [
+  { value: 'electronics', label: 'Điện tử',     icon: 'assets/icons/categories/electronics.png' },
+  { value: 'furniture',   label: 'Nội thất',    icon: 'assets/icons/categories/furniture.png' },
+  { value: 'clothing',    label: 'Thời trang',  icon: 'assets/icons/categories/clothing.png' },
+  { value: 'kitchen',     label: 'Gia dụng',    icon: 'assets/icons/categories/kitchen.png' },
+  { value: 'books',       label: 'Sách',        icon: 'assets/icons/categories/books.png' },
+  { value: 'toys',        label: 'Đồ chơi',     icon: 'assets/icons/categories/toys.png' },
+  { value: 'sports',      label: 'Thể thao',    icon: 'assets/icons/categories/sports.png' },
+  { value: 'vehicles',    label: 'Xe cộ',       icon: 'assets/icons/categories/vehicles.png' },
+  { value: 'beauty',      label: 'Làm đẹp',     icon: 'assets/icons/categories/beauty.png' },
+  { value: 'pets',        label: 'Thú cưng',    icon: 'assets/icons/categories/pets.png' },
+  { value: 'tools',       label: 'Đồ nghề',     icon: 'assets/icons/categories/tools.png' },
+  { value: 'food',        label: 'Thực phẩm',   icon: 'assets/icons/categories/food.png' },
+  { value: 'baby',        label: 'Mẹ & Bé',     icon: 'assets/icons/categories/baby.png' },
+  { value: 'music',       label: 'Nhạc cụ',     icon: 'assets/icons/categories/music.png' },
+  { value: 'realestate',  label: 'Bất động sản', icon: 'assets/icons/categories/realestate.png' },
+  { value: 'service',     label: 'Rao dịch vụ', icon: 'assets/icons/categories/service.png' },
+  { value: 'jobs',        label: 'Việc làm',    icon: 'assets/icons/categories/jobs.png' },
+  { value: 'other',       label: 'Khác',        icon: 'assets/icons/categories/other.png' },
+];
+
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private fcm: FcmService,
   ) {}
+
+  async onModuleInit() {
+    // Seed default categories nếu table rỗng (deploy đầu / DB mới).
+    try {
+      const count = await this.prisma.category.count();
+      if (count === 0) {
+        await this.prisma.category.createMany({
+          data: DEFAULT_CATEGORIES.map((c, i) => ({ ...c, sortOrder: i, enabled: true })),
+        });
+        console.log(`[AdminService] Seeded ${DEFAULT_CATEGORIES.length} default categories`);
+      }
+    } catch (e: any) {
+      // Bỏ qua nếu Category table chưa exist (chưa db push) — sẽ seed lần restart sau
+      console.warn('[AdminService] Skip category seed:', e?.message ?? e);
+    }
+  }
 
   /// Ghi 1 dòng audit log cho mọi mutation của admin. Lỗi log không block action.
   private async audit(adminId: string, action: string, targetType: string, targetId: string, metadata?: Record<string, any>) {
@@ -530,6 +569,86 @@ export class AdminService {
     return [header, ...rows]
       .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
       .join('\n');
+  }
+
+  // ─── Category management ──────────────────────────
+  async getAllCategories() {
+    const categories = await this.prisma.category.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    });
+    // Đếm số post sử dụng mỗi category — admin biết category nào đang active.
+    // Group by Post.itemCategory (String) match Category.value.
+    const usage = await this.prisma.post.groupBy({
+      by: ['itemCategory'],
+      _count: { id: true },
+      where: { NOT: { status: DELETED_BY_ADMIN } },
+    });
+    const usageMap = new Map(usage.map((u) => [u.itemCategory, u._count.id]));
+    return categories.map((c) => ({ ...c, postCount: usageMap.get(c.value) ?? 0 }));
+  }
+
+  async createCategory(adminId: string, data: { value: string; label: string; icon?: string; sortOrder?: number }) {
+    const value = (data.value || '').trim().toLowerCase();
+    const label = (data.label || '').trim();
+    if (!value || !/^[a-z0-9_-]+$/.test(value)) {
+      throw new BadRequestException('value chỉ chứa a-z, 0-9, _, - (slug)');
+    }
+    if (!label || label.length > 50) throw new BadRequestException('label 1-50 ký tự');
+
+    const exists = await this.prisma.category.findUnique({ where: { value } });
+    if (exists) throw new BadRequestException(`Category "${value}" đã tồn tại`);
+
+    const category = await this.prisma.category.create({
+      data: {
+        value, label,
+        icon: data.icon ?? null,
+        sortOrder: data.sortOrder ?? 0,
+      },
+    });
+    await this.audit(adminId, 'category.create', 'category', category.id, { value, label });
+    return category;
+  }
+
+  async updateCategory(adminId: string, id: string, data: { label?: string; icon?: string | null; sortOrder?: number; enabled?: boolean }) {
+    const before = await this.prisma.category.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException('Danh mục không tồn tại');
+
+    const update: Prisma.CategoryUpdateInput = {};
+    if (data.label !== undefined) {
+      const label = data.label.trim();
+      if (!label || label.length > 50) throw new BadRequestException('label 1-50 ký tự');
+      update.label = label;
+    }
+    if (data.icon !== undefined) update.icon = data.icon;
+    if (data.sortOrder !== undefined) update.sortOrder = data.sortOrder;
+    if (data.enabled !== undefined) update.enabled = data.enabled === true;
+
+    const category = await this.prisma.category.update({ where: { id }, data: update });
+    await this.audit(adminId, 'category.update', 'category', id, {
+      before: { label: before.label, sortOrder: before.sortOrder, enabled: before.enabled },
+      after: { label: category.label, sortOrder: category.sortOrder, enabled: category.enabled },
+    });
+    return category;
+  }
+
+  /// Delete category — chỉ cho phép nếu KHÔNG còn post nào dùng category này.
+  /// Nếu còn post → throw BadRequest, admin phải disable thay vì delete.
+  async deleteCategory(adminId: string, id: string) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category) throw new NotFoundException('Danh mục không tồn tại');
+
+    const postCount = await this.prisma.post.count({
+      where: { itemCategory: category.value, NOT: { status: DELETED_BY_ADMIN } },
+    });
+    if (postCount > 0) {
+      throw new BadRequestException(`Không xóa được — còn ${postCount} bài đang dùng category "${category.value}". Hãy disable thay vì delete.`);
+    }
+
+    await this.prisma.category.delete({ where: { id } });
+    await this.audit(adminId, 'category.delete', 'category', id, {
+      value: category.value, label: category.label,
+    });
+    return { ok: true };
   }
 
   // ─── Refund management ────────────────────────────

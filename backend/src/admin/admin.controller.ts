@@ -136,6 +136,27 @@ export class AdminController {
     res.send('﻿' + csv);
   }
 
+  // ─── Category management ──────────────────────────
+  @Get('categories')
+  getCategories() {
+    return this.adminService.getAllCategories();
+  }
+
+  @Post('categories')
+  createCategory(@Request() req, @Body() body: { value: string; label: string; icon?: string; sortOrder?: number }) {
+    return this.adminService.createCategory(req.user.id, body);
+  }
+
+  @Patch('categories/:id')
+  updateCategory(@Request() req, @Param('id') id: string, @Body() body: { label?: string; icon?: string | null; sortOrder?: number; enabled?: boolean }) {
+    return this.adminService.updateCategory(req.user.id, id, body);
+  }
+
+  @Delete('categories/:id')
+  deleteCategory(@Request() req, @Param('id') id: string) {
+    return this.adminService.deleteCategory(req.user.id, id);
+  }
+
   // ─── Refund management ────────────────────────────
   @Post('bump-orders/:id/refund')
   refundBumpOrder(@Request() req, @Param('id') id: string, @Body('reason') reason?: string) {

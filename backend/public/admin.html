@@ -243,6 +243,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="7">📢 Broadcast</button>
     <button class="tab" data-tab="8">⭐ Đánh giá</button>
     <button class="tab" data-tab="9">💬 Chat</button>
+    <button class="tab" data-tab="10">🏷️ Danh mục</button>
   </div>
 
   <div class="content">
@@ -256,6 +257,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-broadcast" style="display:none"></div>
     <div id="tab-reviews" style="display:none"></div>
     <div id="tab-chats" style="display:none"></div>
+    <div id="tab-categories" style="display:none"></div>
   </div>
 </div>
 
@@ -281,7 +283,7 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats','categories'];
 
 const state = {
   posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
@@ -294,6 +296,7 @@ const state = {
   broadcastSegment: 'all', broadcastPreview: null, broadcastHistory: [],
   reviews: [], reviewsPage: 0, reviewsTotal: 0, reviewsTotalPages: 1, reviewsRating: '', reviewsSearch: '',
   chats: [], chatsPage: 0, chatsTotal: 0, chatsTotalPages: 1, chatsSearch: '', currentChatRoom: null, currentChatMessages: [],
+  categories: [],
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -491,6 +494,7 @@ function loadCurrent(force = false) {
     case 7: loadBroadcast(); break;
     case 8: if (force || state.reviews.length === 0) loadReviews(true); break;
     case 9: if (force || state.chats.length === 0) loadChats(true); break;
+    case 10: if (force || state.categories.length === 0) loadCategories(); break;
   }
 }
 
@@ -643,6 +647,11 @@ function handleContentClick(e) {
     case 'delete-message': deleteMessagePrompt(id); break;
 
     case 'refund-order': refundOrderPrompt(id, +extra); break;
+
+    case 'create-category': createCategoryPrompt(); break;
+    case 'edit-category': editCategoryPrompt(id); break;
+    case 'toggle-category': toggleCategoryEnabled(id); break;
+    case 'delete-category': deleteCategoryConfirm(id, extra); break;
   }
 }
 
@@ -1399,6 +1408,115 @@ function actionTone(action) {
   if (action.includes('delete') || action.includes('ban')) return 'danger';
   if (action.includes('hide') || action.includes('resolve')) return 'warn';
   return '';
+}
+
+// ─── Categories management ────────────────────────────────────────────────────
+
+async function loadCategories() {
+  const el = document.getElementById('tab-categories');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
+  const data = await api('/admin/categories');
+  if (!data) return;
+  state.categories = data;
+  renderCategories();
+}
+
+function renderCategories() {
+  const el = document.getElementById('tab-categories');
+  const cats = state.categories;
+
+  const rows = cats.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:30px">Chưa có category nào</td></tr>'
+    : cats.map(c => `
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:10px"><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">${esc(c.value)}</code></td>
+          <td style="padding:10px"><strong>${esc(c.label)}</strong></td>
+          <td style="padding:10px;text-align:center">${c.sortOrder}</td>
+          <td style="padding:10px;text-align:center">${c.enabled ? '<span class="chip chip-green">Bật</span>' : '<span class="chip chip-grey">Tắt</span>'}</td>
+          <td style="padding:10px;text-align:center">${c.postCount} bài</td>
+          <td style="padding:10px;text-align:right;white-space:nowrap">
+            <button class="btn-sm btn-grey" data-action="edit-category" data-id="${esc(c.id)}">Sửa</button>
+            <button class="btn-sm ${c.enabled?'btn-orange':'btn-green'}" data-action="toggle-category" data-id="${esc(c.id)}">${c.enabled?'Tắt':'Bật'}</button>
+            <button class="btn-sm btn-red" data-action="delete-category" data-id="${esc(c.id)}" data-extra="${esc(c.label)}">Xóa</button>
+          </td>
+        </tr>`).join('');
+
+  el.innerHTML = `
+    <div class="section-title">
+      <span>🏷️ Danh mục bài đăng (${cats.length})</span>
+      <button class="btn-sm btn-green" data-action="create-category">+ Thêm danh mục</button>
+    </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="background:var(--bg)">
+          <tr>
+            <th style="padding:10px;text-align:left">Slug</th>
+            <th style="padding:10px;text-align:left">Tên hiển thị</th>
+            <th style="padding:10px;text-align:center">Thứ tự</th>
+            <th style="padding:10px;text-align:center">Trạng thái</th>
+            <th style="padding:10px;text-align:center">Sử dụng</th>
+            <th style="padding:10px;text-align:right">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;padding:12px;background:var(--primary-light);border-radius:8px;font-size:12px;color:var(--primary-dark)">
+      💡 <strong>Ghi chú:</strong> Khi tắt danh mục, bài cũ vẫn giữ nguyên. Bài mới không thể chọn danh mục đã tắt. Xóa chỉ được khi không còn bài nào dùng — nếu còn, hãy tắt thay vì xóa.
+    </div>
+  `;
+}
+
+async function createCategoryPrompt() {
+  const value = prompt('Slug (a-z, 0-9, _, -):');
+  if (!value) return;
+  const label = prompt('Tên hiển thị (1-50 ký tự):');
+  if (!label) return;
+  const icon = prompt('Path icon (vd: assets/icons/categories/xxx.png) — bỏ trống nếu chưa có:') || null;
+  const res = await api('/admin/categories', {
+    method: 'POST',
+    body: JSON.stringify({ value: value.trim().toLowerCase(), label: label.trim(), icon, sortOrder: state.categories.length }),
+  });
+  if (!res) return;
+  toast(`Đã tạo "${res.label}"`);
+  loadCategories();
+}
+
+async function editCategoryPrompt(id) {
+  const cat = state.categories.find(c => c.id === id);
+  if (!cat) return;
+  const label = prompt('Tên hiển thị mới:', cat.label);
+  if (label === null) return;
+  const sortOrder = prompt('Thứ tự (số):', String(cat.sortOrder));
+  if (sortOrder === null) return;
+  const icon = prompt('Icon path:', cat.icon || '');
+  const res = await api(`/admin/categories/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ label: label.trim(), sortOrder: +sortOrder, icon: icon === null ? undefined : (icon || null) }),
+  });
+  if (!res) return;
+  toast(`Đã cập nhật "${res.label}"`);
+  loadCategories();
+}
+
+async function toggleCategoryEnabled(id) {
+  const cat = state.categories.find(c => c.id === id);
+  if (!cat) return;
+  const res = await api(`/admin/categories/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled: !cat.enabled }),
+  });
+  if (!res) return;
+  toast(`Đã ${res.enabled?'bật':'tắt'} "${res.label}"`);
+  loadCategories();
+}
+
+async function deleteCategoryConfirm(id, label) {
+  if (!confirm(`Xóa danh mục "${label}"?\n\nChỉ xóa được nếu không còn bài nào dùng. Nếu còn → server sẽ trả lỗi, hãy tắt thay vì xóa.`)) return;
+  const res = await api(`/admin/categories/${id}`, { method: 'DELETE' });
+  if (!res) return;
+  toast(`Đã xóa "${label}"`);
+  loadCategories();
 }
 
 // ─── Refund ───────────────────────────────────────────────────────────────────
