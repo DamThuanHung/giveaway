@@ -87,7 +87,13 @@ function LoginForm() {
         <p className="text-gray-500 text-sm mt-1">
           {step === "email"
             ? "Nhập email để nhận mã OTP, không cần mật khẩu"
-            : `Mã 6 số đã gửi tới ${email}`}
+            : (
+              <>
+                Mã 6 số đã gửi tới <strong>{email}</strong>
+                <br />
+                <span className="text-xs">Hiệu lực 5 phút · Kiểm tra cả Spam</span>
+              </>
+            )}
         </p>
       </div>
 

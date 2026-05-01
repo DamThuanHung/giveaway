@@ -87,9 +87,15 @@ export async function loginVerifyOtp(
   if (!res.ok) {
     return { ok: false, message: data.message || "Mã OTP không đúng" };
   }
+  // Backend trả `accessToken` (NestJS convention), không phải `token`.
+  // App mobile cũng đọc accessToken — phải match.
+  const token: string | undefined = data.accessToken ?? data.token;
+  if (!token || !data.user) {
+    return { ok: false, message: "Phản hồi máy chủ không hợp lệ" };
+  }
   return {
     ok: true,
-    token: data.token,
+    token,
     user: data.user,
     message: "Đăng nhập thành công",
   };
