@@ -136,6 +136,28 @@ export class AdminController {
     res.send('﻿' + csv);
   }
 
+  // ─── Review moderation ────────────────────────────
+  @Get('reviews')
+  getReviews(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('rating') rating?: string,
+    @Query('search') search?: string,
+    @Query('postId') postId?: string,
+  ) {
+    return this.adminService.getAllReviews(+page, +limit, rating ? +rating : undefined, search, postId);
+  }
+
+  @Get('reviews/:id')
+  getReviewDetail(@Param('id') id: string) {
+    return this.adminService.getReviewDetail(id);
+  }
+
+  @Delete('reviews/:id')
+  deleteReview(@Request() req, @Param('id') id: string, @Body('reason') reason?: string) {
+    return this.adminService.deleteReview(req.user.id, id, reason);
+  }
+
   // ─── Broadcast notification ───────────────────────
   @Post('notification/broadcast')
   broadcast(

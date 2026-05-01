@@ -241,6 +241,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="5">📜 Lịch sử admin</button>
     <button class="tab" data-tab="6">⚙️ Hệ thống</button>
     <button class="tab" data-tab="7">📢 Broadcast</button>
+    <button class="tab" data-tab="8">⭐ Đánh giá</button>
   </div>
 
   <div class="content">
@@ -252,6 +253,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-audit" style="display:none"></div>
     <div id="tab-system" style="display:none"></div>
     <div id="tab-broadcast" style="display:none"></div>
+    <div id="tab-reviews" style="display:none"></div>
   </div>
 </div>
 
@@ -277,7 +279,7 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews'];
 
 const state = {
   posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
@@ -288,6 +290,7 @@ const state = {
   audit: [], auditPage: 0, auditTotal: 0, auditTotalPages: 1, auditTargetType: '',
   topData: null,
   broadcastSegment: 'all', broadcastPreview: null, broadcastHistory: [],
+  reviews: [], reviewsPage: 0, reviewsTotal: 0, reviewsTotalPages: 1, reviewsRating: '', reviewsSearch: '',
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -483,6 +486,7 @@ function loadCurrent(force = false) {
     case 5: if (force || state.audit.length === 0) loadAudit(true); break;
     case 6: loadSystem(); break;
     case 7: loadBroadcast(); break;
+    case 8: if (force || state.reviews.length === 0) loadReviews(true); break;
   }
 }
 
@@ -559,6 +563,7 @@ function handleContentClick(e) {
       else if (target === 'reports') loadReports();
       else if (target === 'revenue') loadRevenue();
       else if (target === 'audit') loadAudit();
+      else if (target === 'reviews') loadReviews();
       break;
     }
 
@@ -616,6 +621,15 @@ function handleContentClick(e) {
       previewBroadcastSegment();
       break;
     case 'do-broadcast': doBroadcast(); break;
+
+    case 'set-reviews-rating':
+      state.reviewsRating = el.dataset.value || '';
+      loadReviews(true); break;
+    case 'do-search-reviews':
+      state.reviewsSearch = document.getElementById('reviews-search').value;
+      loadReviews(true); break;
+    case 'open-review': openReviewDetail(id); break;
+    case 'delete-review': e.stopPropagation(); deleteReviewPrompt(id, idx); break;
   }
 }
 
@@ -623,6 +637,7 @@ function handleContentKeydown(e) {
   if (e.key !== 'Enter') return;
   if (e.target.id === 'posts-search') { state.postsSearch = e.target.value; loadPosts(true); }
   else if (e.target.id === 'users-search') { state.usersSearch = e.target.value; loadUsers(true); }
+  else if (e.target.id === 'reviews-search') { state.reviewsSearch = e.target.value; loadReviews(true); }
 }
 
 function handleContentChange(e) {
@@ -648,6 +663,7 @@ function handleModalAction(e) {
     case 'modal-close': closeModal(); break;
     case 'modal-view-post': closeModal(); openPostDetail(id); break;
     case 'modal-view-user': closeModal(); openUserDetail(id); break;
+    case 'delete-review': deleteReviewPrompt(id); break;
   }
 }
 
@@ -1366,6 +1382,102 @@ function actionTone(action) {
   if (action.includes('delete') || action.includes('ban')) return 'danger';
   if (action.includes('hide') || action.includes('resolve')) return 'warn';
   return '';
+}
+
+// ─── Reviews moderation ───────────────────────────────────────────────────────
+
+async function loadReviews(reset = false) {
+  if (reset) {
+    state.reviews = []; state.reviewsPage = 0; state.reviewsTotal = 0; state.reviewsTotalPages = 1;
+  }
+  const next = state.reviewsPage + 1;
+  if (state.reviews.length > 0 && next > state.reviewsTotalPages) return;
+
+  const params = new URLSearchParams({ page: String(next), limit: '20' });
+  if (state.reviewsRating) params.set('rating', state.reviewsRating);
+  if (state.reviewsSearch) params.set('search', state.reviewsSearch);
+  const res = await api(`/admin/reviews?${params}`);
+  if (!res) return;
+
+  state.reviews = state.reviews.concat(res.data);
+  state.reviewsPage = res.meta.page;
+  state.reviewsTotal = res.meta.total;
+  state.reviewsTotalPages = res.meta.totalPages;
+  renderReviews();
+}
+
+function renderReviews() {
+  const el = document.getElementById('tab-reviews');
+  const ratingChips = ['', '1', '2', '3', '4', '5']
+    .map(r => `<button class="fchip ${state.reviewsRating===r?'active':''}" data-action="set-reviews-rating" data-value="${r}">${r===''?'Tất cả':r+'★'}</button>`)
+    .join('');
+
+  const rows = state.reviews.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:30px">Chưa có đánh giá</div>'
+    : state.reviews.map((r, i) => `
+        <div class="row" data-action="open-review" data-id="${esc(r.id)}" style="cursor:pointer">
+          <div class="row-main">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="color:#F59E0B;font-size:15px">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
+              <span style="font-size:12px;color:var(--text3)">${fmtDate(r.createdAt)}</span>
+            </div>
+            <div style="font-weight:600;font-size:13px">${esc(r.reviewer?.name||r.reviewer?.email||'?')} → ${esc(r.reviewee?.name||r.reviewee?.email||'?')}</div>
+            <div style="color:var(--text2);font-size:13px;margin-top:4px">${esc(r.comment || '(không có nhận xét)')}</div>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Bài: ${esc(r.post?.title || '?')}</div>
+          </div>
+          <div class="row-actions">
+            <button class="btn-sm btn-red" data-action="delete-review" data-id="${esc(r.id)}" data-idx="${i}">Xóa</button>
+          </div>
+        </div>`).join('');
+
+  el.innerHTML = `
+    <div class="section-title">Bộ lọc</div>
+    <div class="filter-bar">
+      <div class="fchips">${ratingChips}</div>
+      <div class="search-row">
+        <input id="reviews-search" placeholder="Tìm reviewer/reviewee/comment..." value="${esc(state.reviewsSearch)}"/>
+        <button class="btn-sm btn-green" data-action="do-search-reviews">Tìm</button>
+      </div>
+    </div>
+    ${paginationInfo('reviews', state.reviewsPage, state.reviewsTotalPages, state.reviewsTotal, state.reviews.length)}
+    <div class="list">${rows}</div>
+    ${state.reviewsPage < state.reviewsTotalPages ? `<div style="text-align:center;margin-top:14px"><button class="btn-sm btn-grey" data-action="load-more" data-target="reviews">Tải thêm</button></div>` : ''}
+  `;
+}
+
+async function openReviewDetail(id) {
+  showModal('Đang tải...', '<div class="loading"><div class="spinner"></div></div>', '');
+  const r = await api(`/admin/reviews/${id}`);
+  if (!r) { closeModal(); return; }
+
+  showModal(
+    `Đánh giá ${r.rating}★`,
+    `<div class="kv-list">
+      <div class="kv"><span class="k">Người đánh giá</span><span class="v">${esc(r.reviewer?.name||'?')} (${esc(r.reviewer?.email||r.reviewer?.phone||'')})</span></div>
+      <div class="kv"><span class="k">Bị đánh giá</span><span class="v">${esc(r.reviewee?.name||'?')} ${r.reviewee?.isBanned?'<span class="chip chip-red">Đã ban</span>':''}</span></div>
+      <div class="kv"><span class="k">Avg sao của reviewee</span><span class="v">${r.revieweeAvgRating?r.revieweeAvgRating+'★ ('+r.revieweeReviewCount+' đánh giá)':'—'}</span></div>
+      <div class="kv"><span class="k">Bài đăng</span><span class="v">${esc(r.post?.title||'?')} ${chipStatus(r.post?.status)}</span></div>
+      <div class="kv"><span class="k">Hoàn thành lúc</span><span class="v">${fmtDate(r.post?.completedAt)}</span></div>
+      <div class="kv"><span class="k">Ngày đánh giá</span><span class="v">${fmtDate(r.createdAt)}</span></div>
+      <div class="kv" style="flex-direction:column;align-items:flex-start"><span class="k">Nội dung</span><div class="v" style="margin-top:6px;padding:10px;background:var(--bg);border-radius:8px;width:100%;white-space:pre-wrap">${esc(r.comment || '(không có)')}</div></div>
+    </div>`,
+    `<button class="btn-sm btn-red" data-action="delete-review" data-id="${esc(r.id)}">Xóa đánh giá</button>
+     <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
+  );
+}
+
+async function deleteReviewPrompt(id, idx) {
+  const reason = prompt('Lý do xóa đánh giá (sẽ ghi vào audit log):');
+  if (reason === null) return; // cancelled
+  const res = await api(`/admin/reviews/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ reason: reason.trim() || null }),
+  });
+  if (!res) return;
+  toast('Đã xóa đánh giá');
+  closeModal();
+  if (idx != null) state.reviews.splice(idx, 1);
+  renderReviews();
 }
 
 // ─── Broadcast notification ───────────────────────────────────────────────────

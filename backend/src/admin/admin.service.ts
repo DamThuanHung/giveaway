@@ -532,6 +532,79 @@ export class AdminService {
       .join('\n');
   }
 
+  // ─── Review moderation ────────────────────────────
+  async getAllReviews(page = 1, limit = 20, rating?: number, search?: string, postId?: string) {
+    const where: Prisma.ReviewWhereInput = {};
+    if (rating && rating >= 1 && rating <= 5) where.rating = rating;
+    if (postId) where.postId = postId;
+    if (search) {
+      where.OR = [
+        { reviewer: { name: { contains: search, mode: 'insensitive' } } },
+        { reviewer: { email: { contains: search, mode: 'insensitive' } } },
+        { reviewee: { name: { contains: search, mode: 'insensitive' } } },
+        { reviewee: { email: { contains: search, mode: 'insensitive' } } },
+        { comment: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const [reviews, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where, skip, take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          reviewer: { select: { id: true, name: true, email: true, avatar: true } },
+          reviewee: { select: { id: true, name: true, email: true, avatar: true } },
+          post: { select: { id: true, title: true, status: true } },
+        },
+      }),
+      this.prisma.review.count({ where }),
+    ]);
+    return { data: reviews, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getReviewDetail(id: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id },
+      include: {
+        reviewer: { select: { id: true, name: true, email: true, phone: true, avatar: true, role: true, isBanned: true } },
+        reviewee: { select: { id: true, name: true, email: true, phone: true, avatar: true, role: true, isBanned: true } },
+        post: { select: { id: true, title: true, status: true, completedAt: true } },
+      },
+    });
+    if (!review) throw new NotFoundException('Đánh giá không tồn tại');
+
+    // Avg rating của reviewee để admin biết user này nhận trung bình mấy sao
+    const revieweeStats = await this.prisma.review.aggregate({
+      where: { revieweeId: review.revieweeId },
+      _avg: { rating: true },
+      _count: true,
+    });
+
+    return {
+      ...review,
+      revieweeAvgRating: revieweeStats._avg.rating ? +revieweeStats._avg.rating.toFixed(2) : null,
+      revieweeReviewCount: revieweeStats._count,
+    };
+  }
+
+  /// Hard delete review — review xấu/giả/spam thực sự cần biến mất khỏi user profile.
+  /// Audit log giữ evidence (postId, reviewerId, revieweeId, rating, comment).
+  async deleteReview(adminId: string, id: string, reason?: string) {
+    const before = await this.prisma.review.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException('Đánh giá không tồn tại');
+    await this.prisma.review.delete({ where: { id } });
+    await this.audit(adminId, 'review.delete', 'review', id, {
+      postId: before.postId,
+      reviewerId: before.reviewerId,
+      revieweeId: before.revieweeId,
+      rating: before.rating,
+      comment: before.comment,
+      reason: reason ?? null,
+    });
+    return { ok: true };
+  }
+
   /// Broadcast notification cho 1 segment user. Insert notification rows + bắn FCM push.
   /// Dùng PM1 batch pattern (50/lần + sleep 100ms) để không sốc DB + FCM rate limit.
   /// Audit log để xem lịch sử broadcast (segment, count sent/failed) qua tab Audit.
