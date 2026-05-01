@@ -127,6 +127,32 @@ export async function uploadAvatarFile(file: File): Promise<string | null> {
   return data.avatar ?? null;
 }
 
+/// Tạo bài đăng mới với multipart (text fields + images files).
+/// Trả về post mới hoặc null khi lỗi.
+export async function createPost(
+  fields: Record<string, string | number | undefined | null>,
+  images: File[]
+): Promise<{ ok: boolean; post?: any; message?: string }> {
+  const token = getToken();
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) {
+    if (v != null && v !== "") fd.append(k, String(v));
+  }
+  for (const img of images) {
+    fd.append("images", img);
+  }
+  const res = await fetch(`${API_BASE}/post`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, message: data.message || `Lỗi HTTP ${res.status}` };
+  }
+  return { ok: true, post: data };
+}
+
 /// Verify token còn valid + sync user state. Gọi khi mount app.
 export async function fetchMyProfile(): Promise<AuthUser | null> {
   const res = await authFetch("/user/me");
