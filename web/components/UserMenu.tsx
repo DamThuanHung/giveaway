@@ -101,6 +101,13 @@ export function UserMenu() {
               <span>📦</span> Tin đăng của tôi
             </Link>
             <Link
+              href="/chat/"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50"
+            >
+              <span>💬</span> Tin nhắn
+            </Link>
+            <Link
               href="/favorites/"
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50"

@@ -15,6 +15,7 @@ import {
 import { PostCard } from "@/components/PostCard";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { PostMap } from "@/components/PostMap";
+import { ContactSellerButton } from "@/components/ContactSellerButton";
 
 // Pre-render mọi /posts/[id]/ tại build time. Cap 500 posts mới nhất.
 export async function generateStaticParams() {
@@ -223,18 +224,21 @@ export default async function PostDetailPage({
               </dl>
 
               <div className="flex gap-2 mb-2">
-                <a
-                  href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-                  target="_blank"
-                  rel="noopener"
-                  className="flex-1 bg-primary hover:bg-primary-dark text-white text-center font-bold py-3.5 rounded-xl transition"
-                >
-                  💬 Tải app để chat
-                </a>
+                {post.author?.id ? (
+                  <ContactSellerButton
+                    postId={post.id}
+                    sellerId={post.author.id}
+                    postTitle={post.title}
+                  />
+                ) : (
+                  <div className="flex-1 bg-gray-200 text-gray-500 text-center font-bold py-3.5 rounded-xl">
+                    Không thể nhắn (bài ẩn danh)
+                  </div>
+                )}
                 <FavoriteButton postId={post.id} size="lg" className="!w-14 !h-14 !rounded-xl" />
               </div>
               <p className="text-xs text-gray-500 text-center mt-1">
-                Liên hệ + giao dịch qua app Trao Tay
+                Hoặc <a href="https://play.google.com/store/apps/details?id=vn.traotay.app" target="_blank" rel="noopener" className="text-primary hover:underline">tải app</a> để chat realtime + thông báo
               </p>
             </div>
           </aside>
