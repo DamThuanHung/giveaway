@@ -29,6 +29,8 @@ export type Post = {
   area?: number | null;
   bedrooms?: number | null;
   priceUnit?: string | null;
+  latitude: number;
+  longitude: number;
   author: { id: string; name: string | null; avatar: string | null };
 };
 

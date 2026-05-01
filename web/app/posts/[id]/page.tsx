@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { PostCard } from "@/components/PostCard";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { PostMap } from "@/components/PostMap";
 
 // Pre-render mọi /posts/[id]/ tại build time. Cap 500 posts mới nhất.
 export async function generateStaticParams() {
@@ -141,10 +142,24 @@ export default async function PostDetailPage({
               </div>
             )}
 
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-5">
               <h2 className="font-bold text-navy mb-3">Mô tả</h2>
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{post.description}</p>
             </div>
+
+            {(post.latitude !== 0 || post.longitude !== 0) && (
+              <div>
+                <h2 className="font-bold text-navy mb-3">📍 Vị trí trên bản đồ</h2>
+                <PostMap
+                  latitude={post.latitude}
+                  longitude={post.longitude}
+                  title={post.title}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Vị trí gần đúng do người đăng cung cấp. Click marker để mở Google Maps.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Right: title, price, info */}
