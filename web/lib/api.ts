@@ -37,27 +37,39 @@ export type PostsResponse = {
   meta: { page: number; limit: number; total: number; totalPages: number };
 };
 
-/// Fetch posts list. Cho static export: gọi tại build time.
-/// Cap 200 posts/page để tránh build quá lâu — đủ cho trang chủ + SEO.
-export async function fetchPosts(
-  params: {
-    page?: number;
-    limit?: number;
-    category?: string;
-    province?: string;
-    listingType?: string;
-  } = {}
-): Promise<PostsResponse> {
-  const sp = new URLSearchParams();
-  sp.set("page", String(params.page ?? 1));
-  sp.set("limit", String(Math.min(params.limit ?? 50, 200)));
-  if (params.category) sp.set("category", params.category);
-  if (params.province) sp.set("province", params.province);
-  if (params.listingType) sp.set("listingType", params.listingType);
+export type PostsQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  itemCategory?: string;
+  province?: string;
+  listingType?: string; // sell | give
+  postType?: string; // item | realestate | service
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: "newest" | "price_asc" | "price_desc";
+};
 
-  const res = await fetch(`${API_BASE}/post?${sp}`, {
-    next: { revalidate: 60 }, // ISR-like: cache 60s khi dev mode
-  });
+export function buildPostsQuery(q: PostsQuery): URLSearchParams {
+  const sp = new URLSearchParams();
+  sp.set("page", String(q.page ?? 1));
+  sp.set("limit", String(Math.min(q.limit ?? 24, 50)));
+  if (q.search) sp.set("search", q.search);
+  if (q.itemCategory) sp.set("itemCategory", q.itemCategory);
+  if (q.province) sp.set("province", q.province);
+  if (q.listingType) sp.set("listingType", q.listingType);
+  if (q.postType) sp.set("postType", q.postType);
+  if (q.minPrice != null) sp.set("minPrice", String(q.minPrice));
+  if (q.maxPrice != null) sp.set("maxPrice", String(q.maxPrice));
+  if (q.sortBy) sp.set("sortBy", q.sortBy);
+  return sp;
+}
+
+/// Fetch posts list. Hỗ trợ search + filter + sort qua backend.
+/// Build time: pre-render trang chủ + /posts. Runtime client: search/filter động.
+export async function fetchPosts(query: PostsQuery = {}): Promise<PostsResponse> {
+  const sp = buildPostsQuery(query);
+  const res = await fetch(`${API_BASE}/post?${sp}`, { next: { revalidate: 60 } });
   if (!res.ok) throw new Error(`Failed to fetch posts: HTTP ${res.status}`);
   return res.json();
 }
@@ -108,6 +120,65 @@ export function formatDate(iso: string): string {
 export function formatLocation(p: Post): string {
   return [p.ward, p.province].filter(Boolean).join(", ");
 }
+
+// User profile API
+export type PublicUser = {
+  id: string;
+  name: string | null;
+  avatar: string | null;
+  role: string;
+  createdAt: string;
+  isPhoneVerified: boolean;
+  _count: { posts: number; postsCompletedWith: number; reviewsReceived: number };
+  completedTransactions: number;
+};
+
+export async function fetchUserById(id: string): Promise<PublicUser | null> {
+  const res = await fetch(`${API_BASE}/user/${id}`, { next: { revalidate: 60 } });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function fetchUserPosts(userId: string): Promise<Post[]> {
+  const res = await fetch(`${API_BASE}/post/user/${userId}`, { next: { revalidate: 60 } });
+  if (!res.ok) return [];
+  const data = await res.json();
+  // /post/user/:id trả mảng trực tiếp, không có meta
+  return Array.isArray(data) ? data : (data.data ?? []);
+}
+
+export type Review = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  reviewer: { id: string; name: string | null; avatar: string | null };
+};
+
+export async function fetchUserReviews(userId: string): Promise<Review[]> {
+  const res = await fetch(`${API_BASE}/review/user/${userId}`, {
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : (data.data ?? []);
+}
+
+// 10 tỉnh/thành lớn nhất + một số đặc trưng — dùng cho filter dropdown.
+// Backend filter province match exact string nên phải copy đúng từ data thật.
+export const TOP_PROVINCES = [
+  "Hà Nội",
+  "TP. Hồ Chí Minh",
+  "Đà Nẵng",
+  "Hải Phòng",
+  "Cần Thơ",
+  "Bình Dương",
+  "Đồng Nai",
+  "Bắc Ninh",
+  "Quảng Ninh",
+  "Khánh Hòa",
+];
 
 export const CATEGORIES: Record<string, string> = {
   electronics: "Điện tử",

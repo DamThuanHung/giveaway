@@ -1,27 +1,24 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { HeaderSearchBox } from "./HeaderSearchBox";
 
 export function Header() {
   return (
-    <header className="bg-white/90 backdrop-blur sticky top-0 z-50 border-b border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <img
-            src="/assets/icon_512.png"
-            alt="Trao Tay"
-            className="w-9 h-9 rounded-lg"
-          />
-          <span className="font-extrabold text-navy text-lg">Trao Tay</span>
+    <header className="bg-white/95 backdrop-blur sticky top-0 z-40 border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/icon_512.png" alt="Trao Tay" className="w-9 h-9 rounded-lg" />
+          <span className="font-extrabold text-navy text-lg hidden sm:inline">Trao Tay</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-gray-700">
-          <Link href="/posts/" className="hover:text-primary">
-            Tin đăng
-          </Link>
-          <Link href="/#features" className="hover:text-primary">
-            Tính năng
-          </Link>
-          <Link href="/#faq" className="hover:text-primary">
-            Câu hỏi
-          </Link>
+
+        <Suspense fallback={<div className="flex-1 max-w-xl h-10 bg-gray-50 rounded-lg" />}>
+          <HeaderSearchBox />
+        </Suspense>
+
+        <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-gray-700 shrink-0">
+          <Link href="/posts/" className="hover:text-primary">Tin đăng</Link>
+          <Link href="/#faq" className="hover:text-primary">Câu hỏi</Link>
           <a
             href="https://play.google.com/store/apps/details?id=vn.traotay.app"
             target="_blank"

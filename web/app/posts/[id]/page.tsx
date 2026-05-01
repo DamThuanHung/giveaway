@@ -6,11 +6,13 @@ import { Footer } from "@/components/Footer";
 import {
   fetchPostById,
   fetchAllPostIds,
+  fetchPosts,
   formatPrice,
   formatDate,
   formatLocation,
   CATEGORIES,
 } from "@/lib/api";
+import { PostCard } from "@/components/PostCard";
 
 // Pre-render mọi /posts/[id]/ tại build time. Cap 500 posts mới nhất.
 export async function generateStaticParams() {
@@ -56,6 +58,16 @@ export default async function PostDetailPage({
 }) {
   const post = await fetchPostById(params.id).catch(() => null);
   if (!post) notFound();
+
+  // Fetch 4 bài cùng category để gợi ý "Tin liên quan" (SEO + internal linking)
+  const similarRes = await fetchPosts({
+    page: 1,
+    limit: 8,
+    itemCategory: post.itemCategory,
+  }).catch(() => null);
+  const similar = (similarRes?.data ?? [])
+    .filter((p) => p.id !== post.id)
+    .slice(0, 4);
 
   const isFree = post.price === 0;
   const isVip = post.boostTier === 3;
@@ -200,6 +212,27 @@ export default async function PostDetailPage({
             </div>
           </aside>
         </div>
+
+        {similar.length > 0 && (
+          <div className="mt-12">
+            <div className="flex items-end justify-between mb-5">
+              <h2 className="text-2xl font-extrabold text-navy">
+                Tin tương tự trong "{CATEGORIES[post.itemCategory] || post.itemCategory}"
+              </h2>
+              <Link
+                href={`/posts/?cat=${post.itemCategory}`}
+                className="text-primary font-semibold hover:underline text-sm"
+              >
+                Xem tất cả →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {similar.map((p) => (
+                <PostCard key={p.id} post={p} />
+              ))}
+            </div>
+          </div>
+        )}
       </article>
 
       <Footer />
