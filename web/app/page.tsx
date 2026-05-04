@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { PostCard } from "@/components/PostCard";
+import { FreshFeaturedPosts } from "@/components/FreshFeaturedPosts";
 import { fetchPosts } from "@/lib/api";
 
 export default async function HomePage() {
@@ -72,11 +72,7 @@ export default async function HomePage() {
                 Xem tất cả →
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {featuredPosts.map((p) => (
-                <PostCard key={p.id} post={p} />
-              ))}
-            </div>
+            <FreshFeaturedPosts initial={featuredPosts} limit={8} />
           </div>
         </section>
       )}

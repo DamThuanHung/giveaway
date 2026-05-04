@@ -83,24 +83,11 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   const [minInput, setMinInput] = useState<string>(minParam ?? "");
   const [maxInput, setMaxInput] = useState<string>(maxParam ?? "");
 
-  // Khi URL thay đổi → fetch lại
+  // Luôn fetch fresh khi mount + khi URL thay đổi.
+  // Trước đây skip nếu match initialData → gây stale: bài admin xóa vẫn hiện đến cron rebuild.
+  // Giờ initialData chỉ làm shell pre-rendered cho first-paint + SEO.
   useEffect(() => {
     let cancelled = false;
-    const isInitialMatch =
-      query.search === initialQuery.search &&
-      query.itemCategory === initialQuery.itemCategory &&
-      query.province === initialQuery.province &&
-      query.listingType === initialQuery.listingType &&
-      query.sortBy === initialQuery.sortBy &&
-      query.minPrice === initialQuery.minPrice &&
-      query.maxPrice === initialQuery.maxPrice;
-
-    if (isInitialMatch && initialData) {
-      setPosts(initialData.data);
-      setMeta(initialData.meta);
-      return;
-    }
-
     setLoading(true);
     fetchPosts(query)
       .then((res) => {
