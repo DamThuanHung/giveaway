@@ -329,8 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.content').addEventListener('keydown', handleContentKeydown);
   document.querySelector('.content').addEventListener('change', handleContentChange);
 
-  // Modal action delegation
+  // Modal action delegation — bind cả body lẫn actions (button có thể nằm trong cả 2)
   document.getElementById('modal-actions').addEventListener('click', handleModalAction);
+  document.getElementById('modal-body').addEventListener('click', handleModalAction);
 
   if (token) initApp();
 });
