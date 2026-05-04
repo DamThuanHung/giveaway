@@ -126,7 +126,8 @@ export async function updateMyName(userId: string, name: string): Promise<AuthUs
     body: JSON.stringify({ name: name.trim() }),
   });
   if (!res.ok) return null;
-  return fetchMyProfile();
+  // fetchMyProfile có thể throw trên network/5xx — catch để không break update flow
+  return fetchMyProfile().catch(() => null);
 }
 
 /// Upload avatar — multipart form. Trả URL avatar mới.
@@ -172,9 +173,18 @@ export async function createPost(
 }
 
 /// Verify token còn valid + sync user state. Gọi khi mount app.
+/// Return null CHỈ khi backend nói rõ token sai (401/403) → caller clear auth.
+/// Throw khi network error / 5xx → caller giữ cached user (lỗi tạm thời).
+/// Trước fix: bất kỳ !res.ok nào cũng return null → 5xx hoặc Cloudflare timeout
+/// làm user bị log-out oan ngay khi avatar vừa hiện ra.
 export async function fetchMyProfile(): Promise<AuthUser | null> {
   const res = await authFetch("/user/me");
-  if (!res.ok) return null;
+  if (res.status === 401 || res.status === 403) {
+    return null; // token thật sự invalid, caller clear auth
+  }
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`); // lỗi tạm thời, giữ cached user
+  }
   const data = await res.json();
   return {
     id: data.id,
