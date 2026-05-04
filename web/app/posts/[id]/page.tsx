@@ -16,6 +16,7 @@ import { PostCard } from "@/components/PostCard";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { PostMap } from "@/components/PostMap";
 import { ContactSellerButton } from "@/components/ContactSellerButton";
+import { OwnerActions } from "@/components/OwnerActions";
 
 // Pre-render mọi /posts/[id]/ tại build time. Cap 500 posts mới nhất.
 export async function generateStaticParams() {
@@ -165,6 +166,14 @@ export default async function PostDetailPage({
 
           {/* Right: title, price, info */}
           <aside>
+            {post.author?.id && (
+              <OwnerActions
+                postId={post.id}
+                authorId={post.author.id}
+                status={post.status}
+                postTitle={post.title}
+              />
+            )}
             <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-20">
               {isVip && (
                 <span className="inline-block bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-md mb-3">

@@ -167,3 +167,238 @@ export async function fetchMyProfile(): Promise<AuthUser | null> {
     role: data.role,
   };
 }
+
+/// Upload 1 ảnh cho post → trả URL public. Dùng khi sửa bài thêm ảnh mới.
+/// Frontend sau đó gọi updatePost với images=[URL cũ giữ + URL mới upload].
+export async function uploadPostImageFile(file: File): Promise<string | null> {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("image", file);
+  const res = await fetch(`${API_BASE}/post/upload-image`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.url ?? null;
+}
+
+/// Cập nhật bài đăng (text + array URLs ảnh). Backend kiểm tra authorId === user.id.
+export async function updatePost(
+  id: string,
+  body: Record<string, any>
+): Promise<{ ok: boolean; message?: string }> {
+  const res = await authFetch(`/post/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, message: data.message || `Lỗi HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+/// Đổi status post (vd: 'done' khi đã giao dịch xong, 'available' để hiện lại, etc).
+export async function updatePostStatus(
+  id: string,
+  status: string,
+  completedWithUserId?: string
+): Promise<{ ok: boolean; message?: string }> {
+  const body: any = { status };
+  if (completedWithUserId) body.completedWithUserId = completedWithUserId;
+  const res = await authFetch(`/post/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, message: data.message || `Lỗi HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+/// Bài đăng của tôi (my posts). Filter status optional.
+export async function fetchMyPosts(status?: string): Promise<any[]> {
+  const path = status ? `/post/my?status=${encodeURIComponent(status)}` : "/post/my";
+  const res = await authFetch(path);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.data ?? [];
+}
+
+/// Stats cho seller (tổng view, deal, response time, rating). Dùng cho /me/stats.
+export async function fetchMyStats(): Promise<any | null> {
+  const res = await authFetch("/post/my/stats");
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// ─── Bump (PayOS) ────────────────────────────────────────────────────────────
+
+export type BumpPackage = "plus_3d" | "vip_7d";
+
+/// Tạo đơn bump → PayOS trả URL checkout. Frontend redirect tới URL đó.
+export async function createBumpOrder(
+  postId: string,
+  pkg: BumpPackage
+): Promise<{ ok: boolean; checkoutUrl?: string; orderId?: string; message?: string }> {
+  const res = await authFetch(`/bump/${postId}/order`, {
+    method: "POST",
+    body: JSON.stringify({ package: pkg }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, message: data.message || `Lỗi HTTP ${res.status}` };
+  }
+  return {
+    ok: true,
+    checkoutUrl: data.checkoutUrl ?? data.paymentLinkUrl ?? data.url,
+    orderId: data.orderId ?? data.id,
+  };
+}
+
+/// Trạng thái boost hiện tại của post (boostTier + bumpedAt + expiredAt).
+export async function fetchBumpStatus(postId: string): Promise<any | null> {
+  const res = await fetch(`${API_BASE}/bump/${postId}/status`, {
+    headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// ─── Review ──────────────────────────────────────────────────────────────────
+
+export async function createReview(
+  postId: string,
+  rating: number,
+  comment?: string
+): Promise<{ ok: boolean; message?: string }> {
+  const res = await authFetch("/review", {
+    method: "POST",
+    body: JSON.stringify({ postId, rating, comment }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, message: data.message || `Lỗi HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+export async function updateReview(
+  postId: string,
+  rating: number,
+  comment?: string
+): Promise<{ ok: boolean; message?: string }> {
+  const res = await authFetch(`/review/${postId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ rating, comment }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, message: data.message || `Lỗi HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+/// Check user đã review post này chưa. Trả {hasReviewed: bool, review?: {...}}.
+export async function checkHasReviewed(postId: string): Promise<{ hasReviewed: boolean; review?: any }> {
+  const res = await authFetch(`/review/check/${postId}`);
+  if (!res.ok) return { hasReviewed: false };
+  return res.json();
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export async function fetchNotifications(): Promise<any[]> {
+  const res = await authFetch("/notification");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.data ?? [];
+}
+
+export async function fetchUnreadCount(): Promise<number> {
+  const res = await authFetch("/notification/unread-count");
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return data.count ?? 0;
+}
+
+export async function markNotificationRead(id: string): Promise<boolean> {
+  const res = await authFetch(`/notification/${id}/read`, { method: "PATCH" });
+  return res.ok;
+}
+
+export async function markAllNotificationsRead(): Promise<boolean> {
+  const res = await authFetch("/notification/read-all", { method: "PATCH" });
+  return res.ok;
+}
+
+// ─── Block user ──────────────────────────────────────────────────────────────
+
+export async function blockUser(targetId: string): Promise<boolean> {
+  const res = await authFetch(`/user/block/${targetId}`, { method: "POST" });
+  return res.ok;
+}
+
+export async function unblockUser(targetId: string): Promise<boolean> {
+  const res = await authFetch(`/user/block/${targetId}`, { method: "DELETE" });
+  return res.ok;
+}
+
+export async function fetchBlockedUsers(): Promise<any[]> {
+  const res = await authFetch("/user/blocked/list");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.data ?? [];
+}
+
+// ─── Keyword alerts ──────────────────────────────────────────────────────────
+
+export async function fetchKeywordAlerts(): Promise<string[]> {
+  const res = await authFetch("/keyword-alert");
+  if (!res.ok) return [];
+  const data = await res.json();
+  if (Array.isArray(data)) return data.map((x: any) => x.keyword ?? x);
+  return data.data?.map((x: any) => x.keyword ?? x) ?? [];
+}
+
+export async function subscribeKeyword(keyword: string): Promise<boolean> {
+  const res = await authFetch("/keyword-alert", {
+    method: "POST",
+    body: JSON.stringify({ keyword }),
+  });
+  return res.ok;
+}
+
+export async function unsubscribeKeyword(keyword: string): Promise<boolean> {
+  const res = await authFetch("/keyword-alert", {
+    method: "DELETE",
+    body: JSON.stringify({ keyword }),
+  });
+  return res.ok;
+}
+
+// ─── Link email/SĐT phụ ──────────────────────────────────────────────────────
+
+export async function sendLinkEmailOtp(email: string): Promise<{ ok: boolean; message: string }> {
+  const res = await authFetch("/user/link-email/send", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, message: data.message || (res.ok ? "Đã gửi OTP" : "Lỗi gửi OTP") };
+}
+
+export async function confirmLinkEmail(
+  email: string,
+  otp: string
+): Promise<{ ok: boolean; message: string }> {
+  const res = await authFetch("/user/link-email/confirm", {
+    method: "POST",
+    body: JSON.stringify({ email, otp }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, message: data.message || (res.ok ? "Liên kết thành công" : "Lỗi") };
+}

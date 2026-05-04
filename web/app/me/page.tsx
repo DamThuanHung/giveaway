@@ -223,10 +223,31 @@ export default function MePage() {
         </div>
       </section>
 
-      <section className="py-8 max-w-5xl mx-auto px-4">
+      <section className="py-6 max-w-5xl mx-auto px-4">
+        <h2 className="text-lg font-extrabold text-navy mb-4">⚙️ Quản lý tài khoản</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+          {[
+            { href: "/me/posts/", icon: "📦", label: "Tin của tôi" },
+            { href: "/notifications/", icon: "🔔", label: "Thông báo" },
+            { href: "/me/stats/", icon: "📊", label: "Thống kê" },
+            { href: "/me/keywords/", icon: "🔔", label: "Cảnh báo từ khóa" },
+            { href: "/me/blocked/", icon: "🚫", label: "Đã chặn" },
+            { href: "/me/security/", icon: "🔐", label: "Bảo mật" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="bg-white border border-gray-200 hover:border-primary hover:shadow-sm rounded-xl p-4 text-center transition"
+            >
+              <div className="text-2xl mb-1">{item.icon}</div>
+              <div className="text-xs font-semibold text-navy">{item.label}</div>
+            </Link>
+          ))}
+        </div>
+
         <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
           <h2 className="text-xl font-extrabold text-navy">
-            Tin đăng của bạn {posts ? `(${posts.length})` : ""}
+            Tin đăng gần đây {posts ? `(${posts.length})` : ""}
           </h2>
           <Link
             href="/posts/new/"

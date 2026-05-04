@@ -11,6 +11,7 @@ import {
   fetchAllAuthorIds,
   formatDate,
 } from "@/lib/api";
+import { BlockUserButton } from "@/components/BlockUserButton";
 
 export async function generateStaticParams() {
   return await fetchAllAuthorIds();
@@ -167,6 +168,10 @@ export default async function UserProfilePage({
               <p className="text-gray-500 text-sm">
                 Tham gia Trao Tay {memberSince(user.createdAt)}
               </p>
+
+              <div className="mt-3">
+                <BlockUserButton targetId={user.id} targetName={user.name || "Người dùng"} />
+              </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
                 <div className="bg-gray-50 rounded-lg p-3 text-center">

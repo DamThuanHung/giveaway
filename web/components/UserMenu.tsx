@@ -94,7 +94,7 @@ export function UserMenu() {
               <span>👤</span> Hồ sơ của tôi
             </Link>
             <Link
-              href={`/users/${user.id}/`}
+              href="/me/posts/"
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50"
             >
@@ -106,6 +106,13 @@ export function UserMenu() {
               className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50"
             >
               <span>💬</span> Tin nhắn
+            </Link>
+            <Link
+              href="/notifications/"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50"
+            >
+              <span>🔔</span> Thông báo
             </Link>
             <Link
               href="/favorites/"
