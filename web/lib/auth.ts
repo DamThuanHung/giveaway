@@ -64,6 +64,21 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
   });
 }
 
+/// Map status + raw message thành tiếng Việt thân thiện cho user.
+/// NestJS @Throttle trả "ThrottlerException: Too Many Requests" — dịch sang Việt.
+function friendlyError(status: number, rawMessage: string | undefined): string {
+  if (status === 429) {
+    return "Bạn gửi quá nhanh. Vui lòng đợi 60 giây rồi thử lại.";
+  }
+  if (status === 0 || status >= 500) {
+    return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau ít phút.";
+  }
+  if (!rawMessage) return `Lỗi (HTTP ${status})`;
+  // Dịch một số message backend hay gặp
+  if (/throttler/i.test(rawMessage)) return "Bạn gửi quá nhanh. Vui lòng đợi 60 giây rồi thử lại.";
+  return rawMessage;
+}
+
 export async function loginSendOtp(email: string): Promise<{ ok: boolean; message: string }> {
   const res = await fetch(`${API_BASE}/user/email-login/send`, {
     method: "POST",
@@ -71,7 +86,10 @@ export async function loginSendOtp(email: string): Promise<{ ok: boolean; messag
     body: JSON.stringify({ email }),
   });
   const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, message: data.message || (res.ok ? "Đã gửi OTP" : "Lỗi gửi OTP") };
+  if (!res.ok) {
+    return { ok: false, message: friendlyError(res.status, data.message) };
+  }
+  return { ok: true, message: data.message || "Đã gửi mã OTP đến email" };
 }
 
 export async function loginVerifyOtp(
@@ -85,7 +103,7 @@ export async function loginVerifyOtp(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    return { ok: false, message: data.message || "Mã OTP không đúng" };
+    return { ok: false, message: friendlyError(res.status, data.message) || "Mã OTP không đúng" };
   }
   // Backend trả `accessToken` (NestJS convention), không phải `token`.
   // App mobile cũng đọc accessToken — phải match.
