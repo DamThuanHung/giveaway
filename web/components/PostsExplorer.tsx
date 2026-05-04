@@ -30,6 +30,29 @@ const LISTING_TYPES = [
   { v: "give", l: "Cho tặng" },
 ];
 
+// Khoảng giá phổ biến cho thị trường đồ cũ VN — chip nhanh cho 90% use case.
+const PRICE_RANGES: { label: string; min?: number; max?: number }[] = [
+  { label: "🎁 Miễn phí", max: 0 },
+  { label: "< 100k", max: 100_000 },
+  { label: "100k – 500k", min: 100_000, max: 500_000 },
+  { label: "500k – 2 triệu", min: 500_000, max: 2_000_000 },
+  { label: "2 – 10 triệu", min: 2_000_000, max: 10_000_000 },
+  { label: "> 10 triệu", min: 10_000_000 },
+];
+
+function formatPriceShort(n: number): string {
+  if (n === 0) return "0đ";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}tr`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return `${n}đ`;
+}
+
+function parsePriceInput(s: string): number | undefined {
+  const digits = s.replace(/\D/g, "");
+  if (!digits) return undefined;
+  return parseInt(digits, 10);
+}
+
 export function PostsExplorer({ initialData, initialQuery }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,6 +66,8 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   const [showFilters, setShowFilters] = useState(false);
 
   // Đọc current query từ URL params
+  const minParam = searchParams.get("min");
+  const maxParam = searchParams.get("max");
   const query: PostsQuery = {
     page: 1,
     limit: 24,
@@ -51,7 +76,12 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
     province: searchParams.get("province") || undefined,
     listingType: searchParams.get("type") || undefined,
     sortBy: (searchParams.get("sort") as any) || "newest",
+    minPrice: minParam != null ? Number(minParam) : undefined,
+    maxPrice: maxParam != null ? Number(maxParam) : undefined,
   };
+
+  const [minInput, setMinInput] = useState<string>(minParam ?? "");
+  const [maxInput, setMaxInput] = useState<string>(maxParam ?? "");
 
   // Khi URL thay đổi → fetch lại
   useEffect(() => {
@@ -61,7 +91,9 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
       query.itemCategory === initialQuery.itemCategory &&
       query.province === initialQuery.province &&
       query.listingType === initialQuery.listingType &&
-      query.sortBy === initialQuery.sortBy;
+      query.sortBy === initialQuery.sortBy &&
+      query.minPrice === initialQuery.minPrice &&
+      query.maxPrice === initialQuery.maxPrice;
 
     if (isInitialMatch && initialData) {
       setPosts(initialData.data);
@@ -103,7 +135,32 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
 
   function clearAll() {
     setSearchInput("");
+    setMinInput("");
+    setMaxInput("");
     router.push("/posts/", { scroll: false });
+  }
+
+  function applyPriceRange(min?: number, max?: number) {
+    setMinInput(min != null ? String(min) : "");
+    setMaxInput(max != null ? String(max) : "");
+    updateQuery({
+      min: min != null ? String(min) : undefined,
+      max: max != null ? String(max) : undefined,
+    });
+  }
+
+  function applyCustomPrice() {
+    const min = parsePriceInput(minInput);
+    const max = parsePriceInput(maxInput);
+    if (min != null && max != null && min > max) {
+      alert("Giá tối thiểu phải nhỏ hơn giá tối đa");
+      return;
+    }
+    applyPriceRange(min, max);
+  }
+
+  function rangeMatches(r: { min?: number; max?: number }): boolean {
+    return r.min === query.minPrice && r.max === query.maxPrice;
   }
 
   async function loadMore() {
@@ -119,7 +176,12 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   }
 
   const hasFilters =
-    query.search || query.itemCategory || query.province || query.listingType;
+    query.search ||
+    query.itemCategory ||
+    query.province ||
+    query.listingType ||
+    query.minPrice != null ||
+    query.maxPrice != null;
 
   return (
     <div className="grid md:grid-cols-[260px_1fr] gap-6">
@@ -170,6 +232,55 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
                 </li>
               ))}
             </ul>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+            <h3 className="font-bold text-navy text-sm mb-3">Khoảng giá</h3>
+            <div className="space-y-1.5 mb-3">
+              <button
+                onClick={() => applyPriceRange(undefined, undefined)}
+                className={`block w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${query.minPrice == null && query.maxPrice == null ? "bg-primary text-white font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
+              >
+                Tất cả
+              </button>
+              {PRICE_RANGES.map((r) => (
+                <button
+                  key={r.label}
+                  onClick={() => applyPriceRange(r.min, r.max)}
+                  className={`block w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${rangeMatches(r) ? "bg-primary text-white font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-xs text-gray-500 mb-2">Hoặc tùy chỉnh (VNĐ):</p>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={minInput}
+                  onChange={(e) => setMinInput(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Tối thiểu"
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
+                />
+                <span className="text-gray-400 text-xs">→</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={maxInput}
+                  onChange={(e) => setMaxInput(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Tối đa"
+                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
+                />
+              </div>
+              <button
+                onClick={applyCustomPrice}
+                className="w-full bg-primary-light hover:bg-emerald-100 text-primary-dark font-semibold py-1.5 rounded-md text-xs"
+              >
+                Áp dụng
+              </button>
+            </div>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
@@ -259,6 +370,17 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
               <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 {query.listingType === "give" ? "🎁 Cho tặng" : "💰 Đang bán"}
                 <button onClick={() => updateQuery({ type: undefined })} className="hover:text-primary">×</button>
+              </span>
+            )}
+            {(query.minPrice != null || query.maxPrice != null) && (
+              <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+                💰{" "}
+                {query.minPrice != null && query.maxPrice != null
+                  ? `${formatPriceShort(query.minPrice)} – ${formatPriceShort(query.maxPrice)}`
+                  : query.minPrice != null
+                  ? `≥ ${formatPriceShort(query.minPrice)}`
+                  : `≤ ${formatPriceShort(query.maxPrice!)}`}
+                <button onClick={() => applyPriceRange(undefined, undefined)} className="hover:text-primary">×</button>
               </span>
             )}
           </div>
