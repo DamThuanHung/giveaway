@@ -86,12 +86,13 @@ export async function fetchPostById(id: string): Promise<Post | null> {
 }
 
 /// Fetch all posts cho generateStaticParams — pre-render mọi /posts/[id]/.
-/// Cap 500 mới nhất để build không quá lâu khi scale.
+/// Cap 2000 mới nhất để cover gần như mọi bài active. Build vẫn <2 phút.
+/// Cron auto-rebuild mỗi giờ phủ user/post mới.
 export async function fetchAllPostIds(): Promise<{ id: string }[]> {
   const allIds: { id: string }[] = [];
   let page = 1;
   const LIMIT = 100;
-  const MAX_POSTS = 500;
+  const MAX_POSTS = 2000;
   while (allIds.length < MAX_POSTS) {
     const res = await fetchPosts({ page, limit: LIMIT });
     if (res.data.length === 0) break;
@@ -103,12 +104,12 @@ export async function fetchAllPostIds(): Promise<{ id: string }[]> {
 }
 
 /// Fetch unique author IDs từ posts để pre-render /users/[id]/.
-/// Phase 3 cap 200 user. Static export → user mới hơn sẽ 404 đến khi rebuild.
+/// Cap 2000 user — cover tất cả author đã đăng bài trong DB hiện tại + buffer.
 export async function fetchAllAuthorIds(): Promise<{ id: string }[]> {
   const seen = new Set<string>();
   let page = 1;
   const LIMIT = 100;
-  const MAX_AUTHORS = 200;
+  const MAX_AUTHORS = 2000;
   while (seen.size < MAX_AUTHORS) {
     const res = await fetchPosts({ page, limit: LIMIT });
     if (res.data.length === 0) break;
