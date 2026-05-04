@@ -35,21 +35,27 @@ git pull --quiet 2>&1 | tee -a "$LOG_FILE" || {
 
 cd "$WEB_DIR"
 
-# Install deps nếu package.json đã đổi (idempotent)
-if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
-  log "Installing deps..."
-  npm install --no-audit --no-fund --quiet 2>&1 | tee -a "$LOG_FILE"
-fi
+# Always run npm install — idempotent, fast khi node_modules đã sync.
+# Trước đây skip → nhưng node_modules có thể stale (vd thiếu dep mới như socket.io-client).
+log "Syncing deps (npm install)..."
+npm install --no-audit --no-fund --quiet 2>&1 | tee -a "$LOG_FILE"
 
-# Build vào folder tạm — chỉ rotate sang out/ khi success.
-# Tránh state nửa-vời nếu build fail giữa chừng.
+# Build — capture exit code trực tiếp, KHÔNG dựa pipefail vì cron shell hành vi khác nhau.
 log "Running next build..."
 START=$(date +%s)
+set +e  # tạm tắt exit-on-error để capture exit code
 npx next build 2>&1 | tee -a "$LOG_FILE"
+BUILD_EXIT=${PIPESTATUS[0]}
+set -e
 
-# Verify out/index.html exists — defensive check
+if [ "$BUILD_EXIT" != "0" ]; then
+  log "✗ Build FAILED (exit $BUILD_EXIT) — out/ giữ nguyên bản trước"
+  exit 1
+fi
+
+# Defensive: verify out/index.html
 if [ ! -f "out/index.html" ]; then
-  log "✗ Build hoàn tất nhưng out/index.html không có — rollback không cần (out/ vẫn nguyên)"
+  log "✗ Build báo OK nhưng out/index.html không có"
   exit 1
 fi
 
