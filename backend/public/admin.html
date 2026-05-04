@@ -464,6 +464,14 @@ function logout() {
 // ─── App init ─────────────────────────────────────────────────────────────────
 
 function initApp() {
+  // Backfill admin_id từ JWT cho session cũ (login trước khi Phase 6 lưu admin_id).
+  // Self-protection UI cần admin_id để compare với u.id.
+  if (!localStorage.getItem('admin_id') && token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (payload?.sub) localStorage.setItem('admin_id', payload.sub);
+    } catch {}
+  }
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('header-user').textContent = localStorage.getItem('admin_name') || '';
