@@ -26,8 +26,9 @@ export class AdminController {
     @Query('limit') limit = '20',
     @Query('status') status?: string,
     @Query('search') search?: string,
+    @Query('authorId') authorId?: string,
   ) {
-    return this.adminService.getAllPosts(+page, +limit, status, search);
+    return this.adminService.getAllPosts(+page, +limit, status, search, authorId);
   }
 
   @Patch('posts/:id/hide')
@@ -38,6 +39,11 @@ export class AdminController {
   @Patch('posts/:id/unhide')
   unhidePost(@Request() req, @Param('id') id: string) {
     return this.adminService.unhidePost(req.user.id, id);
+  }
+
+  @Patch('posts/:id/restore')
+  restorePost(@Request() req, @Param('id') id: string) {
+    return this.adminService.restorePost(req.user.id, id);
   }
 
   @Get('posts/:id')
@@ -65,6 +71,11 @@ export class AdminController {
   @Patch('users/:id/ban')
   banUser(@Request() req, @Param('id') id: string, @Body('isBanned') isBanned: boolean, @Body('reason') reason?: string) {
     return this.adminService.banUser(req.user.id, id, isBanned, reason);
+  }
+
+  @Post('users/bulk-ban')
+  bulkBanUsers(@Request() req, @Body() body: { ids: string[]; reason?: string }) {
+    return this.adminService.bulkBanUsers(req.user.id, body.ids, body.reason);
   }
 
   @Patch('users/:id/role')

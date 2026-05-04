@@ -149,10 +149,11 @@ export class AdminService implements OnModuleInit {
     return { topUsersByPosts, topSpenders, topPostsByViews };
   }
 
-  async getAllPosts(page = 1, limit = 20, status?: string, search?: string) {
+  async getAllPosts(page = 1, limit = 20, status?: string, search?: string, authorId?: string) {
     const where: any = {};
     if (status) where.status = status;
     if (search) where.title = { contains: search, mode: 'insensitive' };
+    if (authorId) where.authorId = authorId;
 
     const skip = (page - 1) * limit;
     const [posts, total] = await Promise.all([
@@ -191,6 +192,19 @@ export class AdminService implements OnModuleInit {
         _count: { select: { favorites: true, reports: true } },
       },
     });
+  }
+
+  /// Khôi phục bài đã soft-delete: chỉ chấp nhận nếu status='deleted_by_admin'.
+  /// Đặt lại status='available' (mặc định công khai) — admin có thể ẩn lại nếu cần.
+  async restorePost(adminId: string, id: string) {
+    const before = await this.prisma.post.findUnique({ where: { id }, select: { status: true } });
+    if (!before) throw new NotFoundException('Bài đăng không tồn tại');
+    if (before.status !== DELETED_BY_ADMIN) {
+      throw new BadRequestException(`Chỉ khôi phục được bài đã xóa. Bài này status='${before.status}'`);
+    }
+    const result = await this.prisma.post.update({ where: { id }, data: { status: 'available' } });
+    await this.audit(adminId, 'post.restore', 'post', id, { previousStatus: before.status });
+    return result;
   }
 
   /// Soft delete: chuyển status='deleted_by_admin' thay vì xóa hẳn.
@@ -237,11 +251,29 @@ export class AdminService implements OnModuleInit {
       }),
       this.prisma.user.count({ where }),
     ]);
-    return { data: users, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+
+    // Đếm pending reports trên bài của từng user trong page hiện tại — cho repeat-offender badge.
+    // 20 count queries parallel — chấp nhận được cho admin panel; nếu chậm sẽ chuyển sang $queryRaw groupBy.
+    const userIds = users.map(u => u.id);
+    const reportCounts = userIds.length === 0 ? [] : await Promise.all(
+      userIds.map(id =>
+        this.prisma.report.count({
+          where: { post: { authorId: id }, status: 'pending' },
+        })
+      )
+    );
+    const reportMap = new Map(userIds.map((id, i) => [id, reportCounts[i]]));
+    const usersWithReports = users.map(u => ({ ...u, pendingReportsOnPosts: reportMap.get(u.id) ?? 0 }));
+
+    return { data: usersWithReports, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   async banUser(adminId: string, id: string, isBanned: boolean, reason?: string) {
     const banFlag = isBanned === true; // strict — reject string/number coerce
+    // Self-protection: chặn admin tự ban chính mình → tránh lockout vĩnh viễn (chỉ rescue được bằng SQL).
+    if (id === adminId) {
+      throw new BadRequestException('Không thể tự khóa tài khoản của chính mình');
+    }
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: { email: true, phone: true, isBanned: true },
@@ -270,9 +302,38 @@ export class AdminService implements OnModuleInit {
     return { ok: true, isBanned: banFlag };
   }
 
+  /// Bulk ban: khóa N user/lần (cap 50). Skip selfId; mỗi user vẫn ghi audit log riêng + blacklist email/phone.
+  /// Return chi tiết success/failed để UI hiển thị.
+  async bulkBanUsers(adminId: string, ids: string[], reason?: string) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Cần ít nhất 1 user');
+    }
+    if (ids.length > 50) {
+      throw new BadRequestException('Tối đa 50 user/lần');
+    }
+    const unique = Array.from(new Set(ids));
+    const targets = unique.filter(id => id && id !== adminId);
+    const skippedSelf = unique.length - targets.length;
+    let success = 0;
+    const errors: { id: string; error: string }[] = [];
+    for (const id of targets) {
+      try {
+        await this.banUser(adminId, id, true, reason);
+        success++;
+      } catch (e: any) {
+        errors.push({ id, error: e?.message || 'Unknown error' });
+      }
+    }
+    return { success, failed: errors.length, skippedSelf, errors };
+  }
+
   async setUserRole(adminId: string, id: string, role: 'admin' | 'user') {
     if (role !== 'admin' && role !== 'user') {
       throw new BadRequestException('role chỉ nhận "admin" hoặc "user"');
+    }
+    // Self-protection: admin không tự hạ quyền chính mình → tránh lockout khi chỉ còn 1 admin.
+    if (id === adminId && role !== 'admin') {
+      throw new BadRequestException('Không thể tự hạ quyền admin của chính mình');
     }
     const before = await this.prisma.user.findUnique({ where: { id }, select: { role: true } });
     if (!before) throw new NotFoundException('User không tồn tại');
@@ -313,6 +374,10 @@ export class AdminService implements OnModuleInit {
       where: { revieweeId: id },
       _avg: { rating: true },
     });
+    // Pending reports targeting bài của user này — surface repeat-offender mức nghiêm trọng.
+    const pendingReportsOnPosts = await this.prisma.report.count({
+      where: { post: { authorId: id }, status: 'pending' },
+    });
     // Lịch sử admin action targeting user này (bị admin nào, action gì, lúc nào)
     const adminHistory = await this.prisma.adminActionLog.findMany({
       where: { targetType: 'user', targetId: id },
@@ -325,6 +390,7 @@ export class AdminService implements OnModuleInit {
       totalSpent: spent._sum.amount ?? 0,
       bumpOrderCount: spent._count ?? 0,
       avgRating: ratings._avg.rating ? +ratings._avg.rating.toFixed(2) : null,
+      pendingReportsOnPosts,
       adminHistory,
     };
   }

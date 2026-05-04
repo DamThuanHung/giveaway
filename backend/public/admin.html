@@ -286,8 +286,8 @@ let resendSecondsLeft = 0;
 const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats','categories'];
 
 const state = {
-  posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '',
-  users: [], usersPage: 0, usersTotal: 0, usersTotalPages: 1, usersSearch: '', usersRole: '', usersBanned: '',
+  posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '', postsAuthorId: '', postsAuthorName: '',
+  users: [], usersPage: 0, usersTotal: 0, usersTotalPages: 1, usersSearch: '', usersRole: '', usersBanned: '', usersSelected: new Set(),
   reports: [], reportsPage: 0, reportsTotal: 0, reportsTotalPages: 1, reportsStatus: '',
   orders: [], ordersPage: 0, ordersTotal: 0, ordersTotalPages: 1,
   revenueData: null, timeline: null, timelineFrom: '', timelineTo: '',
@@ -295,7 +295,7 @@ const state = {
   topData: null,
   broadcastSegment: 'all', broadcastPreview: null, broadcastHistory: [],
   reviews: [], reviewsPage: 0, reviewsTotal: 0, reviewsTotalPages: 1, reviewsRating: '', reviewsSearch: '',
-  chats: [], chatsPage: 0, chatsTotal: 0, chatsTotalPages: 1, chatsSearch: '', currentChatRoom: null, currentChatMessages: [],
+  chats: [], chatsPage: 0, chatsTotal: 0, chatsTotalPages: 1, chatsSearch: '', chatsUserId: '', chatsUserName: '', currentChatRoom: null, currentChatMessages: [],
   categories: [],
 };
 
@@ -436,6 +436,7 @@ async function verifyOtp() {
     token = data.accessToken;
     localStorage.setItem('admin_token', token);
     localStorage.setItem('admin_name', data.user?.name || email);
+    localStorage.setItem('admin_id', data.user?.id || '');
     initApp();
   } catch(e) {
     showErr('otp-err', 'Lỗi xác nhận');
@@ -452,7 +453,7 @@ function backToEmail() {
 }
 
 function logout() {
-  token = ''; localStorage.removeItem('admin_token'); localStorage.removeItem('admin_name');
+  token = ''; localStorage.removeItem('admin_token'); localStorage.removeItem('admin_name'); localStorage.removeItem('admin_id');
   if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
@@ -558,6 +559,7 @@ function handleContentClick(e) {
     case 'hide-post': e.stopPropagation(); hidePost(id, idx); break;
     case 'unhide-post': e.stopPropagation(); unhidePost(id, idx); break;
     case 'delete-post': e.stopPropagation(); deletePost(id, idx, extra); break;
+    case 'restore-post': e.stopPropagation(); restorePost(id, idx); break;
 
     case 'resolve-report': resolveReport(id, idx, 'resolved'); break;
     case 'dismiss-report': resolveReport(id, idx, 'dismissed'); break;
@@ -652,6 +654,26 @@ function handleContentClick(e) {
     case 'edit-category': editCategoryPrompt(id); break;
     case 'toggle-category': toggleCategoryEnabled(id); break;
     case 'delete-category': deleteCategoryConfirm(id, extra); break;
+
+    case 'clear-posts-author':
+      state.postsAuthorId = ''; state.postsAuthorName = '';
+      loadPosts(true);
+      break;
+    case 'clear-chats-user':
+      state.chatsUserId = ''; state.chatsUserName = '';
+      loadChats(true);
+      break;
+
+    case 'toggle-user-select':
+      if (state.usersSelected.has(id)) state.usersSelected.delete(id);
+      else state.usersSelected.add(id);
+      renderUsers(false);
+      break;
+    case 'clear-users-selection':
+      state.usersSelected.clear();
+      renderUsers(false);
+      break;
+    case 'bulk-ban-users': bulkBanSelected(); break;
   }
 }
 
@@ -677,6 +699,7 @@ function handleModalAction(e) {
     case 'modal-hide-post': modalHidePost(id); break;
     case 'modal-unhide-post': modalUnhidePost(id); break;
     case 'modal-delete-post': modalDeletePost(id, extra); break;
+    case 'modal-restore-post': modalRestorePost(id); break;
     case 'modal-ban-user': modalBanUser(id, true); break;
     case 'modal-unban-user': modalBanUser(id, false); break;
     case 'modal-make-admin': modalSetRole(id, 'admin'); break;
@@ -686,6 +709,20 @@ function handleModalAction(e) {
     case 'modal-close': closeModal(); break;
     case 'modal-view-post': closeModal(); openPostDetail(id); break;
     case 'modal-view-user': closeModal(); openUserDetail(id); break;
+    case 'modal-view-user-posts':
+      state.postsAuthorId = id;
+      state.postsAuthorName = extra || 'user';
+      state.posts = []; state.postsPage = 0; state.postsSearch = ''; state.postsStatus = '';
+      closeModal();
+      switchTab(1);
+      break;
+    case 'modal-view-user-chats':
+      state.chatsUserId = id;
+      state.chatsUserName = extra || 'user';
+      state.chats = []; state.chatsPage = 0; state.chatsSearch = '';
+      closeModal();
+      switchTab(9);
+      break;
     case 'delete-review': deleteReviewPrompt(id); break;
     case 'delete-message': deleteMessagePrompt(id); break;
   }
@@ -799,6 +836,7 @@ async function loadPosts(reset = false) {
   const params = new URLSearchParams({page, limit:20});
   if (state.postsSearch) params.set('search', state.postsSearch);
   if (state.postsStatus) params.set('status', state.postsStatus);
+  if (state.postsAuthorId) params.set('authorId', state.postsAuthorId);
   const data = await api(`/admin/posts?${params}`);
   if (!data) return;
   state.posts.push(...(data.data||[]));
@@ -817,7 +855,12 @@ function renderPosts(loading) {
         <button class="fchip ${state.postsStatus===s?'active':''}" data-action="set-posts-status" data-value="${s}">${s===''?'Tất cả':statusLabel(s)}</button>
       `).join('')}
     </div>`;
-  const searchHtml = `<div class="toolbar">
+  const authorBanner = state.postsAuthorId
+    ? `<div style="background:#DBEAFE;border:1px solid #93C5FD;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+         <span>📦 Đang lọc bài của <strong>${esc(state.postsAuthorName||'user')}</strong> (${state.postsTotal} bài)</span>
+         <button class="btn-sm btn-grey" data-action="clear-posts-author">Bỏ lọc</button>
+       </div>` : '';
+  const searchHtml = `${authorBanner}<div class="toolbar">
     <input id="posts-search" type="text" placeholder="🔍 Tìm theo tiêu đề..." value="${esc(state.postsSearch)}"/>
     <button class="btn-sm btn-green" data-action="do-search-posts">Tìm</button>
   </div>${filterChips}`;
@@ -841,7 +884,9 @@ function renderPosts(loading) {
         ${chipStatus(p.status)}
       </div>
       <div class="meta">${esc(p.author?.name||'Ẩn danh')} · ${p.viewCount||0} lượt xem · ${fmoney(p.price||0)}</div>
-      ${isDeleted ? '' : `<div class="item-actions">
+      ${isDeleted ? `<div class="item-actions">
+        <button class="btn-sm btn-green" data-action="restore-post" data-id="${esc(p.id)}" data-idx="${i}">↩ Khôi phục</button>
+      </div>` : `<div class="item-actions">
         ${isHidden
           ? `<button class="btn-sm btn-green" data-action="unhide-post" data-id="${esc(p.id)}" data-idx="${i}">Hiện lại</button>`
           : `<button class="btn-sm btn-orange" data-action="hide-post" data-id="${esc(p.id)}" data-idx="${i}">Ẩn bài</button>`}
@@ -876,6 +921,22 @@ async function deletePost(id, idx, title) {
   renderPosts(false); toast('Đã xóa bài (soft delete)');
 }
 
+async function restorePost(id, idx) {
+  if (!confirm('Khôi phục bài đã xóa? Bài sẽ trở về trạng thái "Hiển thị" — có thể ẩn lại nếu cần.')) return;
+  const res = await api(`/admin/posts/${id}/restore`, { method: 'PATCH' });
+  if (!res) return;
+  if (state.posts[idx]) state.posts[idx].status = 'available';
+  renderPosts(false);
+  toast('Đã khôi phục bài');
+}
+
+async function modalRestorePost(id) {
+  if (!confirm('Khôi phục bài đã xóa?')) return;
+  const res = await api(`/admin/posts/${id}/restore`, { method: 'PATCH' });
+  if (!res) return;
+  closeModal(); loadPosts(true); toast('Đã khôi phục bài');
+}
+
 async function openPostDetail(id) {
   showModal('Chi tiết bài đăng', '<div class="loading"><div class="spinner"></div> Đang tải...</div>', '');
   const p = await api(`/admin/posts/${id}`);
@@ -904,7 +965,8 @@ async function openPostDetail(id) {
     <div class="kv"><span class="k">SĐT</span><span class="v">${esc(author.phone||'—')}</span></div>
   `;
   const actions = isDeleted
-    ? `<button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
+    ? `<button class="btn-sm btn-green" data-action="modal-restore-post" data-id="${esc(p.id)}">↩ Khôi phục</button>
+       <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
     : `${isHidden
         ? `<button class="btn-sm btn-green" data-action="modal-unhide-post" data-id="${esc(p.id)}">Hiện lại</button>`
         : `<button class="btn-sm btn-orange" data-action="modal-hide-post" data-id="${esc(p.id)}">Ẩn bài</button>`}
@@ -954,7 +1016,14 @@ function renderUsers(loading) {
     .map(([k,l]) => `<button class="fchip ${state.usersRole===k?'active':''}" data-action="set-users-role" data-value="${k}">${l}</button>`).join('');
   const banChips = [['','Tất cả trạng thái'],['true','Bị khóa'],['false','Hoạt động']]
     .map(([k,l]) => `<button class="fchip ${state.usersBanned===k?'active':''}" data-action="set-users-banned" data-value="${k}">${l}</button>`).join('');
-  const searchHtml = `<div class="toolbar">
+  const selectedCount = state.usersSelected.size;
+  const bulkBar = selectedCount > 0
+    ? `<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+         <span>☑️ Đã chọn <strong>${selectedCount}</strong> user</span>
+         <button class="btn-sm btn-red" data-action="bulk-ban-users">🔒 Khóa ${selectedCount} user</button>
+         <button class="btn-sm btn-grey" data-action="clear-users-selection">Bỏ chọn</button>
+       </div>` : '';
+  const searchHtml = `${bulkBar}<div class="toolbar">
     <input id="users-search" type="text" placeholder="🔍 Tìm theo tên/email/SĐT..." value="${esc(state.usersSearch)}"/>
     <button class="btn-sm btn-green" data-action="do-search-users">Tìm</button>
   </div>
@@ -969,19 +1038,28 @@ function renderUsers(loading) {
     el.innerHTML = searchHtml + '<div class="empty"><div class="empty-icon">👤</div><p>Không có người dùng nào khớp</p></div>';
     return;
   }
+  const adminId = localStorage.getItem('admin_id') || '';
   const items = state.users.map(u => {
     const banned = u.isBanned === true;
     const cnt = u._count || {};
     const initials = (u.name || 'U')[0].toUpperCase();
     const avatarColor = avatarBg(u.name || 'U');
+    const isSelf = u.id === adminId;
+    const isSelected = state.usersSelected.has(u.id);
+    const checkbox = isSelf
+      ? `<div style="width:18px;flex-shrink:0" title="Đây là tài khoản của bạn"></div>`
+      : `<input type="checkbox" data-action="toggle-user-select" data-id="${esc(u.id)}" ${isSelected?'checked':''} style="width:18px;height:18px;flex-shrink:0;cursor:pointer"/>`;
     return `<div class="item-card" data-action="open-user" data-id="${esc(u.id)}">
       <div class="user-row">
+        ${checkbox}
         <div class="avatar" style="background:${avatarColor}">${u.avatar?`<img src="${esc(u.avatar)}"/>`:initials}</div>
         <div class="user-info-col">
           <div class="name">${esc(u.name||'Không tên')}
             ${u.role==='admin'?'<span class="chip chip-blue">Admin</span>':''}
             ${banned?'<span class="chip chip-red">Bị khóa</span>':''}
             ${u.deletedAt?'<span class="chip chip-grey">Đã xóa TK</span>':''}
+            ${isSelf?'<span class="chip chip-purple">Bạn</span>':''}
+            ${(u.pendingReportsOnPosts||0) > 3 ? `<span class="chip chip-red" title="Bài của user này đang bị nhiều người báo cáo">🚩 ${u.pendingReportsOnPosts} báo cáo</span>` : ''}
           </div>
           <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài · ${cnt.dealsAsRequester||0} deal</div>
         </div>
@@ -1026,6 +1104,7 @@ async function openUserDetail(id) {
           ${u.isBanned?'<span class="chip chip-red">Bị khóa</span>':'<span class="chip chip-green">Hoạt động</span>'}
           ${u.isPhoneVerified?'<span class="chip chip-purple">SĐT đã xác minh</span>':''}
           ${u.deletedAt?'<span class="chip chip-grey">Đã xóa TK</span>':''}
+          ${(u.pendingReportsOnPosts||0) > 3 ? `<span class="chip chip-red">🚩 ${u.pendingReportsOnPosts} báo cáo chờ xử lý</span>` : ''}
         </div>
       </div>
     </div>
@@ -1039,16 +1118,25 @@ async function openUserDetail(id) {
     <div class="kv"><span class="k">Đăng ký lúc</span><span class="v">${fmtDate(u.createdAt)}</span></div>
     ${u.deletedAt?`<div class="kv"><span class="k">Đã xóa lúc</span><span class="v">${fmtDate(u.deletedAt)}</span></div>`:''}
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn-sm btn-blue" data-action="modal-view-user-posts" data-id="${esc(u.id)}" data-extra="${esc(u.name||'user')}">📦 Xem ${cnt.posts||0} bài của user này</button>
+      <button class="btn-sm btn-blue" data-action="modal-view-user-chats" data-id="${esc(u.id)}" data-extra="${esc(u.name||'user')}">💬 Xem chat của user này</button>
+    </div>
     <div style="font-weight:700;margin-bottom:8px">Lịch sử admin action (20 gần nhất)</div>
     ${historyHtml}
   `;
+  const isSelf = u.id === localStorage.getItem('admin_id');
+  const selfNotice = isSelf
+    ? `<span style="font-size:12px;color:var(--text2);margin-right:auto;align-self:center">⚠️ Đây là tài khoản của bạn</span>`
+    : '';
   const actions = `
-    ${u.isBanned
+    ${selfNotice}
+    ${isSelf ? '' : (u.isBanned
       ? `<button class="btn-sm btn-green" data-action="modal-unban-user" data-id="${esc(u.id)}">Mở khóa</button>`
-      : `<button class="btn-sm btn-red" data-action="modal-ban-user" data-id="${esc(u.id)}">Khóa tài khoản</button>`}
-    ${u.role==='admin'
+      : `<button class="btn-sm btn-red" data-action="modal-ban-user" data-id="${esc(u.id)}">Khóa tài khoản</button>`)}
+    ${isSelf ? '' : (u.role==='admin'
       ? `<button class="btn-sm btn-grey" data-action="modal-revoke-admin" data-id="${esc(u.id)}">Hạ quyền Admin</button>`
-      : `<button class="btn-sm btn-purple" data-action="modal-make-admin" data-id="${esc(u.id)}">Cấp quyền Admin</button>`}
+      : `<button class="btn-sm btn-purple" data-action="modal-make-admin" data-id="${esc(u.id)}">Cấp quyền Admin</button>`)}
     <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>
   `;
   showModal('Chi tiết người dùng', body, actions);
@@ -1065,6 +1153,29 @@ async function modalBanUser(id, ban) {
   }
   await api(`/admin/users/${id}/ban`, {method:'PATCH', body: JSON.stringify({isBanned:ban, reason})});
   closeModal(); loadUsers(true); toast(ban ? 'Đã khóa tài khoản' : 'Đã mở khóa');
+}
+
+async function bulkBanSelected() {
+  const ids = Array.from(state.usersSelected);
+  if (ids.length === 0) return;
+  if (ids.length > 50) { toast('Tối đa 50 user/lần'); return; }
+  const reason = prompt(`Khóa ${ids.length} user đã chọn?\nMỗi user sẽ bị blacklist email/phone (không re-register).\n\nNhập lý do (ghi audit log từng user):`);
+  if (reason === null) return;
+  if (!reason.trim()) { toast('Phải nhập lý do'); return; }
+  if (!confirm(`Xác nhận khóa ${ids.length} user? Hành động không thể hoàn tác bằng 1 lệnh — phải mở khóa từng user.`)) return;
+
+  toast(`Đang khóa ${ids.length} user...`);
+  const res = await api('/admin/users/bulk-ban', {
+    method: 'POST',
+    body: JSON.stringify({ ids, reason: reason.trim() }),
+  });
+  if (!res) return;
+  let msg = `Đã khóa ${res.success}/${ids.length}`;
+  if (res.skippedSelf) msg += ` · bỏ qua tài khoản của bạn`;
+  if (res.failed) msg += ` · ${res.failed} thất bại`;
+  toast(msg);
+  state.usersSelected.clear();
+  loadUsers(true);
 }
 
 async function modalSetRole(id, role) {
@@ -1549,6 +1660,7 @@ async function loadChats(reset = false) {
 
   const params = new URLSearchParams({ page: String(next), limit: '20' });
   if (state.chatsSearch) params.set('search', state.chatsSearch);
+  if (state.chatsUserId) params.set('userId', state.chatsUserId);
   const res = await api(`/admin/chats?${params}`);
   if (!res) return;
 
@@ -1582,7 +1694,13 @@ function renderChats() {
           </div>`;
       }).join('');
 
+  const userBanner = state.chatsUserId
+    ? `<div style="background:#DBEAFE;border:1px solid #93C5FD;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+         <span>💬 Đang lọc chat của <strong>${esc(state.chatsUserName||'user')}</strong> (${state.chatsTotal} phòng)</span>
+         <button class="btn-sm btn-grey" data-action="clear-chats-user">Bỏ lọc</button>
+       </div>` : '';
   el.innerHTML = `
+    ${userBanner}
     <div class="filter-bar">
       <div class="search-row">
         <input id="chats-search" placeholder="Tìm theo tên buyer/seller/title bài..." value="${esc(state.chatsSearch)}"/>
