@@ -785,6 +785,8 @@ function handleModalAction(e) {
     case 'modal-unhide-post': modalUnhidePost(id); break;
     case 'modal-delete-post': modalDeletePost(id, extra); break;
     case 'modal-restore-post': modalRestorePost(id); break;
+    case 'modal-grant-bump': openGrantBumpForm(id, +(extra||0)); break;
+    case 'submit-grant-bump': submitGrantBump(id); break;
     case 'modal-ban-user': modalBanUser(id, true); break;
     case 'modal-unban-user': modalBanUser(id, false); break;
     case 'modal-make-admin': modalSetRole(id, 'admin'); break;
@@ -1049,15 +1051,88 @@ async function openPostDetail(id) {
     <div class="kv"><span class="k">Email</span><span class="v">${esc(author.email||'—')}</span></div>
     <div class="kv"><span class="k">SĐT</span><span class="v">${esc(author.phone||'—')}</span></div>
   `;
+  // Grant bump chỉ khả dụng cho bài available/reserved (không hidden/deleted)
+  // và không phải bài chính admin (self-protection check ở backend, ở đây UI chỉ hide cho gọn).
+  const canGrantBump = !isHidden && !isDeleted && author.id !== state.adminId;
+  const grantBumpBtn = canGrantBump
+    ? `<button class="btn-sm btn-blue" data-action="modal-grant-bump" data-id="${esc(p.id)}" data-extra="${p.boostTier||0}">🚀 Đẩy bài</button>`
+    : '';
+
   const actions = isDeleted
     ? `<button class="btn-sm btn-green" data-action="modal-restore-post" data-id="${esc(p.id)}">↩ Khôi phục</button>
        <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`
-    : `${isHidden
+    : `${grantBumpBtn}
+       ${isHidden
         ? `<button class="btn-sm btn-green" data-action="modal-unhide-post" data-id="${esc(p.id)}">Hiện lại</button>`
         : `<button class="btn-sm btn-orange" data-action="modal-hide-post" data-id="${esc(p.id)}">Ẩn bài</button>`}
       <button class="btn-sm btn-red" data-action="modal-delete-post" data-id="${esc(p.id)}" data-extra="${esc(p.title||'')}">Xóa bài</button>
       <button class="btn-sm btn-grey" data-action="modal-close">Đóng</button>`;
   showModal('Chi tiết bài đăng', body, actions);
+}
+
+/// Mở form grant bump trong cùng modal — replace nội dung modal hiện tại.
+/// `currentTier`: 0 (free) | 2 (plus) | 3 (vip) — dùng để vô hiệu chip Plus nếu bài đang Plus,
+/// vô hiệu cả 2 chip nếu bài đang VIP (không có tier cao hơn).
+function openGrantBumpForm(postId, currentTier) {
+  const plusDisabled = currentTier >= 2;  // bài đang Plus hoặc VIP → không grant Plus
+  const vipDisabled  = currentTier >= 3;  // bài đang VIP → không grant VIP
+  const tierHint = currentTier === 0 ? '' :
+    `<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px">
+       Bài đang ở tier <strong>${currentTier === 2 ? 'Plus' : 'VIP'}</strong>${currentTier >= 3 ? ' — không thể grant cao hơn nữa.' : ' — chỉ có thể grant lên VIP.'}
+     </div>`;
+
+  const body = `
+    ${tierHint}
+    <div style="font-weight:700;margin-bottom:8px">Chọn gói</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <label class="tier-radio ${plusDisabled?'disabled':''}" style="flex:1;display:block;cursor:${plusDisabled?'not-allowed':'pointer'};border:2px solid ${plusDisabled?'#E5E7EB':'#D1FAE5'};background:${plusDisabled?'#F3F4F6':'#ECFDF5'};border-radius:10px;padding:12px;text-align:center;opacity:${plusDisabled?0.5:1}">
+        <input type="radio" name="grant-tier" value="plus" ${plusDisabled?'disabled':'checked'} style="margin-right:6px"/>
+        <strong>Plus</strong><br/>
+        <small>tối đa 7 ngày</small>
+      </label>
+      <label class="tier-radio ${vipDisabled?'disabled':''}" style="flex:1;display:block;cursor:${vipDisabled?'not-allowed':'pointer'};border:2px solid ${vipDisabled?'#E5E7EB':'#FED7AA'};background:${vipDisabled?'#F3F4F6':'#FFF7ED'};border-radius:10px;padding:12px;text-align:center;opacity:${vipDisabled?0.5:1}">
+        <input type="radio" name="grant-tier" value="vip" ${vipDisabled?'disabled':(plusDisabled?'checked':'')} style="margin-right:6px"/>
+        <strong>⭐ VIP</strong><br/>
+        <small>tối đa 30 ngày</small>
+      </label>
+    </div>
+    <div style="font-weight:700;margin-bottom:6px">Số ngày</div>
+    <input id="grant-days" type="number" min="1" max="30" value="7" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;font-size:15px"/>
+    <div style="font-weight:700;margin-bottom:6px">Lý do <span style="color:#DC2626">*</span></div>
+    <textarea id="grant-reason" rows="3" maxlength="500" placeholder="VD: Bài cứu trợ thiên tai miền Trung — boost 7 ngày để tiếp cận rộng. Tối thiểu 10 ký tự." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+    <div style="font-size:12px;color:var(--ink-500)">Lý do sẽ được lưu vào lịch sử admin và gửi thông báo cho user.</div>
+  `;
+  const actions = `
+    <button class="btn-sm btn-blue" data-action="submit-grant-bump" data-id="${esc(postId)}">✓ Xác nhận grant</button>
+    <button class="btn-sm btn-grey" data-action="modal-view-post" data-id="${esc(postId)}">← Quay lại</button>
+  `;
+  showModal('🚀 Đẩy bài lên VIP/Plus', body, actions);
+}
+
+async function submitGrantBump(postId) {
+  const tierEl = document.querySelector('input[name="grant-tier"]:checked');
+  if (!tierEl) { toast('Chọn gói Plus hoặc VIP'); return; }
+  const tier = tierEl.value;
+  const days = parseInt(document.getElementById('grant-days').value || '0', 10);
+  const reason = (document.getElementById('grant-reason').value || '').trim();
+
+  // Client-side validation (server cũng check lại)
+  if (!Number.isInteger(days) || days < 1) { toast('Số ngày phải ≥ 1'); return; }
+  const maxDays = tier === 'plus' ? 7 : 30;
+  if (days > maxDays) { toast(`${tier === 'plus' ? 'Plus' : 'VIP'} tối đa ${maxDays} ngày`); return; }
+  if (reason.length < 10) { toast('Lý do tối thiểu 10 ký tự'); return; }
+
+  const tierLabel = tier === 'plus' ? 'Plus' : 'VIP';
+  if (!confirm(`Xác nhận grant ${tierLabel} ${days} ngày cho bài này?\n\nLý do: ${reason}\n\n(Hành động sẽ được ghi log + thông báo cho user.)`)) return;
+
+  const result = await api(`/admin/posts/${postId}/grant-bump`, {
+    method: 'POST',
+    body: JSON.stringify({ tier, days, reason }),
+  });
+  if (!result || !result.ok) return;  // api() đã toast lỗi
+  closeModal();
+  loadPosts(true);
+  toast(`✓ Đã grant ${tierLabel} ${days} ngày`);
 }
 
 async function modalHidePost(id) {

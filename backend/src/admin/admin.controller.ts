@@ -46,6 +46,15 @@ export class AdminController {
     return this.adminService.restorePost(req.user.id, id);
   }
 
+  @Post('posts/:id/grant-bump')
+  grantBump(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { tier: 'plus' | 'vip'; days: number; reason: string },
+  ) {
+    return this.adminService.grantBump(req.user.id, id, body);
+  }
+
   @Get('posts/:id')
   getPostDetail(@Param('id') id: string) {
     return this.adminService.getPostDetail(id);

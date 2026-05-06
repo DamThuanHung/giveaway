@@ -207,6 +207,137 @@ export class AdminService implements OnModuleInit {
     return result;
   }
 
+  /// Admin grant Plus/VIP miễn phí cho 1 bài (không qua PayOS).
+  /// Use case: cứu trợ thiên tai, marketing thị trường mới, bù đắp lỗi payment,
+  /// reward user uy tín. KHÔNG hiện badge "Admin chọn" — public coi như VIP/Plus thường.
+  ///
+  /// Guardrails:
+  /// 1. Reason BẮT BUỘC, min 10 ký tự — forensics cho audit log.
+  /// 2. Days cap: Plus 1-7, VIP 1-30 — chống bug nhập sai.
+  /// 3. Self-protection: admin không grant cho bài chính mình.
+  /// 4. Status check: chỉ available/reserved — không grant cho hidden/deleted.
+  /// 5. Tier upgrade only: bài đang Plus → grant VIP OK, grant lại Plus → reject;
+  ///    bài đang VIP → reject (không có tier cao hơn).
+  /// 6. Tạo BumpOrder amount=0, status='paid' để cron resetExpiredBoosts vẫn hoạt động.
+  async grantBump(
+    adminId: string,
+    postId: string,
+    body: { tier: 'plus' | 'vip'; days: number; reason: string },
+  ) {
+    const { tier, days, reason } = body;
+
+    // Validation
+    if (tier !== 'plus' && tier !== 'vip') {
+      throw new BadRequestException('Tier phải là "plus" hoặc "vip"');
+    }
+    if (!reason || reason.trim().length < 10) {
+      throw new BadRequestException('Lý do tối thiểu 10 ký tự (bắt buộc cho audit log)');
+    }
+    if (reason.trim().length > 500) {
+      throw new BadRequestException('Lý do tối đa 500 ký tự');
+    }
+    if (!Number.isInteger(days) || days < 1) {
+      throw new BadRequestException('Số ngày phải là số nguyên ≥ 1');
+    }
+    const maxDays = tier === 'plus' ? 7 : 30;
+    if (days > maxDays) {
+      throw new BadRequestException(`Plus tối đa 7 ngày, VIP tối đa 30 ngày. Yêu cầu ${days} vượt quá.`);
+    }
+
+    const newTier = tier === 'plus' ? 2 : 3;
+
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, status: true, authorId: true, title: true, boostTier: true },
+    });
+    if (!post) throw new NotFoundException('Bài đăng không tồn tại');
+
+    // Self-protection
+    if (post.authorId && post.authorId === adminId) {
+      throw new BadRequestException('Không thể grant bump cho bài của chính mình');
+    }
+
+    // Status check
+    if (post.status !== 'available' && post.status !== 'reserved') {
+      throw new BadRequestException(
+        `Chỉ grant được cho bài đang hiển thị (available/reserved). Bài này status='${post.status}'`,
+      );
+    }
+
+    // Tier upgrade only
+    const currentTier = post.boostTier ?? 0;
+    if (currentTier === newTier) {
+      throw new BadRequestException(
+        `Bài đang ${tier === 'plus' ? 'Plus' : 'VIP'} rồi — không grant lại cùng tier. Chờ hết hạn hoặc chọn tier cao hơn.`,
+      );
+    }
+    if (currentTier > newTier) {
+      throw new BadRequestException(
+        `Không downgrade được — bài đang VIP, không thể grant Plus.`,
+      );
+    }
+
+    const now = new Date();
+    const expiredAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    const adminGrantOrderId = `AG_${adminId.slice(0, 8)}_${now.getTime()}`;
+
+    // Tạo BumpOrder + update Post atomically
+    const [bumpOrder] = await this.prisma.$transaction([
+      this.prisma.bumpOrder.create({
+        data: {
+          userId: post.authorId!,
+          postId: post.id,
+          package: tier === 'plus' ? 'admin_grant_plus' : 'admin_grant_vip',
+          tier: newTier,
+          amount: 0,
+          status: 'paid',
+          payosOrderId: adminGrantOrderId,
+          expiredAt,
+        },
+      }),
+      this.prisma.post.update({
+        where: { id: postId },
+        data: { boostTier: newTier, bumpedAt: now },
+      }),
+    ]);
+
+    // Notification cho user (best effort — không block grant nếu fail)
+    if (post.authorId) {
+      const tierLabel = tier === 'plus' ? 'Plus' : 'VIP';
+      await this.prisma.notification.create({
+        data: {
+          userId: post.authorId,
+          type: 'admin_grant_bump',
+          title: `Bài của bạn được nâng cấp ${tierLabel} miễn phí`,
+          body: `Bài "${post.title}" đã được nâng cấp lên ${tierLabel} ${days} ngày miễn phí. Lý do: ${reason.trim()}`,
+          data: JSON.stringify({ postId: post.id, tier: newTier, days }),
+        },
+      }).catch(() => {});
+    }
+
+    await this.audit(adminId, 'post.grant_bump', 'post', postId, {
+      tier,
+      tierInt: newTier,
+      days,
+      reason: reason.trim(),
+      originalTier: currentTier,
+      bumpOrderId: bumpOrder.id,
+      expiredAt: expiredAt.toISOString(),
+      authorId: post.authorId,
+      title: post.title,
+    });
+
+    return {
+      ok: true,
+      postId,
+      tier,
+      tierInt: newTier,
+      days,
+      expiredAt: expiredAt.toISOString(),
+      bumpOrderId: bumpOrder.id,
+    };
+  }
+
   /// Soft delete: chuyển status='deleted_by_admin' thay vì xóa hẳn.
   /// Lý do: giữ evidence cho dispute, lịch sử giao dịch, có thể restore.
   async deletePost(adminId: string, id: string, reason?: string) {
