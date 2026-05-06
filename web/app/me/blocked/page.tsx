@@ -55,7 +55,7 @@ export default function BlockedUsersPage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -65,13 +65,13 @@ export default function BlockedUsersPage() {
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 py-7">
-          <Link href="/me/" className="text-sm text-gray-500 hover:text-primary mb-2 inline-block">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-3xl mx-auto px-4 py-7 md:py-8">
+          <Link href="/me/" className="text-sm text-ink-500 hover:text-primary-600 mb-2 inline-block transition-colors duration-150">
             ← Quay lại Hồ sơ
           </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-navy">🚫 Người dùng đã chặn</h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">🚫 Người dùng đã chặn</h1>
+          <p className="text-ink-600 text-sm mt-1">
             {blocked == null
               ? "Đang tải..."
               : blocked.length === 0
@@ -85,19 +85,19 @@ export default function BlockedUsersPage() {
         {blocked == null ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-16 animate-pulse" />
+              <div key={i} className="bg-white border border-ink-200/70 rounded-md p-4 h-16 animate-pulse" />
             ))}
           </div>
         ) : blocked.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
             <div className="text-5xl mb-3">😌</div>
-            <p className="font-semibold text-navy mb-1">Danh sách trống</p>
-            <p className="text-gray-500 text-sm">
+            <p className="font-semibold text-ink-900 mb-1">Danh sách trống</p>
+            <p className="text-ink-500 text-sm">
               Khi bạn chặn ai từ profile của họ, họ sẽ xuất hiện ở đây
             </p>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden divide-y divide-ink-200/50">
             {blocked.map((b) => {
               const target = b.blocked || { id: b.blockedId, name: null, avatar: null };
               const initial = (target.name || "?").trim()[0]?.toUpperCase() || "?";
@@ -120,17 +120,17 @@ export default function BlockedUsersPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/users/${target.id}/`}
-                      className="font-semibold text-navy hover:text-primary block truncate"
+                      className="font-semibold text-ink-900 hover:text-primary-600 block truncate transition-colors duration-150"
                     >
                       {target.name || "Người dùng"}
                     </Link>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-ink-400">
                       Chặn lúc {new Date(b.createdAt).toLocaleDateString("vi-VN")}
                     </p>
                   </div>
                   <button
                     onClick={() => onUnblock(target.id, target.name || "người này")}
-                    className="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold px-3 py-2 rounded-lg"
+                    className="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold px-3 py-2 rounded-md transition-colors duration-150"
                   >
                     🔓 Bỏ chặn
                   </button>

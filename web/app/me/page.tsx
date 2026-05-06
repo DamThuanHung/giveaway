@@ -16,12 +16,10 @@ export default function MePage() {
   const router = useRouter();
   const [posts, setPosts] = useState<Post[] | null>(null);
 
-  // Edit name state
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [savingName, setSavingName] = useState(false);
 
-  // Avatar upload state
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
@@ -91,7 +89,7 @@ export default function MePage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -104,27 +102,26 @@ export default function MePage() {
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-8">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-5xl mx-auto px-4 py-8 md:py-10">
           <div className="flex items-start gap-5 flex-wrap">
-            {/* Avatar with upload */}
             <div className="relative shrink-0">
               {user.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={user.avatar}
                   alt={user.name || ""}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-card"
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-emerald-500 text-white text-4xl font-bold flex items-center justify-center shadow-md border-4 border-white">
+                <div className="w-24 h-24 rounded-full bg-emerald-500 text-white text-4xl font-bold flex items-center justify-center shadow-card border-4 border-white">
                   {initial}
                 </div>
               )}
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute bottom-0 right-0 bg-primary hover:bg-primary-dark text-white w-9 h-9 rounded-full shadow-md flex items-center justify-center text-sm transition disabled:opacity-50"
+                className="absolute bottom-0 right-0 bg-primary hover:bg-primary-dark text-white w-9 h-9 rounded-full shadow-card flex items-center justify-center text-sm transition duration-150 ease-warm disabled:opacity-50"
                 aria-label="Đổi ảnh đại diện"
               >
                 {uploadingAvatar ? "…" : "📷"}
@@ -139,7 +136,6 @@ export default function MePage() {
             </div>
 
             <div className="flex-1 min-w-[200px]">
-              {/* Name with inline edit */}
               {editingName ? (
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <input
@@ -148,7 +144,7 @@ export default function MePage() {
                     onChange={(e) => setNameInput(e.target.value)}
                     maxLength={50}
                     autoFocus
-                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-xl font-bold focus:outline-none focus:border-primary"
+                    className="bg-white border border-ink-200 rounded-md px-3 py-1.5 text-xl font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-200 transition"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") saveName();
                       if (e.key === "Escape") {
@@ -160,7 +156,7 @@ export default function MePage() {
                   <button
                     onClick={saveName}
                     disabled={savingName}
-                    className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                    className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-3 py-1.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
                   >
                     {savingName ? "..." : "Lưu"}
                   </button>
@@ -169,26 +165,26 @@ export default function MePage() {
                       setNameInput(user.name || "");
                       setEditingName(false);
                     }}
-                    className="text-gray-500 hover:text-gray-700 text-sm px-2"
+                    className="text-ink-500 hover:text-ink-800 text-sm px-2 transition-colors duration-150"
                   >
                     Hủy
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-navy">
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">
                     {displayName}
                   </h1>
                   <button
                     onClick={() => setEditingName(true)}
-                    className="text-gray-400 hover:text-primary text-sm font-medium"
+                    className="text-ink-400 hover:text-primary-600 text-sm font-medium transition-colors duration-150"
                     aria-label="Sửa tên"
                   >
                     ✏️ Sửa tên
                   </button>
                 </div>
               )}
-              <p className="text-gray-600 text-sm mt-1">
+              <p className="text-ink-600 text-sm mt-1">
                 {user.email && <span>📧 {user.email}</span>}
                 {user.phone && <span className="ml-3">📞 {user.phone}</span>}
               </p>
@@ -198,13 +194,13 @@ export default function MePage() {
               <div className="flex gap-2 mt-3 flex-wrap">
                 <Link
                   href={`/users/${user.id}/`}
-                  className="bg-white border border-gray-300 hover:border-primary text-navy text-sm font-semibold px-4 py-2 rounded-lg"
+                  className="bg-white border border-ink-200 hover:border-primary hover:text-primary text-ink-800 text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
                 >
                   Xem hồ sơ công khai
                 </Link>
                 <Link
                   href="/favorites/"
-                  className="bg-white border border-gray-300 hover:border-primary text-navy text-sm font-semibold px-4 py-2 rounded-lg"
+                  className="bg-white border border-ink-200 hover:border-primary hover:text-primary text-ink-800 text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
                 >
                   ❤️ Bài đã lưu
                 </Link>
@@ -213,7 +209,7 @@ export default function MePage() {
                     logout();
                     router.push("/");
                   }}
-                  className="bg-white border border-red-200 hover:border-red-400 text-red-600 text-sm font-semibold px-4 py-2 rounded-lg"
+                  className="bg-white border border-red-200 hover:border-red-400 text-red-600 text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
                 >
                   Đăng xuất
                 </button>
@@ -223,9 +219,9 @@ export default function MePage() {
         </div>
       </section>
 
-      <section className="py-6 max-w-5xl mx-auto px-4">
-        <h2 className="text-lg font-extrabold text-navy mb-4">⚙️ Quản lý tài khoản</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+      <section className="py-8 max-w-5xl mx-auto px-4">
+        <h2 className="text-lg font-extrabold text-ink-900 mb-4 tracking-tight">⚙️ Quản lý tài khoản</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
           {[
             { href: "/me/posts/", icon: "📦", label: "Tin của tôi" },
             { href: "/notifications/", icon: "🔔", label: "Thông báo" },
@@ -238,21 +234,21 @@ export default function MePage() {
             <Link
               key={item.href}
               href={item.href}
-              className="bg-white border border-gray-200 hover:border-primary hover:shadow-sm rounded-xl p-4 text-center transition"
+              className="bg-white border border-ink-200/70 hover:border-primary/60 hover:shadow-card rounded-md p-4 text-center transition duration-250 ease-warm group"
             >
-              <div className="text-2xl mb-1">{item.icon}</div>
-              <div className="text-xs font-semibold text-navy">{item.label}</div>
+              <div className="text-2xl mb-1.5 transition-transform duration-250 ease-warm group-hover:scale-110">{item.icon}</div>
+              <div className="text-xs font-semibold text-ink-800 group-hover:text-primary-700">{item.label}</div>
             </Link>
           ))}
         </div>
 
         <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
-          <h2 className="text-xl font-extrabold text-navy">
+          <h2 className="text-xl md:text-2xl font-extrabold text-ink-900 tracking-tight">
             Tin đăng gần đây {posts ? `(${posts.length})` : ""}
           </h2>
           <Link
             href="/posts/new/"
-            className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-lg"
+            className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
           >
             + Đăng bài mới
           </Link>
@@ -265,15 +261,15 @@ export default function MePage() {
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
             <div className="text-5xl mb-3">📭</div>
-            <p className="text-gray-700 font-semibold mb-1">Bạn chưa đăng bài nào</p>
-            <p className="text-gray-500 text-sm mb-5">
+            <p className="text-ink-800 font-semibold mb-1">Bạn chưa đăng bài nào</p>
+            <p className="text-ink-500 text-sm mb-5">
               Đăng bài ngay trên web — chọn ảnh + thông tin, đăng xong!
             </p>
             <Link
               href="/posts/new/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-lg"
+              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
             >
               Đăng bài đầu tiên
             </Link>

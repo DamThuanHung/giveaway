@@ -92,7 +92,6 @@ export default async function UserProfilePage({
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : null;
 
-  // JSON-LD Person schema cho rich result
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -121,17 +120,16 @@ export default async function UserProfilePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <article className="max-w-5xl mx-auto px-4 py-8">
-        <nav className="text-sm text-gray-500 mb-4 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-primary">Trang chủ</Link>
-          <span>›</span>
-          <Link href="/posts/" className="hover:text-primary">Tin đăng</Link>
-          <span>›</span>
-          <span className="text-gray-700">{user.name || "Người dùng"}</span>
+      <article className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+        <nav className="text-sm text-ink-500 mb-5 flex items-center gap-1.5 flex-wrap">
+          <Link href="/" className="hover:text-primary-600 transition-colors duration-150">Trang chủ</Link>
+          <span className="text-ink-300">/</span>
+          <Link href="/posts/" className="hover:text-primary-600 transition-colors duration-150">Tin đăng</Link>
+          <span className="text-ink-300">/</span>
+          <span className="text-ink-700 truncate max-w-[200px] md:max-w-none">{user.name || "Người dùng"}</span>
         </nav>
 
-        {/* Profile header */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 mb-6">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-6 md:p-8 mb-6">
           <div className="flex flex-col md:flex-row gap-6 md:items-center">
             <div className="shrink-0">
               {user.avatar ? (
@@ -139,11 +137,11 @@ export default async function UserProfilePage({
                 <img
                   src={user.avatar}
                   alt={user.name || "Avatar"}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-card"
                 />
               ) : (
                 <div
-                  className={`w-24 h-24 rounded-full ${avatarColor(user.name)} text-white text-4xl font-bold flex items-center justify-center shadow-md`}
+                  className={`w-24 h-24 rounded-full ${avatarColor(user.name)} text-white text-4xl font-bold flex items-center justify-center shadow-card border-4 border-white`}
                 >
                   {avatarFallback(user.name)}
                 </div>
@@ -151,21 +149,21 @@ export default async function UserProfilePage({
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap mb-1">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-navy">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">
                   {user.name || "Người dùng ẩn danh"}
                 </h1>
                 {user.role === "admin" && (
-                  <span className="bg-violet-100 text-violet-700 text-xs font-bold px-2.5 py-1 rounded-md">
+                  <span className="bg-violet-100 text-violet-700 text-xs font-bold px-2.5 py-1 rounded-sm shadow-soft">
                     ADMIN
                   </span>
                 )}
                 {user.isPhoneVerified && (
-                  <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1">
+                  <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-sm flex items-center gap-1">
                     ✓ Đã xác minh SĐT
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 text-sm">
+              <p className="text-ink-500 text-sm">
                 Tham gia Trao Tay {memberSince(user.createdAt)}
               </p>
 
@@ -174,42 +172,41 @@ export default async function UserProfilePage({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-extrabold text-navy">
+                <div className="bg-cream-100 border border-ink-200/50 rounded-md p-3 text-center">
+                  <div className="text-xl font-extrabold text-ink-900">
                     {user._count.posts}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">Tin đăng</div>
+                  <div className="text-xs text-ink-500 mt-0.5">Tin đăng</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-extrabold text-primary">
+                <div className="bg-cream-100 border border-ink-200/50 rounded-md p-3 text-center">
+                  <div className="text-xl font-extrabold text-primary-600">
                     {user.completedTransactions}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">Hoàn tất</div>
+                  <div className="text-xs text-ink-500 mt-0.5">Hoàn tất</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="bg-cream-100 border border-ink-200/50 rounded-md p-3 text-center">
                   <div className="text-xl font-extrabold text-amber-600">
                     {avgRating != null ? `${avgRating.toFixed(1)}★` : "—"}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">Đánh giá TB</div>
+                  <div className="text-xs text-ink-500 mt-0.5">Đánh giá TB</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-extrabold text-navy">
+                <div className="bg-cream-100 border border-ink-200/50 rounded-md p-3 text-center">
+                  <div className="text-xl font-extrabold text-ink-900">
                     {reviews.length}
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">Lượt đánh giá</div>
+                  <div className="text-xs text-ink-500 mt-0.5">Lượt đánh giá</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* User posts */}
         <section className="mb-8">
-          <h2 className="text-xl font-extrabold text-navy mb-4">
+          <h2 className="text-xl md:text-2xl font-extrabold text-ink-900 mb-4 tracking-tight">
             Tin đăng của {user.name || "người dùng này"} ({userPosts.length})
           </h2>
           {userPosts.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-500">
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-8 text-center text-ink-500">
               Chưa có tin đăng nào đang hiển thị
             </div>
           ) : (
@@ -221,17 +218,16 @@ export default async function UserProfilePage({
           )}
         </section>
 
-        {/* Reviews */}
         {reviews.length > 0 && (
           <section>
-            <h2 className="text-xl font-extrabold text-navy mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-ink-900 mb-4 tracking-tight">
               Đánh giá từ người mua/người tặng ({reviews.length})
             </h2>
             <div className="space-y-3">
               {reviews.slice(0, 10).map((r) => (
                 <div
                   key={r.id}
-                  className="bg-white border border-gray-200 rounded-xl p-5"
+                  className="bg-white border border-ink-200/70 hover:border-primary/40 hover:shadow-soft rounded-md p-5 transition duration-250 ease-warm"
                 >
                   <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <div className="flex items-center gap-3">
@@ -250,23 +246,23 @@ export default async function UserProfilePage({
                         </div>
                       )}
                       <div>
-                        <div className="font-semibold text-sm text-navy">
+                        <div className="font-semibold text-sm text-ink-900">
                           {r.reviewer.name || "Người dùng ẩn danh"}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-ink-500">
                           {formatDate(r.createdAt)}
                         </div>
                       </div>
                     </div>
                     <div className="text-amber-500 font-bold">
                       {"★".repeat(r.rating)}
-                      <span className="text-gray-300">
+                      <span className="text-ink-300">
                         {"★".repeat(5 - r.rating)}
                       </span>
                     </div>
                   </div>
                   {r.comment && (
-                    <p className="text-gray-700 text-sm leading-relaxed mt-2">
+                    <p className="text-ink-700 text-sm leading-relaxed mt-2">
                       {r.comment}
                     </p>
                   )}

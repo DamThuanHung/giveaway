@@ -64,7 +64,7 @@ export default function SecurityPage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -74,40 +74,38 @@ export default function SecurityPage() {
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-7">
-          <Link href="/me/" className="text-sm text-gray-500 hover:text-primary mb-2 inline-block">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-2xl mx-auto px-4 py-7 md:py-8">
+          <Link href="/me/" className="text-sm text-ink-500 hover:text-primary-600 mb-2 inline-block transition-colors duration-150">
             ← Quay lại Hồ sơ
           </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-navy">🔐 Bảo mật tài khoản</h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">🔐 Bảo mật tài khoản</h1>
+          <p className="text-ink-600 text-sm mt-1">
             Liên kết email/SĐT phụ để đăng nhập linh hoạt + khôi phục khi mất tài khoản chính
           </p>
         </div>
       </section>
 
-      <section className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-        {/* Email chính */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="text-sm font-semibold text-gray-500 mb-1">EMAIL CHÍNH</div>
-          <div className="font-bold text-navy">{user.email || "—"}</div>
-          <p className="text-xs text-gray-500 mt-2">
+      <section className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+          <div className="text-xs font-semibold text-ink-500 mb-1.5 tracking-wide">EMAIL CHÍNH</div>
+          <div className="font-bold text-ink-900">{user.email || "—"}</div>
+          <p className="text-xs text-ink-500 mt-2">
             Email đăng nhập chính. Liên hệ admin để thay đổi.
           </p>
         </div>
 
-        {/* SĐT */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="text-sm font-semibold text-gray-500 mb-1">SỐ ĐIỆN THOẠI</div>
-          <div className="font-bold text-navy">{user.phone || "Chưa liên kết"}</div>
-          <p className="text-xs text-gray-500 mt-2">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+          <div className="text-xs font-semibold text-ink-500 mb-1.5 tracking-wide">SỐ ĐIỆN THOẠI</div>
+          <div className="font-bold text-ink-900">{user.phone || "Chưa liên kết"}</div>
+          <p className="text-xs text-ink-500 mt-2">
             Liên kết SĐT chỉ thực hiện được trên app mobile (xác minh OTP qua Firebase).
             <br />
             <a
               href="https://play.google.com/store/apps/details?id=vn.traotay.app"
               target="_blank"
               rel="noopener"
-              className="text-primary hover:underline"
+              className="text-primary-600 hover:text-primary-700 hover:underline"
             >
               Tải app
             </a>{" "}
@@ -115,10 +113,9 @@ export default function SecurityPage() {
           </p>
         </div>
 
-        {/* Liên kết email phụ */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="text-sm font-semibold text-gray-500 mb-1">LIÊN KẾT EMAIL PHỤ</div>
-          <p className="text-xs text-gray-500 mb-4">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+          <div className="text-xs font-semibold text-ink-500 mb-1.5 tracking-wide">LIÊN KẾT EMAIL PHỤ</div>
+          <p className="text-xs text-ink-500 mb-4">
             Email phụ giúp khôi phục tài khoản khi mất quyền truy cập email chính. Tối đa 1 email phụ.
           </p>
 
@@ -129,12 +126,12 @@ export default function SecurityPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email-phu@example.com"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-primary"
+                className="flex-1 bg-cream-100 border border-ink-200 rounded-md px-3 py-2.5 focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-150 ease-warm"
               />
               <button
                 onClick={onSend}
                 disabled={pending}
-                className="bg-primary hover:bg-primary-dark text-white font-bold px-5 rounded-lg disabled:opacity-60"
+                className="bg-primary hover:bg-primary-dark text-white font-bold px-5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
               >
                 {pending ? "..." : "Gửi OTP"}
               </button>
@@ -143,7 +140,7 @@ export default function SecurityPage() {
 
           {step === "sent" && (
             <div>
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-ink-700 mb-2">
                 Mã OTP đã gửi tới <strong>{email}</strong>:
               </p>
               <div className="flex gap-2">
@@ -153,13 +150,13 @@ export default function SecurityPage() {
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="000000"
                   inputMode="numeric"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-center tracking-widest font-bold focus:outline-none focus:border-primary"
+                  className="flex-1 bg-cream-100 border border-ink-200 rounded-md px-3 py-2.5 text-center tracking-widest font-bold focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-150 ease-warm"
                   maxLength={6}
                 />
                 <button
                   onClick={onConfirm}
                   disabled={pending || otp.length !== 6}
-                  className="bg-primary hover:bg-primary-dark text-white font-bold px-5 rounded-lg disabled:opacity-60"
+                  className="bg-primary hover:bg-primary-dark text-white font-bold px-5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
                 >
                   {pending ? "..." : "Xác nhận"}
                 </button>
@@ -170,7 +167,7 @@ export default function SecurityPage() {
                   setOtp("");
                   setMsg(null);
                 }}
-                className="text-sm text-gray-500 hover:text-primary mt-3"
+                className="text-sm text-ink-500 hover:text-primary-600 mt-3 transition-colors duration-150"
               >
                 ← Đổi email khác
               </button>
@@ -179,7 +176,11 @@ export default function SecurityPage() {
 
           {msg && (
             <div
-              className={`mt-3 text-sm rounded-lg px-3 py-2 ${msg.type === "ok" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-700"}`}
+              className={`mt-3 text-sm rounded-md px-3 py-2 ${
+                msg.type === "ok"
+                  ? "bg-primary-100 border border-primary-200 text-primary-800"
+                  : "bg-red-50 border border-red-200 text-red-700"
+              }`}
             >
               {msg.text}
             </div>

@@ -55,7 +55,7 @@ export default function MyReviewsPage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -65,15 +65,15 @@ export default function MyReviewsPage() {
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 py-7">
-          <Link href="/me/" className="text-sm text-gray-500 hover:text-primary mb-2 inline-block">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-3xl mx-auto px-4 py-7 md:py-8">
+          <Link href="/me/" className="text-sm text-ink-500 hover:text-primary-600 mb-2 inline-block transition-colors duration-150">
             ← Quay lại Hồ sơ
           </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-navy">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">
             ⭐ Đánh giá tôi đã viết
           </h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <p className="text-ink-600 text-sm mt-1">
             {reviews == null
               ? "Đang tải..."
               : reviews.length === 0
@@ -87,19 +87,19 @@ export default function MyReviewsPage() {
         {reviews == null ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 h-32 animate-pulse" />
+              <div key={i} className="bg-white border border-ink-200/70 rounded-md p-5 h-32 animate-pulse" />
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
             <div className="text-5xl mb-3">📝</div>
-            <p className="font-semibold text-navy mb-1">Chưa có đánh giá nào</p>
-            <p className="text-gray-500 text-sm mb-5">
+            <p className="font-semibold text-ink-900 mb-1">Chưa có đánh giá nào</p>
+            <p className="text-ink-500 text-sm mb-5">
               Sau khi giao dịch hoàn tất, bạn có thể đánh giá đối tác — bạn nhận xét nào sẽ hiện ở đây
             </p>
             <Link
               href="/posts/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-lg"
+              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
             >
               Khám phá tin đăng
             </Link>
@@ -112,7 +112,7 @@ export default function MyReviewsPage() {
               return (
                 <div
                   key={r.id}
-                  className="bg-white border border-gray-200 rounded-xl p-5"
+                  className="bg-white border border-ink-200/70 hover:border-primary/40 hover:shadow-soft rounded-md p-5 transition duration-250 ease-warm"
                 >
                   <div className="flex items-start gap-3">
                     {r.reviewee.avatar ? (
@@ -133,24 +133,24 @@ export default function MyReviewsPage() {
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <Link
                           href={`/users/${r.reviewee.id}/`}
-                          className="font-semibold text-navy hover:text-primary"
+                          className="font-semibold text-ink-900 hover:text-primary-600 transition-colors duration-150"
                         >
                           {name}
                         </Link>
-                        <span className="text-xs text-gray-400">{fmtDate(r.createdAt)}</span>
+                        <span className="text-xs text-ink-400">{fmtDate(r.createdAt)}</span>
                       </div>
                       <div className="text-amber-500 text-base mt-0.5">
                         {"★".repeat(r.rating)}
-                        <span className="text-gray-300">{"★".repeat(5 - r.rating)}</span>
+                        <span className="text-ink-300">{"★".repeat(5 - r.rating)}</span>
                       </div>
                       {r.comment && (
-                        <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">
+                        <p className="text-sm text-ink-700 mt-2 whitespace-pre-wrap leading-relaxed">
                           {r.comment}
                         </p>
                       )}
                       <Link
                         href={`/posts/${r.post.id}/`}
-                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-primary mt-2"
+                        className="inline-flex items-center gap-1 text-xs text-ink-500 hover:text-primary-600 mt-2 transition-colors duration-150"
                       >
                         📦 {r.post.title}
                       </Link>

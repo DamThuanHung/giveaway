@@ -9,12 +9,11 @@ import { createPost } from "@/lib/auth";
 import { CATEGORIES, TOP_PROVINCES } from "@/lib/api";
 
 const MAX_IMAGES = 10;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function formatPriceInput(s: string): string {
   const digits = s.replace(/\D/g, "").slice(0, 12);
   if (!digits) return "";
-  // Thêm . mỗi 3 chữ số
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
@@ -44,7 +43,6 @@ export default function NewPostPage() {
     if (!user) router.replace("/login/?next=/posts/new/");
   }, [user, authLoading, router]);
 
-  // Cleanup preview URLs
   useEffect(() => {
     return () => {
       previews.forEach((url) => URL.revokeObjectURL(url));
@@ -93,7 +91,7 @@ export default function NewPostPage() {
         setLongitude(pos.coords.longitude);
         setErr(null);
       },
-      (e) => {
+      () => {
         setErr("Không lấy được vị trí — kiểm tra quyền truy cập trình duyệt");
       },
       { enableHighAccuracy: false, timeout: 10000 }
@@ -155,33 +153,41 @@ export default function NewPostPage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
   }
 
+  const inputCls = "w-full bg-cream-100 border border-ink-200 rounded-md px-3.5 py-2.5 focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-150 ease-warm";
+  const labelCls = "block text-sm font-semibold text-ink-800 mb-1.5";
+
   return (
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-7">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-navy">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-4xl mx-auto px-4 py-7 md:py-8">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">
             Đăng bài mới
           </h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <p className="text-ink-600 text-sm mt-1">
             Miễn phí · Không giới hạn · Tin của bạn sẽ hiển thị trong vài giây
           </p>
         </div>
       </section>
 
-      <form onSubmit={onSubmit} className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Listing type */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-bold text-navy mb-3">Hình thức</h2>
-          <div className="flex gap-3">
-            <label className={`flex-1 cursor-pointer border-2 rounded-xl p-4 text-center transition ${listingType === "sell" ? "border-primary bg-primary-light" : "border-gray-200 hover:border-gray-300"}`}>
+      <form onSubmit={onSubmit} className="max-w-4xl mx-auto px-4 py-8 space-y-5">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+          <h2 className="font-bold text-ink-900 mb-3 tracking-tight">Hình thức</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <label
+              className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${
+                listingType === "sell"
+                  ? "border-primary bg-primary-100 shadow-soft"
+                  : "border-ink-200 hover:border-ink-300 bg-white"
+              }`}
+            >
               <input
                 type="radio"
                 name="listingType"
@@ -190,11 +196,17 @@ export default function NewPostPage() {
                 onChange={() => setListingType("sell")}
                 className="sr-only"
               />
-              <div className="text-2xl mb-1">💰</div>
-              <div className="font-semibold text-navy">Đang bán</div>
-              <div className="text-xs text-gray-500">Có giá tiền</div>
+              <div className="text-3xl mb-1.5">💰</div>
+              <div className="font-semibold text-ink-900">Đang bán</div>
+              <div className="text-xs text-ink-500">Có giá tiền</div>
             </label>
-            <label className={`flex-1 cursor-pointer border-2 rounded-xl p-4 text-center transition ${listingType === "give" ? "border-primary bg-primary-light" : "border-gray-200 hover:border-gray-300"}`}>
+            <label
+              className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${
+                listingType === "give"
+                  ? "border-primary bg-primary-100 shadow-soft"
+                  : "border-ink-200 hover:border-ink-300 bg-white"
+              }`}
+            >
               <input
                 type="radio"
                 name="listingType"
@@ -203,17 +215,16 @@ export default function NewPostPage() {
                 onChange={() => setListingType("give")}
                 className="sr-only"
               />
-              <div className="text-2xl mb-1">🎁</div>
-              <div className="font-semibold text-navy">Cho tặng</div>
-              <div className="text-xs text-gray-500">Miễn phí</div>
+              <div className="text-3xl mb-1.5">🎁</div>
+              <div className="font-semibold text-ink-900">Cho tặng</div>
+              <div className="text-xs text-ink-500">Miễn phí</div>
             </label>
           </div>
         </div>
 
-        {/* Title + Description */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-navy mb-1.5">
+            <label className={labelCls}>
               Tiêu đề <span className="text-red-500">*</span>
             </label>
             <input
@@ -221,13 +232,13 @@ export default function NewPostPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value.slice(0, 100))}
               placeholder="VD: Tủ lạnh Toshiba 200L cũ còn dùng tốt"
-              className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+              className={inputCls}
             />
-            <p className="text-xs text-gray-400 mt-1">{title.length}/100 ký tự</p>
+            <p className="text-xs text-ink-400 mt-1">{title.length}/100 ký tự</p>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-navy mb-1.5">
+            <label className={labelCls}>
               Mô tả chi tiết <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -235,21 +246,17 @@ export default function NewPostPage() {
               onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
               rows={6}
               placeholder="Mô tả tình trạng, kích thước, lý do bán/tặng, tình trạng còn dùng tốt..."
-              className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+              className={inputCls}
             />
-            <p className="text-xs text-gray-400 mt-1">{description.length}/2000 ký tự</p>
+            <p className="text-xs text-ink-400 mt-1">{description.length}/2000 ký tự</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-navy mb-1.5">
+              <label className={labelCls}>
                 Danh mục <span className="text-red-500">*</span>
               </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
-              >
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
                 {Object.entries(CATEGORIES).map(([k, l]) => (
                   <option key={k} value={k}>{l}</option>
                 ))}
@@ -258,7 +265,7 @@ export default function NewPostPage() {
 
             {listingType === "sell" && (
               <div>
-                <label className="block text-sm font-semibold text-navy mb-1.5">
+                <label className={labelCls}>
                   Giá (VNĐ) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -267,35 +274,34 @@ export default function NewPostPage() {
                   value={priceText}
                   onChange={(e) => setPriceText(formatPriceInput(e.target.value))}
                   placeholder="2.000.000"
-                  className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+                  className={inputCls}
                 />
               </div>
             )}
           </div>
         </div>
 
-        {/* Images */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h2 className="font-bold text-navy mb-1">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+          <h2 className="font-bold text-ink-900 mb-1 tracking-tight">
             Ảnh sản phẩm <span className="text-red-500">*</span>
           </h2>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-xs text-ink-500 mb-3">
             1-{MAX_IMAGES} ảnh, mỗi ảnh tối đa 5MB. Ảnh đầu tiên sẽ là ảnh đại diện.
           </p>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {previews.map((url, i) => (
-              <div key={url} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group">
+              <div key={url} className="relative aspect-square bg-cream-100 rounded-md overflow-hidden group border border-ink-200/70">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt={`Ảnh ${i + 1}`} className="w-full h-full object-cover" />
                 {i === 0 && (
-                  <span className="absolute bottom-1 left-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                  <span className="absolute bottom-1 left-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm shadow-soft">
                     ẢNH BÌA
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  className="absolute top-1 right-1 bg-black/60 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm"
+                  className="absolute top-1 right-1 bg-black/60 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm transition-colors duration-150"
                   aria-label="Xóa ảnh"
                 >
                   ×
@@ -306,7 +312,7 @@ export default function NewPostPage() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="aspect-square border-2 border-dashed border-gray-300 hover:border-primary text-gray-400 hover:text-primary rounded-lg flex flex-col items-center justify-center transition"
+                className="aspect-square border-2 border-dashed border-ink-300 hover:border-primary text-ink-400 hover:text-primary rounded-md flex flex-col items-center justify-center transition duration-150 ease-warm bg-cream-100/50 hover:bg-primary-100/30"
               >
                 <span className="text-2xl">📷</span>
                 <span className="text-xs font-medium mt-1">Thêm ảnh</span>
@@ -323,21 +329,20 @@ export default function NewPostPage() {
           />
         </div>
 
-        {/* Location */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="font-bold text-navy">Địa chỉ</h2>
+            <h2 className="font-bold text-ink-900 tracking-tight">Địa chỉ</h2>
             <button
               type="button"
               onClick={getMyLocation}
-              className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg font-medium"
+              className="text-sm bg-ink-100 hover:bg-ink-200 px-3 py-1.5 rounded-md font-medium transition duration-150 ease-warm"
             >
               📍 Lấy vị trí hiện tại
             </button>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-navy mb-1.5">
+            <label className={labelCls}>
               Tỉnh/Thành phố <span className="text-red-500">*</span>
             </label>
             <input
@@ -346,7 +351,7 @@ export default function NewPostPage() {
               value={province}
               onChange={(e) => setProvince(e.target.value)}
               placeholder="VD: Hà Nội"
-              className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+              className={inputCls}
             />
             <datalist id="provinces">
               {TOP_PROVINCES.map((p) => <option key={p} value={p} />)}
@@ -355,68 +360,64 @@ export default function NewPostPage() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-navy mb-1.5">
-                Quận/Huyện
-              </label>
+              <label className={labelCls}>Quận/Huyện</label>
               <input
                 type="text"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 placeholder="VD: Cầu Giấy"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-navy mb-1.5">
-                Phường/Xã
-              </label>
+              <label className={labelCls}>Phường/Xã</label>
               <input
                 type="text"
                 value={ward}
                 onChange={(e) => setWard(e.target.value)}
                 placeholder="VD: Dịch Vọng"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+                className={inputCls}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-navy mb-1.5">
-              Số nhà / Đường
-            </label>
+            <label className={labelCls}>Số nhà / Đường</label>
             <input
               type="text"
               value={addressDetail}
               onChange={(e) => setAddressDetail(e.target.value)}
               placeholder="VD: 123 Đường Cầu Giấy"
-              className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-primary"
+              className={inputCls}
             />
           </div>
 
           {latitude != null && longitude != null && (
-            <div className="text-xs bg-primary-light text-primary-dark rounded-lg px-3 py-2">
+            <div className="text-xs bg-primary-100 text-primary-800 rounded-md px-3 py-2 border border-primary-200">
               ✓ Đã ghi nhận vị trí: {latitude.toFixed(5)}, {longitude.toFixed(5)}
             </div>
           )}
         </div>
 
-        {/* Submit */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
           {err && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 mb-4 text-sm">
               ⚠ {err}
             </div>
           )}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-xl text-lg disabled:opacity-60 transition"
+            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm"
           >
             {submitting ? "Đang đăng..." : "Đăng tin ngay"}
           </button>
-          <p className="text-xs text-gray-500 text-center mt-3">
-            Bằng việc đăng tin, bạn cam kết tuân thủ <a href="/terms.html" className="text-primary hover:underline">Điều khoản</a>.
-            Bài đăng sẽ tự động hiển thị, có thể chỉnh sửa qua app.
+          <p className="text-xs text-ink-500 text-center mt-3 leading-relaxed">
+            Bằng việc đăng tin, bạn cam kết tuân thủ{" "}
+            <a href="/terms.html" className="text-primary-600 hover:text-primary-700 hover:underline">
+              Điều khoản
+            </a>
+            . Bài đăng sẽ tự động hiển thị, có thể chỉnh sửa qua app.
           </p>
         </div>
       </form>

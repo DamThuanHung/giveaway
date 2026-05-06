@@ -59,7 +59,7 @@ export default function ChatListPage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -69,12 +69,12 @@ export default function ChatListPage() {
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-7">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-navy">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-4xl mx-auto px-4 py-7 md:py-8">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">
             💬 Tin nhắn
           </h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <p className="text-ink-600 text-sm mt-1">
             {rooms ? `${rooms.length} cuộc trò chuyện` : "Đang tải..."}
           </p>
         </div>
@@ -84,31 +84,31 @@ export default function ChatListPage() {
         {rooms === null ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 animate-pulse">
-                <div className="w-12 h-12 rounded-full bg-gray-200" />
+              <div key={i} className="bg-white border border-ink-200/70 rounded-md p-4 flex items-center gap-3 animate-pulse">
+                <div className="w-12 h-12 rounded-full bg-ink-200" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-1/3" />
-                  <div className="h-3 bg-gray-100 rounded w-2/3" />
+                  <div className="h-3 bg-ink-200 rounded w-1/3" />
+                  <div className="h-3 bg-ink-100 rounded w-2/3" />
                 </div>
               </div>
             ))}
           </div>
         ) : rooms.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
             <div className="text-5xl mb-3">📭</div>
-            <p className="text-gray-700 font-semibold mb-1">Chưa có tin nhắn nào</p>
-            <p className="text-gray-500 text-sm mb-5">
+            <p className="text-ink-800 font-semibold mb-1">Chưa có tin nhắn nào</p>
+            <p className="text-ink-500 text-sm mb-5">
               Tìm bài đăng phù hợp và nhắn tin với người bán
             </p>
             <Link
               href="/posts/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-lg"
+              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
             >
               Khám phá tin đăng
             </Link>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden divide-y divide-ink-200/50">
             {rooms.map((r) => {
               const other = user.id === r.buyerId ? r.seller : r.buyer;
               const lastMsg = r.lastMessage;
@@ -120,7 +120,7 @@ export default function ChatListPage() {
                 <Link
                   key={r.id}
                   href={`/chat/room/?id=${r.id}`}
-                  className={`flex items-center gap-3 p-4 hover:bg-gray-50 transition ${isUnread ? "bg-primary-light/30" : ""}`}
+                  className={`flex items-center gap-3 p-4 transition-colors duration-150 ${isUnread ? "bg-primary-100/40 hover:bg-primary-100/60" : "hover:bg-cream-100"}`}
                 >
                   {other?.avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -132,26 +132,26 @@ export default function ChatListPage() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`truncate ${isUnread ? "font-bold text-navy" : "font-semibold text-gray-700"}`}>
+                      <span className={`truncate ${isUnread ? "font-bold text-ink-900" : "font-semibold text-ink-700"}`}>
                         {other?.name || "Người dùng"}
                       </span>
-                      <span className="text-xs text-gray-400 shrink-0">
+                      <span className="text-xs text-ink-400 shrink-0">
                         {lastMsg ? timeAgo(lastMsg.createdAt) : timeAgo(r.updatedAt)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <span className={`text-sm truncate ${isUnread && !lastMsgFromMe ? "font-semibold text-navy" : "text-gray-500"}`}>
+                      <span className={`text-sm truncate ${isUnread && !lastMsgFromMe ? "font-semibold text-ink-900" : "text-ink-500"}`}>
                         {lastMsgFromMe && "Bạn: "}
                         {lastMsg?.text || "(chưa có tin nhắn)"}
                       </span>
                       {isUnread && (
-                        <span className="bg-primary text-white text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0">
+                        <span className="bg-primary text-white text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 shadow-soft">
                           {r.unreadCount! > 99 ? "99+" : r.unreadCount}
                         </span>
                       )}
                     </div>
                     {r.post?.title && (
-                      <div className="text-xs text-gray-400 mt-1 truncate">
+                      <div className="text-xs text-ink-400 mt-1 truncate">
                         📦 {r.post.title}
                       </div>
                     )}

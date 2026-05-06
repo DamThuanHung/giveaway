@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -92,7 +91,7 @@ export default function NotificationsPage() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -104,11 +103,11 @@ export default function NotificationsPage() {
     <>
       <Header />
 
-      <section className="bg-gradient-to-br from-primary-light to-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 py-7 flex items-center justify-between flex-wrap gap-3">
+      <section className="bg-gradient-warm border-b border-ink-200/50">
+        <div className="max-w-3xl mx-auto px-4 py-7 md:py-8 flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-navy">🔔 Thông báo</h1>
-            <p className="text-gray-600 text-sm mt-1">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">🔔 Thông báo</h1>
+            <p className="text-ink-600 text-sm mt-1">
               {notifs == null
                 ? "Đang tải..."
                 : unreadCount > 0
@@ -120,7 +119,7 @@ export default function NotificationsPage() {
             <button
               onClick={onMarkAll}
               disabled={marking}
-              className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-60"
+              className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
             >
               {marking ? "Đang đánh dấu..." : "Đánh dấu đã đọc tất cả"}
             </button>
@@ -132,19 +131,19 @@ export default function NotificationsPage() {
         {notifs == null ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse h-20" />
+              <div key={i} className="bg-white border border-ink-200/70 rounded-md p-4 animate-pulse h-20" />
             ))}
           </div>
         ) : notifs.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
             <div className="text-5xl mb-3">🔕</div>
-            <p className="font-semibold text-navy mb-1">Chưa có thông báo</p>
-            <p className="text-gray-500 text-sm">
+            <p className="font-semibold text-ink-900 mb-1">Chưa có thông báo</p>
+            <p className="text-ink-500 text-sm">
               Thông báo về tin nhắn, đánh giá, kết quả thanh toán... sẽ hiện ở đây
             </p>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden divide-y divide-ink-200/50">
             {notifs.map((n) => {
               const icon = ICON_BY_TYPE[n.type] || "🔔";
               const linkable = !!deepLinkFromData(n.type, n.data);
@@ -152,18 +151,18 @@ export default function NotificationsPage() {
                 <button
                   key={n.id}
                   onClick={() => onClickItem(n)}
-                  className={`w-full text-left p-4 flex items-start gap-3 transition ${linkable ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"} ${!n.isRead ? "bg-primary-light/20" : ""}`}
+                  className={`w-full text-left p-4 flex items-start gap-3 transition-colors duration-150 ${linkable ? "hover:bg-cream-100 cursor-pointer" : "cursor-default"} ${!n.isRead ? "bg-primary-100/30" : ""}`}
                 >
                   <div className="text-2xl shrink-0 leading-none">{icon}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`${!n.isRead ? "font-bold text-navy" : "font-semibold text-gray-700"}`}>
+                      <span className={`${!n.isRead ? "font-bold text-ink-900" : "font-semibold text-ink-700"}`}>
                         {n.title}
                       </span>
                       {!n.isRead && <span className="w-2 h-2 bg-primary rounded-full shrink-0" />}
                     </div>
-                    <p className="text-sm text-gray-600 mt-0.5 break-words">{n.body}</p>
-                    <p className="text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                    <p className="text-sm text-ink-600 mt-0.5 break-words leading-relaxed">{n.body}</p>
+                    <p className="text-xs text-ink-400 mt-1">{timeAgo(n.createdAt)}</p>
                   </div>
                 </button>
               );

@@ -18,7 +18,6 @@ import { PostMap } from "@/components/PostMap";
 import { ContactSellerButton } from "@/components/ContactSellerButton";
 import { OwnerActions } from "@/components/OwnerActions";
 
-// Pre-render mọi /posts/[id]/ tại build time. Cap 500 posts mới nhất.
 export async function generateStaticParams() {
   return await fetchAllPostIds();
 }
@@ -63,7 +62,6 @@ export default async function PostDetailPage({
   const post = await fetchPostById(params.id).catch(() => null);
   if (!post) notFound();
 
-  // Fetch 4 bài cùng category để gợi ý "Tin liên quan" (SEO + internal linking)
   const similarRes = await fetchPosts({
     page: 1,
     limit: 8,
@@ -75,8 +73,8 @@ export default async function PostDetailPage({
 
   const isFree = post.price === 0;
   const isVip = post.boostTier === 3;
+  const isPlus = post.boostTier === 2;
 
-  // JSON-LD Product schema cho Google rich result
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -109,24 +107,30 @@ export default async function PostDetailPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <article className="max-w-5xl mx-auto px-4 py-8">
-        <nav className="text-sm text-gray-500 mb-4 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-primary">Trang chủ</Link>
-          <span>›</span>
-          <Link href="/posts/" className="hover:text-primary">Tin đăng</Link>
-          <span>›</span>
-          <span className="text-gray-700 truncate">{post.title}</span>
+      <article className="max-w-5xl mx-auto px-4 py-6 md:py-8">
+        <nav className="text-sm text-ink-500 mb-5 flex items-center gap-1.5 flex-wrap">
+          <Link href="/" className="hover:text-primary transition-colors duration-150">Trang chủ</Link>
+          <span className="text-ink-300">/</span>
+          <Link href="/posts/" className="hover:text-primary transition-colors duration-150">Tin đăng</Link>
+          <span className="text-ink-300">/</span>
+          <span className="text-ink-700 truncate max-w-[200px] md:max-w-none">{post.title}</span>
         </nav>
 
-        <div className="grid md:grid-cols-[1.6fr_1fr] gap-8">
-          {/* Left: images + description */}
+        <div className="grid md:grid-cols-[1.6fr_1fr] gap-6 md:gap-8">
+          {/* ─── Left: images + description ───────────────────────── */}
           <div>
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5">
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden mb-3">
               {post.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.imageUrl} alt={post.title} className="w-full aspect-square object-cover" />
+                <img
+                  src={post.imageUrl}
+                  alt={post.title}
+                  className="w-full aspect-square object-cover"
+                />
               ) : (
-                <div className="aspect-square flex items-center justify-center text-7xl text-gray-300 bg-gray-50">📦</div>
+                <div className="aspect-square flex items-center justify-center text-7xl text-ink-300 bg-cream-100">
+                  📦
+                </div>
               )}
             </div>
 
@@ -138,34 +142,38 @@ export default async function PostDetailPage({
                     key={i}
                     src={img}
                     alt={`${post.title} ${i + 1}`}
-                    className="w-full aspect-square object-cover rounded-lg border border-gray-200"
+                    className="w-full aspect-square object-cover rounded-md border border-ink-200/70 hover:border-primary/60 transition duration-150 ease-warm"
                   />
                 ))}
               </div>
             )}
 
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-5">
-              <h2 className="font-bold text-navy mb-3">Mô tả</h2>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{post.description}</p>
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 md:p-6 mb-5">
+              <h2 className="font-bold text-ink-900 mb-3 text-lg tracking-tight">Mô tả</h2>
+              <p className="text-ink-700 whitespace-pre-wrap leading-relaxed text-[15px]">
+                {post.description}
+              </p>
             </div>
 
             {(post.latitude !== 0 || post.longitude !== 0) && (
-              <div>
-                <h2 className="font-bold text-navy mb-3">📍 Vị trí trên bản đồ</h2>
+              <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 md:p-6">
+                <h2 className="font-bold text-ink-900 mb-3 text-lg tracking-tight flex items-center gap-2">
+                  <span className="text-primary-600">📍</span> Vị trí trên bản đồ
+                </h2>
                 <PostMap
                   latitude={post.latitude}
                   longitude={post.longitude}
                   title={post.title}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-ink-500 mt-3">
                   Vị trí gần đúng do người đăng cung cấp. Click marker để mở Google Maps.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Right: title, price, info */}
-          <aside>
+          {/* ─── Right: title, price, info ────────────────────────── */}
+          <aside className="md:sticky md:top-20 md:self-start">
             {post.author?.id && (
               <OwnerActions
                 postId={post.id}
@@ -174,47 +182,51 @@ export default async function PostDetailPage({
                 postTitle={post.title}
               />
             )}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-20">
-              {isVip && (
-                <span className="inline-block bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-md mb-3">
-                  ⭐ Bài VIP
-                </span>
+
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 md:p-6">
+              {(isVip || isPlus) && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {isVip && (
+                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-sm shadow-soft">
+                      ⭐ Bài VIP
+                    </span>
+                  )}
+                  {isPlus && !isVip && (
+                    <span className="inline-flex items-center gap-1 bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-sm shadow-soft">
+                      PLUS
+                    </span>
+                  )}
+                </div>
               )}
 
-              <h1 className="text-2xl font-extrabold text-navy mb-3 leading-tight">
+              <h1 className="text-2xl md:text-[26px] font-extrabold text-ink-900 mb-3 leading-tight tracking-tight text-balance">
                 {post.title}
               </h1>
 
-              <div className={`text-3xl font-extrabold mb-5 ${isFree ? "text-primary" : "text-red-600"}`}>
-                {isFree ? "🎁 Miễn phí" : formatPrice(post.price)}
-              </div>
+              {isFree ? (
+                <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-800 px-3 py-1.5 rounded-md mb-5">
+                  <span className="text-xl">🎁</span>
+                  <span className="text-2xl font-extrabold">Miễn phí</span>
+                </div>
+              ) : (
+                <div className="text-3xl md:text-[32px] font-extrabold text-primary-600 mb-5 tracking-tight">
+                  {formatPrice(post.price)}
+                </div>
+              )}
 
-              <dl className="text-sm space-y-2.5 mb-5 border-t border-gray-100 pt-4">
+              <dl className="text-sm space-y-2.5 mb-5 border-t border-ink-200/50 pt-4">
+                <Row label="Danh mục" value={CATEGORIES[post.itemCategory] || post.itemCategory} />
+                <Row label="Khu vực" value={formatLocation(post)} />
+                {post.area && <Row label="Diện tích" value={`${post.area} m²`} />}
+                {post.bedrooms && <Row label="Phòng ngủ" value={String(post.bedrooms)} />}
                 <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 shrink-0">Danh mục</dt>
-                  <dd className="text-right font-medium">{CATEGORIES[post.itemCategory] || post.itemCategory}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 shrink-0">Khu vực</dt>
-                  <dd className="text-right">{formatLocation(post)}</dd>
-                </div>
-                {post.area && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500 shrink-0">Diện tích</dt>
-                    <dd className="text-right font-medium">{post.area} m²</dd>
-                  </div>
-                )}
-                {post.bedrooms && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500 shrink-0">Phòng ngủ</dt>
-                    <dd className="text-right font-medium">{post.bedrooms}</dd>
-                  </div>
-                )}
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 shrink-0">Người đăng</dt>
-                  <dd className="text-right font-medium">
+                  <dt className="text-ink-500 shrink-0">Người đăng</dt>
+                  <dd className="text-right font-medium text-ink-800">
                     {post.author?.id ? (
-                      <Link href={`/users/${post.author.id}/`} className="text-primary hover:underline">
+                      <Link
+                        href={`/users/${post.author.id}/`}
+                        className="text-primary-600 hover:text-primary-700 hover:underline transition-colors duration-150"
+                      >
                         {post.author.name || "Ẩn danh"}
                       </Link>
                     ) : (
@@ -222,17 +234,11 @@ export default async function PostDetailPage({
                     )}
                   </dd>
                 </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 shrink-0">Ngày đăng</dt>
-                  <dd className="text-right">{formatDate(post.createdAt)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 shrink-0">Lượt xem</dt>
-                  <dd className="text-right">{post.viewCount}</dd>
-                </div>
+                <Row label="Ngày đăng" value={formatDate(post.createdAt)} mute />
+                <Row label="Lượt xem" value={String(post.viewCount)} mute />
               </dl>
 
-              <div className="flex gap-2 mb-2">
+              <div className="flex gap-2 mb-2.5">
                 {post.author?.id ? (
                   <ContactSellerButton
                     postId={post.id}
@@ -240,28 +246,42 @@ export default async function PostDetailPage({
                     postTitle={post.title}
                   />
                 ) : (
-                  <div className="flex-1 bg-gray-200 text-gray-500 text-center font-bold py-3.5 rounded-xl">
+                  <div className="flex-1 bg-ink-100 text-ink-500 text-center font-bold py-3.5 rounded-md">
                     Không thể nhắn (bài ẩn danh)
                   </div>
                 )}
-                <FavoriteButton postId={post.id} size="lg" className="!w-14 !h-14 !rounded-xl" />
+                <FavoriteButton postId={post.id} size="lg" className="!w-14 !h-14 !rounded-md shadow-soft hover:shadow-card" />
               </div>
-              <p className="text-xs text-gray-500 text-center mt-1">
-                Hoặc <a href="https://play.google.com/store/apps/details?id=vn.traotay.app" target="_blank" rel="noopener" className="text-primary hover:underline">tải app</a> để chat realtime + thông báo
+              <p className="text-xs text-ink-500 text-center">
+                Hoặc{" "}
+                <a
+                  href="https://play.google.com/store/apps/details?id=vn.traotay.app"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
+                >
+                  tải app
+                </a>{" "}
+                để chat realtime + thông báo
               </p>
             </div>
           </aside>
         </div>
 
         {similar.length > 0 && (
-          <div className="mt-12">
-            <div className="flex items-end justify-between mb-5">
-              <h2 className="text-2xl font-extrabold text-navy">
-                Tin tương tự trong "{CATEGORIES[post.itemCategory] || post.itemCategory}"
-              </h2>
+          <div className="mt-12 md:mt-16">
+            <div className="flex items-end justify-between mb-6">
+              <div>
+                <h2 className="text-2xl md:text-[26px] font-extrabold text-ink-900 tracking-tight">
+                  Tin tương tự
+                </h2>
+                <p className="text-sm text-ink-500 mt-1">
+                  Trong "{CATEGORIES[post.itemCategory] || post.itemCategory}"
+                </p>
+              </div>
               <Link
                 href={`/posts/?cat=${post.itemCategory}`}
-                className="text-primary font-semibold hover:underline text-sm"
+                className="text-primary-600 hover:text-primary-700 font-semibold whitespace-nowrap text-sm transition-colors"
               >
                 Xem tất cả →
               </Link>
@@ -277,5 +297,16 @@ export default async function PostDetailPage({
 
       <Footer />
     </>
+  );
+}
+
+function Row({ label, value, mute }: { label: string; value: string; mute?: boolean }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="text-ink-500 shrink-0">{label}</dt>
+      <dd className={`text-right ${mute ? "text-ink-600" : "font-medium text-ink-800"}`}>
+        {value}
+      </dd>
+    </div>
   );
 }

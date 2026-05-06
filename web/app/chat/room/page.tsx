@@ -15,7 +15,7 @@ type Message = {
   roomId: string;
   senderId: string;
   text: string;
-  metadata?: string | null; // có thể chứa imageUrl hoặc system flag
+  metadata?: string | null;
   isRead: boolean;
   createdAt: string;
   sender?: { id: string; name: string | null; avatar: string | null };
@@ -70,14 +70,12 @@ function ChatRoomInner() {
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auth gate
   useEffect(() => {
     if (authLoading) return;
     if (!user) router.replace(`/login/?next=/chat/room/?id=${roomId}`);
     if (user && !roomId) router.replace("/chat/");
   }, [user, authLoading, roomId, router]);
 
-  // Load room info + messages
   useEffect(() => {
     if (!user || !roomId) return;
     let cancelled = false;
@@ -89,10 +87,8 @@ function ChatRoomInner() {
       if (cancelled) return;
       setRoom(rm);
       const list: Message[] = Array.isArray(msgs) ? msgs : msgs.data ?? [];
-      // Backend trả desc (mới nhất trước) → reverse cho UI hiển thị cũ trước
       setMessages(list.slice().reverse());
       setLoadingMsgs(false);
-      // Mark as read
       authFetch(`/chat/room/${roomId}/read`, { method: "POST" }).catch(() => {});
     });
 
@@ -101,7 +97,6 @@ function ChatRoomInner() {
     };
   }, [user, roomId]);
 
-  // Connect socket
   useEffect(() => {
     if (!user || !roomId) return;
 
@@ -116,11 +111,9 @@ function ChatRoomInner() {
 
     sock.on("receive_message", (msg: Message) => {
       setMessages((prev) => {
-        // Tránh duplicate (echo từ chính mình)
         if (prev.find((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
-      // Auto mark read khi đang xem
       sock.emit("markRead", { roomId });
     });
 
@@ -134,7 +127,6 @@ function ChatRoomInner() {
     };
   }, [user, roomId]);
 
-  // Auto scroll to bottom on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -162,7 +154,6 @@ function ChatRoomInner() {
           setErr(response.data || "Gửi thất bại");
           return;
         }
-        // Response is the message itself → push vào state
         if (response?.id) {
           setMessages((prev) => {
             if (prev.find((m) => m.id === response.id)) return prev;
@@ -178,7 +169,7 @@ function ChatRoomInner() {
     return (
       <>
         <Header />
-        <div className="text-center py-20 text-gray-500">Đang tải...</div>
+        <div className="text-center py-20 text-ink-500">Đang tải...</div>
         <Footer />
       </>
     );
@@ -187,7 +178,6 @@ function ChatRoomInner() {
   const other = room ? (user.id === room.buyerId ? room.seller : room.buyer) : null;
   const otherInitial = (other?.name || "?").trim()[0]?.toUpperCase() || "?";
 
-  // Group messages by date
   const groups: { date: string; items: Message[] }[] = [];
   for (const m of messages) {
     const dateLabel = fmtDateLabel(m.createdAt);
@@ -201,53 +191,55 @@ function ChatRoomInner() {
       <Header />
 
       <div className="max-w-4xl mx-auto px-0 md:px-4 py-0 md:py-4">
-        <div className="bg-white md:border md:border-gray-200 md:rounded-2xl flex flex-col" style={{ height: "calc(100vh - 144px)" }}>
-          {/* Header */}
-          <div className="flex items-center gap-3 p-4 border-b border-gray-200 shrink-0">
-            <Link href="/chat/" className="text-gray-500 hover:text-primary text-xl">←</Link>
+        <div className="bg-white md:border md:border-ink-200/70 md:rounded-md md:shadow-card flex flex-col" style={{ height: "calc(100vh - 144px)" }}>
+          <div className="flex items-center gap-3 p-4 border-b border-ink-200/70 shrink-0">
+            <Link href="/chat/" className="text-ink-500 hover:text-primary-600 text-xl transition-colors duration-150">←</Link>
             {other?.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={other.avatar} alt={other.name || ""} className="w-10 h-10 rounded-full object-cover" />
+              <img src={other.avatar} alt={other.name || ""} className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-soft" />
             ) : (
-              <div className={`w-10 h-10 rounded-full ${avatarColor(other?.name ?? null)} text-white font-bold flex items-center justify-center`}>
+              <div className={`w-10 h-10 rounded-full ${avatarColor(other?.name ?? null)} text-white font-bold flex items-center justify-center shadow-soft`}>
                 {otherInitial}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-navy truncate">{other?.name || "Người dùng"}</div>
+              <div className="font-bold text-ink-900 truncate">{other?.name || "Người dùng"}</div>
               {room?.post && (
-                <Link href={`/posts/${room.post.id}/`} className="text-xs text-primary hover:underline truncate block">
+                <Link href={`/posts/${room.post.id}/`} className="text-xs text-primary-600 hover:text-primary-700 hover:underline truncate block transition-colors duration-150">
                   📦 {room.post.title}
                 </Link>
               )}
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-cream-100 scrollbar-warm">
             {loadingMsgs ? (
-              <div className="text-center text-gray-400 py-10">Đang tải tin nhắn...</div>
+              <div className="text-center text-ink-400 py-10">Đang tải tin nhắn...</div>
             ) : messages.length === 0 ? (
-              <div className="text-center text-gray-400 py-10">
+              <div className="text-center text-ink-400 py-10">
                 Chưa có tin nhắn. Hãy chào hỏi để bắt đầu cuộc trò chuyện 👋
               </div>
             ) : (
               groups.map((g) => (
                 <div key={g.date}>
-                  <div className="text-center text-xs text-gray-400 my-3">{g.date}</div>
+                  <div className="text-center text-xs text-ink-400 my-3">
+                    <span className="bg-white/70 backdrop-blur-sm border border-ink-200/50 rounded-full px-3 py-0.5">
+                      {g.date}
+                    </span>
+                  </div>
                   {g.items.map((m) => {
                     const fromMe = m.senderId === user.id;
                     return (
                       <div key={m.id} className={`flex mb-1.5 ${fromMe ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words shadow-sm ${
+                          className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words shadow-soft ${
                             fromMe
                               ? "bg-primary text-white rounded-br-md"
-                              : "bg-white text-navy border border-gray-200 rounded-bl-md"
+                              : "bg-white text-ink-900 border border-ink-200/70 rounded-bl-md"
                           }`}
                         >
                           {m.text}
-                          <div className={`text-[10px] mt-1 ${fromMe ? "text-white/70" : "text-gray-400"}`}>
+                          <div className={`text-[10px] mt-1 ${fromMe ? "text-white/70" : "text-ink-400"}`}>
                             {fmtTime(m.createdAt)}
                             {fromMe && m.isRead && " · Đã đọc"}
                           </div>
@@ -261,8 +253,7 @@ function ChatRoomInner() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="border-t border-gray-200 p-3 shrink-0">
+          <div className="border-t border-ink-200/70 p-3 shrink-0 bg-white">
             {err && (
               <div className="text-xs text-red-600 mb-1.5">{err}</div>
             )}
@@ -279,13 +270,13 @@ function ChatRoomInner() {
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Nhập tin nhắn..."
                 disabled={sending}
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-primary disabled:opacity-50"
+                className="flex-1 bg-cream-100 border border-ink-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 disabled:opacity-50 transition duration-150 ease-warm"
                 maxLength={2000}
               />
               <button
                 type="submit"
                 disabled={!text.trim() || sending}
-                className="bg-primary hover:bg-primary-dark text-white font-semibold px-5 py-2.5 rounded-full disabled:opacity-50"
+                className="bg-primary hover:bg-primary-dark text-white font-semibold px-5 py-2.5 rounded-full shadow-soft hover:shadow-card disabled:opacity-50 transition duration-150 ease-warm"
               >
                 {sending ? "..." : "Gửi"}
               </button>
@@ -301,7 +292,7 @@ function ChatRoomInner() {
 
 export default function ChatRoomPage() {
   return (
-    <Suspense fallback={<><Header /><div className="text-center py-20 text-gray-500">Đang tải...</div><Footer /></>}>
+    <Suspense fallback={<><Header /><div className="text-center py-20 text-ink-500">Đang tải...</div><Footer /></>}>
       <ChatRoomInner />
     </Suspense>
   );

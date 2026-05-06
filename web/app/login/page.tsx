@@ -36,7 +36,6 @@ function LoginForm() {
         return;
       }
       setStep("otp");
-      // Cooldown 60s before resend
       setResendCooldown(60);
       const timer = setInterval(() => {
         setResendCooldown((c) => {
@@ -74,33 +73,34 @@ function LoginForm() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-2xl p-8 my-12 shadow-sm">
-      <div className="text-center mb-6">
+    <div className="max-w-md mx-auto bg-white border border-ink-200/70 rounded-md shadow-card p-8 my-12 animate-slide-in-up">
+      <div className="text-center mb-7">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/assets/icon_512.png"
           alt="Trao Tay"
-          className="w-16 h-16 mx-auto rounded-2xl mb-4"
+          className="w-16 h-16 mx-auto rounded-md mb-4 shadow-card"
         />
-        <h1 className="text-2xl font-extrabold text-navy">
+        <h1 className="text-2xl font-extrabold text-ink-900 tracking-tight">
           {step === "email" ? "Đăng nhập" : "Xác minh mã OTP"}
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {step === "email"
-            ? "Nhập email để nhận mã OTP, không cần mật khẩu"
-            : (
-              <>
-                Mã 6 số đã gửi tới <strong>{email}</strong>
-                <br />
-                <span className="text-xs">Hiệu lực 5 phút · Kiểm tra cả Spam</span>
-              </>
-            )}
+        <p className="text-ink-500 text-sm mt-1.5">
+          {step === "email" ? (
+            "Nhập email để nhận mã OTP, không cần mật khẩu"
+          ) : (
+            <>
+              Mã 6 số đã gửi tới <strong className="text-ink-800">{email}</strong>
+              <br />
+              <span className="text-xs">Hiệu lực 5 phút · Kiểm tra cả Spam</span>
+            </>
+          )}
         </p>
       </div>
 
       {step === "email" ? (
         <form onSubmit={onSendOtp} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label className="block text-sm font-semibold text-ink-800 mb-1.5">
               Email
             </label>
             <input
@@ -110,24 +110,24 @@ function LoginForm() {
               placeholder="ten@example.com"
               autoFocus
               required
-              className="w-full border border-gray-300 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:border-primary"
+              className="w-full bg-cream-100 border border-ink-200 rounded-md px-3.5 py-3 text-sm focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-150 ease-warm"
             />
           </div>
           {err && <p className="text-red-600 text-sm">{err}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
           >
             {loading ? "Đang gửi..." : "Gửi mã OTP"}
           </button>
-          <p className="text-xs text-gray-500 text-center pt-2">
+          <p className="text-xs text-ink-500 text-center pt-2 leading-relaxed">
             Bằng việc đăng nhập, bạn đồng ý với{" "}
-            <Link href="/terms.html" className="text-primary hover:underline">
+            <Link href="/terms.html" className="text-primary-600 hover:text-primary-700 hover:underline">
               Điều khoản
             </Link>
             {" và "}
-            <Link href="/privacy.html" className="text-primary hover:underline">
+            <Link href="/privacy.html" className="text-primary-600 hover:text-primary-700 hover:underline">
               Chính sách quyền riêng tư
             </Link>
             .
@@ -136,7 +136,7 @@ function LoginForm() {
       ) : (
         <form onSubmit={onVerifyOtp} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            <label className="block text-sm font-semibold text-ink-800 mb-1.5">
               Mã OTP
             </label>
             <input
@@ -147,14 +147,14 @@ function LoginForm() {
               placeholder="● ● ● ● ● ●"
               autoFocus
               required
-              className="w-full border border-gray-300 rounded-lg px-3.5 py-3 text-center text-2xl tracking-[0.5em] font-bold focus:outline-none focus:border-primary"
+              className="w-full bg-cream-100 border border-ink-200 rounded-md px-3.5 py-3 text-center text-2xl tracking-[0.5em] font-bold focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-150 ease-warm"
             />
           </div>
           {err && <p className="text-red-600 text-sm">{err}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
           >
             {loading ? "Đang xác minh..." : "Xác nhận"}
           </button>
@@ -166,7 +166,7 @@ function LoginForm() {
                 setOtp("");
                 setErr(null);
               }}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-ink-500 hover:text-ink-800 transition-colors duration-150"
             >
               ← Đổi email
             </button>
@@ -174,7 +174,7 @@ function LoginForm() {
               type="button"
               onClick={onSendOtp}
               disabled={resendCooldown > 0 || loading}
-              className="text-primary hover:underline disabled:text-gray-400 disabled:no-underline"
+              className="text-primary-600 hover:text-primary-700 hover:underline disabled:text-ink-400 disabled:no-underline disabled:cursor-not-allowed transition-colors duration-150"
             >
               {resendCooldown > 0
                 ? `Gửi lại sau ${resendCooldown}s`
@@ -191,9 +191,11 @@ export default function LoginPage() {
   return (
     <>
       <Header />
-      <Suspense fallback={<div className="text-center py-20 text-gray-500">Đang tải...</div>}>
-        <LoginForm />
-      </Suspense>
+      <div className="bg-gradient-warm min-h-[calc(100vh-200px)] py-4">
+        <Suspense fallback={<div className="text-center py-20 text-ink-500">Đang tải...</div>}>
+          <LoginForm />
+        </Suspense>
+      </div>
       <Footer />
     </>
   );
