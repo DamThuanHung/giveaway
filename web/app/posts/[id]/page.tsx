@@ -187,13 +187,37 @@ export default async function PostDetailPage({
               {(isVip || isPlus) && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {isVip && (
-                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-sm shadow-soft">
-                      ⭐ Bài VIP
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5"
+                      style={{
+                        background: "linear-gradient(135deg, #2A2418 0%, #1A1A1A 100%)",
+                        color: "#F4D36A",
+                        letterSpacing: "0.5px",
+                        borderRadius: "8px",
+                        border: "0.5px solid #C9A84A",
+                        boxShadow: "0 2px 8px rgba(201, 168, 74, 0.3)",
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M9.68 13.69L13 11.16l3.31 2.53-1.26-4.1L18.36 7l-4.09-.05L13 3l-1.27 3.95L7.64 7l3.31 2.59-1.27 4.1zM20 12l-1-9H9L7 7v14l6-3 6 3V12h1z"/>
+                      </svg>
+                      Bài VIP
                     </span>
                   )}
                   {isPlus && !isVip && (
-                    <span className="inline-flex items-center gap-1 bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-sm shadow-soft">
-                      PLUS
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5"
+                      style={{
+                        background: "#FEF9E7",
+                        color: "#854F0B",
+                        borderRadius: "8px",
+                        border: "0.5px solid #C9A84A",
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                      </svg>
+                      Bài Plus
                     </span>
                   )}
                 </div>

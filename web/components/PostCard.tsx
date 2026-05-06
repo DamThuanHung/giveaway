@@ -27,20 +27,54 @@ export function PostCard({ post }: { post: Post }) {
           </div>
         )}
 
-        <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+        <div className="absolute top-0 left-0 flex flex-col gap-1 items-start">
           {isVip && (
-            <span className="px-2 py-0.5 rounded-sm text-[11px] font-bold text-white bg-gradient-to-r from-amber-500 to-amber-600 shadow-soft">
-              ⭐ VIP
+            <span
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold"
+              style={{
+                background: "linear-gradient(135deg, #2A2418 0%, #1A1A1A 100%)",
+                color: "#F4D36A",
+                letterSpacing: "0.5px",
+                borderRadius: "0 10px 0 8px",
+                borderLeft: "0.5px solid #C9A84A",
+                borderBottom: "0.5px solid #C9A84A",
+                boxShadow: "0 2px 6px rgba(201, 168, 74, 0.35)",
+              }}
+            >
+              {/* Material icon: workspace_premium (huy chương) */}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M9.68 13.69L13 11.16l3.31 2.53-1.26-4.1L18.36 7l-4.09-.05L13 3l-1.27 3.95L7.64 7l3.31 2.59-1.27 4.1zM20 12l-1-9H9L7 7v14l6-3 6 3V12h1z"/>
+              </svg>
+              VIP
             </span>
           )}
           {isPlus && !isVip && (
-            <span className="px-2 py-0.5 rounded-sm text-[11px] font-bold text-white bg-blue-500 shadow-soft">
-              PLUS
+            <span
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold"
+              style={{
+                background: "#FEF9E7",
+                color: "#854F0B",
+                borderRadius: "0 10px 0 8px",
+                borderLeft: "0.5px solid #C9A84A",
+                borderBottom: "0.5px solid #C9A84A",
+              }}
+            >
+              {/* Material icon: star_rounded */}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              Plus
             </span>
           )}
           {isFree && (
-            <span className="px-2 py-0.5 rounded-sm text-[11px] font-bold text-white bg-primary shadow-soft">
-              🎁 Tặng
+            <span
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white shadow-soft"
+              style={{
+                background: "#10B981",
+                borderRadius: "0 10px 0 8px",
+              }}
+            >
+              🎁 Miễn phí
             </span>
           )}
         </div>
