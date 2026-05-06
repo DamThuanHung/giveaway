@@ -18,6 +18,21 @@ function formatPriceInput(s: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+function postTypeOf(category: string): "item" | "realestate" | "service" | "job" {
+  if (category === "realestate") return "realestate";
+  if (category === "service") return "service";
+  if (category === "jobs") return "job";
+  return "item";
+}
+
+const JOB_SUBTYPES: { value: string; label: string }[] = [
+  { value: "full-time", label: "Toàn thời gian" },
+  { value: "part-time", label: "Bán thời gian" },
+  { value: "freelance", label: "Freelance" },
+  { value: "intern", label: "Thực tập" },
+  { value: "remote", label: "Remote" },
+];
+
 function EditPostInner() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -32,13 +47,19 @@ function EditPostInner() {
   const [description, setDescription] = useState("");
   const [listingType, setListingType] = useState<"sell" | "give">("sell");
   const [priceText, setPriceText] = useState("");
-  const [category, setCategory] = useState("other");
+  const [category, setCategory] = useState("electronics");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [ward, setWard] = useState("");
   const [addressDetail, setAddressDetail] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+
+  const [subType, setSubType] = useState("rent");
+  const [priceUnit, setPriceUnit] = useState("month");
+  const [areaText, setAreaText] = useState("");
+  const [bedrooms, setBedrooms] = useState(1);
+  const [serviceArea, setServiceArea] = useState("");
 
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -47,6 +68,12 @@ function EditPostInner() {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const isRealestate = category === "realestate";
+  const isService = category === "service";
+  const isJob = category === "jobs";
+  const isSpecial = isRealestate || isService || isJob;
+  const postType = postTypeOf(category);
 
   useEffect(() => {
     if (authLoading) return;
@@ -85,7 +112,8 @@ function EditPostInner() {
       setDescription(p.description || "");
       setListingType(p.listingType === "give" ? "give" : "sell");
       setPriceText(p.price ? formatPriceInput(String(p.price)) : "");
-      setCategory(p.itemCategory || "other");
+      const cat = p.itemCategory || "electronics";
+      setCategory(cat);
       setProvince(p.province || "");
       setDistrict(p.district || "");
       setWard(p.ward || "");
@@ -93,6 +121,13 @@ function EditPostInner() {
       setLatitude(p.latitude || null);
       setLongitude(p.longitude || null);
       setExistingImages((p.images || []).filter(Boolean));
+
+      // Load fields chuyên biệt nếu có
+      setSubType(p.subType || (cat === "jobs" ? "full-time" : "rent"));
+      setPriceUnit(p.priceUnit || (cat === "jobs" || cat === "service" ? "hour" : "month"));
+      setAreaText(p.area != null ? String(p.area) : "");
+      setBedrooms(p.bedrooms != null ? p.bedrooms : 1);
+      setServiceArea(p.serviceArea || "");
       setLoadingPost(false);
     })();
     return () => {
@@ -106,6 +141,25 @@ function EditPostInner() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function onCategoryChange(newCat: string) {
+    setCategory(newCat);
+    if (newCat === "realestate" || newCat === "jobs" || newCat === "service") {
+      setListingType("sell");
+    }
+    setAreaText("");
+    setServiceArea("");
+    setBedrooms(1);
+    if (newCat === "realestate") {
+      setSubType("rent");
+      setPriceUnit("month");
+    } else if (newCat === "jobs") {
+      setSubType("full-time");
+      setPriceUnit("month");
+    } else if (newCat === "service") {
+      setPriceUnit("hour");
+    }
+  }
 
   function onFilesPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -180,14 +234,16 @@ function EditPostInner() {
     }
 
     const finalImages = [...existingImages, ...newUrls];
-    const price = listingType === "give" ? 0 : parseInt(priceText.replace(/\D/g, "") || "0", 10);
+    const priceRaw = priceText.replace(/\D/g, "");
+    const price = listingType === "give" ? 0 : (priceRaw ? parseInt(priceRaw, 10) : 0);
 
-    const res = await updatePost(postId, {
+    const body: Record<string, any> = {
       title: title.trim(),
       description: description.trim(),
       price,
-      listingType,
+      listingType: isSpecial ? "sell" : listingType,
       itemCategory: category,
+      postType,
       province: province.trim(),
       district: district.trim(),
       ward: ward.trim(),
@@ -195,7 +251,23 @@ function EditPostInner() {
       latitude: latitude ?? 0,
       longitude: longitude ?? 0,
       images: finalImages,
-    });
+    };
+
+    if (isRealestate) {
+      body.subType = subType;
+      body.priceUnit = priceUnit;
+      body.bedrooms = bedrooms;
+      body.area = areaText.trim() ? Number(areaText.trim()) : null;
+    } else if (isService) {
+      body.priceUnit = priceUnit;
+      body.serviceArea = serviceArea.trim() || null;
+    } else if (isJob) {
+      body.subType = subType;
+      body.priceUnit = priceUnit;
+      body.serviceArea = serviceArea.trim() || null;
+    }
+
+    const res = await updatePost(postId, body);
     setSubmitting(false);
 
     if (!res.ok) {
@@ -254,30 +326,48 @@ function EditPostInner() {
       <section className="bg-gradient-warm border-b border-ink-200/50">
         <div className="max-w-4xl mx-auto px-4 py-7 md:py-8">
           <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">Sửa bài đăng</h1>
-          <p className="text-ink-600 text-sm mt-1">
-            Thay đổi sẽ áp dụng ngay sau khi lưu
-          </p>
+          <p className="text-ink-600 text-sm mt-1">Thay đổi sẽ áp dụng ngay sau khi lưu</p>
         </div>
       </section>
 
       <form onSubmit={onSubmit} className="max-w-4xl mx-auto px-4 py-8 space-y-5">
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
-          <h2 className="font-bold text-ink-900 mb-3 tracking-tight">Hình thức</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <label className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${listingType === "sell" ? "border-primary bg-primary-100 shadow-soft" : "border-ink-200 hover:border-ink-300 bg-white"}`}>
-              <input type="radio" name="listingType" value="sell" checked={listingType === "sell"} onChange={() => setListingType("sell")} className="sr-only" />
-              <div className="text-3xl mb-1.5">💰</div>
-              <div className="font-semibold text-ink-900">Đang bán</div>
-              <div className="text-xs text-ink-500">Có giá tiền</div>
-            </label>
-            <label className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${listingType === "give" ? "border-primary bg-primary-100 shadow-soft" : "border-ink-200 hover:border-ink-300 bg-white"}`}>
-              <input type="radio" name="listingType" value="give" checked={listingType === "give"} onChange={() => setListingType("give")} className="sr-only" />
-              <div className="text-3xl mb-1.5">🎁</div>
-              <div className="font-semibold text-ink-900">Cho tặng</div>
-              <div className="text-xs text-ink-500">Miễn phí</div>
-            </label>
-          </div>
+          <label className={labelCls}>
+            Danh mục <span className="text-red-500">*</span>
+          </label>
+          <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className={inputCls}>
+            {Object.entries(CATEGORIES).map(([k, l]) => (
+              <option key={k} value={k}>{l}</option>
+            ))}
+          </select>
+          {isSpecial && (
+            <p className="text-xs text-primary-700 mt-2 bg-primary-100 border border-primary-200 rounded-md px-3 py-2 leading-relaxed">
+              {isRealestate && "🏠 Tin Bất động sản — cần diện tích, số phòng và đơn vị giá."}
+              {isService && "🛠️ Tin Dịch vụ — cần phạm vi phục vụ và đơn vị giá."}
+              {isJob && "💼 Tin Tuyển dụng — cần hình thức làm việc, tên công ty và mức lương."}
+            </p>
+          )}
         </div>
+
+        {!isSpecial && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+            <h2 className="font-bold text-ink-900 mb-3 tracking-tight">Hình thức</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${listingType === "sell" ? "border-primary bg-primary-100 shadow-soft" : "border-ink-200 hover:border-ink-300 bg-white"}`}>
+                <input type="radio" name="listingType" value="sell" checked={listingType === "sell"} onChange={() => setListingType("sell")} className="sr-only" />
+                <div className="text-3xl mb-1.5">💰</div>
+                <div className="font-semibold text-ink-900">Đang bán</div>
+                <div className="text-xs text-ink-500">Có giá tiền</div>
+              </label>
+              <label className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${listingType === "give" ? "border-primary bg-primary-100 shadow-soft" : "border-ink-200 hover:border-ink-300 bg-white"}`}>
+                <input type="radio" name="listingType" value="give" checked={listingType === "give"} onChange={() => setListingType("give")} className="sr-only" />
+                <div className="text-3xl mb-1.5">🎁</div>
+                <div className="font-semibold text-ink-900">Cho tặng</div>
+                <div className="text-xs text-ink-500">Miễn phí</div>
+              </label>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
           <div>
@@ -292,29 +382,139 @@ function EditPostInner() {
             <p className="text-xs text-ink-400 mt-1">{description.length}/2000 ký tự</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          {!isSpecial && listingType !== "give" && (
             <div>
-              <label className={labelCls}>Danh mục <span className="text-red-500">*</span></label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
-                {Object.entries(CATEGORIES).map(([k, l]) => (<option key={k} value={k}>{l}</option>))}
-              </select>
+              <label className={labelCls}>Giá (VNĐ)</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={priceText}
+                onChange={(e) => setPriceText(formatPriceInput(e.target.value))}
+                placeholder="Để trống nếu thương lượng"
+                className={inputCls}
+              />
             </div>
-            {listingType === "sell" && (
-              <div>
-                <label className={labelCls}>Giá (VNĐ) <span className="text-red-500">*</span></label>
-                <input type="text" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(formatPriceInput(e.target.value))} className={inputCls} />
-              </div>
-            )}
-          </div>
+          )}
         </div>
+
+        {isRealestate && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
+            <h2 className="font-bold text-ink-900 tracking-tight">Thông tin bất động sản</h2>
+
+            <div>
+              <label className={labelCls}>Loại tin <span className="text-red-500">*</span></label>
+              <div className="flex gap-2">
+                <ChipBtn selected={subType === "rent"} onClick={() => { setSubType("rent"); setPriceUnit("month"); }} label="Cho thuê" />
+                <ChipBtn selected={subType === "sell"} onClick={() => { setSubType("sell"); setPriceUnit("total"); }} label="Bán" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Giá (VNĐ)</label>
+                <input type="text" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(formatPriceInput(e.target.value))} placeholder="Để trống = thương lượng" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Đơn vị</label>
+                <select value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className={inputCls}>
+                  {subType === "rent" ? (
+                    <>
+                      <option value="month">/tháng</option>
+                      <option value="day">/ngày</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="total">Tổng</option>
+                      <option value="sqm">/m²</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Diện tích (m²)</label>
+                <input type="text" inputMode="decimal" value={areaText} onChange={(e) => setAreaText(e.target.value.replace(/[^\d.]/g, ""))} placeholder="VD: 45" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Phòng ngủ</label>
+                <select value={bedrooms} onChange={(e) => setBedrooms(parseInt(e.target.value, 10))} className={inputCls}>
+                  <option value={0}>Studio</option>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n} phòng</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isService && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
+            <h2 className="font-bold text-ink-900 tracking-tight">Thông tin dịch vụ</h2>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Giá (VNĐ)</label>
+                <input type="text" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(formatPriceInput(e.target.value))} placeholder="Để trống = thương lượng" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Đơn vị</label>
+                <select value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className={inputCls}>
+                  <option value="hour">/giờ</option>
+                  <option value="day">/ngày</option>
+                  <option value="total">Trọn gói</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Phạm vi phục vụ</label>
+              <input type="text" value={serviceArea} onChange={(e) => setServiceArea(e.target.value.slice(0, 100))} placeholder="VD: Quận 1, Quận 3, TP.HCM" className={inputCls} />
+            </div>
+          </div>
+        )}
+
+        {isJob && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
+            <h2 className="font-bold text-ink-900 tracking-tight">Thông tin tuyển dụng</h2>
+
+            <div>
+              <label className={labelCls}>Hình thức làm việc <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap gap-2">
+                {JOB_SUBTYPES.map((opt) => (
+                  <ChipBtn key={opt.value} selected={subType === opt.value} onClick={() => setSubType(opt.value)} label={opt.label} />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Tên công ty / Nhà tuyển dụng</label>
+              <input type="text" value={serviceArea} onChange={(e) => setServiceArea(e.target.value.slice(0, 100))} placeholder="VD: Công ty TNHH ABC" className={inputCls} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Mức lương (VNĐ)</label>
+                <input type="text" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(formatPriceInput(e.target.value))} placeholder="Để trống = thỏa thuận" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Đơn vị</label>
+                <select value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className={inputCls}>
+                  <option value="month">/tháng</option>
+                  <option value="hour">/giờ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
           <h2 className="font-bold text-ink-900 mb-1 tracking-tight">
             Ảnh sản phẩm <span className="text-red-500">*</span>
           </h2>
-          <p className="text-xs text-ink-500 mb-3">
-            {totalImages}/{MAX_IMAGES} ảnh. Ảnh đầu tiên là ảnh đại diện.
-          </p>
+          <p className="text-xs text-ink-500 mb-3">{totalImages}/{MAX_IMAGES} ảnh. Ảnh đầu tiên là ảnh đại diện.</p>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {existingImages.map((url, i) => (
               <div key={url} className="relative aspect-square bg-cream-100 rounded-md overflow-hidden group border border-ink-200/70">
@@ -394,17 +594,10 @@ function EditPostInner() {
             </div>
           )}
           <div className="flex gap-3">
-            <Link
-              href={`/posts/${postId}/`}
-              className="flex-1 text-center bg-ink-100 hover:bg-ink-200 text-ink-800 font-semibold py-4 rounded-md transition duration-150 ease-warm"
-            >
+            <Link href={`/posts/${postId}/`} className="flex-1 text-center bg-ink-100 hover:bg-ink-200 text-ink-800 font-semibold py-4 rounded-md transition duration-150 ease-warm">
               Hủy
             </Link>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm"
-            >
+            <button type="submit" disabled={submitting} className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm">
               {submitting ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
           </div>
@@ -413,6 +606,22 @@ function EditPostInner() {
 
       <Footer />
     </>
+  );
+}
+
+function ChipBtn({ selected, onClick, label }: { selected: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full text-sm font-medium transition duration-150 ease-warm ${
+        selected
+          ? "bg-primary text-white border-2 border-primary shadow-soft"
+          : "bg-white text-ink-700 border-2 border-ink-200 hover:border-primary hover:text-primary"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

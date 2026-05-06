@@ -17,6 +17,21 @@ function formatPriceInput(s: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+function postTypeOf(category: string): "item" | "realestate" | "service" | "job" {
+  if (category === "realestate") return "realestate";
+  if (category === "service") return "service";
+  if (category === "jobs") return "job";
+  return "item";
+}
+
+const JOB_SUBTYPES: { value: string; label: string }[] = [
+  { value: "full-time", label: "Toàn thời gian" },
+  { value: "part-time", label: "Bán thời gian" },
+  { value: "freelance", label: "Freelance" },
+  { value: "intern", label: "Thực tập" },
+  { value: "remote", label: "Remote" },
+];
+
 export default function NewPostPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -25,18 +40,32 @@ export default function NewPostPage() {
   const [description, setDescription] = useState("");
   const [listingType, setListingType] = useState<"sell" | "give">("sell");
   const [priceText, setPriceText] = useState("");
-  const [category, setCategory] = useState("other");
+  const [category, setCategory] = useState("electronics");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [ward, setWard] = useState("");
   const [addressDetail, setAddressDetail] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+
+  // Special category fields
+  const [subType, setSubType] = useState("rent");        // realestate: rent|sell · jobs: full-time...
+  const [priceUnit, setPriceUnit] = useState("month");   // month|day|total|sqm|hour
+  const [areaText, setAreaText] = useState("");          // realestate diện tích m²
+  const [bedrooms, setBedrooms] = useState(1);           // realestate phòng ngủ
+  const [serviceArea, setServiceArea] = useState("");    // service: phạm vi · jobs: tên công ty
+
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const isRealestate = category === "realestate";
+  const isService = category === "service";
+  const isJob = category === "jobs";
+  const isSpecial = isRealestate || isService || isJob;
+  const postType = postTypeOf(category);
 
   useEffect(() => {
     if (authLoading) return;
@@ -49,6 +78,27 @@ export default function NewPostPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function onCategoryChange(newCat: string) {
+    setCategory(newCat);
+    // Reset listingType về 'sell' nếu category không phù hợp 'give'
+    if (newCat === "realestate" || newCat === "jobs" || newCat === "service") {
+      setListingType("sell");
+    }
+    // Clear orphan data + set priceUnit default theo category
+    setAreaText("");
+    setServiceArea("");
+    setBedrooms(1);
+    if (newCat === "realestate") {
+      setSubType("rent");
+      setPriceUnit("month");
+    } else if (newCat === "jobs") {
+      setSubType("full-time");
+      setPriceUnit("month");
+    } else if (newCat === "service") {
+      setPriceUnit("hour");
+    }
+  }
 
   function onFilesPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -119,27 +169,45 @@ export default function NewPostPage() {
       return;
     }
 
-    const price =
-      listingType === "give" ? 0 : parseInt(priceText.replace(/\D/g, "") || "0", 10);
+    const priceRaw = priceText.replace(/\D/g, "");
+    const price = listingType === "give" ? 0 : (priceRaw ? parseInt(priceRaw, 10) : 0);
+
+    // Build payload — mirror logic mobile create_post_tab.dart:190-210
+    const fields: Record<string, string | number | null | undefined> = {
+      title: title.trim(),
+      description: description.trim(),
+      price,
+      listingType: isSpecial ? "sell" : listingType,
+      itemCategory: category,
+      postType,
+      province: province.trim(),
+      district: district.trim(),
+      ward: ward.trim(),
+      addressDetail: addressDetail.trim(),
+      latitude: latitude ?? 0,
+      longitude: longitude ?? 0,
+    };
+
+    if (isRealestate) {
+      fields.subType = subType;
+      fields.priceUnit = priceUnit;
+      fields.bedrooms = bedrooms;
+      if (areaText.trim()) fields.area = areaText.trim();
+    } else if (isService) {
+      fields.priceUnit = priceUnit;
+      if (serviceArea.trim()) fields.serviceArea = serviceArea.trim();
+    } else if (isJob) {
+      fields.subType = subType;
+      fields.priceUnit = priceUnit;
+      // Mobile dùng cùng field `serviceArea` cho 2 mục đích khác nhau:
+      // - service: Phạm vi phục vụ (vd "Quận 1, Quận 3")
+      // - jobs: Tên công ty / Nhà tuyển dụng
+      // Backend chấp nhận field chung tên `serviceArea`.
+      if (serviceArea.trim()) fields.serviceArea = serviceArea.trim();
+    }
 
     setSubmitting(true);
-    const res = await createPost(
-      {
-        title: title.trim(),
-        description: description.trim(),
-        price,
-        listingType,
-        itemCategory: category,
-        postType: "item",
-        province: province.trim(),
-        district: district.trim(),
-        ward: ward.trim(),
-        addressDetail: addressDetail.trim(),
-        latitude: latitude ?? 0,
-        longitude: longitude ?? 0,
-      },
-      images
-    );
+    const res = await createPost(fields, images);
     setSubmitting(false);
 
     if (!res.ok) {
@@ -178,50 +246,73 @@ export default function NewPostPage() {
       </section>
 
       <form onSubmit={onSubmit} className="max-w-4xl mx-auto px-4 py-8 space-y-5">
+        {/* ─── Danh mục — đặt LÊN ĐẦU vì các trường khác phụ thuộc ─── */}
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
-          <h2 className="font-bold text-ink-900 mb-3 tracking-tight">Hình thức</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <label
-              className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${
-                listingType === "sell"
-                  ? "border-primary bg-primary-100 shadow-soft"
-                  : "border-ink-200 hover:border-ink-300 bg-white"
-              }`}
-            >
-              <input
-                type="radio"
-                name="listingType"
-                value="sell"
-                checked={listingType === "sell"}
-                onChange={() => setListingType("sell")}
-                className="sr-only"
-              />
-              <div className="text-3xl mb-1.5">💰</div>
-              <div className="font-semibold text-ink-900">Đang bán</div>
-              <div className="text-xs text-ink-500">Có giá tiền</div>
-            </label>
-            <label
-              className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${
-                listingType === "give"
-                  ? "border-primary bg-primary-100 shadow-soft"
-                  : "border-ink-200 hover:border-ink-300 bg-white"
-              }`}
-            >
-              <input
-                type="radio"
-                name="listingType"
-                value="give"
-                checked={listingType === "give"}
-                onChange={() => setListingType("give")}
-                className="sr-only"
-              />
-              <div className="text-3xl mb-1.5">🎁</div>
-              <div className="font-semibold text-ink-900">Cho tặng</div>
-              <div className="text-xs text-ink-500">Miễn phí</div>
-            </label>
-          </div>
+          <label className={labelCls}>
+            Danh mục <span className="text-red-500">*</span>
+          </label>
+          <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className={inputCls}>
+            {Object.entries(CATEGORIES).map(([k, l]) => (
+              <option key={k} value={k}>{l}</option>
+            ))}
+          </select>
+          {isSpecial && (
+            <p className="text-xs text-primary-700 mt-2 bg-primary-100 border border-primary-200 rounded-md px-3 py-2 leading-relaxed">
+              {isRealestate && "🏠 Đăng tin Bất động sản — cần thêm diện tích, số phòng và đơn vị giá."}
+              {isService && "🛠️ Đăng tin Dịch vụ — cần phạm vi phục vụ và đơn vị giá."}
+              {isJob && "💼 Đăng tin Tuyển dụng — cần hình thức làm việc, tên công ty và mức lương."}
+            </p>
+          )}
         </div>
 
+        {/* ─── Hình thức (chỉ hiện khi item thường) ─── */}
+        {!isSpecial && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+            <h2 className="font-bold text-ink-900 mb-3 tracking-tight">Hình thức</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label
+                className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${
+                  listingType === "sell"
+                    ? "border-primary bg-primary-100 shadow-soft"
+                    : "border-ink-200 hover:border-ink-300 bg-white"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="listingType"
+                  value="sell"
+                  checked={listingType === "sell"}
+                  onChange={() => setListingType("sell")}
+                  className="sr-only"
+                />
+                <div className="text-3xl mb-1.5">💰</div>
+                <div className="font-semibold text-ink-900">Đang bán</div>
+                <div className="text-xs text-ink-500">Có giá tiền</div>
+              </label>
+              <label
+                className={`cursor-pointer border-2 rounded-md p-4 text-center transition duration-150 ease-warm ${
+                  listingType === "give"
+                    ? "border-primary bg-primary-100 shadow-soft"
+                    : "border-ink-200 hover:border-ink-300 bg-white"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="listingType"
+                  value="give"
+                  checked={listingType === "give"}
+                  onChange={() => setListingType("give")}
+                  className="sr-only"
+                />
+                <div className="text-3xl mb-1.5">🎁</div>
+                <div className="font-semibold text-ink-900">Cho tặng</div>
+                <div className="text-xs text-ink-500">Miễn phí</div>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Tiêu đề + Mô tả ─── */}
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
           <div>
             <label className={labelCls}>
@@ -231,7 +322,12 @@ export default function NewPostPage() {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value.slice(0, 100))}
-              placeholder="VD: Tủ lạnh Toshiba 200L cũ còn dùng tốt"
+              placeholder={
+                isRealestate ? "VD: Cho thuê căn hộ 2PN Cầu Giấy 8.5tr/tháng"
+                : isService ? "VD: Sửa chữa điều hòa tại nhà — Quận 1"
+                : isJob ? "VD: Tuyển nhân viên kế toán — Hà Nội"
+                : "VD: Tủ lạnh Toshiba 200L cũ còn dùng tốt"
+              }
               className={inputCls}
             />
             <p className="text-xs text-ink-400 mt-1">{title.length}/100 ký tự</p>
@@ -245,42 +341,203 @@ export default function NewPostPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
               rows={6}
-              placeholder="Mô tả tình trạng, kích thước, lý do bán/tặng, tình trạng còn dùng tốt..."
+              placeholder={
+                isRealestate ? "Mô tả nội thất, hướng, tiện ích xung quanh, điều kiện thuê..."
+                : isService ? "Mô tả dịch vụ, kinh nghiệm, thời gian phục vụ..."
+                : isJob ? "Mô tả công việc, yêu cầu, quyền lợi, thời gian làm việc..."
+                : "Mô tả tình trạng, kích thước, lý do bán/tặng, tình trạng còn dùng tốt..."
+              }
               className={inputCls}
             />
             <p className="text-xs text-ink-400 mt-1">{description.length}/2000 ký tự</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          {/* Giá item thường — chỉ hiện khi item & sell */}
+          {!isSpecial && listingType !== "give" && (
             <div>
-              <label className={labelCls}>
-                Danh mục <span className="text-red-500">*</span>
-              </label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
-                {Object.entries(CATEGORIES).map(([k, l]) => (
-                  <option key={k} value={k}>{l}</option>
-                ))}
-              </select>
+              <label className={labelCls}>Giá (VNĐ)</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={priceText}
+                onChange={(e) => setPriceText(formatPriceInput(e.target.value))}
+                placeholder="2.000.000 — Để trống nếu thương lượng"
+                className={inputCls}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ─── Trường chuyên biệt cho realestate ─── */}
+        {isRealestate && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
+            <h2 className="font-bold text-ink-900 tracking-tight">Thông tin bất động sản</h2>
+
+            <div>
+              <label className={labelCls}>Loại tin <span className="text-red-500">*</span></label>
+              <div className="flex gap-2">
+                <ChipBtn
+                  selected={subType === "rent"}
+                  onClick={() => { setSubType("rent"); setPriceUnit("month"); }}
+                  label="Cho thuê"
+                />
+                <ChipBtn
+                  selected={subType === "sell"}
+                  onClick={() => { setSubType("sell"); setPriceUnit("total"); }}
+                  label="Bán"
+                />
+              </div>
             </div>
 
-            {listingType === "sell" && (
-              <div>
-                <label className={labelCls}>
-                  Giá (VNĐ) <span className="text-red-500">*</span>
-                </label>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Giá (VNĐ)</label>
                 <input
                   type="text"
                   inputMode="numeric"
                   value={priceText}
                   onChange={(e) => setPriceText(formatPriceInput(e.target.value))}
-                  placeholder="2.000.000"
+                  placeholder="Để trống = thương lượng"
                   className={inputCls}
                 />
               </div>
-            )}
-          </div>
-        </div>
+              <div>
+                <label className={labelCls}>Đơn vị</label>
+                <select value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className={inputCls}>
+                  {subType === "rent" ? (
+                    <>
+                      <option value="month">/tháng</option>
+                      <option value="day">/ngày</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="total">Tổng</option>
+                      <option value="sqm">/m²</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Diện tích (m²)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={areaText}
+                  onChange={(e) => setAreaText(e.target.value.replace(/[^\d.]/g, ""))}
+                  placeholder="VD: 45"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Phòng ngủ</label>
+                <select value={bedrooms} onChange={(e) => setBedrooms(parseInt(e.target.value, 10))} className={inputCls}>
+                  <option value={0}>Studio</option>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>{n} phòng</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Trường chuyên biệt cho service ─── */}
+        {isService && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
+            <h2 className="font-bold text-ink-900 tracking-tight">Thông tin dịch vụ</h2>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Giá (VNĐ)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={priceText}
+                  onChange={(e) => setPriceText(formatPriceInput(e.target.value))}
+                  placeholder="Để trống = thương lượng"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Đơn vị</label>
+                <select value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className={inputCls}>
+                  <option value="hour">/giờ</option>
+                  <option value="day">/ngày</option>
+                  <option value="total">Trọn gói</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Phạm vi phục vụ</label>
+              <input
+                type="text"
+                value={serviceArea}
+                onChange={(e) => setServiceArea(e.target.value.slice(0, 100))}
+                placeholder="VD: Quận 1, Quận 3, TP.HCM"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ─── Trường chuyên biệt cho jobs ─── */}
+        {isJob && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
+            <h2 className="font-bold text-ink-900 tracking-tight">Thông tin tuyển dụng</h2>
+
+            <div>
+              <label className={labelCls}>Hình thức làm việc <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap gap-2">
+                {JOB_SUBTYPES.map((opt) => (
+                  <ChipBtn
+                    key={opt.value}
+                    selected={subType === opt.value}
+                    onClick={() => setSubType(opt.value)}
+                    label={opt.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Tên công ty / Nhà tuyển dụng</label>
+              <input
+                type="text"
+                value={serviceArea}
+                onChange={(e) => setServiceArea(e.target.value.slice(0, 100))}
+                placeholder="VD: Công ty TNHH ABC"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Mức lương (VNĐ)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={priceText}
+                  onChange={(e) => setPriceText(formatPriceInput(e.target.value))}
+                  placeholder="Để trống = thỏa thuận"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Đơn vị</label>
+                <select value={priceUnit} onChange={(e) => setPriceUnit(e.target.value)} className={inputCls}>
+                  <option value="month">/tháng</option>
+                  <option value="hour">/giờ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Ảnh ─── */}
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
           <h2 className="font-bold text-ink-900 mb-1 tracking-tight">
             Ảnh sản phẩm <span className="text-red-500">*</span>
@@ -329,6 +586,7 @@ export default function NewPostPage() {
           />
         </div>
 
+        {/* ─── Địa chỉ ─── */}
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="font-bold text-ink-900 tracking-tight">Địa chỉ</h2>
@@ -399,6 +657,7 @@ export default function NewPostPage() {
           )}
         </div>
 
+        {/* ─── Submit ─── */}
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
           {err && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 mb-4 text-sm">
@@ -424,5 +683,21 @@ export default function NewPostPage() {
 
       <Footer />
     </>
+  );
+}
+
+function ChipBtn({ selected, onClick, label }: { selected: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full text-sm font-medium transition duration-150 ease-warm ${
+        selected
+          ? "bg-primary text-white border-2 border-primary shadow-soft"
+          : "bg-white text-ink-700 border-2 border-ink-200 hover:border-primary hover:text-primary"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
