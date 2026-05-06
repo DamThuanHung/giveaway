@@ -61,7 +61,18 @@
 
 ## Bug list backlog (placeholder cho session sau)
 
-<!-- Khi nhận thêm feedback từ tester, append xuống đây theo format trên. Đếm ID tăng dần #004, #005... -->
+### #004 Cron resetExpiredBoosts không re-determine tier khi có nhiều order chồng nhau
+- **Severity**: ⚪ P3 (edge case hiếm, lỗi hướng có lợi cho user — không gây thiệt hại)
+- **Reporter**: nội bộ (mental walkthrough khi làm admin grant bump 2026-05-07)
+- **Reported**: 2026-05-07
+- **Status**: 📋 backlog — defer fix
+- **File**: [backend/src/bump/bump.service.ts:312-343](backend/src/bump/bump.service.ts#L312)
+- **Mô tả**: Khi 1 bài có nhiều BumpOrder paid chồng thời gian (vd user trả Plus 7 ngày + admin grant VIP 3 ngày), cron `resetExpiredBoosts` chỉ check "còn order paid khác hay không", KHÔNG re-determine tier từ highest active order. Kết quả: VIP grant hết hạn → bài vẫn giữ tier=VIP cho đến Plus user-paid hết hạn (vì cron chỉ reset khi 100% không còn order).
+- **Repro**: User mua Plus 7d → admin grant VIP 3d → sau 3 ngày VIP grant expire → cron không reset (Plus còn 4 ngày) → bài vẫn hiển thị tier VIP đến hết Plus → user "được thêm" 4 ngày VIP miễn phí.
+- **Đề xuất fix**: Khi cron expire 1 order, query `BumpOrder findFirst { postId, status='paid', expiredAt > now } orderBy tier desc` → set post.boostTier = highest active tier (hoặc 0 nếu không có).
+- **Lý do defer**: (1) hiếm gặp — user cần phải vừa trả Plus vừa được admin grant VIP cùng lúc; (2) lỗi hướng có lợi user, không thiệt hại tiền cộng đồng; (3) fix đúng cần refactor cron logic, risky cho production khi đang Closed Testing.
+
+<!-- Khi nhận thêm feedback từ tester, append xuống đây theo format trên. Đếm ID tăng dần #005, #006... -->
 
 ---
 
