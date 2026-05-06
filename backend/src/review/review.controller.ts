@@ -31,6 +31,21 @@ export class ReviewController {
     return this.reviewService.hasReviewed(req.user.id, postId);
   }
 
+  /// Đánh giá tôi đã VIẾT (reviewerId = me). Web /me/reviews/.
+  @Get('my/given')
+  @UseGuards(JwtAuthGuard)
+  getMyGivenReviews(
+    @Request() req,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.reviewService.getMyGivenReviews(
+      req.user.id,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
+  }
+
   @Get('user/:userId')
   getUserReviews(
     @Param('userId') userId: string,

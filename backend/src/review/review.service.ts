@@ -99,6 +99,30 @@ export class ReviewService {
     return { hasReviewed: !!existing, review: existing };
   }
 
+  /// Đánh giá tôi đã VIẾT (reviewerId = me). Khác getUserReviews(userId)
+  /// vốn lọc theo revieweeId (đánh giá tôi NHẬN). Web /me/reviews/ dùng endpoint này.
+  async getMyGivenReviews(reviewerId: string, page = 1, limit = 20) {
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+    const safePage = Math.max(page, 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    const [reviews, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { reviewerId },
+        include: {
+          reviewee: { select: { id: true, name: true, avatar: true } },
+          post: { select: { id: true, title: true, listingType: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: safeLimit,
+      }),
+      this.prisma.review.count({ where: { reviewerId } }),
+    ]);
+
+    return { reviews, total, page: safePage, limit: safeLimit };
+  }
+
   async getUserReviews(userId: string, page = 1, limit = 20) {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const safePage = Math.max(page, 1);

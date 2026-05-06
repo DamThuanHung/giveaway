@@ -229,6 +229,7 @@ export default function MePage() {
           {[
             { href: "/me/posts/", icon: "📦", label: "Tin của tôi" },
             { href: "/notifications/", icon: "🔔", label: "Thông báo" },
+            { href: "/me/reviews/", icon: "⭐", label: "Đánh giá đã viết" },
             { href: "/me/stats/", icon: "📊", label: "Thống kê" },
             { href: "/me/keywords/", icon: "🔔", label: "Cảnh báo từ khóa" },
             { href: "/me/blocked/", icon: "🚫", label: "Đã chặn" },

@@ -337,6 +337,14 @@ export async function checkHasReviewed(postId: string): Promise<{ hasReviewed: b
   return res.json();
 }
 
+/// Đánh giá TÔI ĐÃ VIẾT cho người khác. Khác fetchUserReviews vốn lấy đánh giá NHẬN.
+export async function fetchMyGivenReviews(): Promise<any[]> {
+  const res = await authFetch("/review/my/given?limit=50");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.reviews ?? [];
+}
+
 // ─── Notifications ───────────────────────────────────────────────────────────
 
 export async function fetchNotifications(): Promise<any[]> {
