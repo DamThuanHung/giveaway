@@ -10,8 +10,44 @@ export default async function HomePage() {
   const posts = await fetchPosts({ page: 1, limit: 8 }).catch(() => null);
   const featuredPosts = posts?.data ?? [];
 
+  // JSON-LD schemas — giúp Google hiển thị site name + search box trong kết quả tìm kiếm.
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Trao Tay",
+    url: "https://traotay.com.vn",
+    logo: "https://traotay.com.vn/assets/icon_512.png",
+    description: "Chợ đồ cũ & trao tặng miễn phí cho người Việt",
+    sameAs: [
+      "https://play.google.com/store/apps/details?id=vn.traotay.app",
+    ],
+  };
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Trao Tay",
+    url: "https://traotay.com.vn",
+    inLanguage: "vi-VN",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://traotay.com.vn/posts/?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
       <Header />
 
       {/* Hero */}
