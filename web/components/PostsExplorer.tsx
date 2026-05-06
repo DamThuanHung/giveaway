@@ -30,14 +30,13 @@ const LISTING_TYPES = [
   { v: "give", l: "Cho tặng" },
 ];
 
-// Khoảng giá phổ biến cho thị trường đồ cũ VN — chip nhanh cho 90% use case.
 const PRICE_RANGES: { label: string; min?: number; max?: number }[] = [
   { label: "🎁 Miễn phí", max: 0 },
   { label: "< 100k", max: 100_000 },
-  { label: "100k – 500k", min: 100_000, max: 500_000 },
-  { label: "500k – 2 triệu", min: 500_000, max: 2_000_000 },
-  { label: "2 – 10 triệu", min: 2_000_000, max: 10_000_000 },
-  { label: "> 10 triệu", min: 10_000_000 },
+  { label: "100k–500k", min: 100_000, max: 500_000 },
+  { label: "500k–2tr", min: 500_000, max: 2_000_000 },
+  { label: "2–10tr", min: 2_000_000, max: 10_000_000 },
+  { label: "> 10tr", min: 10_000_000 },
 ];
 
 function formatPriceShort(n: number): string {
@@ -65,7 +64,6 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   const [searchInput, setSearchInput] = useState(initialQuery.search ?? "");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Đọc current query từ URL params
   const minParam = searchParams.get("min");
   const maxParam = searchParams.get("max");
   const query: PostsQuery = {
@@ -83,9 +81,6 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   const [minInput, setMinInput] = useState<string>(minParam ?? "");
   const [maxInput, setMaxInput] = useState<string>(maxParam ?? "");
 
-  // Luôn fetch fresh khi mount + khi URL thay đổi.
-  // Trước đây skip nếu match initialData → gây stale: bài admin xóa vẫn hiện đến cron rebuild.
-  // Giờ initialData chỉ làm shell pre-rendered cho first-paint + SEO.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -170,145 +165,196 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
     query.minPrice != null ||
     query.maxPrice != null;
 
-  return (
-    <div className="grid md:grid-cols-[260px_1fr] gap-6">
-      {/* Filter sidebar — mobile drawer hoặc desktop sidebar */}
-      <aside
-        className={`${showFilters ? "fixed inset-0 z-50 bg-white p-5 overflow-y-auto" : "hidden"} md:relative md:inset-auto md:z-auto md:p-0 md:bg-transparent md:block`}
-      >
-        <div className="md:sticky md:top-20">
-          <div className="flex items-center justify-between mb-4 md:hidden">
-            <h2 className="text-lg font-bold text-navy">Bộ lọc</h2>
-            <button onClick={() => setShowFilters(false)} className="text-gray-500 text-2xl">×</button>
+  // ─── Sidebar content (1 panel với 4 section, divider mờ thay border riêng) ───
+  const sidebar = (
+    <div className="md:sticky md:top-20 space-y-3">
+      <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden">
+        {/* Hình thức */}
+        <div className="p-4">
+          <h3 className="font-bold text-ink-900 text-sm mb-3 flex items-center gap-2">
+            <span className="text-primary-600">●</span> Hình thức
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {LISTING_TYPES.map(({ v, l }) => (
+              <button
+                key={v || "all"}
+                onClick={() => updateQuery({ type: v || undefined })}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition duration-150 ease-warm ${
+                  (query.listingType || "") === v
+                    ? "bg-primary text-white shadow-soft"
+                    : "bg-ink-100 hover:bg-ink-200 text-ink-700"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-            <h3 className="font-bold text-navy text-sm mb-3">Hình thức</h3>
-            <div className="space-y-1.5">
-              {LISTING_TYPES.map(({ v, l }) => (
+        <div className="border-t border-ink-200/50" />
+
+        {/* Khoảng giá */}
+        <div className="p-4">
+          <h3 className="font-bold text-ink-900 text-sm mb-3 flex items-center gap-2">
+            <span className="text-primary-600">●</span> Khoảng giá
+          </h3>
+          <div className="grid grid-cols-2 gap-1.5 mb-3">
+            <button
+              onClick={() => applyPriceRange(undefined, undefined)}
+              className={`col-span-2 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-warm ${
+                query.minPrice == null && query.maxPrice == null
+                  ? "bg-primary text-white shadow-soft"
+                  : "bg-ink-100 hover:bg-ink-200 text-ink-700"
+              }`}
+            >
+              Tất cả
+            </button>
+            {PRICE_RANGES.map((r) => (
+              <button
+                key={r.label}
+                onClick={() => applyPriceRange(r.min, r.max)}
+                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-warm ${
+                  rangeMatches(r)
+                    ? "bg-primary text-white shadow-soft"
+                    : "bg-ink-100 hover:bg-ink-200 text-ink-700"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <details className="group">
+            <summary className="cursor-pointer text-xs text-ink-500 hover:text-primary-600 select-none transition-colors flex items-center gap-1">
+              <span className="group-open:rotate-90 transition-transform duration-150">▸</span>
+              Tùy chỉnh khoảng giá (VNĐ)
+            </summary>
+            <div className="mt-2.5 flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={minInput}
+                onChange={(e) => setMinInput(e.target.value.replace(/\D/g, ""))}
+                placeholder="Tối thiểu"
+                className="w-full bg-cream-100 border border-ink-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition"
+              />
+              <span className="text-ink-400 text-xs shrink-0">→</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={maxInput}
+                onChange={(e) => setMaxInput(e.target.value.replace(/\D/g, ""))}
+                placeholder="Tối đa"
+                className="w-full bg-cream-100 border border-ink-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition"
+              />
+            </div>
+            <button
+              onClick={applyCustomPrice}
+              className="mt-2 w-full bg-primary-100 hover:bg-primary-200 text-primary-800 font-semibold py-1.5 rounded-md text-xs transition duration-150 ease-warm"
+            >
+              Áp dụng
+            </button>
+          </details>
+        </div>
+
+        <div className="border-t border-ink-200/50" />
+
+        {/* Tỉnh/Thành */}
+        <div className="p-4">
+          <h3 className="font-bold text-ink-900 text-sm mb-3 flex items-center gap-2">
+            <span className="text-primary-600">●</span> Tỉnh / Thành
+          </h3>
+          <select
+            value={query.province ?? ""}
+            onChange={(e) => updateQuery({ province: e.target.value || undefined })}
+            className="w-full bg-cream-100 border border-ink-200 hover:border-ink-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-250 ease-warm"
+          >
+            <option value="">Tất cả</option>
+            {TOP_PROVINCES.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="border-t border-ink-200/50" />
+
+        {/* Danh mục — collapsible */}
+        <div className="p-4">
+          <h3 className="font-bold text-ink-900 text-sm mb-3 flex items-center gap-2">
+            <span className="text-primary-600">●</span> Danh mục
+          </h3>
+          <ul className="space-y-0.5 max-h-72 overflow-y-auto pr-1 scrollbar-warm">
+            <li>
+              <button
+                onClick={() => updateQuery({ cat: undefined })}
+                className={`block w-full text-left px-2.5 py-1.5 rounded text-sm transition duration-150 ease-warm ${
+                  !query.itemCategory
+                    ? "bg-primary-100 text-primary-800 font-semibold"
+                    : "hover:bg-ink-100 text-ink-700"
+                }`}
+              >
+                Tất cả danh mục
+              </button>
+            </li>
+            {Object.entries(CATEGORIES).map(([k, l]) => (
+              <li key={k}>
                 <button
-                  key={v || "all"}
-                  onClick={() => updateQuery({ type: v || undefined })}
-                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition ${(query.listingType || "") === v ? "bg-primary text-white font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
+                  onClick={() => updateQuery({ cat: k })}
+                  className={`block w-full text-left px-2.5 py-1.5 rounded text-sm transition duration-150 ease-warm ${
+                    query.itemCategory === k
+                      ? "bg-primary-100 text-primary-800 font-semibold"
+                      : "hover:bg-ink-100 text-ink-700"
+                  }`}
                 >
                   {l}
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-            <h3 className="font-bold text-navy text-sm mb-3">Danh mục</h3>
-            <ul className="space-y-1 max-h-72 overflow-y-auto pr-1">
-              <li>
-                <button
-                  onClick={() => updateQuery({ cat: undefined })}
-                  className={`block w-full text-left px-2 py-1.5 rounded text-sm transition ${!query.itemCategory ? "bg-primary-light text-primary-dark font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
-                >
-                  Tất cả danh mục
-                </button>
               </li>
-              {Object.entries(CATEGORIES).map(([k, l]) => (
-                <li key={k}>
-                  <button
-                    onClick={() => updateQuery({ cat: k })}
-                    className={`block w-full text-left px-2 py-1.5 rounded text-sm transition ${query.itemCategory === k ? "bg-primary-light text-primary-dark font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
-                  >
-                    {l}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-            <h3 className="font-bold text-navy text-sm mb-3">Khoảng giá</h3>
-            <div className="space-y-1.5 mb-3">
-              <button
-                onClick={() => applyPriceRange(undefined, undefined)}
-                className={`block w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${query.minPrice == null && query.maxPrice == null ? "bg-primary text-white font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
-              >
-                Tất cả
-              </button>
-              {PRICE_RANGES.map((r) => (
-                <button
-                  key={r.label}
-                  onClick={() => applyPriceRange(r.min, r.max)}
-                  className={`block w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${rangeMatches(r) ? "bg-primary text-white font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            <div className="border-t border-gray-100 pt-3">
-              <p className="text-xs text-gray-500 mb-2">Hoặc tùy chỉnh (VNĐ):</p>
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={minInput}
-                  onChange={(e) => setMinInput(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Tối thiểu"
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
-                />
-                <span className="text-gray-400 text-xs">→</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={maxInput}
-                  onChange={(e) => setMaxInput(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Tối đa"
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
-                />
-              </div>
-              <button
-                onClick={applyCustomPrice}
-                className="w-full bg-primary-light hover:bg-emerald-100 text-primary-dark font-semibold py-1.5 rounded-md text-xs"
-              >
-                Áp dụng
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-            <h3 className="font-bold text-navy text-sm mb-3">Tỉnh/Thành</h3>
-            <select
-              value={query.province ?? ""}
-              onChange={(e) => updateQuery({ province: e.target.value || undefined })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
-            >
-              <option value="">Tất cả</option>
-              {TOP_PROVINCES.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-
-          {hasFilters && (
-            <button
-              onClick={clearAll}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg transition text-sm"
-            >
-              Xóa bộ lọc
-            </button>
-          )}
+            ))}
+          </ul>
         </div>
+      </div>
+
+      {hasFilters && (
+        <button
+          onClick={clearAll}
+          className="w-full bg-ink-100 hover:bg-ink-200 text-ink-700 font-medium py-2 rounded-md transition duration-150 ease-warm text-sm"
+        >
+          Xóa bộ lọc
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="grid md:grid-cols-[260px_1fr] gap-6">
+      {/* Filter sidebar — desktop static, mobile drawer */}
+      <aside
+        className={`${showFilters ? "fixed inset-0 z-50 bg-cream p-5 overflow-y-auto" : "hidden"} md:relative md:inset-auto md:z-auto md:p-0 md:bg-transparent md:block`}
+      >
+        <div className="flex items-center justify-between mb-4 md:hidden">
+          <h2 className="text-lg font-bold text-ink-900">Bộ lọc</h2>
+          <button
+            onClick={() => setShowFilters(false)}
+            aria-label="Đóng bộ lọc"
+            className="w-9 h-9 flex items-center justify-center rounded-md text-ink-500 hover:bg-ink-100 hover:text-ink-800 text-2xl leading-none transition"
+          >×</button>
+        </div>
+        {sidebar}
       </aside>
 
       <div>
         {/* Search + Sort + Mobile filter trigger */}
-        <div className="bg-white border border-gray-200 rounded-xl p-3 mb-4 flex flex-wrap gap-2 items-center">
+        <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-3 mb-4 flex flex-wrap gap-2 items-center">
           <form onSubmit={onSubmitSearch} className="flex-1 flex gap-2 min-w-[240px]">
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Tìm theo tên sản phẩm..."
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              className="flex-1 bg-cream-100 border border-ink-200 hover:border-ink-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-250 ease-warm"
             />
             <button
               type="submit"
-              className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap"
+              className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md font-semibold text-sm whitespace-nowrap shadow-soft hover:shadow-card transition duration-250 ease-warm"
             >
               Tìm
             </button>
@@ -317,7 +363,7 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
           <select
             value={query.sortBy ?? "newest"}
             onChange={(e) => updateQuery({ sort: e.target.value === "newest" ? undefined : e.target.value })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+            className="bg-cream-100 border border-ink-200 hover:border-ink-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary-200 transition duration-250 ease-warm"
           >
             {SORT_OPTIONS.map((s) => (
               <option key={s.v} value={s.v}>{s.l}</option>
@@ -326,7 +372,7 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
 
           <button
             onClick={() => setShowFilters(true)}
-            className="md:hidden border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium"
+            className="md:hidden bg-cream-100 border border-ink-200 hover:border-primary text-ink-700 hover:text-primary rounded-md px-3 py-2 text-sm font-medium transition duration-150 ease-warm"
           >
             🎛 Bộ lọc
           </button>
@@ -334,53 +380,53 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
 
         {/* Active filters chips */}
         {hasFilters && (
-          <div className="flex flex-wrap gap-2 mb-4 text-sm">
+          <div className="flex flex-wrap gap-2 mb-4 text-sm animate-fade-in">
             {query.search && (
-              <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+              <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 Tìm: "{query.search}"
-                <button onClick={() => { setSearchInput(""); updateQuery({ q: undefined }); }} className="hover:text-primary">×</button>
+                <button onClick={() => { setSearchInput(""); updateQuery({ q: undefined }); }} className="hover:text-primary-900 leading-none text-base">×</button>
               </span>
             )}
             {query.itemCategory && (
-              <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+              <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 {CATEGORIES[query.itemCategory]}
-                <button onClick={() => updateQuery({ cat: undefined })} className="hover:text-primary">×</button>
+                <button onClick={() => updateQuery({ cat: undefined })} className="hover:text-primary-900 leading-none text-base">×</button>
               </span>
             )}
             {query.province && (
-              <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+              <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 📍 {query.province}
-                <button onClick={() => updateQuery({ province: undefined })} className="hover:text-primary">×</button>
+                <button onClick={() => updateQuery({ province: undefined })} className="hover:text-primary-900 leading-none text-base">×</button>
               </span>
             )}
             {query.listingType && (
-              <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+              <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 {query.listingType === "give" ? "🎁 Cho tặng" : "💰 Đang bán"}
-                <button onClick={() => updateQuery({ type: undefined })} className="hover:text-primary">×</button>
+                <button onClick={() => updateQuery({ type: undefined })} className="hover:text-primary-900 leading-none text-base">×</button>
               </span>
             )}
             {(query.minPrice != null || query.maxPrice != null) && (
-              <span className="bg-primary-light text-primary-dark px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+              <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 💰{" "}
                 {query.minPrice != null && query.maxPrice != null
                   ? `${formatPriceShort(query.minPrice)} – ${formatPriceShort(query.maxPrice)}`
                   : query.minPrice != null
                   ? `≥ ${formatPriceShort(query.minPrice)}`
                   : `≤ ${formatPriceShort(query.maxPrice!)}`}
-                <button onClick={() => applyPriceRange(undefined, undefined)} className="hover:text-primary">×</button>
+                <button onClick={() => applyPriceRange(undefined, undefined)} className="hover:text-primary-900 leading-none text-base">×</button>
               </span>
             )}
           </div>
         )}
 
         {/* Result count */}
-        <div className="text-sm text-gray-600 mb-4">
+        <div className="text-sm text-ink-500 mb-4">
           {loading ? (
             "Đang tải..."
           ) : meta.total === 0 ? (
             "Không tìm thấy bài đăng phù hợp"
           ) : (
-            <>Tìm thấy <strong>{meta.total.toLocaleString("vi-VN")}</strong> bài đăng</>
+            <>Tìm thấy <strong className="text-ink-800">{meta.total.toLocaleString("vi-VN")}</strong> bài đăng</>
           )}
         </div>
 
@@ -390,14 +436,14 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
             {Array.from({ length: 8 }).map((_, i) => <PostCardSkeleton key={i} />)}
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-12 text-center">
             <div className="text-5xl mb-4">🔍</div>
-            <p className="text-gray-700 font-semibold mb-1">Chưa có kết quả</p>
-            <p className="text-gray-500 text-sm">Thử bộ lọc khác hoặc từ khóa khác</p>
+            <p className="text-ink-800 font-semibold mb-1">Chưa có kết quả</p>
+            <p className="text-ink-500 text-sm">Thử bộ lọc khác hoặc từ khóa khác</p>
             {hasFilters && (
               <button
                 onClick={clearAll}
-                className="mt-4 bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-lg text-sm font-semibold"
+                className="mt-4 bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-md text-sm font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
               >
                 Xóa bộ lọc
               </button>
@@ -415,9 +461,9 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="bg-white hover:bg-primary hover:text-white border border-gray-300 hover:border-primary text-gray-700 font-semibold px-8 py-3 rounded-xl transition disabled:opacity-50"
+                  className="bg-white hover:bg-primary hover:text-white border border-ink-200 hover:border-primary text-ink-700 font-semibold px-8 py-3 rounded-md shadow-soft hover:shadow-card transition duration-250 ease-warm disabled:opacity-50"
                 >
-                  {loadingMore ? "Đang tải..." : `Xem thêm (${meta.total - posts.length} bài còn)`}
+                  {loadingMore ? "Đang tải..." : `Xem thêm (còn ${meta.total - posts.length} bài)`}
                 </button>
               </div>
             )}
