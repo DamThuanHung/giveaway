@@ -122,8 +122,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (!auth.isAuth || auth.userId == null) return;
     setState(() { _trustLoading = true; _trustError = false; });
     try {
+      // Dùng /user/me để lấy email + phone (private). getUserById trả public profile
+      // không có email/phone → hasEmail/hasPhone luôn false → hiện oan 2 nút "Liên kết".
       final results = await Future.wait([
-        ApiService.getUserById(auth.userId!),
+        ApiService.getMe(),
         ApiService.getFollowCounts(auth.userId!),
       ]);
       if (!mounted) return;
