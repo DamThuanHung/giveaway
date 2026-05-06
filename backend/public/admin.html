@@ -1051,9 +1051,11 @@ async function openPostDetail(id) {
     <div class="kv"><span class="k">Email</span><span class="v">${esc(author.email||'—')}</span></div>
     <div class="kv"><span class="k">SĐT</span><span class="v">${esc(author.phone||'—')}</span></div>
   `;
-  // Grant bump chỉ khả dụng cho bài available/reserved (không hidden/deleted)
-  // và không phải bài chính admin (self-protection check ở backend, ở đây UI chỉ hide cho gọn).
-  const canGrantBump = !isHidden && !isDeleted && author.id !== state.adminId;
+  // Grant bump chỉ khả dụng cho bài available/reserved (không hidden/deleted),
+  // có author (không ẩn danh), và không phải bài chính admin
+  // (self-protection check ở backend, ở đây UI chỉ hide cho gọn).
+  const adminIdLocal = localStorage.getItem('admin_id') || '';
+  const canGrantBump = !isHidden && !isDeleted && !!author.id && author.id !== adminIdLocal;
   const grantBumpBtn = canGrantBump
     ? `<button class="btn-sm btn-blue" data-action="modal-grant-bump" data-id="${esc(p.id)}" data-extra="${p.boostTier||0}">🚀 Đẩy bài</button>`
     : '';

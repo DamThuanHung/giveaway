@@ -252,8 +252,13 @@ export class AdminService implements OnModuleInit {
     });
     if (!post) throw new NotFoundException('Bài đăng không tồn tại');
 
+    // Bài ẩn danh không có user nhận → không grant được (BumpOrder.userId required)
+    if (!post.authorId) {
+      throw new BadRequestException('Bài ẩn danh không thể grant — không có user để gắn đơn');
+    }
+
     // Self-protection
-    if (post.authorId && post.authorId === adminId) {
+    if (post.authorId === adminId) {
       throw new BadRequestException('Không thể grant bump cho bài của chính mình');
     }
 
