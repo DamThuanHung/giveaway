@@ -274,7 +274,10 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Spacer(),
+                  // Bug #002 fix: Spacer() đẩy giá xuống đáy gây khoảng trắng to khi
+                  // title 1 dòng. Thay bằng SizedBox cố định + đẩy location xuống đáy
+                  // bằng Spacer ở giữa giá và location (giữ giá sát title, location đáy).
+                  const SizedBox(height: 6),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -313,7 +316,8 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  // Đẩy location xuống đáy card (giá sát title, location ở đáy)
+                  const Spacer(),
 
                   if (location.isNotEmpty)
                     Row(children: [

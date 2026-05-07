@@ -360,7 +360,11 @@ class _SearchTabState extends State<SearchTab> {
                         const Text('Loại đăng', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                         const SizedBox(height: 10),
                         Wrap(
+                          // Bug #001 fix: thiếu runSpacing → khi chip wrap xuống dòng
+                          // dưới (vd: "Giá giảm dần"), 2 hàng dán sát nhau visually
+                          // không có gap dọc.
                           spacing: 8,
+                          runSpacing: 8,
                           children: [
                             _FilterChip(label: 'Tất cả', selected: tmpType == null,
                                 onTap: () => setSheet(() => tmpType = null)),
@@ -377,7 +381,9 @@ class _SearchTabState extends State<SearchTab> {
                       const Text('Sắp xếp theo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 10),
                       Wrap(
+                        // Bug #001 fix: thiếu runSpacing
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           _FilterChip(label: '🕐 Mới nhất', selected: tmpSort == 'newest',
                               onTap: () => setSheet(() => tmpSort = 'newest')),

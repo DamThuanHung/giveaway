@@ -601,7 +601,10 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 0.58,
+                  // Bug #002 fix: 0.58 quá cao → ảnh:content 58:42 (ngược chuẩn ngành
+                  // Jimoty/Chợ Tốt 75:25). Tăng 0.70 → ảnh chiếm trội + content gọn,
+                  // khắc phục cảm giác "khoảng trống thừa" tester báo.
+                  childAspectRatio: 0.70,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (ctx, i) => PostCard(
