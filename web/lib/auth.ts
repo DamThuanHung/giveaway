@@ -48,7 +48,7 @@ export function clearAuth() {
   window.dispatchEvent(new Event("traotay:auth"));
 }
 
-const API_BASE =
+export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://api.traotay.com.vn";
 
 /// Authenticated fetch — tự gắn Authorization header.

@@ -39,6 +39,7 @@ model User {
   keywordAlerts      KeywordAlert[]
   bumpOrders         BumpOrder[]
   adminActions       AdminActionLog[] @relation("AdminActionLog_admin")
+  webPushSubscriptions WebPushSubscription[]
 }
 
 model Post {
@@ -284,4 +285,25 @@ model AdminActionLog {
   @@index([adminId])
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+/// Web Push subscription cho mỗi browser của user. Khác FCM (mobile native)
+/// — Web Push dùng VAPID + Push API browser. 1 user có thể có nhiều subscription
+/// (Chrome desktop + Firefox + Edge). Backend gửi push qua web-push npm với
+/// VAPID_PRIVATE_KEY ký vào header request.
+///
+/// Khi push fail với 410 Gone → endpoint expire → xóa khỏi DB (prune).
+/// Khi user logout → xóa tất cả sub của user trên browser hiện tại (theo endpoint).
+model WebPushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique // URL push service (FCM/Mozilla/Apple)
+  p256dh    String // public key client cho encryption
+  auth      String // auth secret cho encryption
+  userAgent String? // tên browser để admin debug
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

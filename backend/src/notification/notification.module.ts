@@ -9,6 +9,7 @@ import { FcmService } from '../fcm/fcm.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtStrategy } from '../auth/jwt.strategy';
 import { KeywordAlertModule } from '../keyword-alert/keyword-alert.module';
+import { WebPushModule } from '../web-push/web-push.module';
 
 /// Module gom NotificationService + Gateway + Cron + FcmService thành 1 instance
 /// duy nhất. Trước đây ChatModule và KeywordAlertModule khai báo NotificationService
@@ -26,6 +27,7 @@ import { KeywordAlertModule } from '../keyword-alert/keyword-alert.module';
       signOptions: { expiresIn: '7d' },
     }),
     forwardRef(() => KeywordAlertModule),
+    WebPushModule,
   ],
   controllers: [NotificationController],
   providers: [

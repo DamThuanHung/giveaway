@@ -31,6 +31,7 @@ import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
 import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
 import { BumpModule } from './bump/bump.module';
+import { WebPushModule } from './web-push/web-push.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { BumpModule } from './bump/bump.module';
     KeywordAlertModule,
     NotificationModule,
     BumpModule,
+    WebPushModule,
     ScheduleModule.forRoot(),
     // Rate limit default: 60 req/phút/IP cho mọi endpoint.
     // Endpoint nhạy cảm (OTP, webhook, upload) dùng @Throttle override.

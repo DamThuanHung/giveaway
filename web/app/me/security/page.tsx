@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { sendLinkEmailOtp, confirmLinkEmail } from "@/lib/auth";
+import { WebPushToggle } from "@/components/WebPushToggle";
 
 export default function SecurityPage() {
   const { user, loading: authLoading, refresh } = useAuth();
@@ -87,6 +88,8 @@ export default function SecurityPage() {
       </section>
 
       <section className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        <WebPushToggle />
+
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
           <div className="text-xs font-semibold text-ink-500 mb-1.5 tracking-wide">EMAIL CHÍNH</div>
           <div className="font-bold text-ink-900">{user.email || "—"}</div>
