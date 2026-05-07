@@ -217,7 +217,7 @@ class _BottomBarState extends State<_BottomBar> with TickerProviderStateMixin {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, -2))],
+        boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.10), blurRadius: 12, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
         top: false,

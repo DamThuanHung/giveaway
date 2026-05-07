@@ -176,7 +176,7 @@ class _FavoriteItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppTheme.border),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2)),
+            BoxShadow(color: AppTheme.primary.withOpacity(0.06), blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
         child: Row(

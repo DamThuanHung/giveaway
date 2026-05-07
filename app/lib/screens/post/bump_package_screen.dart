@@ -239,9 +239,9 @@ class _BumpPackageScreenState extends State<BumpPackageScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Chọn gói đẩy bài', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
+        title: const Text('Chọn gói đẩy bài', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF1A1A2E)),
+          icon: const Icon(Icons.close, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -343,7 +343,7 @@ class _PackageCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(pkg.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
+                      Text(pkg.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -370,7 +370,7 @@ class _PackageCard extends StatelessWidget {
                       children: [
                         const Icon(Icons.check_circle_outline, size: 14, color: AppTheme.primary),
                         const SizedBox(width: 5),
-                        Expanded(child: Text(p, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)))),
+                        Expanded(child: Text(p, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
                       ],
                     ),
                   )),
@@ -476,9 +476,9 @@ class _PayOSWebViewState extends State<PayOSWebView> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Thanh toán', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
+        title: const Text('Thanh toán', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF1A1A2E)),
+          icon: const Icon(Icons.close, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context, false),
         ),
       ),
@@ -500,7 +500,7 @@ class _PayOSWebViewState extends State<PayOSWebView> {
                     const SizedBox(height: 16),
                     Text(_loadError!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A2E))),
+                        style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: _retry,

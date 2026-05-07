@@ -439,7 +439,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.07), blurRadius: 10, offset: const Offset(0, -5))],
       ),
       child: SafeArea(
         child: isOwn

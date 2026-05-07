@@ -150,7 +150,7 @@ class _TabBtn extends StatelessWidget {
             color: selected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             boxShadow: selected
-                ? [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4, offset: const Offset(0, 1))]
+                ? [BoxShadow(color: AppTheme.primary.withOpacity(0.10), blurRadius: 4, offset: const Offset(0, 1))]
                 : [],
           ),
           child: Center(

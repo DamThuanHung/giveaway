@@ -718,7 +718,7 @@ class _InputBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, -2))],
+        boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.07), blurRadius: 8, offset: const Offset(0, -2))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -857,7 +857,7 @@ class _TypingBubbleState extends State<_TypingBubble> with TickerProviderStateMi
                 bottomRight: Radius.circular(18),
                 bottomLeft: Radius.circular(4),
               ),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.08), blurRadius: 4, offset: const Offset(0, 2))],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
