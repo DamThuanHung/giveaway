@@ -33,31 +33,41 @@ class AuthProvider with ChangeNotifier {
   Future<void> loadFromPrefs() => _tryAutoLogin();
 
   Future<void> _tryAutoLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = await TokenStorage.getToken();
+    // Bug fix: nếu TokenStorage.getToken() throw PlatformException (Android
+    // Keystore corrupt sau upgrade, một số ROM custom, hoặc EncryptedSharedPrefs
+    // init lỗi) → _isLoading vĩnh viễn true → splash treo vô tận vì SplashScreen
+    // có while(auth.isLoading) loop. Wrap try/finally đảm bảo isLoading=false
+    // luôn được set, dù bất kỳ lỗi nào xảy ra.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = await TokenStorage.getToken();
 
-    // Token expired (JWT exp claim) → xóa local, user thấy login screen
-    // thay vì empty screens do mọi API trả 401.
-    if (token != null && token.isNotEmpty && ApiService.isTokenExpired(token)) {
-      await ApiService.logout();
+      // Token expired (JWT exp claim) → xóa local, user thấy login screen
+      // thay vì empty screens do mọi API trả 401.
+      if (token != null && token.isNotEmpty && ApiService.isTokenExpired(token)) {
+        await ApiService.logout();
+        _isAuthenticated = false;
+        return;
+      }
+
+      if (token != null && token.isNotEmpty) {
+        _userId = prefs.getString('user_id');
+        _userName = prefs.getString('user_name');
+        _userEmail = prefs.getString('user_email');
+        _userAvatar = prefs.getString('user_avatar');
+        _userRole = prefs.getString('user_role');
+        _isPhoneVerified = prefs.getBool('is_phone_verified') ?? false;
+        _isAuthenticated = true;
+        _sendFcmToken();
+      }
+    } catch (e, st) {
+      debugPrint('[AuthProvider._tryAutoLogin] error: $e\n$st');
+      // Fallback: coi như user chưa login → cho user thấy login screen
       _isAuthenticated = false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return;
     }
-
-    if (token != null && token.isNotEmpty) {
-      _userId = prefs.getString('user_id');
-      _userName = prefs.getString('user_name');
-      _userEmail = prefs.getString('user_email');
-      _userAvatar = prefs.getString('user_avatar');
-      _userRole = prefs.getString('user_role');
-      _isPhoneVerified = prefs.getBool('is_phone_verified') ?? false;
-      _isAuthenticated = true;
-      _sendFcmToken();
-    }
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> _sendFcmToken() async {

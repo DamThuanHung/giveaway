@@ -101,7 +101,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
 
     final auth = context.read<AuthProvider>();
+    // Bug fix: trước đây while(isLoading) không có timeout — nếu AuthProvider
+    // bị treo (token storage throw, network slow), splash loop vô tận.
+    // Giờ cap 5s; sau đó coi như chưa login → push login screen.
+    final waitStart = DateTime.now();
     while (auth.isLoading) {
+      if (DateTime.now().difference(waitStart).inSeconds >= 5) break;
       await Future.delayed(const Duration(milliseconds: 100));
     }
     if (!mounted) return;
