@@ -30,6 +30,7 @@
 | `ACCESSIBILITY_BASELINE.md` | WCAG 2.1 AA + WAI-ARIA | Mọi UI mới |
 | `I18N_STRATEGY.md` | ICU MessageFormat + Intl API + RTL | Trước viết string đầu tiên |
 | `VENDOR_MANAGEMENT.md` | Build vs Buy + lock-in mitigation + exit strategy | Trước sign vendor mới + quarterly |
+| `UPGRADE_ROADMAP.md` | 8 upgrade trigger-based để 95% → 99% solo+AI ceiling | Quarterly review + khi đạt metric trigger |
 
 ---
 
