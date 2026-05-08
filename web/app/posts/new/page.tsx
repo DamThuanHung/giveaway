@@ -59,7 +59,34 @@ export default function NewPostPage() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Per-field error map cho inline validation (UI_UX_STANDARDS §7.3)
+  const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Validators inline — return string error nếu invalid, null nếu OK
+  const validators = {
+    title: (v: string) => v.trim().length < 5 ? 'Tiêu đề tối thiểu 5 ký tự' : null,
+    description: (v: string) => v.trim().length < 10 ? 'Mô tả tối thiểu 10 ký tự (nên 50+ để dễ giao dịch)' : null,
+    province: (v: string) => !v.trim() ? 'Chọn tỉnh/thành để người mua tìm thấy' : null,
+    price: (v: string) => {
+      if (listingType === 'give') return null;
+      const n = parseInt(v.replace(/\D/g, ''), 10);
+      if (!v || isNaN(n)) return 'Nhập giá (VNĐ)';
+      if (n < 1000) return 'Giá tối thiểu 1.000đ';
+      if (n > 999_000_000_000) return 'Giá quá lớn';
+      return null;
+    },
+  };
+
+  function validateField(name: keyof typeof validators, value: string) {
+    const e = validators[name](value);
+    setFieldErr((prev) => {
+      const next = { ...prev };
+      if (e) next[name] = e;
+      else delete next[name];
+      return next;
+    });
+  }
 
   const isRealestate = category === "realestate";
   const isService = category === "service";
@@ -152,16 +179,28 @@ export default function NewPostPage() {
     e.preventDefault();
     setErr(null);
 
-    if (title.trim().length < 5) {
-      setErr("Tiêu đề tối thiểu 5 ký tự");
-      return;
+    // Run all validators trước submit để show inline + scroll lên field đầu tiên
+    const allErrors: Record<string, string> = {};
+    const titleErr = validators.title(title);
+    if (titleErr) allErrors.title = titleErr;
+    const descErr = validators.description(description);
+    if (descErr) allErrors.description = descErr;
+    const provErr = validators.province(province);
+    if (provErr) allErrors.province = provErr;
+    if (!isSpecial && listingType !== 'give') {
+      const priceE = validators.price(priceText);
+      if (priceE) allErrors.price = priceE;
     }
-    if (description.trim().length < 10) {
-      setErr("Mô tả tối thiểu 10 ký tự");
-      return;
-    }
-    if (!province.trim()) {
-      setErr("Chọn tỉnh/thành");
+    if (Object.keys(allErrors).length > 0) {
+      setFieldErr(allErrors);
+      setErr("Vui lòng sửa các lỗi đỏ phía trên");
+      // Scroll lên field đầu tiên có error
+      const first = ['title', 'description', 'price', 'province'].find((k) => allErrors[k]);
+      if (first && typeof window !== 'undefined') {
+        const el = document.querySelector(`[aria-describedby="${first}-err"]`) as HTMLElement | null;
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus();
+      }
       return;
     }
     if (images.length === 0) {
@@ -321,16 +360,28 @@ export default function NewPostPage() {
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value.slice(0, 100))}
+              onChange={(e) => {
+                setTitle(e.target.value.slice(0, 100));
+                if (fieldErr.title) validateField('title', e.target.value);
+              }}
+              onBlur={(e) => validateField('title', e.target.value)}
+              aria-invalid={!!fieldErr.title}
+              aria-describedby={fieldErr.title ? 'title-err' : undefined}
               placeholder={
                 isRealestate ? "VD: Cho thuê căn hộ 2PN Cầu Giấy 8.5tr/tháng"
                 : isService ? "VD: Sửa chữa điều hòa tại nhà — Quận 1"
                 : isJob ? "VD: Tuyển nhân viên kế toán — Hà Nội"
                 : "VD: Tủ lạnh Toshiba 200L cũ còn dùng tốt"
               }
-              className={inputCls}
+              className={`${inputCls} ${fieldErr.title ? '!border-red-500 !ring-red-200' : ''}`}
             />
-            <p className="text-xs text-ink-400 mt-1">{title.length}/100 ký tự</p>
+            {fieldErr.title ? (
+              <p id="title-err" role="alert" className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <span aria-hidden="true">⚠️</span> {fieldErr.title}
+              </p>
+            ) : (
+              <p className="text-xs text-ink-400 mt-1">{title.length}/100 ký tự</p>
+            )}
           </div>
 
           <div>
@@ -339,7 +390,13 @@ export default function NewPostPage() {
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
+              onChange={(e) => {
+                setDescription(e.target.value.slice(0, 2000));
+                if (fieldErr.description) validateField('description', e.target.value);
+              }}
+              onBlur={(e) => validateField('description', e.target.value)}
+              aria-invalid={!!fieldErr.description}
+              aria-describedby={fieldErr.description ? 'desc-err' : undefined}
               rows={6}
               placeholder={
                 isRealestate ? "Mô tả nội thất, hướng, tiện ích xung quanh, điều kiện thuê..."
@@ -347,9 +404,15 @@ export default function NewPostPage() {
                 : isJob ? "Mô tả công việc, yêu cầu, quyền lợi, thời gian làm việc..."
                 : "Mô tả tình trạng, kích thước, lý do bán/tặng, tình trạng còn dùng tốt..."
               }
-              className={inputCls}
+              className={`${inputCls} ${fieldErr.description ? '!border-red-500 !ring-red-200' : ''}`}
             />
-            <p className="text-xs text-ink-400 mt-1">{description.length}/2000 ký tự</p>
+            {fieldErr.description ? (
+              <p id="desc-err" role="alert" className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <span aria-hidden="true">⚠️</span> {fieldErr.description}
+              </p>
+            ) : (
+              <p className="text-xs text-ink-400 mt-1">{description.length}/2000 ký tự</p>
+            )}
           </div>
 
           {/* Giá item thường — chỉ hiện khi item & sell */}
@@ -607,13 +670,24 @@ export default function NewPostPage() {
               type="text"
               list="provinces"
               value={province}
-              onChange={(e) => setProvince(e.target.value)}
+              onChange={(e) => {
+                setProvince(e.target.value);
+                if (fieldErr.province) validateField('province', e.target.value);
+              }}
+              onBlur={(e) => validateField('province', e.target.value)}
+              aria-invalid={!!fieldErr.province}
+              aria-describedby={fieldErr.province ? 'province-err' : undefined}
               placeholder="VD: Hà Nội"
-              className={inputCls}
+              className={`${inputCls} ${fieldErr.province ? '!border-red-500 !ring-red-200' : ''}`}
             />
             <datalist id="provinces">
               {TOP_PROVINCES.map((p) => <option key={p} value={p} />)}
             </datalist>
+            {fieldErr.province && (
+              <p id="province-err" role="alert" className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <span aria-hidden="true">⚠️</span> {fieldErr.province}
+              </p>
+            )}
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
