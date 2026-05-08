@@ -33,6 +33,14 @@ export async function generateMetadata({
 
   const desc = post.description.slice(0, 160).replace(/\n/g, " ");
   const url = `https://traotay.com.vn/posts/${post.id}/`;
+  // OG banner pre-generated bởi scripts/generate-og-images.mjs sau next build.
+  // Fallback raw imageUrl nếu OG chưa generate (lần đầu post mới đăng,
+  // chưa qua cron rebuild 1h).
+  const ogBanner = `https://traotay.com.vn/og/${post.id}.png`;
+  const ogImages = [
+    { url: ogBanner, width: 1200, height: 630, alt: post.title },
+    ...(post.imageUrl ? [{ url: post.imageUrl, alt: post.title }] : []),
+  ];
 
   return {
     title: `${post.title} — ${formatPrice(post.price)} · ${post.province}`,
@@ -42,15 +50,16 @@ export async function generateMetadata({
       title: post.title,
       description: desc,
       url,
-      images: post.imageUrl ? [post.imageUrl] : [],
+      images: ogImages,
       type: "article",
       locale: "vi_VN",
+      siteName: "Trao Tay",
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: desc,
-      images: post.imageUrl ? [post.imageUrl] : [],
+      images: [ogBanner],
     },
   };
 }

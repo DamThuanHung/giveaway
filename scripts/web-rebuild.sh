@@ -63,5 +63,22 @@ ELAPSED=$(($(date +%s) - START))
 PAGE_COUNT=$(find out -name "*.html" 2>/dev/null | wc -l)
 log "✓ Build success in ${ELAPSED}s — $PAGE_COUNT HTML pages"
 
+# Generate OG images cho mỗi post — pre-render banner cho social share
+# Tham khảo web/scripts/generate-og-images.mjs (web-first acquisition phase 1).
+# Fail soft: nếu OG generation lỗi, HTML vẫn serve được, og:image fallback raw.
+log "Generating OG images..."
+OG_START=$(date +%s)
+set +e
+node scripts/generate-og-images.mjs 2>&1 | tee -a "$LOG_FILE"
+OG_EXIT=${PIPESTATUS[0]}
+set -e
+OG_ELAPSED=$(($(date +%s) - OG_START))
+if [ "$OG_EXIT" != "0" ]; then
+  log "WARN: OG image generation failed (exit $OG_EXIT) — pages vẫn build OK, share preview dùng raw image fallback"
+else
+  OG_COUNT=$(find out/og -name "*.png" 2>/dev/null | wc -l)
+  log "✓ OG generated in ${OG_ELAPSED}s — $OG_COUNT banners"
+fi
+
 # Nginx serve trực tiếp out/ — không cần reload (no-cache cho HTML/.txt files)
 log "=== Web rebuild done ==="

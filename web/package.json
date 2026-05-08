@@ -4,16 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/generate-og-images.mjs",
+    "build:next-only": "next build",
+    "build:og": "node scripts/generate-og-images.mjs",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/leaflet": "^1.9.21",
     "leaflet": "^1.9.4",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",
+    "satori": "^0.26.0",
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
