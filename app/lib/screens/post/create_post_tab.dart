@@ -186,6 +186,8 @@ class _CreatePostTabState extends State<CreatePostTab> {
     }
 
     setState(() => _isSubmitting = true);
+    // Haptic light impact theo UI_UX_STANDARDS §8.5 — confirm submit action
+    HapticFeedback.lightImpact();
 
     final postData = {
       'title': _titleController.text.trim(),

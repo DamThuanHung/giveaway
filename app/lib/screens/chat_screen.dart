@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // HapticFeedback theo UI_UX_STANDARDS §8.5
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
@@ -328,6 +329,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty || _myId == null) return;
 
     _typingTimer?.cancel();
+    // Haptic light feedback theo UI_UX_STANDARDS §8.5 — confirm send action
+    HapticFeedback.lightImpact();
     // Server lấy senderId từ JWT, không gửi từ client để chống impersonate
     _socket?.emit('sendMessage', {
       'roomId': widget.roomId,

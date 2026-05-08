@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // HapticFeedback theo UI_UX_STANDARDS §8.5
 import '../../models/post.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
@@ -112,6 +113,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       ),
     );
     if (confirm != true) return;
+    // Haptic medium impact theo UI_UX_STANDARDS §8.5 — confirm destructive action
+    HapticFeedback.mediumImpact();
     final ok = await ApiService.deletePost(id);
     if (!mounted) return;
     if (ok) {
