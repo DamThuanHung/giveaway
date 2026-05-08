@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // HapticFeedback theo UI_UX_STANDARDS §8.5
 import 'package:provider/provider.dart';
 import '../models/post.dart';
 import '../providers/auth_provider.dart';
@@ -52,9 +53,27 @@ class FavoritesTabState extends State<FavoritesTab> {
   }
 
   Future<void> _removeAndReload(String userId, String postId) async {
-    // Xóa local ngay lập tức cho cảm giác nhanh
+    // OPTIMISTIC UI: xóa local ngay lập tức cho cảm giác nhanh
+    final removed = _posts.where((p) => p.id == postId).toList();
     setState(() => _posts.removeWhere((p) => p.id == postId));
-    await ApiService.removeFavorite(userId, postId);
+    HapticFeedback.lightImpact();
+
+    try {
+      final ok = await ApiService.removeFavorite(userId, postId);
+      if (ok == false) throw Exception('API returned false');
+    } catch (e) {
+      // ROLLBACK: thêm lại post + báo user
+      if (!mounted) return;
+      setState(() => _posts.addAll(removed));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không bỏ lưu được, đã hoàn tác'),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override

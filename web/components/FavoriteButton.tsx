@@ -60,6 +60,10 @@ export function FavoriteButton({ postId, size = "md", className = "" }: Props) {
   const router = useRouter();
   const [active, setActive] = useState(false);
   const [pending, setPending] = useState(false);
+  // Pulse animation key — change → re-trigger CSS animation
+  const [pulseKey, setPulseKey] = useState(0);
+  // Rollback flash — show "Không lưu được, đã hoàn tác" inline ngắn
+  const [rollbackMsg, setRollbackMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setActive(isFavorited(postId));
@@ -75,26 +79,36 @@ export function FavoriteButton({ postId, size = "md", className = "" }: Props) {
       router.push(`/login/?next=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
+    // KHÔNG block rapid click — chỉ guard duplicate inflight với flag pending,
+    // nhưng vẫn cho UI react ngay (optimistic). Nếu user spam click, AbortController
+    // sẽ nice-to-have sau (G-04 microinteractions sprint 2).
     if (pending) return;
+
     const wasActive = active;
-    setActive(!wasActive); // optimistic
+    // OPTIMISTIC: update UI + cache ngay, KHÔNG đợi server
+    setActive(!wasActive);
+    setPulseKey((k) => k + 1); // trigger pulse animation
+    const cache = loadCache();
+    if (wasActive) cache.delete(postId);
+    else cache.add(postId);
+    saveCache();
+
     setPending(true);
     try {
       const res = await authFetch("/favorite", {
         method: wasActive ? "DELETE" : "POST",
         body: JSON.stringify({ postId }),
       });
-      if (!res.ok) {
-        // Revert
-        setActive(wasActive);
-        return;
-      }
-      const cache = loadCache();
-      if (wasActive) cache.delete(postId);
-      else cache.add(postId);
-      saveCache();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
     } catch {
+      // ROLLBACK: revert UI + cache
       setActive(wasActive);
+      const c = loadCache();
+      if (wasActive) c.add(postId);
+      else c.delete(postId);
+      saveCache();
+      setRollbackMsg(wasActive ? "Không bỏ lưu được" : "Không lưu được");
+      setTimeout(() => setRollbackMsg(null), 2500);
     } finally {
       setPending(false);
     }
@@ -104,13 +118,30 @@ export function FavoriteButton({ postId, size = "md", className = "" }: Props) {
     size === "sm" ? "w-8 h-8 text-base" : size === "lg" ? "w-12 h-12 text-2xl" : "w-10 h-10 text-xl";
 
   return (
-    <button
-      onClick={toggle}
-      disabled={pending}
-      aria-label={active ? "Bỏ khỏi đã lưu" : "Lưu bài"}
-      className={`${sizeClass} ${className} flex items-center justify-center rounded-full bg-white/95 hover:bg-white border border-gray-200 shadow-sm hover:shadow transition disabled:opacity-50 ${active ? "text-rose-500" : "text-gray-400 hover:text-rose-500"}`}
-    >
-      {active ? "❤️" : "🤍"}
-    </button>
+    <div className="relative inline-block">
+      <button
+        onClick={toggle}
+        aria-label={active ? "Bỏ khỏi đã lưu" : "Lưu bài"}
+        aria-pressed={active}
+        className={`${sizeClass} ${className} flex items-center justify-center rounded-full bg-white/95 hover:bg-white border border-gray-200 shadow-sm hover:shadow transition active:scale-90 ${active ? "text-rose-500" : "text-gray-400 hover:text-rose-500"}`}
+      >
+        <span
+          key={pulseKey}
+          className={active && pulseKey > 0 ? "fav-pulse" : ""}
+          aria-hidden="true"
+        >
+          {active ? "❤️" : "🤍"}
+        </span>
+      </button>
+      {rollbackMsg && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="absolute top-full mt-1 right-0 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded shadow-lg whitespace-nowrap z-10 animate-fade-in"
+        >
+          {rollbackMsg}
+        </div>
+      )}
+    </div>
   );
 }

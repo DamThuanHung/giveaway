@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // HapticFeedback theo UI_UX_STANDARDS §8.5
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -270,6 +271,8 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth || auth.userId == null) return;
     final isFav = _favoriteIds.contains(postId);
+
+    // OPTIMISTIC UI: update state ngay, KHÔNG đợi server
     setState(() {
       if (isFav) {
         _favoriteIds.remove(postId);
@@ -277,10 +280,32 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         _favoriteIds.add(postId);
       }
     });
-    if (isFav) {
-      await ApiService.removeFavorite(auth.userId!, postId);
-    } else {
-      await ApiService.addFavorite(auth.userId!, postId);
+    // Haptic feedback theo UI_UX_STANDARDS §8.5 (light impact cho action thường)
+    HapticFeedback.lightImpact();
+
+    try {
+      final ok = isFav
+          ? await ApiService.removeFavorite(auth.userId!, postId)
+          : await ApiService.addFavorite(auth.userId!, postId);
+      if (ok == false) throw Exception('API returned false');
+    } catch (e) {
+      // ROLLBACK: revert state + báo user
+      if (!mounted) return;
+      setState(() {
+        if (isFav) {
+          _favoriteIds.add(postId);
+        } else {
+          _favoriteIds.remove(postId);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isFav ? 'Không bỏ lưu được, đã hoàn tác' : 'Không lưu được, đã hoàn tác'),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -503,32 +528,15 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         itemBuilder: (ctx, i) {
           final post = _followFeed[i];
           final isFav = _favoriteIds.contains(post.id);
-          final auth = context.read<AuthProvider>();
           return PostCard(
             post: post,
             isFavorite: isFav,
-            onToggleFavorite: () async {
-              if (isFav) {
-                await ApiService.removeFavorite(auth.userId!, post.id);
-                setState(() => _favoriteIds.remove(post.id));
-              } else {
-                await ApiService.addFavorite(auth.userId!, post.id);
-                setState(() => _favoriteIds.add(post.id));
-              }
-            },
+            onToggleFavorite: () => _toggleFavorite(post.id),
             onTap: () => Navigator.push(ctx, MaterialPageRoute(
               builder: (_) => PostDetailScreen(
                 post: post,
                 isFavorite: isFav,
-                onToggleFavorite: () async {
-                  if (isFav) {
-                    await ApiService.removeFavorite(auth.userId!, post.id);
-                    setState(() => _favoriteIds.remove(post.id));
-                  } else {
-                    await ApiService.addFavorite(auth.userId!, post.id);
-                    setState(() => _favoriteIds.add(post.id));
-                  }
-                },
+                onToggleFavorite: () => _toggleFavorite(post.id),
               ),
             )),
           );
