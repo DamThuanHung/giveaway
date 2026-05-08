@@ -134,10 +134,20 @@ export class PostService {
       where.longitude = { gte: query.lng - lngDelta, lte: query.lng + lngDelta };
     }
 
+    // Sort 3 tầng cho default (newest):
+    // 1. boostTier DESC → VIP(3) > Plus(2) > Standard(0). Tier tuyệt đối:
+    //    Plus dù bump mới hơn cũng KHÔNG vượt được VIP.
+    // 2. bumpedAt DESC nulls last → trong cùng tier, ai bump mới hơn lên trước.
+    // 3. createdAt DESC → fallback theo ngày đăng.
+    // Sort theo giá: bỏ qua tier để user filter giá thấy đủ kết quả.
     const orderBy: any =
       query.sortBy === 'price_asc' ? { price: 'asc' } :
       query.sortBy === 'price_desc' ? { price: 'desc' } :
-      [{ bumpedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }];
+      [
+        { boostTier: 'desc' },
+        { bumpedAt: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+      ];
 
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
