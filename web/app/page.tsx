@@ -84,7 +84,7 @@ export default async function HomePage() {
                 href="https://play.google.com/store/apps/details?id=vn.traotay.app"
                 target="_blank"
                 rel="noopener"
-                className="bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3.5 rounded-md shadow-card hover:shadow-elevated transition duration-250 ease-warm flex items-center gap-2"
+                className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-semibold px-6 py-3.5 rounded-md shadow-card hover:shadow-elevated transition duration-250 ease-warm flex items-center gap-2"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>
                 Tải trên Google Play

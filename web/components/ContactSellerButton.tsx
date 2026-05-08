@@ -44,7 +44,7 @@ export function ContactSellerButton({ postId, sellerId, postTitle }: Props) {
     <button
       onClick={onClick}
       disabled={pending || loading}
-      className="flex-1 bg-primary hover:bg-primary-dark text-white text-center font-bold py-3.5 rounded-xl transition disabled:opacity-50"
+      className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-center font-bold py-3.5 rounded-xl transition disabled:opacity-50"
     >
       {pending ? "Đang mở..." : "💬 Nhắn người bán"}
     </button>

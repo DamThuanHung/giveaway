@@ -117,7 +117,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
           >
             {loading ? "Đang gửi..." : "Gửi mã OTP"}
           </button>
@@ -154,7 +154,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
           >
             {loading ? "Đang xác minh..." : "Xác nhận"}
           </button>

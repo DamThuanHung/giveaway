@@ -119,7 +119,7 @@ export default function NotificationsPage() {
             <button
               onClick={onMarkAll}
               disabled={marking}
-              className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
+              className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
             >
               {marking ? "Đang đánh dấu..." : "Đánh dấu đã đọc tất cả"}
             </button>

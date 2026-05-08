@@ -276,7 +276,7 @@ function ChatRoomInner() {
               <button
                 type="submit"
                 disabled={!text.trim() || sending}
-                className="bg-primary hover:bg-primary-dark text-white font-semibold px-5 py-2.5 rounded-full shadow-soft hover:shadow-card disabled:opacity-50 transition duration-150 ease-warm"
+                className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-semibold px-5 py-2.5 rounded-full shadow-soft hover:shadow-card disabled:opacity-50 transition duration-150 ease-warm"
               >
                 {sending ? "..." : "Gửi"}
               </button>

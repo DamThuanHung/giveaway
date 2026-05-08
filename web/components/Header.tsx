@@ -42,7 +42,7 @@ export function Header() {
               href="https://play.google.com/store/apps/details?id=vn.traotay.app"
               target="_blank"
               rel="noopener"
-              className="hidden md:inline-flex bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
+              className="hidden md:inline-flex bg-primary hover:bg-primary-dark active:scale-[0.97] text-white px-4 py-2 rounded-md font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
             >
               Tải app
             </a>
@@ -102,7 +102,7 @@ export function Header() {
                 href="https://play.google.com/store/apps/details?id=vn.traotay.app"
                 target="_blank"
                 rel="noopener"
-                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white text-center font-semibold px-4 py-3 rounded-md shadow-soft transition duration-250 ease-warm"
+                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-center font-semibold px-4 py-3 rounded-md shadow-soft transition duration-250 ease-warm"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>
                 Tải app Android

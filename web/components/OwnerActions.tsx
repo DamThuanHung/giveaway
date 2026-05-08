@@ -89,7 +89,7 @@ export function OwnerActions({ postId, authorId, status, postTitle }: Props) {
           {canReview && (
             <button
               onClick={() => setShowReview(true)}
-              className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               ⭐ Đánh giá đối tác
             </button>
@@ -191,7 +191,7 @@ function BumpModal({ postId, postTitle, onClose }: { postId: string; postTitle: 
         <button
           onClick={onConfirm}
           disabled={pending}
-          className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-lg disabled:opacity-60"
+          className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-3 rounded-lg disabled:opacity-60"
         >
           {pending ? "Đang tạo đơn..." : "Thanh toán"}
         </button>
@@ -329,7 +329,7 @@ function ReviewModal({ postId, postTitle, onClose }: { postId: string; postTitle
         <button
           onClick={onSubmit}
           disabled={pending}
-          className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-lg disabled:opacity-60"
+          className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-3 rounded-lg disabled:opacity-60"
         >
           {pending ? "Đang gửi..." : "Gửi đánh giá"}
         </button>
@@ -394,7 +394,7 @@ function MarkDoneModal({ postId, postTitle, onClose }: { postId: string; postTit
         <button
           onClick={onConfirm}
           disabled={pending}
-          className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-lg disabled:opacity-60"
+          className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-3 rounded-lg disabled:opacity-60"
         >
           {pending ? "Đang xử lý..." : "Xác nhận"}
         </button>

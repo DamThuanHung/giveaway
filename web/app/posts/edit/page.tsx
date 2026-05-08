@@ -597,7 +597,7 @@ function EditPostInner() {
             <Link href={`/posts/${postId}/`} className="flex-1 text-center bg-ink-100 hover:bg-ink-200 text-ink-800 font-semibold py-4 rounded-md transition duration-150 ease-warm">
               Hủy
             </Link>
-            <button type="submit" disabled={submitting} className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm">
+            <button type="submit" disabled={submitting} className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm">
               {submitting ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
           </div>

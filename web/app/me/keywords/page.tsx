@@ -98,7 +98,7 @@ export default function KeywordAlertsPage() {
             <button
               type="submit"
               disabled={pending || !input.trim()}
-              className="bg-primary hover:bg-primary-dark text-white font-bold px-5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
+              className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
             >
               {pending ? "..." : "Thêm"}
             </button>

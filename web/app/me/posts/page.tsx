@@ -82,7 +82,7 @@ export default function MyPostsPage() {
           </div>
           <Link
             href="/posts/new/"
-            className="bg-primary hover:bg-primary-dark text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+            className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
           >
             + Đăng tin mới
           </Link>

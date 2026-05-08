@@ -741,7 +741,7 @@ export default function NewPostPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm"
+            className="w-full bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold py-4 rounded-md text-lg shadow-card hover:shadow-elevated disabled:opacity-60 transition duration-250 ease-warm"
           >
             {submitting ? "Đang đăng..." : "Đăng tin ngay"}
           </button>

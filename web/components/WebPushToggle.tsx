@@ -90,7 +90,7 @@ export function WebPushToggle() {
         <button
           onClick={onEnable}
           disabled={busy}
-          className="bg-primary hover:bg-primary-dark text-white font-semibold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
+          className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-semibold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-60"
         >
           {busy ? "Đang bật..." : "🔔 Bật thông báo"}
         </button>

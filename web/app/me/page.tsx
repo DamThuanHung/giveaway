@@ -121,7 +121,7 @@ export default function MePage() {
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute bottom-0 right-0 bg-primary hover:bg-primary-dark text-white w-9 h-9 rounded-full shadow-card flex items-center justify-center text-sm transition duration-150 ease-warm disabled:opacity-50"
+                className="absolute bottom-0 right-0 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white w-9 h-9 rounded-full shadow-card flex items-center justify-center text-sm transition duration-150 ease-warm disabled:opacity-50"
                 aria-label="Đổi ảnh đại diện"
               >
                 {uploadingAvatar ? "…" : "📷"}
@@ -156,7 +156,7 @@ export default function MePage() {
                   <button
                     onClick={saveName}
                     disabled={savingName}
-                    className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-3 py-1.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
+                    className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-sm font-semibold px-3 py-1.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm disabled:opacity-50"
                   >
                     {savingName ? "..." : "Lưu"}
                   </button>
@@ -248,7 +248,7 @@ export default function MePage() {
           </h2>
           <Link
             href="/posts/new/"
-            className="bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+            className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-sm font-semibold px-4 py-2 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
           >
             + Đăng bài mới
           </Link>
@@ -269,7 +269,7 @@ export default function MePage() {
             </p>
             <Link
               href="/posts/new/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+              className="inline-block bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
             >
               Đăng bài đầu tiên
             </Link>
