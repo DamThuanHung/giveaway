@@ -24,6 +24,12 @@
 | `AI_COLLABORATION_RULES.md` | User-side AI playbook | User đọc khi prompt/review AI |
 | `DOCUMENTATION_STANDARDS.md` | Keep a Changelog + OpenAPI + ADR | Trước viết doc/comment/README |
 | `PERFORMANCE_AND_FINOPS.md` | Core Web Vitals + Google SRE + FinOps Foundation | Trước launch + monthly review |
+| `API_DESIGN_GUIDELINES.md` | Microsoft REST + Stripe + GraphQL best practices | Trước thiết kế endpoint mới |
+| `BRANCHING_RELEASE_STRATEGY.md` | Trunk-based / GitHub Flow / Git Flow + semver | Setup buổi 1 + mỗi release |
+| `DB_MIGRATION_POLICY.md` | Forward-only + zero-downtime patterns | Mỗi schema change |
+| `ACCESSIBILITY_BASELINE.md` | WCAG 2.1 AA + WAI-ARIA | Mọi UI mới |
+| `I18N_STRATEGY.md` | ICU MessageFormat + Intl API + RTL | Trước viết string đầu tiên |
+| `VENDOR_MANAGEMENT.md` | Build vs Buy + lock-in mitigation + exit strategy | Trước sign vendor mới + quarterly |
 
 ---
 

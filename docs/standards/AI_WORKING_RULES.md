@@ -265,6 +265,86 @@ Nếu < 80% liên tục 2 tuần → cảnh báo user + đề xuất tăng enfor
 
 ## 9. Decision Discipline
 
+### 9.0 Long-term thinking — BẮT BUỘC mọi đề xuất
+
+**Mọi đề xuất, lựa chọn, code design phải đánh giá theo tổng thể + tương
+lai lâu dài của dự án. CẤM tạm thời / quick-win mà tạo tech debt.**
+
+Mỗi đề xuất phải trả lời 5 câu trước khi đưa ra:
+
+1. **Scale 10x — 100x:** giải pháp này còn dùng được khi user/data scale
+   gấp 10/100 lần không?
+2. **Maintain 3 năm sau:** ai đó (hoặc thần ở session khác) đọc lại sau
+   3 năm có hiểu không? Cost maintain như thế nào?
+3. **Tech debt:** giải pháp này tạo debt phải trả sau không? Nếu có,
+   cost trả debt vs benefit ngắn hạn?
+4. **Reversibility:** quyết định này dễ revert không? Nếu hard-to-reverse
+   (lock-in vendor, schema migration, public API), có ADR + alternative?
+5. **Strategic fit:** align với mục tiêu dự án (PROJECT_BRIEFING) không,
+   hay chỉ fix 1 issue cục bộ?
+
+### 9.0.1 Cấm tạm thời pattern
+
+❌ **CẤM:**
+- "Tạm thời hardcode, refactor sau" (sau = never)
+- "Quick fix bypass validation, fix proper sau"
+- "Skip test vì gấp, viết sau"
+- "Dùng vendor X cho nhanh dù lock-in cao"
+- "Schema migration accept-data-loss vì rebuild sau dễ"
+- "Comment // TODO: handle later"
+- "Copy-paste 3 lần, abstract sau"
+- "Disable hook vì annoying, fix sau"
+
+✅ **THAY VÀO:**
+- Đề xuất giải pháp đủ tốt cho 12-24 tháng tới
+- Nếu phải tạm thời → ghi rõ trigger revisit + deadline cứng + tạo ADR
+- Nếu phải skip discipline → ghi vào RISK_REGISTER với mitigation plan
+
+### 9.0.2 Format đề xuất chuẩn
+
+Mọi đề xuất ≥ M-size (theo DEFINITION_OF_READY_DONE) phải có:
+
+```markdown
+## Đề xuất: <title>
+
+### Context
+<vấn đề + ràng buộc>
+
+### Option đầy đủ + đúng (default)
+<implementation chi tiết>
+- Long-term fit: ✅/⚠️/❌
+- Scale 10x: ✅/⚠️/❌
+- Maintain cost: low/medium/high
+- Tech debt: none/manageable/significant
+- Reversibility: easy/medium/hard
+- Strategic fit: ✅/⚠️/❌
+
+### Option B — tradeoff (nếu có)
+<faster but with trade-off rõ>
+- Trade-off cụ thể
+- Trigger để upgrade lên option default
+- Deadline upgrade (cứng, không slip)
+
+### Recommendation
+<chọn option default trừ khi user có lý do khẩn cấp>
+```
+
+### 9.0.3 Khi user yêu cầu "làm nhanh"
+
+User: "làm nhanh đi cho xong"
+
+Thần KHÔNG được:
+- Skip test
+- Skip ADR
+- Hardcode magic value
+- Bypass enforcement hooks
+
+Thần phải:
+- Hỏi rõ: "trade-off A hay B" với options đã thấy long-term cost
+- Nếu user vẫn yêu cầu shortcut → ghi vào RISK_REGISTER + ADR "tech debt"
+- Estimate cost trả debt sau (man-hour, $, opportunity cost)
+- KHÔNG silently take shortcut và claim done
+
 ### 9.1 Khi không chắc
 - Nói thẳng "tôi chưa chắc, cần kiểm tra thêm"
 - Đào source/log trước khi kết luận
