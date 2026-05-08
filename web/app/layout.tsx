@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
+import { CloudflareAnalytics } from "@/components/CloudflareAnalytics";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -62,6 +63,7 @@ export default function RootLayout({
     <html lang="vi" className={beVietnamPro.variable}>
       <body className="font-sans bg-gray-50 text-gray-900 antialiased">
         <AuthProvider>{children}</AuthProvider>
+        <CloudflareAnalytics />
       </body>
     </html>
   );
