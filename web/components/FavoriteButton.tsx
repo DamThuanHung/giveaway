@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { authFetch } from "@/lib/auth";
+import { Tooltip } from "./Tooltip";
 
 const FAV_CACHE_KEY = "traotay_favorites";
 
@@ -118,7 +119,7 @@ export function FavoriteButton({ postId, size = "md", className = "" }: Props) {
     size === "sm" ? "w-8 h-8 text-base" : size === "lg" ? "w-12 h-12 text-2xl" : "w-10 h-10 text-xl";
 
   return (
-    <div className="relative inline-block">
+    <Tooltip content={active ? "Bỏ khỏi đã lưu" : "Lưu bài để xem sau"} position="top">
       <button
         onClick={toggle}
         aria-label={active ? "Bỏ khỏi đã lưu" : "Lưu bài"}
@@ -132,16 +133,16 @@ export function FavoriteButton({ postId, size = "md", className = "" }: Props) {
         >
           {active ? "❤️" : "🤍"}
         </span>
+        {rollbackMsg && (
+          <span
+            role="alert"
+            aria-live="polite"
+            className="absolute top-full mt-1 right-0 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded shadow-lg whitespace-nowrap z-10 animate-fade-in"
+          >
+            {rollbackMsg}
+          </span>
+        )}
       </button>
-      {rollbackMsg && (
-        <div
-          role="alert"
-          aria-live="polite"
-          className="absolute top-full mt-1 right-0 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded shadow-lg whitespace-nowrap z-10 animate-fade-in"
-        >
-          {rollbackMsg}
-        </div>
-      )}
-    </div>
+    </Tooltip>
   );
 }

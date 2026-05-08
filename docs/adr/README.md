@@ -13,6 +13,9 @@ Xem `docs/standards/ADR_TEMPLATE.md` cho template chi tiết.
 | 0004 | [Design System v2 — Vietnamese Warm Minimal](0004-design-system-v2-warm-minimal.md) | Accepted (backfill) | 2026-05-08 |
 | 0005 | [Web Push notification — VAPID + Service Worker](0005-web-push-vapid.md) | Accepted | 2026-05-07 |
 | 0006 | [Post sort 3 tầng — VIP > Plus > Standard tuyệt đối](0006-post-sort-tier-absolute.md) | Accepted | 2026-05-08 |
+| 0007 | [Defer Dark Mode tới Stage 2 GA](0007-defer-dark-mode.md) | Accepted | 2026-05-08 |
+| 0008 | [Defer Atomic Design folder refactor tới >30 reusable components](0008-defer-atomic-design-refactor.md) | Accepted | 2026-05-08 |
+| 0009 | [Defer Usability Testing 5-user tới Stage 2 + Recruit Strategy](0009-defer-usability-testing-5-user.md) | Accepted | 2026-05-08 |
 
 ## Workflow tạo ADR mới
 
