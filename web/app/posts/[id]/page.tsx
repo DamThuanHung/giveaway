@@ -17,6 +17,7 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { PostMap } from "@/components/PostMap";
 import { ContactSellerButton } from "@/components/ContactSellerButton";
 import { OwnerActions } from "@/components/OwnerActions";
+import { PostImageGallery } from "@/components/PostImageGallery";
 
 export async function generateStaticParams() {
   return await fetchAllPostIds();
@@ -119,34 +120,11 @@ export default async function PostDetailPage({
         <div className="grid md:grid-cols-[1.6fr_1fr] gap-6 md:gap-8">
           {/* ─── Left: images + description ───────────────────────── */}
           <div>
-            <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden mb-3">
-              {post.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={post.imageUrl}
-                  alt={post.title}
-                  className="w-full aspect-square object-cover"
-                />
-              ) : (
-                <div className="aspect-square flex items-center justify-center text-7xl text-ink-300 bg-cream-100">
-                  📦
-                </div>
-              )}
-            </div>
-
-            {post.images && post.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {post.images.slice(0, 8).map((img, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={i}
-                    src={img}
-                    alt={`${post.title} ${i + 1}`}
-                    className="w-full aspect-square object-cover rounded-md border border-ink-200/70 hover:border-primary/60 transition duration-150 ease-warm"
-                  />
-                ))}
-              </div>
-            )}
+            <PostImageGallery
+              images={post.images ?? []}
+              imageUrl={post.imageUrl}
+              title={post.title}
+            />
 
             <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5 md:p-6 mb-5">
               <h2 className="font-bold text-ink-900 mb-3 text-lg tracking-tight">Mô tả</h2>
