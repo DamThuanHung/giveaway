@@ -43,10 +43,15 @@ app/macos/Pods/
 # Firebase service account key (bí mật, không push lên git)
 backend/firebase-service-account.json
 
-# AI memory (session cục bộ) — ignore mọi file trừ shared hook/settings
+# AI memory (session cục bộ) — ignore mọi file trừ shared hook/settings/commands
 .claude/*
 !.claude/check-commit-evidence.sh
+!.claude/check-schema-adr.sh
+!.claude/check-deploy-readiness.sh
+!.claude/inject-deploy-reminder.sh
 !.claude/settings.json
+!.claude/commands/
+!.claude/commands/**
 plans/
 
 # Logs

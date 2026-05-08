@@ -11,10 +11,16 @@
       {
         "matcher": "Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/check-commit-evidence.sh"
-          }
+          { "type": "command", "command": "bash .claude/check-commit-evidence.sh" },
+          { "type": "command", "command": "bash .claude/check-schema-adr.sh" },
+          { "type": "command", "command": "bash .claude/check-deploy-readiness.sh" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash .claude/inject-deploy-reminder.sh" }
         ]
       }
     ]

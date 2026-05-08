@@ -28,6 +28,8 @@ Mỗi session mới, PHẢI đọc theo thứ tự:
 | 8 | `docs/modules/<tên>.md` | Khi làm việc với module cụ thể |
 | 9 | `docs/PRODUCTION_CHECKLIST.md` | BẮT BUỘC đọc trước mọi thao tác liên quan deploy/VPS/security |
 | 10 | `docs/AWS_SETUP.md` | Click-by-click setup AWS EC2 free tier khi user ready deploy |
+| 11 | `docs/TEST_PROTOCOL.md` | BẮT BUỘC đọc trước khi claim "done" — 5 mức test pyramid + checklist verify production |
+| 12 | `docs/standards/README.md` | Bộ 10 file enterprise-grade (Inception Deck, ADR, DoR/DoD, Security, Observability, DR, Risk, Compliance, Incident Runbook) |
 
 ---
 

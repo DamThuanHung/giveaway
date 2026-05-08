@@ -1,0 +1,128 @@
+name: Standards Check
+
+# Block PR merge nếu vi phạm standards trong docs/standards/
+# Layer 3 enforcement — không bypass được như local hooks.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  schema-requires-adr:
+    name: Schema change requires ADR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect schema/migration changes
+        id: schema
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          changed=$(git diff --name-only "$base..$head" | grep -E '(prisma/schema\.prisma|prisma/migrations/|migrations/.*\.sql$)' || true)
+          echo "changed<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$changed" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          if [ -n "$changed" ]; then
+            echo "schema_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "schema_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require new ADR if schema changed
+        if: steps.schema.outputs.schema_changed == 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          adr_new=$(git diff --name-status "$base..$head" | grep -E '^A\s+docs/adr/[0-9]+-.+\.md$' || true)
+          if [ -z "$adr_new" ]; then
+            echo "::error::Schema thay đổi yêu cầu ADR mới trong docs/adr/."
+            echo "Files thay đổi:"
+            echo "${{ steps.schema.outputs.changed }}"
+            echo ""
+            echo "Tạo file docs/adr/NNNN-tieu-de.md theo template"
+            echo "docs/standards/ADR_TEMPLATE.md trước khi merge."
+            exit 1
+          fi
+          echo "✓ ADR mới detected, schema change OK."
+
+  commit-message-evidence:
+    name: Commit message evidence
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit message has Edge cases + Test level
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          missing=0
+          for sha in $(git log --pretty=%H "$base..$head"); do
+            msg=$(git log -1 --pretty=%B "$sha")
+            # Skip nếu có [skip-evidence] hoặc commit docs-only
+            if echo "$msg" | grep -qE '\[skip-evidence\]'; then continue; fi
+            files=$(git diff-tree --no-commit-id --name-only -r "$sha")
+            non_docs=$(echo "$files" | grep -vE '^(docs/|README|.*\.md$)' || true)
+            if [ -z "$non_docs" ]; then continue; fi
+            # Check evidence
+            if ! echo "$msg" | grep -qE 'Edge cases:'; then
+              echo "::error::Commit $sha thiếu 'Edge cases:'"
+              missing=1
+            fi
+            if ! echo "$msg" | grep -qE 'Test level:'; then
+              echo "::error::Commit $sha thiếu 'Test level:'"
+              missing=1
+            fi
+          done
+          if [ $missing -eq 1 ]; then
+            echo ""
+            echo "Format yêu cầu trong commit message (xem .claude/check-commit-evidence.sh):"
+            echo "  Edge cases verified: <list>"
+            echo "  Test level: build pass | mental walkthrough | E2E thực"
+            exit 1
+          fi
+          echo "✓ All commits have evidence."
+
+  secret-scan:
+    name: Secret leak detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-audit:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm audit (backend)
+        working-directory: backend
+        run: npm audit --audit-level=high || echo "::warning::High/Critical vulnerabilities found"
+      - name: npm audit (web)
+        working-directory: web
+        run: npm audit --audit-level=high || echo "::warning::High/Critical vulnerabilities found"

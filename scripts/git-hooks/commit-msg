@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Git commit-msg hook — Layer 3 enforcement local.
+# Chạy với mọi `git commit`, KHÔNG riêng commit từ Claude Code.
+# Path: .git/hooks/commit-msg (symlink hoặc copy từ scripts/git-hooks/commit-msg)
+#
+# Args: $1 = path tới file chứa commit message
+# Exit 0 = pass, exit 1 = block.
+
+msg_file="$1"
+msg=$(cat "$msg_file")
+
+# Bypass cho merge/revert/fixup auto-generated
+if echo "$msg" | grep -qE '^(Merge|Revert|fixup!|squash!)'; then
+  exit 0
+fi
+
+# Bypass flag
+if echo "$msg" | grep -qE '\[skip-evidence\]'; then
+  exit 0
+fi
+
+# Detect commit "trivial" docs/typo: nếu chỉ thay đổi *.md hoặc README → skip
+staged_files=$(git diff --cached --name-only)
+non_trivial=$(echo "$staged_files" | grep -vE '^(docs/|README|.*\.md$|.*\.txt$)' || true)
+if [ -z "$non_trivial" ]; then
+  exit 0
+fi
+
+missing=()
+echo "$msg" | grep -qE 'Edge cases?:' || missing+=("Edge cases:")
+echo "$msg" | grep -qE 'Test level:' || missing+=("Test level:")
+
+if [ ${#missing[@]} -eq 0 ]; then
+  exit 0
+fi
+
+{
+  echo ""
+  echo "═══════════════════════════════════════════════════════════════"
+  echo "❌ COMMIT BỊ CHẶN (commit-msg hook) — thiếu evidence"
+  echo "═══════════════════════════════════════════════════════════════"
+  echo ""
+  echo "Thiếu các block trong commit message:"
+  for m in "${missing[@]}"; do
+    echo "  • $m"
+  done
+  echo ""
+  echo "Format yêu cầu:"
+  echo "  Edge cases:"
+  echo "  - First install (token=null)"
+  echo "  - Network timeout/fail"
+  echo "  - ..."
+  echo ""
+  echo "  Test level: build pass | mental walkthrough | E2E thực"
+  echo ""
+  echo "Bypass: thêm '[skip-evidence]' (chỉ docs-only/typo)"
+  echo "═══════════════════════════════════════════════════════════════"
+} >&2
+
+exit 1

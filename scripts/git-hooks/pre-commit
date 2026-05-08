@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Git pre-commit hook — Layer 3 enforcement local.
+# Chạy với mọi `git commit`, KHÔNG riêng commit từ Claude Code.
+# Path: .git/hooks/pre-commit (symlink hoặc copy từ scripts/git-hooks/pre-commit)
+#
+# Checks:
+#   1. Schema change → require ADR mới
+#   2. Secret leak detection (regex pattern)
+#   3. Large file (>1MB) cảnh báo
+#
+# Exit 0 = pass, exit 1 = block.
+
+set -e
+
+staged=$(git diff --cached --name-only)
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+errors=0
+
+# ─── Check 1: schema change requires ADR ────────────────────────────
+schema_changed=$(echo "$staged" | grep -E '(prisma/schema\.prisma|prisma/migrations/|migrations/.*\.sql$|/schema\.(sql|graphql|proto)$)' || true)
+if [ -n "$schema_changed" ]; then
+  adr_new=$(git diff --cached --name-status | grep -E '^A[[:space:]]+docs/adr/[0-9]+-.+\.md$' || true)
+  # Bypass: kiểm tra commit message qua COMMIT_EDITMSG nếu tồn tại
+  bypass=0
+  if [ -f .git/COMMIT_EDITMSG ] && grep -qE '\[skip-adr\]' .git/COMMIT_EDITMSG; then
+    bypass=1
+  fi
+  if [ -z "$adr_new" ] && [ $bypass -eq 0 ]; then
+    {
+      echo ""
+      echo "❌ Schema change requires ADR (docs/adr/NNNN-*.md)"
+      echo "   Files:"
+      echo "$schema_changed" | sed 's/^/     /'
+      echo "   Bypass: '[skip-adr]' in commit message"
+    } >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+# ─── Check 2: secret leak (basic regex, không dùng detect-secrets) ──
+# Skip lock file + minified
+files_to_scan=$(echo "$staged" | grep -vE '\.(lock|min\.js|map)$|package-lock\.json|yarn\.lock|Cargo\.lock|poetry\.lock')
+if [ -n "$files_to_scan" ]; then
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    [ ! -f "$f" ] && continue
+    # AWS access key
+    if git show ":$f" 2>/dev/null | grep -qE 'AKIA[0-9A-Z]{16}'; then
+      echo "❌ AWS access key detected in $f" >&2
+      errors=$((errors + 1))
+    fi
+    # GitHub token
+    if git show ":$f" 2>/dev/null | grep -qE 'ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}'; then
+      echo "❌ GitHub token detected in $f" >&2
+      errors=$((errors + 1))
+    fi
+    # Generic API key pattern (high false positive — chỉ flag, không block)
+    # private key
+    if git show ":$f" 2>/dev/null | grep -qE 'BEGIN (RSA |OPENSSH |EC |DSA |PGP )?PRIVATE KEY'; then
+      echo "❌ Private key detected in $f" >&2
+      errors=$((errors + 1))
+    fi
+  done <<< "$files_to_scan"
+fi
+
+# ─── Check 3: large file warning (>1MB) ─────────────────────────────
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  [ ! -f "$f" ] && continue
+  size=$(wc -c < "$f" 2>/dev/null || echo 0)
+  if [ "$size" -gt 1048576 ]; then
+    echo "⚠️  Large file (>1MB): $f ($size bytes)" >&2
+  fi
+done <<< "$staged"
+
+if [ $errors -gt 0 ]; then
+  echo "" >&2
+  echo "═══ Pre-commit blocked ($errors errors). Fix above issues. ═══" >&2
+  exit 1
+fi
+
+exit 0
