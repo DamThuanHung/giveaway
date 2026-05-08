@@ -7,6 +7,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { authFetch } from "@/lib/auth";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 
 type ChatRoom = {
   id: string;
@@ -42,6 +44,16 @@ export default function ChatListPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+
+  const refetch = () => {
+    setFetchError(false);
+    setRooms(null);
+    authFetch("/chat/rooms")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setRooms(Array.isArray(data) ? data : data.data ?? []))
+      .catch(() => setFetchError(true));
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -49,10 +61,11 @@ export default function ChatListPage() {
       router.replace("/login/?next=/chat/");
       return;
     }
+    setFetchError(false);
     authFetch("/chat/rooms")
-      .then((res) => (res.ok ? res.json() : []))
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => setRooms(Array.isArray(data) ? data : data.data ?? []))
-      .catch(() => setRooms([]));
+      .catch(() => setFetchError(true));
   }, [user, authLoading, router]);
 
   if (authLoading || !user) {
@@ -81,7 +94,13 @@ export default function ChatListPage() {
       </section>
 
       <section className="py-6 max-w-4xl mx-auto px-4">
-        {rooms === null ? (
+        {fetchError ? (
+          <ErrorState
+            title="Không tải được tin nhắn"
+            description="Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé."
+            onRetry={refetch}
+          />
+        ) : rooms === null ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-white border border-ink-200/70 rounded-md p-4 flex items-center gap-3 animate-pulse">
@@ -94,19 +113,12 @@ export default function ChatListPage() {
             ))}
           </div>
         ) : rooms.length === 0 ? (
-          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
-            <div className="text-5xl mb-3">📭</div>
-            <p className="text-ink-800 font-semibold mb-1">Chưa có tin nhắn nào</p>
-            <p className="text-ink-500 text-sm mb-5">
-              Tìm bài đăng phù hợp và nhắn tin với người bán
-            </p>
-            <Link
-              href="/posts/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
-            >
-              Khám phá bài đăng
-            </Link>
-          </div>
+          <EmptyState
+            emoji="📭"
+            title="Chưa có tin nhắn nào"
+            description="Tìm bài đăng phù hợp và nhắn tin với người bán để bắt đầu trao đổi."
+            cta={{ href: "/posts/", label: "Khám phá bài đăng" }}
+          />
         ) : (
           <div className="bg-white border border-ink-200/70 rounded-md shadow-soft overflow-hidden divide-y divide-ink-200/50">
             {rooms.map((r) => {

@@ -8,6 +8,8 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { fetchMyPosts } from "@/lib/auth";
 import { formatPrice, formatDate, CATEGORIES } from "@/lib/api";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 
 const STATUS_FILTERS: { key: string; label: string }[] = [
   { key: "", label: "Tất cả" },
@@ -30,6 +32,15 @@ export default function MyPostsPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<any[] | null>(null);
   const [filter, setFilter] = useState("");
+  const [fetchError, setFetchError] = useState(false);
+
+  const refetch = () => {
+    setFetchError(false);
+    setPosts(null);
+    fetchMyPosts(filter || undefined)
+      .then((data) => setPosts(data))
+      .catch(() => setFetchError(true));
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -37,8 +48,11 @@ export default function MyPostsPage() {
       router.replace("/login/?next=/me/posts/");
       return;
     }
+    setFetchError(false);
     setPosts(null);
-    fetchMyPosts(filter || undefined).then((data) => setPosts(data));
+    fetchMyPosts(filter || undefined)
+      .then((data) => setPosts(data))
+      .catch(() => setFetchError(true));
   }, [user, authLoading, filter, router]);
 
   if (authLoading || !user) {
@@ -92,25 +106,29 @@ export default function MyPostsPage() {
           ))}
         </div>
 
-        {posts == null ? (
+        {fetchError ? (
+          <ErrorState
+            title="Không tải được bài đăng của bạn"
+            description="Có thể do mạng yếu. Thử lại nhé."
+            onRetry={refetch}
+          />
+        ) : posts == null ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-white border border-ink-200/70 rounded-md p-4 h-64 animate-pulse" />
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
-            <div className="text-5xl mb-3">📭</div>
-            <p className="font-semibold text-ink-900 mb-1">
-              {filter ? "Không có bài nào ở trạng thái này" : "Bạn chưa đăng bài nào"}
-            </p>
-            <Link
-              href="/posts/new/"
-              className="inline-block mt-4 bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
-            >
-              Đăng tin đầu tiên
-            </Link>
-          </div>
+          <EmptyState
+            emoji="📭"
+            title={filter ? "Không có bài nào ở trạng thái này" : "Bạn chưa đăng bài nào"}
+            description={
+              filter
+                ? "Thử chuyển sang trạng thái khác hoặc đăng bài mới."
+                : "Bắt đầu cho hành trình trao tay đồ cũ — bài đầu tiên thường về người nhanh nhất."
+            }
+            cta={{ href: "/posts/new/", label: "Đăng tin đầu tiên" }}
+          />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {posts.map((p) => {

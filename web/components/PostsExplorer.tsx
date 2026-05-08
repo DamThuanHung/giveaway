@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/PostCardSkeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 import {
   Post,
   PostsResponse,
@@ -60,6 +62,7 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   const [meta, setMeta] = useState(initialData?.meta ?? { page: 1, limit: 24, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [, startTransition] = useTransition();
   const [searchInput, setSearchInput] = useState(initialQuery.search ?? "");
   const [showFilters, setShowFilters] = useState(false);
@@ -81,8 +84,21 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
   const [minInput, setMinInput] = useState<string>(minParam ?? "");
   const [maxInput, setMaxInput] = useState<string>(maxParam ?? "");
 
+  const refetch = () => {
+    setFetchError(false);
+    setLoading(true);
+    fetchPosts(query)
+      .then((res) => {
+        setPosts(res.data);
+        setMeta(res.meta);
+      })
+      .catch(() => setFetchError(true))
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
     let cancelled = false;
+    setFetchError(false);
     setLoading(true);
     fetchPosts(query)
       .then((res) => {
@@ -90,7 +106,7 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
         setPosts(res.data);
         setMeta(res.meta);
       })
-      .catch(() => !cancelled && setPosts([]))
+      .catch(() => !cancelled && setFetchError(true))
       .finally(() => !cancelled && setLoading(false));
 
     return () => {
@@ -435,20 +451,33 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => <PostCardSkeleton key={i} />)}
           </div>
+        ) : fetchError ? (
+          <ErrorState
+            title="Không tải được danh sách bài đăng"
+            description="Có thể do mạng yếu hoặc server tạm gián đoạn. Thử lại nhé."
+            onRetry={refetch}
+          />
         ) : posts.length === 0 ? (
-          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-12 text-center">
-            <div className="text-5xl mb-4">🔍</div>
-            <p className="text-ink-800 font-semibold mb-1">Chưa có kết quả</p>
-            <p className="text-ink-500 text-sm">Thử bộ lọc khác hoặc từ khóa khác</p>
-            {hasFilters && (
-              <button
-                onClick={clearAll}
-                className="mt-4 bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-md text-sm font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
-              >
-                Xóa bộ lọc
-              </button>
-            )}
-          </div>
+          <EmptyState
+            emoji="🔍"
+            title={hasFilters ? "Chưa có kết quả phù hợp" : "Chưa có bài đăng nào"}
+            description={
+              hasFilters
+                ? "Thử bộ lọc khác hoặc từ khóa khác."
+                : "Hãy là người đầu tiên đăng bài trong khu vực này."
+            }
+            action={
+              hasFilters ? (
+                <button
+                  onClick={clearAll}
+                  className="bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-md text-sm font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
+                >
+                  Xóa bộ lọc
+                </button>
+              ) : undefined
+            }
+            cta={hasFilters ? undefined : { href: "/posts/new/", label: "Đăng bài ngay" }}
+          />
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

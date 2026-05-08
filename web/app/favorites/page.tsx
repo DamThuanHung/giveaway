@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/PostCardSkeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 import { useAuth } from "@/components/AuthProvider";
 import { authFetch } from "@/lib/auth";
 import { Post } from "@/lib/api";
@@ -15,6 +16,22 @@ export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+
+  const refetch = () => {
+    if (!user) return;
+    setFetchError(false);
+    setPosts(null);
+    authFetch(`/favorite/${user.id}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => {
+        const list: Post[] = (Array.isArray(data) ? data : data.data ?? [])
+          .map((f: any) => f.post ?? f)
+          .filter(Boolean);
+        setPosts(list);
+      })
+      .catch(() => setFetchError(true));
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -24,8 +41,9 @@ export default function FavoritesPage() {
     }
 
     let cancelled = false;
+    setFetchError(false);
     authFetch(`/favorite/${user.id}`)
-      .then((res) => res.ok ? res.json() : [])
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => {
         if (cancelled) return;
         const list: Post[] = (Array.isArray(data) ? data : data.data ?? [])
@@ -33,7 +51,7 @@ export default function FavoritesPage() {
           .filter(Boolean);
         setPosts(list);
       })
-      .catch(() => !cancelled && setPosts([]));
+      .catch(() => !cancelled && setFetchError(true));
     return () => {
       cancelled = true;
     };
@@ -55,24 +73,23 @@ export default function FavoritesPage() {
       </section>
 
       <section className="py-8 max-w-7xl mx-auto px-4">
-        {authLoading || posts === null ? (
+        {fetchError ? (
+          <ErrorState
+            title="Không tải được bài đã lưu"
+            description="Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé."
+            onRetry={refetch}
+          />
+        ) : authLoading || posts === null ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => <PostCardSkeleton key={i} />)}
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-12 text-center max-w-xl mx-auto">
-            <div className="text-6xl mb-4">💔</div>
-            <h2 className="text-xl font-bold text-ink-900 mb-2">Chưa lưu bài nào</h2>
-            <p className="text-ink-600 mb-6">
-              Bấm icon trái tim ❤️ ở bài đăng để lưu lại cho lần sau xem.
-            </p>
-            <Link
-              href="/posts/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
-            >
-              Khám phá bài đăng
-            </Link>
-          </div>
+          <EmptyState
+            emoji="💔"
+            title="Chưa lưu bài nào"
+            description="Bấm icon trái tim ❤️ ở bài đăng để lưu lại cho lần sau xem."
+            cta={{ href: "/posts/", label: "Khám phá bài đăng" }}
+          />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {posts.map((p) => <PostCard key={p.id} post={p} />)}

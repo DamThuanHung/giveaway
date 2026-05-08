@@ -7,6 +7,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { fetchMyGivenReviews } from "@/lib/auth";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 
 type GivenReview = {
   id: string;
@@ -41,6 +43,15 @@ export default function MyReviewsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [reviews, setReviews] = useState<GivenReview[] | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+
+  const refetch = () => {
+    setFetchError(false);
+    setReviews(null);
+    fetchMyGivenReviews()
+      .then((data) => setReviews(data))
+      .catch(() => setFetchError(true));
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -48,7 +59,10 @@ export default function MyReviewsPage() {
       router.replace("/login/?next=/me/reviews/");
       return;
     }
-    fetchMyGivenReviews().then((data) => setReviews(data));
+    setFetchError(false);
+    fetchMyGivenReviews()
+      .then((data) => setReviews(data))
+      .catch(() => setFetchError(true));
   }, [user, authLoading, router]);
 
   if (authLoading || !user) {
@@ -84,26 +98,25 @@ export default function MyReviewsPage() {
       </section>
 
       <section className="max-w-3xl mx-auto px-4 py-6">
-        {reviews == null ? (
+        {fetchError ? (
+          <ErrorState
+            title="Không tải được đánh giá"
+            description="Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé."
+            onRetry={refetch}
+          />
+        ) : reviews == null ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="bg-white border border-ink-200/70 rounded-md p-5 h-32 animate-pulse" />
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
-            <div className="text-5xl mb-3">📝</div>
-            <p className="font-semibold text-ink-900 mb-1">Chưa có đánh giá nào</p>
-            <p className="text-ink-500 text-sm mb-5">
-              Sau khi giao dịch hoàn tất, bạn có thể đánh giá đối tác — bạn nhận xét nào sẽ hiện ở đây
-            </p>
-            <Link
-              href="/posts/"
-              className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
-            >
-              Khám phá bài đăng
-            </Link>
-          </div>
+          <EmptyState
+            emoji="📝"
+            title="Chưa có đánh giá nào"
+            description="Sau khi giao dịch hoàn tất, bạn có thể đánh giá đối tác — đánh giá đã gửi sẽ hiện ở đây."
+            cta={{ href: "/posts/", label: "Khám phá bài đăng" }}
+          />
         ) : (
           <div className="space-y-3">
             {reviews.map((r) => {
