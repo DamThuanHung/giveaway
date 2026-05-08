@@ -1,0 +1,46 @@
+name: Weekly Compliance Audit
+
+# Layer 1 audit — chạy auto Sunday 23:00 UTC.
+# External observability — không qua AI control.
+
+on:
+  schedule:
+    - cron: '0 23 * * 0'  # Sunday 23:00 UTC (Monday 06:00 VN)
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  audit:
+    name: Compliance audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Cần để commit report
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Cần full history cho git log analysis
+
+      - name: Run audit script
+        id: audit
+        continue-on-error: true  # Don't fail workflow nếu compliance < 80
+        run: |
+          chmod +x scripts/audit-compliance.sh
+          bash scripts/audit-compliance.sh 7
+
+      - name: Commit audit report
+        run: |
+          git config user.name "compliance-audit-bot"
+          git config user.email "audit@traotay.com.vn"
+          git add docs/audits/ docs/COMPLIANCE_DASHBOARD.md 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No audit changes"
+          else
+            git commit -m "audit: weekly compliance report $(date +%Y-%m-%d) [skip-evidence]"
+            git push origin main
+          fi
+
+      - name: Alert if compliance critical
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::warning::Compliance score < 80 — manual review required"
+          # TODO: integrate email/Slack notification
+          # mail -s "Trao Tay Compliance Alert" damhungtpt@gmail.com < latest-report.md
