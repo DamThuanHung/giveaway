@@ -1,9 +1,14 @@
 # Closed Testing — Recruit & Tracking
 
-> **Mục đích**: Mitigate R-004 (Red 20). Recruit 7-8 tester thật hoạt động ổn
+> ⚠️ **PARKING LOT 2026-05-08** — strategy pivot sang web-first acquisition.
+> Doc này giữ nguyên cho khi retry Closed Testing sau (trigger: web MAU > 500
+> hoặc 3 tháng nữa). Xem `EARLY_ADOPTER_SURVEY.md` + `RISK_REGISTER.md` R-004
+> Accepted/Deferred status.
+>
+> **Mục đích (gốc)**: Mitigate R-004 (Red 20). Recruit 7-8 tester thật hoạt động ổn
 > định 14 ngày để Closed Testing pass và tiến lên Production review.
 >
-> **Deadline**: 2026-05-18 (10 ngày từ hôm nay 2026-05-08).
+> **Deadline (gốc)**: 2026-05-18 (10 ngày từ hôm nay 2026-05-08).
 >
 > **Hiện trạng**: 4-5 tester active → cần thêm 7-8 → tổng ≥12.
 

@@ -42,11 +42,14 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 
 ### R-004: Tester crisis Closed Testing
 - **Category:** Business
-- **Probability:** 5 / **Impact:** 4 / **Score:** 20 (Red)
+- **Probability:** 5 / **Impact:** 4 / **Score:** 20 (Red) → **Accepted/Deferred 2026-05-08** (strategy pivot)
 - **Owner:** Hoàng thượng
-- **Status:** Open
-- **Description:** Closed Testing Google Play yêu cầu 12 tester active 14 ngày. Hiện chỉ 4-5 tester active. Nếu < 12 → reset 14-ngày clock.
-- **Mitigation:** Recruit 7-8 tester thật trước 2026-05-18 (deadline). Personal network + community VN dev.
+- **Status:** Accepted/Deferred — strategy pivot sang web-first acquisition
+- **Description (cũ):** Closed Testing Google Play yêu cầu 12 tester active 14 ngày. Hiện 4-5 tester active. Nếu < 12 → reset 14-ngày clock.
+- **Decision 2026-05-08 (hoàng thượng)**: Web đã LIVE và bắt đầu chạy → chấp nhận risk Google đánh trượt đợt Closed Testing này. Pivot focus sang đẩy mạnh acquisition web. App Closed Testing thành option B, retry sau khi web có user mass + social proof.
+- **New mitigation strategy**: Growth web-first (OG image động + analytics + landing improvement + early adopter survey). Khi web reach 500-1000 MAU organic, retry Closed Testing với social proof mạnh hơn.
+- **Trigger to revisit**: Web MAU > 500 hoặc 3 tháng (2026-08-08), whichever comes first → đánh giá lại có retry Closed Testing không.
+- **Date deferred:** 2026-05-08
 - **Trigger to revisit:** Hằng tuần đếm tester active
 - **Date logged:** 2026-04-30
 
