@@ -6,6 +6,32 @@ import { formatPost } from '../post/post.service';
 
 const DELETED_BY_ADMIN = 'deleted_by_admin';
 
+/// Tính mốc thời gian `since` cho period filter — dùng start-of-period theo
+/// múi giờ Asia/Bangkok (UTC+7) để match user expectation Việt Nam:
+/// - day: 00:00 hôm nay (+7)
+/// - week: 00:00 thứ 2 tuần này
+/// - month: 00:00 ngày 1 tháng này
+/// - year: 00:00 ngày 1 tháng 1 năm này
+/// - all: null (không filter)
+function computeSince(period: 'day' | 'week' | 'month' | 'year' | 'all'): Date | null {
+  if (period === 'all') return null;
+  const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const nowVN = new Date(Date.now() + TZ_OFFSET_MS);
+  let startVN: Date;
+  if (period === 'day') {
+    startVN = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate()));
+  } else if (period === 'week') {
+    const dow = nowVN.getUTCDay(); // 0=CN, 1=T2 ... 6=T7
+    const daysFromMonday = (dow + 6) % 7;
+    startVN = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate() - daysFromMonday));
+  } else if (period === 'month') {
+    startVN = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), 1));
+  } else {
+    startVN = new Date(Date.UTC(nowVN.getUTCFullYear(), 0, 1));
+  }
+  return new Date(startVN.getTime() - TZ_OFFSET_MS);
+}
+
 /// 18 categories mặc định — match `app/lib/data/categories.dart` AppCategories.list.
 /// Nếu Category table rỗng (deploy đầu hoặc DB mới), seed tự động ở onModuleInit.
 const DEFAULT_CATEGORIES = [
@@ -104,50 +130,105 @@ export class AdminService implements OnModuleInit {
   }
 
   /// Top users by posts/deals + top posts by views — cho widget dashboard.
-  async getTop(limit = 5) {
+  /// period: 'day' | 'week' | 'month' | 'year' | 'all' (mặc định 'all').
+  /// - topUsersByPosts: đếm Post.createdAt >= since
+  /// - topSpenders: SUM BumpOrder.amount status=paid, createdAt >= since
+  /// - topPostsByViews:
+  ///   • period='all' → sort Post.viewCount lifetime
+  ///   • period khác → SUM PostView.count where date >= since (ADR-0010)
+  async getTop(limit = 5, period: 'day' | 'week' | 'month' | 'year' | 'all' = 'all') {
     const safe = Math.min(Math.max(1, limit), 20);
-    const [topUsersByPosts, topUsersBySpend, topPostsByViews] = await Promise.all([
-      this.prisma.user.findMany({
-        take: safe,
-        orderBy: { posts: { _count: 'desc' } },
-        select: {
-          id: true, name: true, email: true, avatar: true,
-          _count: { select: { posts: true } },
+    const since = computeSince(period);
+
+    const postCreatedFilter = since ? { createdAt: { gte: since } } : {};
+    const bumpCreatedFilter = since ? { createdAt: { gte: since } } : {};
+
+    // topPostsByViews — chia 2 nhánh: lifetime vs period.
+    const topPostsByViewsPromise: Promise<any[]> = since == null
+      ? this.prisma.post.findMany({
+          take: safe,
+          where: { NOT: { status: DELETED_BY_ADMIN } },
+          orderBy: { viewCount: 'desc' },
+          select: {
+            id: true, title: true, viewCount: true, status: true,
+            author: { select: { id: true, name: true } },
+          },
+        })
+      : (async () => {
+          // Aggregate PostView trong period → top postId theo SUM(count).
+          const grouped = await this.prisma.postView.groupBy({
+            by: ['postId'],
+            where: { date: { gte: since } },
+            _sum: { count: true },
+            orderBy: { _sum: { count: 'desc' } },
+            take: safe,
+          });
+          if (grouped.length === 0) return [];
+          const postIds = grouped.map(g => g.postId);
+          const posts = await this.prisma.post.findMany({
+            where: { id: { in: postIds }, NOT: { status: DELETED_BY_ADMIN } },
+            select: {
+              id: true, title: true, viewCount: true, status: true,
+              author: { select: { id: true, name: true } },
+            },
+          });
+          const postMap = new Map(posts.map(p => [p.id, p]));
+          // Giữ thứ tự từ groupBy (đã sort), kèm periodViews đúng period.
+          return grouped
+            .map(g => {
+              const p = postMap.get(g.postId);
+              if (!p) return null; // post bị xóa giữa chừng
+              return { ...p, periodViews: g._sum.count ?? 0 };
+            })
+            .filter((x): x is NonNullable<typeof x> => x != null);
+        })();
+
+    const [topUsersByPostsRaw, topUsersBySpend, topPostsByViews] = await Promise.all([
+      this.prisma.post.groupBy({
+        by: ['authorId'],
+        where: {
+          NOT: { status: DELETED_BY_ADMIN },
+          authorId: { not: null },
+          ...postCreatedFilter,
         },
+        _count: { _all: true },
+        orderBy: { _count: { authorId: 'desc' } },
+        take: safe,
       }),
       this.prisma.bumpOrder.groupBy({
         by: ['userId'],
-        where: { status: 'paid' },
+        where: { status: 'paid', ...bumpCreatedFilter },
         _sum: { amount: true },
         _count: true,
         orderBy: { _sum: { amount: 'desc' } },
         take: safe,
       }),
-      this.prisma.post.findMany({
-        take: safe,
-        where: { NOT: { status: DELETED_BY_ADMIN } },
-        orderBy: { viewCount: 'desc' },
-        select: {
-          id: true, title: true, viewCount: true, status: true,
-          author: { select: { id: true, name: true } },
-        },
-      }),
+      topPostsByViewsPromise,
     ]);
 
-    // Hydrate user info cho topUsersBySpend
-    const spenderIds = topUsersBySpend.map(s => s.userId);
-    const spenderUsers = await this.prisma.user.findMany({
-      where: { id: { in: spenderIds } },
-      select: { id: true, name: true, email: true, avatar: true },
-    });
-    const spenderMap = new Map(spenderUsers.map(u => [u.id, u]));
+    const userIds = Array.from(new Set([
+      ...topUsersByPostsRaw.map(p => p.authorId).filter((id): id is string => !!id),
+      ...topUsersBySpend.map(s => s.userId),
+    ]));
+    const users = userIds.length > 0
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true, email: true, avatar: true },
+        })
+      : [];
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    const topUsersByPosts = topUsersByPostsRaw.map(p => ({
+      ...userMap.get(p.authorId!),
+      _count: { posts: p._count._all },
+    }));
     const topSpenders = topUsersBySpend.map(s => ({
-      ...spenderMap.get(s.userId),
+      ...userMap.get(s.userId),
       totalSpent: s._sum.amount ?? 0,
       orderCount: s._count,
     }));
 
-    return { topUsersByPosts, topSpenders, topPostsByViews };
+    return { topUsersByPosts, topSpenders, topPostsByViews, period };
   }
 
   async getAllPosts(page = 1, limit = 20, status?: string, search?: string, authorId?: string) {

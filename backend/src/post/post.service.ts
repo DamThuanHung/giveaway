@@ -37,6 +37,17 @@ function buildImageUrl(imageLabel: string): string | null {
   return `${BASE_URL}/uploads/${imageLabel}`;
 }
 
+// Trả về mốc 00:00 của ngày VN (múi giờ +7) tại thời điểm `d`, biểu diễn dưới
+// dạng UTC Date. Dùng cho PostView aggregate (ADR-0010) — bảo đảm "Hôm nay"
+// theo VN khớp với period filter admin dashboard. Cùng thuật toán với
+// `computeSince` trong admin.service.ts để giữ tính nhất quán.
+export function vnDayStartUtc(d: Date = new Date()): Date {
+  const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const vn = new Date(d.getTime() + TZ_OFFSET_MS);
+  const vnMidnight = new Date(Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate()));
+  return new Date(vnMidnight.getTime() - TZ_OFFSET_MS);
+}
+
 // Export để các service khác (favorite, follow, ...) tái sử dụng — đảm bảo
 // imageUrl computed nhất quán mọi endpoint trả Post object. Sự cố
 // 2026-05-08: /favorite trả raw post không qua formatPost → frontend
@@ -194,7 +205,17 @@ export class PostService {
     if (!post || post.status === DELETED_BY_ADMIN_STATUS) {
       throw new NotFoundException('Không tìm thấy bài đăng');
     }
-    await this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
+    const today = vnDayStartUtc();
+    await Promise.all([
+      this.prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } }),
+      // PostView aggregate theo VN day boundary — ADR-0010.
+      // Upsert race-safe: 2 view cùng lúc → 1 create + 1 increment.
+      this.prisma.postView.upsert({
+        where: { postId_date: { postId: id, date: today } },
+        create: { postId: id, date: today, count: 1 },
+        update: { count: { increment: 1 } },
+      }).catch(() => { /* swallow — view tracking không được làm crash request */ }),
+    ]);
     return formatPost(post);
   }
 

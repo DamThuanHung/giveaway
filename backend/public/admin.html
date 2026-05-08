@@ -99,6 +99,12 @@ header .user-info{font-size:13px;color:var(--text2)}
 .fchip{padding:6px 12px;border-radius:16px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s}
 .fchip:hover{border-color:var(--primary)}
 .fchip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.section-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 10px}
+.period-chips{display:flex;gap:6px;flex-wrap:wrap}
+.period-chip{padding:5px 10px;border-radius:14px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s}
+.period-chip:hover{border-color:var(--primary)}
+.period-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.period-note{font-size:11px;color:var(--text2);margin:-4px 0 8px;font-style:italic}
 .item-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:8px;cursor:pointer;transition:border .15s}
 .item-card:hover{border-color:var(--primary)}
 .item-card .title{font-weight:700;font-size:14px;margin-bottom:4px}
@@ -368,7 +374,7 @@ const state = {
   orders: [], ordersPage: 0, ordersTotal: 0, ordersTotalPages: 1,
   revenueData: null, timeline: null, timelineFrom: '', timelineTo: '',
   audit: [], auditPage: 0, auditTotal: 0, auditTotalPages: 1, auditTargetType: '',
-  topData: null,
+  topData: null, topPeriod: 'all',
   broadcastSegment: 'all', broadcastPreview: null, broadcastHistory: [],
   reviews: [], reviewsPage: 0, reviewsTotal: 0, reviewsTotalPages: 1, reviewsRating: '', reviewsSearch: '',
   chats: [], chatsPage: 0, chatsTotal: 0, chatsTotalPages: 1, chatsSearch: '', chatsUserId: '', chatsUserName: '', currentChatRoom: null, currentChatMessages: [],
@@ -651,6 +657,16 @@ function handleContentClick(e) {
 
     case 'switch-tab': switchTab(+el.dataset.target); break;
 
+    case 'set-top-period': {
+      const p = el.dataset.period || 'all';
+      if (p !== state.topPeriod) {
+        state.topPeriod = p;
+        state.topData = null; // force show loading
+        loadStats();
+      }
+      break;
+    }
+
     case 'load-more': {
       const target = el.dataset.target;
       if (target === 'posts') loadPosts();
@@ -824,7 +840,7 @@ async function loadStats() {
   }
   const [data, top] = await Promise.all([
     api('/admin/stats'),
-    api('/admin/top?limit=5'),
+    api(`/admin/top?limit=5&period=${encodeURIComponent(state.topPeriod || 'all')}`),
   ]);
   if (!data) { el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Không tải được dữ liệu</p></div>'; return; }
   state.topData = top;
@@ -872,8 +888,26 @@ function renderTopWidgets(top) {
   const tu = top.topUsersByPosts || [];
   const ts = top.topSpenders || [];
   const tp = top.topPostsByViews || [];
+  const period = state.topPeriod || 'all';
+  const periods = [
+    ['day', 'Hôm nay'],
+    ['week', 'Tuần này'],
+    ['month', 'Tháng này'],
+    ['year', 'Năm nay'],
+    ['all', 'Tất cả'],
+  ];
+  const chips = periods.map(([v, l]) => `
+    <button type="button" class="period-chip ${period===v?'active':''}" data-action="set-top-period" data-period="${v}">${l}</button>
+  `).join('');
+  const periodLabel = (periods.find(p => p[0] === period) || [])[1] || 'Tất cả';
+  const viewsNote = period === 'all'
+    ? '<div class="period-note">Lượt xem tổng (lifetime)</div>'
+    : `<div class="period-note">Lượt xem phát sinh trong "${periodLabel}"</div>`;
   return `
-    <div class="section-title">Bảng xếp hạng</div>
+    <div class="section-title-row">
+      <div class="section-title" style="margin:0">Bảng xếp hạng</div>
+      <div class="period-chips">${chips}</div>
+    </div>
     <div class="top-grid">
       <div class="top-card">
         <h4>👤 Top user nhiều bài đăng</h4>
@@ -895,12 +929,16 @@ function renderTopWidgets(top) {
       </div>
       <div class="top-card">
         <h4>🔥 Top bài lượt xem</h4>
-        ${tp.length === 0 ? '<div class="empty" style="padding:20px"><p>Chưa có bài nào</p></div>' : tp.map((p,i) => `
+        ${viewsNote}
+        ${tp.length === 0 ? '<div class="empty" style="padding:20px"><p>Chưa có bài nào</p></div>' : tp.map((p,i) => {
+          const v = period === 'all' ? (p.viewCount||0) : (p.periodViews||0);
+          return `
           <div class="top-row" data-action="open-post" data-id="${esc(p.id)}">
             <span class="rank">#${i+1}</span>
             <span class="name">${esc(p.title||'(không tên)')}</span>
-            <span class="stat">${p.viewCount||0} 👁️</span>
-          </div>`).join('')}
+            <span class="stat">${v} 👁️</span>
+          </div>`;
+        }).join('')}
       </div>
     </div>
   `;

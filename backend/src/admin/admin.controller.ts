@@ -15,8 +15,13 @@ export class AdminController {
   }
 
   @Get('top')
-  getTop(@Query('limit') limit = '5') {
-    return this.adminService.getTop(+limit);
+  getTop(
+    @Query('limit') limit = '5',
+    @Query('period') period: 'day' | 'week' | 'month' | 'year' | 'all' = 'all',
+  ) {
+    const allowed = ['day', 'week', 'month', 'year', 'all'] as const;
+    const safePeriod = (allowed as readonly string[]).includes(period) ? period : 'all';
+    return this.adminService.getTop(+limit, safePeriod as any);
   }
 
   // ─── Posts ────────────────────────────────────────

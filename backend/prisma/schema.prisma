@@ -78,6 +78,7 @@ model Post {
   favorites           Favorite[]
   bumpOrders          BumpOrder[]
   reviews             Review[]
+  postViews           PostView[]
   author              User?       @relation(fields: [authorId], references: [id])
   completedWith       User?       @relation("PostCompletedPartner", fields: [completedWithUserId], references: [id])
   reports             Report[]
@@ -129,6 +130,22 @@ model Favorite {
 
   @@unique([userId, postId])
   @@index([userId])
+}
+
+/// Aggregate lượt xem bài đăng theo ngày (UTC day boundary).
+/// Mỗi (postId, date) chỉ có 1 row, count tăng dần qua upsert.
+/// Dùng cho admin dashboard "Top bài lượt xem theo period" — ADR-0010.
+/// `Post.viewCount` lifetime vẫn được giữ nguyên cho mobile/web.
+model PostView {
+  id     String   @id @default(cuid())
+  postId String
+  date   DateTime // truncated to UTC midnight (start of day)
+  count  Int      @default(0)
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, date])
+  @@index([date])
+  @@index([postId, date])
 }
 
 model Report {

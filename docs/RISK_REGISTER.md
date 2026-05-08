@@ -120,6 +120,17 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 - **Trigger to revisit:** Mỗi refactor aggregate fetch logic — audit pattern non-2xx handling
 - **Date logged:** 2026-05-08
 
+### R-013: PostView count không phân biệt bot/spam/F5/self-view
+- **Category:** Technical (data quality)
+- **Probability:** 3 / **Impact:** 2 / **Score:** 6 (Yellow)
+- **Owner:** Thần (AI)
+- **Status:** Accepted (deferred to v2)
+- **Description:** ADR-0010 PostView aggregate count mọi `getPostById` request, KHÔNG phân biệt: (a) F5 spam cùng user cùng ngày, (b) author tự xem bài mình (endpoint không có auth context để kiểm tra), (c) bot/scrape user-agent, (d) anonymous view. Match hành vi `Post.viewCount` cũ — lỗi về phía inflate đều, không lệch tương đối giữa post nên ranking vẫn relative-correct.
+- **Mitigation v1:** Chấp nhận inflate. Note rõ ở ADR-0010 + UI period-note để admin hiểu semantics. Không filter user-agent vì có thể block legit Facebook/Zalo scraper preview.
+- **Mitigation v2 trigger-based:** Khi DAU > 500 hoặc phát hiện 1 post inflate >10x organic baseline → thêm rate-limit theo IP+session (max 1 view / post / hour). Khi cần loại self-view → endpoint nhận optional userId từ JWT.
+- **Trigger to revisit:** Top bài lượt xem có outlier nghi ngờ bot, hoặc admin báo cáo inflate suspicious; DAU vượt 500
+- **Date logged:** 2026-05-08
+
 ### R-012: Backend service trả Post raw không qua formatPost helper
 - **Category:** Technical (architecture pattern)
 - **Probability:** 3 / **Impact:** 3 / **Score:** 9 (Yellow)
