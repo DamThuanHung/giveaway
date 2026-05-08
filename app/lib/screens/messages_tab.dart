@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
 import '../widgets/user_avatar.dart';
 import 'chat_screen.dart';
 import 'auth/phone_login_screen.dart';
@@ -98,13 +99,12 @@ class _MessagesTabState extends State<MessagesTab> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: SizedBox(
                         height: constraints.maxHeight,
-                        child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.wifi_off, size: 56, color: AppTheme.textSecondary),
-                          const SizedBox(height: 12),
-                          const Text('Không thể tải tin nhắn', style: TextStyle(color: AppTheme.textSecondary)),
-                          const SizedBox(height: 16),
-                          OutlinedButton(onPressed: _loadRooms, child: const Text('Thử lại')),
-                        ])),
+                        child: ErrorState(
+                          icon: Icons.wifi_off,
+                          message: 'Không tải được tin nhắn',
+                          subMessage: 'Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé.',
+                          onRetry: _loadRooms,
+                        ),
                       ),
                     ),
                   ),

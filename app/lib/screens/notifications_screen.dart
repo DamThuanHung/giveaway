@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
 import 'chat_screen.dart';
 import 'post_detail_screen.dart';
 import 'profile/my_reviews_screen.dart';
@@ -24,6 +25,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<dynamic> _notifications = [];
   bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -32,10 +34,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
-    final data = await ApiService.getNotifications();
-    if (!mounted) return;
-    setState(() { _notifications = data; _isLoading = false; });
+    setState(() { _isLoading = true; _hasError = false; });
+    try {
+      final data = await ApiService.getNotifications();
+      if (!mounted) return;
+      setState(() { _notifications = data; _isLoading = false; });
+    } catch (e) {
+      debugPrint('❌ NotificationsScreen._load error: $e');
+      if (!mounted) return;
+      setState(() { _isLoading = false; _hasError = true; });
+    }
   }
 
   Future<void> _navigateToTarget(Map n) async {
@@ -190,10 +198,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: _isLoading
           ? const NotificationListSkeleton()
-          : _notifications.isEmpty
+          : _hasError
+              ? ErrorState(
+                  icon: Icons.wifi_off,
+                  message: 'Không tải được thông báo',
+                  subMessage: 'Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé.',
+                  onRetry: _load,
+                )
+              : _notifications.isEmpty
               ? const EmptyState(
                   icon: Icons.notifications_off_outlined,
                   message: 'Chưa có thông báo nào',
+                  subMessage: 'Khi có người tương tác, thông báo sẽ hiện ở đây.',
                 )
               : RefreshIndicator(
                   onRefresh: _load,

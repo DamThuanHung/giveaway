@@ -13,6 +13,8 @@ import '../models/post.dart';
 import '../theme/app_theme.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/post_card.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
 import '../data/categories.dart';
 import '../data/provinces.dart';
 import '../widgets/province_picker_sheet.dart';
@@ -424,13 +426,12 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                         return const PostGridSkeleton();
                       }
                       if (postProv.hasError && postProv.posts.isEmpty) {
-                        return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
-                          const SizedBox(height: 12),
-                          const Text('Không thể tải dữ liệu', style: TextStyle(color: AppTheme.textSecondary)),
-                          const SizedBox(height: 16),
-                          OutlinedButton(onPressed: _refetch, child: const Text('Thử lại')),
-                        ]));
+                        return ErrorState(
+                          icon: Icons.wifi_off,
+                          message: 'Không tải được bài đăng',
+                          subMessage: 'Kiểm tra mạng rồi thử lại nhé.',
+                          onRetry: _refetch,
+                        );
                       }
                       return _buildGridView(postProv.posts, postProv, auth.isAuth);
                     },
@@ -546,17 +547,12 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: SizedBox(
               height: constraints.maxHeight,
-              child: Center(
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.inbox_outlined, size: 56, color: AppTheme.textSecondary),
-                  const SizedBox(height: 12),
-                  const Text('Không có tin đăng nào', style: TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () { setState(() => _selectedChip = 0); _refetch(); },
-                    child: const Text('Xem tất cả', style: TextStyle(color: AppTheme.primary)),
-                  ),
-                ]),
+              child: EmptyState(
+                icon: Icons.inbox_outlined,
+                message: 'Khu vực này chưa có bài đăng',
+                subMessage: 'Kéo xuống để làm mới hoặc xem tất cả khu vực khác.',
+                actionLabel: 'Xem tất cả',
+                onAction: () { setState(() => _selectedChip = 0); _refetch(); },
               ),
             ),
           ),

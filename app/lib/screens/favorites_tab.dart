@@ -8,6 +8,7 @@ import '../widgets/app_image.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/post_card.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
 import 'post_detail_screen.dart';
 import 'auth/phone_login_screen.dart';
 
@@ -106,14 +107,11 @@ class FavoritesTabState extends State<FavoritesTab> {
                   onRefresh: load,
                   child: LayoutBuilder(builder: (_, c) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(height: c.maxHeight, child: Center(
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
-                        const SizedBox(height: 12),
-                        const Text('Không tải được danh sách', style: TextStyle(color: AppTheme.textSecondary)),
-                        const SizedBox(height: 16),
-                        OutlinedButton(onPressed: load, child: const Text('Thử lại')),
-                      ]),
+                    child: SizedBox(height: c.maxHeight, child: ErrorState(
+                      icon: Icons.wifi_off,
+                      message: 'Không tải được danh sách',
+                      subMessage: 'Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé.',
+                      onRetry: load,
                     )),
                   )),
                 )

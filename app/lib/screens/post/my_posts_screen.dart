@@ -4,6 +4,8 @@ import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_image.dart';
 import '../../widgets/skeleton.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/error_state.dart';
 import 'bump_package_screen.dart';
 import 'edit_post_screen.dart';
 import '../post_detail_screen.dart';
@@ -132,14 +134,11 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                   onRefresh: _loadPosts,
                   child: LayoutBuilder(builder: (ctx, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(height: constraints.maxHeight, child: Center(
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Icon(Icons.wifi_off, size: 48, color: AppTheme.textSecondary),
-                        const SizedBox(height: 12),
-                        Text(_error!, style: const TextStyle(color: AppTheme.textSecondary)),
-                        const SizedBox(height: 16),
-                        OutlinedButton(onPressed: _loadPosts, child: const Text('Thử lại')),
-                      ]),
+                    child: SizedBox(height: constraints.maxHeight, child: ErrorState(
+                      icon: Icons.wifi_off,
+                      message: _error!,
+                      subMessage: 'Mạng yếu hoặc server tạm gián đoạn. Thử lại nhé.',
+                      onRetry: _loadPosts,
                     )),
                   )),
                 )
@@ -148,23 +147,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                       onRefresh: _loadPosts,
                       child: LayoutBuilder(builder: (ctx, constraints) => SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(height: constraints.maxHeight, child: Center(
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.inbox_outlined, size: 64, color: AppTheme.border),
-                            const SizedBox(height: 12),
-                            const Text('Bạn chưa đăng tin nào', style: TextStyle(color: AppTheme.textSecondary)),
-                            const SizedBox(height: 20),
-                            ElevatedButton.icon(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Đăng tin ngay'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                            ),
-                          ]),
+                        child: SizedBox(height: constraints.maxHeight, child: EmptyState(
+                          icon: Icons.inbox_outlined,
+                          message: 'Bạn chưa đăng tin nào',
+                          subMessage: 'Bắt đầu cho hành trình trao tay đồ cũ — bài đầu tiên thường về người nhanh nhất.',
+                          actionLabel: 'Đăng tin ngay',
+                          onAction: () => Navigator.pop(context),
                         )),
                       )),
                     )
