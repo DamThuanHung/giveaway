@@ -32,6 +32,7 @@
 | `VENDOR_MANAGEMENT.md` | Build vs Buy + lock-in mitigation + exit strategy | Trước sign vendor mới + quarterly |
 | `UPGRADE_ROADMAP.md` | 8 upgrade trigger-based để 95% → 99% solo+AI ceiling | Quarterly review + khi đạt metric trigger |
 | `COMPLIANCE_MEASUREMENT.md` | 4-layer measurement đo AI rule compliance ~95% reality | Weekly audit + sampling |
+| `EXPORT_MANIFEST.md` | Bringing framework to new project — file list + per-stack adjust + verification | Setup buổi 1 dự án mới |
 
 ---
 
