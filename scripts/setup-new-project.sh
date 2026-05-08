@@ -35,7 +35,19 @@ fi
 
 # Resolve absolute path
 TARGET=$(realpath "$TARGET" 2>/dev/null || readlink -f "$TARGET" 2>/dev/null || echo "$TARGET")
-SOURCE=$(git rev-parse --show-toplevel)
+
+# Detect SOURCE — 3 modes:
+#   1. $FRAMEWORK_SOURCE env var override (bundled installer set)
+#   2. Git repo (chạy từ Trao Tay hoặc project có framework)
+#   3. Script's parent dir (chạy từ extracted tarball)
+if [ -n "$FRAMEWORK_SOURCE" ]; then
+  SOURCE="$FRAMEWORK_SOURCE"
+elif git rev-parse --show-toplevel > /dev/null 2>&1; then
+  SOURCE=$(git rev-parse --show-toplevel)
+else
+  SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  SOURCE=$(dirname "$SCRIPT_DIR")
+fi
 
 if [ -d "$TARGET" ] && [ -f "$TARGET/CLAUDE.md" ]; then
   echo "⚠️  Target đã có CLAUDE.md — overwrite? [y/N]"
