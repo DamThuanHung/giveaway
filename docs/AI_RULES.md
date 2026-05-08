@@ -1,6 +1,19 @@
-# AI RULES — Quy tắc AI tự học & đảm bảo đồng nhất
+# AI RULES — Trao Tay-specific (Decision Log + project conventions)
 
-> **Mục đích:** Quy định cách AI hành xử trong mọi prompt để đảm bảo app ngày càng
+> **⚠️ 2026-05-08 update:** Universal AI working rules đã chuyển sang
+> [`docs/standards/AI_WORKING_RULES.md`](standards/AI_WORKING_RULES.md)
+> (gộp authoritative từ 23+ memory feedback).
+>
+> File này GIỮ LẠI cho:
+> - **Decision Log Trao Tay-specific** (quyết định reject pattern + lý do)
+> - **Project conventions** chỉ áp dụng dự án này (UI tokens AppTheme,
+>   UX patterns Vietnamese context)
+> - **Lịch sử rule evolution** trước khi chuẩn hóa universal
+>
+> Nếu rule mới có tính universal → ghi vào `AI_WORKING_RULES.md`, KHÔNG
+> ghi vào file này.
+
+> **Mục đích cũ:** Quy định cách AI hành xử trong mọi prompt để đảm bảo app ngày càng
 > đồng nhất hơn. File này được AI đọc và tự cập nhật theo thời gian.
 
 ---
