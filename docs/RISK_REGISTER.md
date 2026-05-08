@@ -120,6 +120,16 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 - **Trigger to revisit:** Mỗi refactor aggregate fetch logic — audit pattern non-2xx handling
 - **Date logged:** 2026-05-08
 
+### R-012: Backend service trả Post raw không qua formatPost helper
+- **Category:** Technical (architecture pattern)
+- **Probability:** 3 / **Impact:** 3 / **Score:** 9 (Yellow)
+- **Owner:** Thần (AI)
+- **Status:** Mitigating
+- **Description:** Sự cố 2026-05-08: hoàng thượng phát hiện /favorites hiện 4/6 thẻ placeholder 📦 thay ảnh. Audit: /favorite + /follow/feed + /admin/posts đều `prisma.post.findMany` raw không qua formatPost helper → field imageUrl undefined (computed từ images[0]). Pattern lặp lại 3 service.
+- **Mitigation:** Export formatPost từ post.service. Apply ở 3 service đã fix (favorite + follow + admin). Memory rule `feedback_format_post_helper_pattern` cho session sau. Long-term: cân nhắc Prisma middleware tự động transform khi có team.
+- **Trigger to revisit:** Mỗi service mới có Post relation → checklist BẮT BUỘC apply formatPost; mỗi PR review prisma.post.findMany audit
+- **Date logged:** 2026-05-08
+
 ---
 
 ## Closed risks

@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { formatPost } from '../post/post.service';
 
 @Injectable()
 export class FollowService {
@@ -128,6 +129,9 @@ export class FollowService {
       this.prisma.post.count({ where }),
     ]);
 
-    return { data, total };
+    // Apply formatPost mỗi post — bù imageUrl computed (sự cố 2026-05-08:
+    // /favorite + /follow/feed cùng pattern thiếu formatPost → frontend
+    // PostCard fallback 📦)
+    return { data: data.map(formatPost), total };
   }
 }

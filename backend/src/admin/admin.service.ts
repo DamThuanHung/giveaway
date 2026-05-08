@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from
 import { PrismaService } from '../prisma/prisma.service';
 import { FcmService } from '../fcm/fcm.service';
 import { Prisma } from '@prisma/client';
+import { formatPost } from '../post/post.service';
 
 const DELETED_BY_ADMIN = 'deleted_by_admin';
 
@@ -165,7 +166,9 @@ export class AdminService implements OnModuleInit {
       this.prisma.post.count({ where }),
     ]);
 
-    return { data: posts, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    // Apply formatPost mỗi post — bù imageUrl computed (cùng pattern fix
+    // 2026-05-08 với /favorite + /follow/feed)
+    return { data: posts.map(formatPost), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   async hidePost(adminId: string, id: string) {
