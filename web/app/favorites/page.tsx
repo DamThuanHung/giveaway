@@ -18,19 +18,35 @@ export default function FavoritesPage() {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [fetchError, setFetchError] = useState(false);
 
+  // Smart fetch: differentiate transient (5xx, network) → show error retry
+  // vs permission (401/403 — token stale/userId mismatch) hoặc 404 → treat
+  // empty (user thấy "chưa lưu bài" rõ ràng hơn là confusing error generic).
+  async function loadFavorites(signal?: AbortSignal): Promise<Post[]> {
+    if (!user) return [];
+    const res = await authFetch(`/favorite/${user.id}`, { signal });
+    if (res.ok) {
+      const data = await res.json();
+      return (Array.isArray(data) ? data : data.data ?? [])
+        .map((f: any) => f.post ?? f)
+        .filter(Boolean);
+    }
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      console.warn(`[favorites] HTTP ${res.status} — treating as empty list`);
+      return [];
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
+
   const refetch = () => {
     if (!user) return;
     setFetchError(false);
     setPosts(null);
-    authFetch(`/favorite/${user.id}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => {
-        const list: Post[] = (Array.isArray(data) ? data : data.data ?? [])
-          .map((f: any) => f.post ?? f)
-          .filter(Boolean);
-        setPosts(list);
-      })
-      .catch(() => setFetchError(true));
+    loadFavorites()
+      .then(setPosts)
+      .catch((e) => {
+        console.error('[favorites] fetch failed:', e);
+        setFetchError(true);
+      });
   };
 
   useEffect(() => {
@@ -39,22 +55,17 @@ export default function FavoritesPage() {
       router.replace("/login/?next=/favorites/");
       return;
     }
-
-    let cancelled = false;
+    const ctrl = new AbortController();
     setFetchError(false);
-    authFetch(`/favorite/${user.id}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => {
-        if (cancelled) return;
-        const list: Post[] = (Array.isArray(data) ? data : data.data ?? [])
-          .map((f: any) => f.post ?? f)
-          .filter(Boolean);
-        setPosts(list);
-      })
-      .catch(() => !cancelled && setFetchError(true));
-    return () => {
-      cancelled = true;
-    };
+    loadFavorites(ctrl.signal)
+      .then((list) => !ctrl.signal.aborted && setPosts(list))
+      .catch((e) => {
+        if (ctrl.signal.aborted) return;
+        console.error('[favorites] fetch failed:', e);
+        setFetchError(true);
+      });
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router]);
 
   return (

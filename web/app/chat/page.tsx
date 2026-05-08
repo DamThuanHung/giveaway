@@ -46,13 +46,29 @@ export default function ChatListPage() {
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   const [fetchError, setFetchError] = useState(false);
 
+  // Smart fetch: 401/403/404 → empty (auth stale OR user mới); 5xx → error retry
+  async function loadRooms(signal?: AbortSignal): Promise<ChatRoom[]> {
+    const res = await authFetch("/chat/rooms", { signal });
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data : data.data ?? [];
+    }
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      console.warn(`[chat/rooms] HTTP ${res.status} — empty fallback`);
+      return [];
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
+
   const refetch = () => {
     setFetchError(false);
     setRooms(null);
-    authFetch("/chat/rooms")
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setRooms(Array.isArray(data) ? data : data.data ?? []))
-      .catch(() => setFetchError(true));
+    loadRooms()
+      .then(setRooms)
+      .catch((e) => {
+        console.error('[chat/rooms] fetch failed:', e);
+        setFetchError(true);
+      });
   };
 
   useEffect(() => {
@@ -61,11 +77,17 @@ export default function ChatListPage() {
       router.replace("/login/?next=/chat/");
       return;
     }
+    const ctrl = new AbortController();
     setFetchError(false);
-    authFetch("/chat/rooms")
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setRooms(Array.isArray(data) ? data : data.data ?? []))
-      .catch(() => setFetchError(true));
+    loadRooms(ctrl.signal)
+      .then((list) => !ctrl.signal.aborted && setRooms(list))
+      .catch((e) => {
+        if (ctrl.signal.aborted) return;
+        console.error('[chat/rooms] fetch failed:', e);
+        setFetchError(true);
+      });
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router]);
 
   if (authLoading || !user) {
