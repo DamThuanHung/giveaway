@@ -78,7 +78,7 @@ export default function MyStatsPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              <StatCard icon="📦" label="Tổng tin đăng" value={stats.totalPosts ?? 0} />
+              <StatCard icon="📦" label="Tổng bài đăng" value={stats.totalPosts ?? 0} />
               <StatCard icon="✅" label="Đã hoàn tất" value={stats.totalCompletedDeals ?? stats.donePosts ?? 0} accent="text-primary-600" />
               <StatCard icon="👀" label="Tổng lượt xem" value={stats.totalViews ?? 0} accent="text-blue-600" />
               <StatCard icon="❤️" label="Lượt yêu thích" value={stats.totalFavorites ?? 0} accent="text-rose-500" />

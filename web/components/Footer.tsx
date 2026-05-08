@@ -24,7 +24,7 @@ export function Footer() {
         <nav className="flex flex-col gap-2.5 text-sm">
           <h3 className="font-semibold text-white mb-1">Liên kết</h3>
           <Link href="/posts/" className="hover:text-primary-300 transition-colors duration-150 ease-warm">
-            Xem tin đăng
+            Xem bài đăng
           </Link>
           <Link href="/privacy.html" className="hover:text-primary-300 transition-colors duration-150 ease-warm">
             Chính sách quyền riêng tư

@@ -93,7 +93,7 @@ export default async function HomePage() {
                 href="/posts/"
                 className="bg-white border border-ink-200 hover:border-primary hover:text-primary text-ink-800 font-semibold px-6 py-3.5 rounded-md transition duration-250 ease-warm shadow-soft hover:shadow-card"
               >
-                Xem tin đăng →
+                Xem bài đăng →
               </Link>
             </div>
             <p className="text-sm text-ink-500 flex items-center gap-2">
@@ -122,7 +122,7 @@ export default async function HomePage() {
             <div className="flex items-end justify-between mb-8">
               <div>
                 <h2 className="text-3xl md:text-4xl font-extrabold text-ink-900 tracking-tight mb-1.5">
-                  Tin đăng mới nhất
+                  Bài đăng mới nhất
                 </h2>
                 <p className="text-ink-500 text-sm">Cập nhật theo thời gian thực từ cộng đồng</p>
               </div>

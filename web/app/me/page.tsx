@@ -244,7 +244,7 @@ export default function MePage() {
 
         <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
           <h2 className="text-xl md:text-2xl font-extrabold text-ink-900 tracking-tight">
-            Tin đăng gần đây {posts ? `(${posts.length})` : ""}
+            Bài đăng gần đây {posts ? `(${posts.length})` : ""}
           </h2>
           <Link
             href="/posts/new/"

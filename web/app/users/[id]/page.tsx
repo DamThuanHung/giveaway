@@ -26,7 +26,7 @@ export async function generateMetadata({
   if (!user) return { title: "Người dùng không tồn tại" };
 
   const name = user.name || "Người dùng";
-  const desc = `${name} trên Trao Tay — ${user._count.posts} tin đăng, ${user.completedTransactions} giao dịch hoàn tất, ${user._count.reviewsReceived} đánh giá.`;
+  const desc = `${name} trên Trao Tay — ${user._count.posts} bài đăng, ${user.completedTransactions} giao dịch hoàn tất, ${user._count.reviewsReceived} đánh giá.`;
   const url = `https://traotay.com.vn/users/${user.id}/`;
 
   return {
@@ -124,7 +124,7 @@ export default async function UserProfilePage({
         <nav className="text-sm text-ink-500 mb-5 flex items-center gap-1.5 flex-wrap">
           <Link href="/" className="hover:text-primary-600 transition-colors duration-150">Trang chủ</Link>
           <span className="text-ink-300">/</span>
-          <Link href="/posts/" className="hover:text-primary-600 transition-colors duration-150">Tin đăng</Link>
+          <Link href="/posts/" className="hover:text-primary-600 transition-colors duration-150">Bài đăng</Link>
           <span className="text-ink-300">/</span>
           <span className="text-ink-700 truncate max-w-[200px] md:max-w-none">{user.name || "Người dùng"}</span>
         </nav>
@@ -176,7 +176,7 @@ export default async function UserProfilePage({
                   <div className="text-xl font-extrabold text-ink-900">
                     {user._count.posts}
                   </div>
-                  <div className="text-xs text-ink-500 mt-0.5">Tin đăng</div>
+                  <div className="text-xs text-ink-500 mt-0.5">Bài đăng</div>
                 </div>
                 <div className="bg-cream-100 border border-ink-200/50 rounded-md p-3 text-center">
                   <div className="text-xl font-extrabold text-primary-600">
@@ -203,11 +203,11 @@ export default async function UserProfilePage({
 
         <section className="mb-8">
           <h2 className="text-xl md:text-2xl font-extrabold text-ink-900 mb-4 tracking-tight">
-            Tin đăng của {user.name || "người dùng này"} ({userPosts.length})
+            Bài đăng của {user.name || "người dùng này"} ({userPosts.length})
           </h2>
           {userPosts.length === 0 ? (
             <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-8 text-center text-ink-500">
-              Chưa có tin đăng nào đang hiển thị
+              Chưa có bài đăng nào đang hiển thị
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

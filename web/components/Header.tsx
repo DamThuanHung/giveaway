@@ -36,7 +36,7 @@ export function Header() {
               href="/posts/"
               className="hidden md:inline px-2 py-1.5 hover:text-primary transition-colors duration-150 ease-warm"
             >
-              Tin đăng
+              Bài đăng
             </Link>
             <a
               href="https://play.google.com/store/apps/details?id=vn.traotay.app"
@@ -82,7 +82,7 @@ export function Header() {
             </div>
             <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 text-base">
               <Link href="/posts/" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-md hover:bg-ink-100 text-ink-800 font-medium transition">
-                <span className="mr-2.5">📦</span>Tin đăng
+                <span className="mr-2.5">📦</span>Bài đăng
               </Link>
               <Link href="/me/" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-md hover:bg-ink-100 text-ink-800 font-medium transition">
                 <span className="mr-2.5">👤</span>Hồ sơ của tôi

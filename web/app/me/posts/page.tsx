@@ -61,7 +61,7 @@ export default function MyPostsPage() {
             <Link href="/me/" className="text-sm text-ink-500 hover:text-primary-600 mb-2 inline-block transition-colors duration-150">
               ← Quay lại Hồ sơ
             </Link>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">📦 Tin đăng của tôi</h1>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink-900 tracking-tight">📦 Bài đăng của tôi</h1>
             <p className="text-ink-600 text-sm mt-1">
               {posts == null ? "Đang tải..." : `${posts.length} bài`}
             </p>

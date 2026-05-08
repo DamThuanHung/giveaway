@@ -112,7 +112,7 @@ export default async function PostDetailPage({
         <nav className="text-sm text-ink-500 mb-5 flex items-center gap-1.5 flex-wrap">
           <Link href="/" className="hover:text-primary transition-colors duration-150">Trang chủ</Link>
           <span className="text-ink-300">/</span>
-          <Link href="/posts/" className="hover:text-primary transition-colors duration-150">Tin đăng</Link>
+          <Link href="/posts/" className="hover:text-primary transition-colors duration-150">Bài đăng</Link>
           <span className="text-ink-300">/</span>
           <span className="text-ink-700 truncate max-w-[200px] md:max-w-none">{post.title}</span>
         </nav>

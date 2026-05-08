@@ -70,7 +70,7 @@ export default function FavoritesPage() {
               href="/posts/"
               className="inline-block bg-primary hover:bg-primary-dark text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
             >
-              Khám phá tin đăng
+              Khám phá bài đăng
             </Link>
           </div>
         ) : (
