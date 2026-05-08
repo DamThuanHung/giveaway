@@ -1,0 +1,128 @@
+# Risk Register — Trao Tay
+
+Last full review: 2026-05-08
+Next scheduled review: 2026-06-01 (đầu tháng 6)
+
+Format theo `docs/standards/RISK_REGISTER.md`. Score = Probability × Impact (1-25).
+Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
+
+---
+
+## Open risks
+
+### R-001: Single point of failure — primary database
+- **Category:** Technical
+- **Probability:** 3 / **Impact:** 5 / **Score:** 15 (Orange)
+- **Owner:** Hoàng thượng
+- **Status:** Mitigating
+- **Description:** Postgres chạy 1 instance trên EC2 t3.micro. EBS disk fail hoặc instance crash → service down toàn phần.
+- **Mitigation:** Backup 3-2-1 (local hourly + B2 daily). RTO target < 4h. Snapshot trước mọi migration.
+- **Trigger to revisit:** DAU > 1k → cân nhắc RDS multi-AZ
+- **Date logged:** 2026-04-26
+
+### R-002: Secret leak qua git commit
+- **Category:** Security
+- **Probability:** 2 / **Impact:** 5 / **Score:** 10 (Orange)
+- **Owner:** Hoàng thượng
+- **Status:** Mitigating
+- **Description:** AWS key, JWT secret, DB password có thể leak nếu commit `.env` hoặc hardcode.
+- **Mitigation:** `.env*` trong `.gitignore`, gitleaks GitHub Action chạy mỗi PR, pre-commit hook detect-secrets pattern AKIA + ghp_ + private key.
+- **Trigger to revisit:** Sau mọi rotation secret
+- **Date logged:** 2026-04-26
+
+### R-003: Backup restore chưa được test thực
+- **Category:** Technical
+- **Probability:** 4 / **Impact:** 5 / **Score:** 20 (Red)
+- **Owner:** Hoàng thượng
+- **Status:** Open
+- **Description:** Backup chạy auto từ 2026-04-30 nhưng chưa restore thử nghiệm. "Backup không test = không tin được."
+- **Mitigation:** Schedule DR drill Q3 2026 — restore backup mới nhất lên staging, verify data integrity, đo RTO thực tế.
+- **Trigger to revisit:** Sau drill Q3 2026
+- **Date logged:** 2026-04-30
+
+### R-004: Tester crisis Closed Testing
+- **Category:** Business
+- **Probability:** 5 / **Impact:** 4 / **Score:** 20 (Red)
+- **Owner:** Hoàng thượng
+- **Status:** Open
+- **Description:** Closed Testing Google Play yêu cầu 12 tester active 14 ngày. Hiện chỉ 4-5 tester active. Nếu < 12 → reset 14-ngày clock.
+- **Mitigation:** Recruit 7-8 tester thật trước 2026-05-18 (deadline). Personal network + community VN dev.
+- **Trigger to revisit:** Hằng tuần đếm tester active
+- **Date logged:** 2026-04-30
+
+### R-005: Auth không có MFA cho admin
+- **Category:** Security
+- **Probability:** 3 / **Impact:** 4 / **Score:** 12 (Orange)
+- **Owner:** Hoàng thượng
+- **Status:** Open
+- **Description:** Admin account hiện chỉ password + JWT. Nếu password leak → full takeover.
+- **Mitigation:** Implement TOTP 2FA cho admin trong sprint kế. Backup code 10 mã.
+- **Trigger to revisit:** Trước khi onboard admin thứ 2
+- **Date logged:** 2026-05-08
+
+### R-006: GDPR right to erasure chưa implement đầy đủ
+- **Category:** Compliance
+- **Probability:** 2 / **Impact:** 5 / **Score:** 10 (Orange)
+- **Owner:** Hoàng thượng
+- **Status:** Open
+- **Description:** User request xóa account → soft delete (deletedAt). Chưa hard delete sau 30 ngày + cascade post/comment/file.
+- **Mitigation:** Implement cron job hard-delete user soft-deleted > 30 ngày + cascade. Document trong COMPLIANCE.
+- **Trigger to revisit:** Khi có user EU đầu tiên hoặc compliance audit
+- **Date logged:** 2026-05-08
+
+### R-007: Vendor lock-in MinIO → S3 migration cost
+- **Category:** Vendor
+- **Probability:** 2 / **Impact:** 3 / **Score:** 6 (Yellow)
+- **Owner:** Hoàng thượng
+- **Status:** Accepted
+- **Description:** Khi volume > 200GB hoặc DAU > 10k, có thể cần migrate MinIO → S3/R2 cho cost + scale.
+- **Mitigation:** S3-compatible API → migrate chỉ đổi endpoint + credentials. Backup B2 daily là parallel data nguồn.
+- **Trigger to revisit:** Volume > 100GB
+- **Date logged:** 2026-04-26
+
+### R-008: Domain expiration
+- **Category:** Vendor
+- **Probability:** 1 / **Impact:** 5 / **Score:** 5 (Yellow)
+- **Owner:** Hoàng thượng
+- **Status:** Mitigating
+- **Description:** `traotay.com.vn` expire → site down + danh tiếng tổn hại.
+- **Mitigation:** Auto-renewal bật tại TenTen.vn 12 tháng. Lock domain (registrar lock). Backup expiration date trong calendar + password manager.
+- **Trigger to revisit:** Hằng năm trước expire 60 ngày
+- **Date logged:** 2026-04-26
+
+### R-009: Hoàng thượng burnout
+- **Category:** People
+- **Probability:** 3 / **Impact:** 5 / **Score:** 15 (Orange)
+- **Owner:** Hoàng thượng
+- **Status:** Open
+- **Description:** Solo dev → high cognitive load. Burnout → dự án dừng vĩnh viễn.
+- **Mitigation:** AI delegate technical tasks max. Hard limits: không code sau 22:00. Weekly review pace.
+- **Trigger to revisit:** Khi work > 60h/tuần liên tiếp 2 tuần
+- **Date logged:** 2026-05-08
+
+### R-010: Schema migration miss → bug ngầm production
+- **Category:** Technical
+- **Probability:** 2 / **Impact:** 4 / **Score:** 8 (Yellow)
+- **Owner:** Thần (AI)
+- **Status:** Mitigating
+- **Description:** Sự cố Web Push 2026-05-08: schema mới WebPushSubscription quên `prisma db push` prod → chat fail âm thầm 1 ngày.
+- **Mitigation:** Hook `check-schema-adr.sh` chặn commit schema không ADR. Memory rule `feedback_prisma_db_push_after_schema_change`. Deploy checklist BẮT BUỘC verify schema sync.
+- **Trigger to revisit:** Sau mỗi schema change → audit có execute đủ checklist không
+- **Date logged:** 2026-05-08
+
+---
+
+## Closed risks
+
+(empty — chưa có risk closed)
+
+---
+
+## Trao Tay-specific risks (post-Stage 1)
+
+Chưa active vì pre-trigger:
+
+- **R-101 (pre-trigger):** Payment gateway PayOS suspend account — trigger khi có 100 transaction
+- **R-102 (pre-trigger):** Bot abuse signup spam — trigger khi DAU > 500
+- **R-103 (pre-trigger):** Cross-border data transfer GDPR — trigger khi có user EU
+- **R-104 (pre-trigger):** Tax compliance khi có revenue — trigger khi MRR > 50M VND
