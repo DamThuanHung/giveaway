@@ -92,6 +92,30 @@
   animation: fade-in-toast 0.2s ease-out;
 }
 
+/* ── Bottom sheet slide-up (UI_UX_STANDARDS §8.4 mobile bottom sheet) ── */
+@keyframes slide-up-sheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up-sheet 0.3s cubic-bezier(0.0, 0.0, 0.0, 1.0); /* decelerate */
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up { animation: none; }
+}
+
+/* Slide in từ phải — drawer mobile menu */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s cubic-bezier(0.0, 0.0, 0.0, 1.0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right { animation: none; }
+}
+
 /* ── VIP card wrapper: glow vàng mạnh + animated border ─────── */
 .vip-card {
   position: relative;

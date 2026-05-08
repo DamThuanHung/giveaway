@@ -420,13 +420,25 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-[100] flex items-end md:items-center justify-center md:p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
     >
+      {/*
+        Mobile: bottom sheet (UI_UX_STANDARDS §8.4) — slide up from bottom,
+                drag handle, full-width, rounded top only
+        Desktop (≥md): centered modal — rounded full, max-w-md
+      */}
       <div
-        className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl"
+        className="bg-white w-full md:max-w-md md:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto shadow-xl animate-slide-up md:animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle — chỉ show mobile, dấu hiệu visual cho biết swipeable */}
+        <div className="md:hidden flex justify-center pt-2 pb-1" aria-hidden="true">
+          <div className="w-10 h-1 bg-ink-300 rounded-full"></div>
+        </div>
         <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white">
           <h3 className="font-bold text-navy">{title}</h3>
           <button
