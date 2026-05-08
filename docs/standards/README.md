@@ -20,6 +20,10 @@
 | `RISK_REGISTER.md` | PMBOK + ISO 31000 | Live document, review hàng tháng |
 | `COMPLIANCE.md` | GDPR + Privacy by Design (ISO 27701) | Trước collect user data |
 | `INCIDENT_RUNBOOK.md` | Google SRE postmortem (blameless) | Mỗi sự cố production |
+| `AI_WORKING_RULES.md` | Memory feedback gộp (Trao Tay 2026) | AI tự đọc mỗi session |
+| `AI_COLLABORATION_RULES.md` | User-side AI playbook | User đọc khi prompt/review AI |
+| `DOCUMENTATION_STANDARDS.md` | Keep a Changelog + OpenAPI + ADR | Trước viết doc/comment/README |
+| `PERFORMANCE_AND_FINOPS.md` | Core Web Vitals + Google SRE + FinOps Foundation | Trước launch + monthly review |
 
 ---
 
