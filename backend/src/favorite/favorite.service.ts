@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { formatPost } from '../post/post.service';
 
 @Injectable()
 export class FavoriteService {
@@ -58,12 +59,19 @@ export class FavoriteService {
 
   // 3. Hàm lấy danh sách bài yêu thích của User
   async getFavorites(userId: any) {
-    return this.prisma.favorite.findMany({
+    const favorites = await this.prisma.favorite.findMany({
       where: { userId: String(userId) },
       include: {
         post: true, // Lấy kèm thông tin chi tiết bài đăng
       },
       orderBy: { createdAt: 'desc' },
     });
+    // Apply formatPost cho mỗi post — bù imageUrl + images normalize.
+    // Trước fix 2026-05-08, favorite trả raw post → frontend PostCard
+    // không có imageUrl → fallback 📦 placeholder.
+    return favorites.map((f) => ({
+      ...f,
+      post: f.post ? formatPost(f.post) : null,
+    }));
   }
 }

@@ -37,7 +37,11 @@ function buildImageUrl(imageLabel: string): string | null {
   return `${BASE_URL}/uploads/${imageLabel}`;
 }
 
-function formatPost(post: any) {
+// Export để các service khác (favorite, follow, ...) tái sử dụng — đảm bảo
+// imageUrl computed nhất quán mọi endpoint trả Post object. Sự cố
+// 2026-05-08: /favorite trả raw post không qua formatPost → frontend
+// PostCard fallback 📦 placeholder.
+export function formatPost(post: any) {
   const images = post.images && post.images.length > 0
     ? post.images
     : (post.imageLabel ? [buildImageUrl(post.imageLabel)].filter(Boolean) : []);
