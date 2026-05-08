@@ -110,6 +110,16 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 - **Trigger to revisit:** Sau mỗi schema change → audit có execute đủ checklist không
 - **Date logged:** 2026-05-08
 
+### R-011: AI refactor aggressive non-2xx status → false ErrorState
+- **Category:** Technical (AI working pattern)
+- **Probability:** 3 / **Impact:** 3 / **Score:** 9 (Yellow)
+- **Owner:** Thần (AI)
+- **Status:** Mitigating
+- **Description:** Sự cố G-01 commit 5547723 (2026-05-08): AI refactor `setPosts([])` → `setFetchError(true)` cho mọi `!res.ok`. Aggressive với 401/403/404 (auth stale, user mới) → user thấy ErrorState false alarm thay vì empty state. Hoàng thượng phát hiện sau test thật trên /favorites.
+- **Mitigation:** Pattern smart-fetch đã apply commit e4df360 (favorites + chat). Memory cần lưu rule "khi refactor !res.ok handling, BẮT BUỘC differentiate auth (401/403) / not-found (404) / transient (5xx) / network".
+- **Trigger to revisit:** Mỗi refactor aggregate fetch logic — audit pattern non-2xx handling
+- **Date logged:** 2026-05-08
+
 ---
 
 ## Closed risks
