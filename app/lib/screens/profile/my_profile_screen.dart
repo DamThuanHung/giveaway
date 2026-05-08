@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // HapticFeedback
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -447,32 +448,19 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               iconBgColor: AppTheme.error,
               labelColor: AppTheme.error,
               onTap: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: const Text('Đăng xuất'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Bạn có chắc muốn đăng xuất không?'),
-                        const SizedBox(height: 20),
-                        SizedBox(width: double.infinity, child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Đăng xuất'),
-                        )),
-                        const SizedBox(height: 8),
-                        SizedBox(width: double.infinity, child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Hủy'),
-                        )),
-                      ],
+                // UI_UX_STANDARDS §15 anti-pattern: bỏ "Are you sure?" cho action
+                // dễ undo. Logout = login lại nhanh, không destructive data
+                // → không cần confirm dialog. Chỉ SnackBar info + Haptic.
+                HapticFeedback.lightImpact();
+                context.read<AuthProvider>().logout();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đã đăng xuất'),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 2),
                     ),
-                  ),
-                );
-                if (confirm == true && context.mounted) {
-                  context.read<AuthProvider>().logout();
+                  );
                 }
               },
             ),
