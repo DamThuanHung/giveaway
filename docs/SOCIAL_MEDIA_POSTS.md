@@ -126,65 +126,92 @@ group trong comment đầu tiên xin phép.
 
 ---
 
-## Platform 3 — Zalo (status cá nhân + group bạn thân)
+## Platform 3 — YouTube (Shorts + Long form + Community post)
 
-### Variant E — Zalo status (cá nhân)
+### Variant E — YouTube Shorts caption (60s, dùng lại video TikTok)
 
-> Đã xong 1 dự án ấp ủ 3 tháng nay 🎯
+**Title** (60 chars max):
+> 3 tháng code 1 mình — Trao Tay đã lên sóng 🌱
+
+**Description**:
+> Sau 3 tháng làm 1 mình, mình vừa cho lên sóng **Trao Tay**:
+> chợ đồ cũ + trao tặng đồ miễn phí giữa người Việt với nhau.
 >
-> traotay.com.vn — chợ đồ cũ + trao tặng cho người Việt.
+> 👉 Link: https://traotay.com.vn
 >
 > "Đồ cũ người này, Báu vật người kia."
 >
-> Tặng nhau dùng tốt hơn vứt 🌱
-
-**Note**: Zalo status hiện trên feed bạn bè + kết bạn. Ngắn, có 1-2
-emoji, không link dài.
-
-### Variant F — Zalo broadcast cá nhân (gửi 5-10 bạn thân)
-
-> Hùng đây. Mình vừa cho lên sóng dự án 3 tháng nay code 1 mình:
-> **traotay.com.vn** — chợ đồ cũ + tặng đồ miễn phí.
+> Mình làm vì tin: cái áo con tôi mặc chật, ở nhà khác có thể là
+> đồ vừa kịp. Tặng nhau dùng tốt hơn vứt.
 >
-> Bạn vào thử 1 phút giúp mình nhé, có gì lạ nhắn lại. Cảm ơn nhiều! 🙏
+> Có gì khó dùng comment nhé — mình đọc và fix trong 24h 🙏
+>
+> #TraoTay #ĐồCũ #TặngĐồMiễnPhí #SoloFounder #StartupVN #Shorts
 
-**Note**: KHÔNG bulk-send qua API → cá nhân hoá tên + nhắn từng người.
-Memory `docs/CLOSED_TESTING_RECRUIT.md` Variant A có mẫu chi tiết hơn.
+**Note**: YouTube Shorts ≤ 60s, vertical 9:16. Dùng cùng video TikTok
+(re-upload). Title bắt buộc có 1 hook trong 60 chars đầu. Tag #Shorts
+ở mô tả + 1-2 hashtag trong title (algo). Đăng giờ vàng VN: 19-22h.
+
+### Variant F — YouTube long video (3-7 phút, founder story)
+
+**Title** (60-70 chars cho SEO):
+> Tôi đã build chợ đồ cũ Việt Nam trong 3 tháng | Trao Tay solo founder
+
+**Description** (đầy đủ SEO):
+> Sau 3 tháng làm việc 1 mình, mình vừa cho lên sóng **Trao Tay** —
+> trang web mua bán + trao tặng đồ cũ giữa người Việt với nhau:
+> 👉 https://traotay.com.vn
+>
+> Trong video này mình kể:
+> - 0:00 Vì sao mình làm Trao Tay (cái nồi cơm điện cũ trong bếp)
+> - 1:30 Demo flow đăng 1 món đồ trong 1 phút
+> - 3:00 Tại sao chọn slogan "Đồ cũ người này, Báu vật người kia"
+> - 4:30 Khác biệt với Chợ Tốt + Facebook Marketplace
+> - 6:00 Stack kỹ thuật (Flutter + NestJS + AWS Singapore)
+> - 7:00 Mời mọi người vào thử + góp ý
+>
+> Trao Tay miễn phí 100% cho người dùng. Mình chỉ thu phí khi ai
+> muốn đẩy bài lên đầu (giống Jimoty bên Nhật).
+>
+> Anh chị có 5 phút vào https://traotay.com.vn thử đăng 1 món đồ.
+> Bug/UX kỳ comment dưới video — mình đọc và fix.
+>
+> 🌐 Web: https://traotay.com.vn
+> 📧 Email: damhungtpt@gmail.com
+>
+> #TraoTay #SoloFounder #StartupVN #ChợĐồCũ #BuildInPublic
+
+**Tags YouTube** (cách nhau dấu phẩy, paste vào ô Tags):
+> trao tay, đồ cũ, chợ đồ cũ vn, tặng đồ miễn phí, solo founder,
+> startup việt nam, build in public, mua bán đồ cũ, jimoty việt nam,
+> chợ tốt thay thế, web app việt, founder kể chuyện
+
+**Thumbnail** (1280x720):
+- Mặt founder + chữ to "TÔI BUILD APP TRONG 3 THÁNG"
+- Background: screenshot trang chủ Trao Tay
+- Màu chủ đạo emerald (theo brand)
+
+**Note**: Long video build authority + SEO. YouTube ưu tiên retention
+nên 3-5 phút thường win 7-10 phút. End screen có Subscribe + link
+traotay.com.vn. Đăng tối thứ 7 hoặc CN 19-21h.
+
+### Variant G — YouTube Community post (chỉ khả dụng khi >500 sub)
+
+> Trao Tay vừa lên sóng 🌱
+>
+> Sau 3 tháng code 1 mình, mọi người vào thử nhé:
+> 👉 traotay.com.vn
+>
+> Có gì hay/dở comment bên dưới, mình đọc hết.
+>
+> "Đồ cũ người này, Báu vật người kia"
+
+**Note**: Community post hiện feed sub. Khi channel chưa đủ 500 sub,
+skip variant G — thay bằng comment ghim trên video Variant F.
 
 ---
 
-## Platform 4 — Threads / X / Twitter (micro-blog 280 chars)
-
-### Variant G — Threads VN tone
-
-> 3 tháng code 1 mình. Vừa lên sóng.
->
-> traotay.com.vn — chợ đồ cũ + trao tặng giữa người Việt.
->
-> Đồ cũ người này, Báu vật người kia.
->
-> Vô thử trong 1 phút 🌱
-
-**Note**: Threads VN engagement cao với tone "founder solo". Hashtag
-không cần — algo tự nhận diện.
-
-### Variant H — Twitter/X English (cho dev community quốc tế)
-
-> Just shipped after 3 months of solo coding:
->
-> traotay.com.vn — Vietnamese C2C marketplace for second-hand goods +
-> free giveaways.
->
-> Stack: Flutter + NestJS + Postgres on AWS SG. Fully self-hosted.
->
-> Open to feedback from anyone shipped consumer mobile in VN market 🇻🇳
-
-**Note**: Cho LinkedIn / Reddit r/SideProject / Hacker News Show. Có
-mention stack vì community dev Tây thích.
-
----
-
-## Platform 5 — TikTok caption (cho video demo app)
+## Platform 4 — TikTok caption (cho video demo app)
 
 ### Variant I — Hook 3-giây + caption
 
@@ -222,6 +249,74 @@ sau hoặc B-roll bếp.
 
 ---
 
+## Platform 5 — Threads (micro-blog Meta, 500 chars/post)
+
+### Variant K — Threads short hook (1 post)
+
+> 3 tháng code 1 mình. Vừa lên sóng:
+>
+> **traotay.com.vn** — chợ đồ cũ + trao tặng giữa người Việt.
+>
+> "Đồ cũ người này, Báu vật người kia."
+>
+> Vô thử trong 1 phút 🌱
+
+**Note**: Threads VN đang phát triển nhanh 2025-2026. Tone "founder
+solo kể chuyện" engagement cao. KHÔNG dùng hashtag dày — Threads algo
+ưu tiên nội dung > tag. Đăng 19-22h.
+
+### Variant L — Threads chuỗi (thread 4-5 post nối nhau)
+
+**Post 1** (mở):
+> 3 tháng trước mình ngồi nhìn cái nồi cơm điện cũ trong bếp.
+>
+> Vứt thì tiếc. Đăng Chợ Tốt thì lẫn vào hàng nghìn shop. Đăng FB
+> Marketplace thì mất hút.
+>
+> Mình tự hỏi: sao không có app riêng cho đồ cũ người Việt với
+> người Việt? 🤔
+
+**Post 2** (reply post 1):
+> Thế là mình bắt đầu code.
+>
+> Flutter + NestJS + Postgres. Tự host AWS Singapore. 1 mình từ
+> figma đến deploy. Không có team, không có funding.
+>
+> 3 tháng sau có **traotay.com.vn** 🌱
+
+**Post 3** (reply post 2):
+> Trao Tay khác gì Chợ Tốt?
+>
+> 1. Có mục TẶNG MIỄN PHÍ riêng — không lẫn vào tin bán
+> 2. Filter theo tỉnh + quận chính xác → tìm đồ gần nhà
+> 3. Không phí đăng, không phí thành viên
+> 4. Không quảng cáo nhồi nhét
+>
+> Mình chỉ thu phí khi ai muốn đẩy bài lên đầu (giống Jimoty Nhật).
+
+**Post 4** (reply post 3):
+> Slogan thì đơn giản:
+>
+> **"Đồ cũ người này, Báu vật người kia."**
+>
+> Cái áo con tôi mặc chật, ở 1 nhà khác có thể là đồ vừa kịp lúc.
+> Cái nồi cơm điện cũ, ở khu trọ sinh viên là cứu cánh.
+
+**Post 5** (CTA cuối):
+> Anh chị có 5 phút vào https://traotay.com.vn thử đăng 1 món đồ
+> nào đó trong nhà.
+>
+> Đợi ai đó "ngỏ lời nhận" sẽ vui hơn nhận 50.000đ rất nhiều.
+>
+> Có gì khó comment, mình đọc và fix trong 24h 🙏
+
+**Note**: Thread chuỗi engagement gấp 3-5 lần single post nếu hook
+đầu hấp dẫn. Đăng cùng 1 lúc, KHÔNG cách nhau. Threads cho phép
+attach ảnh mỗi post — post 2 attach screenshot code, post 5 attach
+banner OG đẹp.
+
+---
+
 ## Hashtag bank
 
 **Tier 1 (mọi platform, brand-owned):**
@@ -242,22 +337,30 @@ sau hoặc B-roll bếp.
 
 ---
 
-## Plan đăng 7 ngày đầu
+## Plan đăng 7 ngày đầu (4 platform: FB / YouTube / TikTok / Threads)
 
 | Ngày | Platform | Variant | Mục tiêu |
 |---|---|---|---|
-| Ngày 1 (CN tối) | FB cá nhân | A (long form pin top) | Reach max bạn bè |
-| Ngày 2 (T2 sáng) | Zalo status | E | Lan toả lớp người không FB |
-| Ngày 2 (T2 tối) | Threads | G | Test reach micro-blog |
-| Ngày 3 (T3 sáng) | FB Group #1 mom | C | Persona 1 acquisition |
-| Ngày 4 (T4 tối) | FB Group #2 sinh viên | D | Persona 2 acquisition |
-| Ngày 5 (T5 sáng) | Zalo broadcast 5 bạn | F | Word-of-mouth seed |
-| Ngày 6 (T6 tối) | TikTok video #1 | I | Reach Gen Z |
-| Ngày 7 (T7 sáng) | LinkedIn/X | H | Dev community |
+| Ngày 1 (CN tối 19-21h) | FB cá nhân | **A** long form pin top profile | Reach max bạn bè + uy tín founder |
+| Ngày 2 (T2 sáng 8-9h) | Threads | **K** short hook | Test reach micro-blog VN |
+| Ngày 3 (T3 sáng 9-10h) | FB Group #1 (mom) | **C** | Persona 1 (mẹ bỉm sữa) |
+| Ngày 4 (T4 tối 19-22h) | TikTok | **I** hook POV | Reach Gen Z + viral attempt |
+| Ngày 5 (T5 sáng 9-10h) | FB Group #2 (sinh viên) | **D** | Persona 2 (sinh viên) |
+| Ngày 6 (T6 tối 20-22h) | YouTube Shorts | **E** (re-up TikTok video) | SEO YouTube + cross-platform |
+| Ngày 7 (T7 tối 19-21h) | Threads | **L** chuỗi 5 post | Storytelling deep |
+
+**Tuần 2** (sau khi có Cloudflare Analytics data):
+
+| Ngày | Platform | Variant | Mục tiêu |
+|---|---|---|---|
+| Ngày 8-9 | YouTube long video | **F** founder story 5-7 phút | SEO + authority |
+| Ngày 10 | TikTok #2 | **J** story-time | Test trend theo data |
+| Ngày 11-12 | FB cá nhân | **B** short hook + ảnh | Refresh top profile |
+| Ngày 13-14 | Platform thắng (theo CF data) | Variant mới | Double down |
 
 **Quan sát sau 7 ngày**:
-- CF Web Analytics + Plausible (khi có) → top referrer
-- Top platform → đầu tư thêm content tuần 2
+- CF Web Analytics → Top Referrer phân tích platform nào gửi traffic
+- Top platform → đầu tư thêm content tuần 2 (vd quay 3 TikTok / tuần)
 - Bottom platform → drop, không lãng phí thời gian
 
 ---
