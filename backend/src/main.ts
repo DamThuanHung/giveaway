@@ -57,9 +57,17 @@ async function bootstrap() {
     },
   }));
 
-  // CORS: production phải set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"
+  // CORS: production BẮT BUỘC set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"
   // Mobile app không gửi Origin header nên không bị ảnh hưởng.
+  // Defense-in-depth: production mà thiếu CORS_ORIGIN → fail hẳn,
+  // tránh trường hợp deploy nhầm dùng origin=true (cho phép mọi origin).
   const corsOrigin = process.env.CORS_ORIGIN;
+  if (process.env.NODE_ENV === 'production' && !corsOrigin) {
+    throw new Error(
+      '[startup] FATAL: NODE_ENV=production yêu cầu CORS_ORIGIN env var. ' +
+      'Set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn" trong .env.docker.',
+    );
+  }
   app.enableCors({
     origin: corsOrigin ? corsOrigin.split(',').map(s => s.trim()) : true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

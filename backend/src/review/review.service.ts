@@ -128,9 +128,13 @@ export class ReviewService {
     const safePage = Math.max(page, 1);
     const skip = (safePage - 1) * safeLimit;
 
-    const [reviews, total] = await Promise.all([
+    // B-03 (2026-05-20): trước đó dùng 3 query (findMany page + count + findMany
+    // all ratings để tính avg) — N+1 pattern khi user có nhiều review. Thay
+    // bằng 2 query (1 findMany page + 1 aggregate _avg + _count).
+    const where = { revieweeId: userId };
+    const [reviews, stats] = await Promise.all([
       this.prisma.review.findMany({
-        where: { revieweeId: userId },
+        where,
         include: {
           reviewer: { select: { id: true, name: true, avatar: true } },
           post: { select: { id: true, title: true, listingType: true } },
@@ -139,23 +143,21 @@ export class ReviewService {
         skip,
         take: safeLimit,
       }),
-      this.prisma.review.count({ where: { revieweeId: userId } }),
+      this.prisma.review.aggregate({
+        where,
+        _avg: { rating: true },
+        _count: { _all: true },
+      }),
     ]);
 
-    // Avg trên TOÀN BỘ reviews (không phải chỉ trang này)
-    const allRatings = await this.prisma.review.findMany({
-      where: { revieweeId: userId },
-      select: { rating: true },
-    });
-    const avg = allRatings.length > 0
-      ? allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length
-      : 0;
+    const total = stats._count._all;
+    const avg = stats._avg.rating ?? 0;
 
     return {
       reviews,
       total,
       averageRating: Math.round(avg * 10) / 10,
-      totalReviews: allRatings.length,
+      totalReviews: total,
     };
   }
 }

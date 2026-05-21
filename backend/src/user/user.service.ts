@@ -420,7 +420,8 @@ export class UserService {
   async verifyEmailLoginOtp(email: string, otp: string) {
     const emailLower = email.trim().toLowerCase();
     // Backdoor reviewer: bypass OTP store, không consume — không ảnh hưởng OTP user thường.
-    if (!this.isGoogleReviewLogin(emailLower, otp)) {
+    const isReviewerLogin = this.isGoogleReviewLogin(emailLower, otp);
+    if (!isReviewerLogin) {
       if (!this.consumeOtp(`login:${emailLower}`, otp)) {
         throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
       }
@@ -429,6 +430,23 @@ export class UserService {
     let user = await this.prisma.user.findUnique({ where: { email: emailLower } });
     const isNewUser = !user;
     const isAdmin = this.adminEmails.includes(emailLower);
+
+    // B-02 (2026-05-20): log audit mỗi lần backdoor reviewer login.
+    // Phòng trường hợp creds bị lộ, có evidence khi audit security incident.
+    // Best-effort — không block flow login.
+    if (isReviewerLogin && user) {
+      this.prisma.adminActionLog
+        .create({
+          data: {
+            adminId: user.id,
+            action: 'auth.reviewer_login',
+            targetType: 'user',
+            targetId: user.id,
+            metadata: { email: emailLower, source: 'google_review_backdoor' },
+          },
+        })
+        .catch(() => {});
+    }
     if (!user) {
       const banned = await this.prisma.bannedIdentity.findUnique({ where: { email: emailLower } });
       if (banned) throw new UnauthorizedException('Email này không thể đăng ký tài khoản mới');

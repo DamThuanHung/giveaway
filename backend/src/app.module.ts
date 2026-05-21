@@ -43,7 +43,11 @@ import { WebPushModule } from './web-push/web-push.module';
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
+      // B-01 (2026-05-20): giảm TTL 7d -> 1d, thu hẹp attack window khi token bị lộ.
+      // Mobile/web auto re-login khi gặp 401 (đã có sẵn flow login OTP).
+      // Refresh token rotation đầy đủ defer cho sau Production submit (cần schema
+      // change + mobile/web flow mới — task L size).
+      signOptions: { expiresIn: '1d' },
     }),
     ChatModule,
     CloudinaryModule,
