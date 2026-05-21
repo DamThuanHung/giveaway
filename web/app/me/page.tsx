@@ -261,18 +261,47 @@ export default function MePage() {
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-10 text-center">
-            <div className="text-5xl mb-3">📭</div>
-            <p className="text-ink-800 font-semibold mb-1">Bạn chưa đăng bài nào</p>
-            <p className="text-ink-500 text-sm mb-5">
-              Đăng bài ngay trên web — chọn ảnh + thông tin, đăng xong!
-            </p>
-            <Link
-              href="/posts/new/"
-              className="inline-block bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-6 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
-            >
-              Đăng bài đầu tiên
-            </Link>
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-8 md:p-10">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">📭</div>
+              <p className="text-ink-800 font-semibold text-lg mb-1">Bạn chưa đăng bài nào</p>
+              <p className="text-ink-500 text-sm">
+                Bài đăng đầu tiên chỉ mất 1-2 phút theo 3 bước dưới đây.
+              </p>
+            </div>
+
+            <ol className="max-w-md mx-auto space-y-3 mb-6 text-left">
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center">1</span>
+                <div>
+                  <p className="font-semibold text-ink-800 text-sm">Chọn 1-5 ảnh đồ</p>
+                  <p className="text-ink-500 text-xs">Ảnh rõ ràng giúp người mua/người nhận hình dung nhanh.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center">2</span>
+                <div>
+                  <p className="font-semibold text-ink-800 text-sm">Điền tiêu đề, danh mục và giá</p>
+                  <p className="text-ink-500 text-xs">Chọn &quot;Miễn phí&quot; nếu muốn cho/tặng, không cần gõ giá.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center">3</span>
+                <div>
+                  <p className="font-semibold text-ink-800 text-sm">Chọn khu vực và đăng</p>
+                  <p className="text-ink-500 text-xs">Người gần khu vực sẽ thấy bài trước — đi lấy trong ngày.</p>
+                </div>
+              </li>
+            </ol>
+
+            <div className="text-center">
+              <Link
+                href="/posts/new/"
+                className="inline-block bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-8 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+              >
+                Đăng bài đầu tiên
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

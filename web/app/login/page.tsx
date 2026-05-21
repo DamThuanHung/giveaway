@@ -66,7 +66,15 @@ function LoginForm() {
         return;
       }
       setAuth(res.token, res.user);
-      router.push(next);
+      // W-01 (2026-05-20): user mới signup → vào onboarding collect profile
+      // trước khi redirect đến trang đích. Tăng activation rate (user mới đa số
+      // bỏ luôn vì không hiểu cách dùng + chưa có profile rõ).
+      if (res.isNewUser) {
+        const onboardingUrl = `/onboarding/?next=${encodeURIComponent(next)}`;
+        router.push(onboardingUrl);
+      } else {
+        router.push(next);
+      }
     } finally {
       setLoading(false);
     }

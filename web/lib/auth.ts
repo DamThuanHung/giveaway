@@ -95,7 +95,7 @@ export async function loginSendOtp(email: string): Promise<{ ok: boolean; messag
 export async function loginVerifyOtp(
   email: string,
   otp: string
-): Promise<{ ok: boolean; token?: string; user?: AuthUser; message: string }> {
+): Promise<{ ok: boolean; token?: string; user?: AuthUser; isNewUser?: boolean; message: string }> {
   const res = await fetch(`${API_BASE}/user/email-login/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -115,6 +115,7 @@ export async function loginVerifyOtp(
     ok: true,
     token,
     user: data.user,
+    isNewUser: Boolean(data.isNewUser),
     message: "Đăng nhập thành công",
   };
 }
