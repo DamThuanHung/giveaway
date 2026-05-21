@@ -22,6 +22,7 @@ import '../widgets/province_picker_sheet.dart';
 import 'post_detail_screen.dart';
 import 'map_view_screen.dart';
 import 'auth/phone_login_screen.dart';
+import 'post/create_post_tab.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -558,9 +559,24 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
               child: EmptyState(
                 icon: Icons.inbox_outlined,
                 message: 'Khu vực này chưa có bài đăng',
-                subMessage: 'Kéo xuống để làm mới hoặc xem tất cả khu vực khác.',
+                subMessage: isAuth
+                    ? 'Bạn có thể đăng bài đầu tiên ở khu vực này — chỉ 1 phút.'
+                    : 'Kéo xuống để làm mới hoặc xem tất cả khu vực khác.',
                 actionLabel: 'Xem tất cả',
                 onAction: () { setState(() => _selectedChip = 0); _refetch(); },
+                secondaryLabel: isAuth ? 'Đăng bài đầu tiên' : null,
+                onSecondary: isAuth
+                    ? () async {
+                        final result = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CreatePostTab()),
+                        );
+                        if (result == true && mounted) {
+                          context.read<PostProvider>().refresh();
+                          _loadFavorites();
+                        }
+                      }
+                    : null,
               ),
             ),
           ),
@@ -592,7 +608,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                   child: Text(
-                    '${postProv.total} tin đăng',
+                    '${postProv.total} bài đăng',
                     style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                   ),
                 ),
@@ -639,7 +655,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                     ? const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
                     : !postProv.hasMore && posts.isNotEmpty
                         ? Center(child: Text(
-                            'Đã hiển thị tất cả ${posts.length} tin đăng',
+                            'Đã hiển thị tất cả ${posts.length} bài đăng',
                             style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                           ))
                         : const SizedBox.shrink(),
@@ -671,9 +687,9 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
           const SizedBox(width: 12),
           const Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Miễn phí', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              Text('Đồ cũ người này, Báu vật người kia', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
               SizedBox(height: 2),
-              Text('Khám phá đồ miễn phí gần bạn!', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Khám phá đồ miễn phí gần bạn', style: TextStyle(color: Colors.white70, fontSize: 12)),
             ]),
           ),
           Container(

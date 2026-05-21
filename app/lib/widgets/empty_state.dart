@@ -7,6 +7,11 @@ class EmptyState extends StatelessWidget {
   final String? subMessage;
   final String? actionLabel;
   final VoidCallback? onAction;
+  /// Action phụ — hiển thị làm filled button bên dưới outlined button chính.
+  /// Dùng cho trường hợp empty state cần 2 lối thoát (vd home: "Xem tất cả" +
+  /// "Đăng bài đầu tiên") theo M-03 roadmap 2026-05-20.
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
 
   const EmptyState({
     super.key,
@@ -15,6 +20,8 @@ class EmptyState extends StatelessWidget {
     this.subMessage,
     this.actionLabel,
     this.onAction,
+    this.secondaryLabel,
+    this.onSecondary,
   });
 
   @override
@@ -55,6 +62,21 @@ class EmptyState extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 child: Text(actionLabel!),
+              ),
+            ],
+            if (secondaryLabel != null && onSecondary != null) ...[
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: onSecondary,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(secondaryLabel!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  elevation: 0,
+                ),
               ),
             ],
           ],

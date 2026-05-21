@@ -23,7 +23,7 @@ export function Header() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Trao Tay - Trang chủ">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/icon_512.png" alt="" className="w-9 h-9 rounded-md" />
+            <img src="/assets/icon_512.png" alt="Logo Trao Tay" className="w-9 h-9 rounded-md" />
             <span className="font-extrabold text-navy text-lg hidden sm:inline tracking-tight">Trao Tay</span>
           </Link>
 

@@ -81,7 +81,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         final idx = _posts.indexWhere((p) => p.id == id);
         if (idx != -1) _posts[idx] = _posts[idx].copyWith(status: status);
       });
-      _showSnackBar(status == 'done' ? 'Đã đánh dấu hoàn thành' : 'Đã mở lại tin đăng');
+      _showSnackBar(status == 'done' ? 'Đã đánh dấu hoàn thành' : 'Đã mở lại bài đăng');
     } else {
       _showSnackBar('Không thể cập nhật trạng thái, thử lại sau', isError: true);
     }
@@ -424,7 +424,7 @@ class _PostItemState extends State<_PostItem> {
                 const PopupMenuItem(value: 'available', child: Row(children: [
                   Icon(Icons.refresh, color: AppTheme.warning, size: 18),
                   SizedBox(width: 8),
-                  Text('Mở lại tin đăng', style: TextStyle(color: AppTheme.warning)),
+                  Text('Mở lại bài đăng', style: TextStyle(color: AppTheme.warning)),
                 ])),
               const PopupMenuItem(value: 'delete', child: Row(children: [
                 Icon(Icons.delete_outline, color: AppTheme.error, size: 18),

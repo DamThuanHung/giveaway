@@ -141,7 +141,7 @@ class FavoritesTabState extends State<FavoritesTab> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: SizedBox(height: c.maxHeight, child: const EmptyState(
                       icon: Icons.favorite_border,
-                      message: 'Chưa có tin đăng nào được lưu',
+                      message: 'Chưa có bài đăng nào được lưu',
                       subMessage: 'Bấm ♡ trên bài đăng để lưu vào đây',
                     )),
                   )),
