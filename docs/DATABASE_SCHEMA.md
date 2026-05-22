@@ -34,7 +34,7 @@
 | `createdAt` | `DateTime` | Tự động |
 | `updatedAt` | `DateTime` | Tự động |
 
-**Relations:** posts, favorites, notifications, chatAsBuyer, chatAsSeller, sentMessages, blockedUsers, blockedByUsers, followers, following, dealsAsOwner, dealsAsRequester, reviewsGiven, reviewsReceived, reports
+**Relations:** posts, favorites, notifications, chatAsBuyer, chatAsSeller, sentMessages, blockedUsers, blockedByUsers, followers, following, reviewsGiven, reviewsReceived, reports, keywordAlerts, bumpOrders, adminActions, webPushSubscriptions
 
 ---
 
@@ -51,7 +51,7 @@
 | `listingType` | `String` | `"give"` hoặc `"sell"` |
 | `itemCategory` | `String` | Danh mục, mặc định `"other"` |
 | `postType` | `String` | `"item"` / `"realestate"` / `"service"` |
-| `status` | `String` | `"available"` / `"done"` |
+| `status` | `String` | `"available"` / `"reserved"` / `"done"` / `"hidden"` / `"archived"` / `"deleted_by_admin"` |
 | `province` | `String` | Tỉnh/Thành phố |
 | `district` | `String` | Quận/Huyện |
 | `ward` | `String` | Phường/Xã |
@@ -66,9 +66,13 @@
 | `bedrooms` | `Int?` | BĐS: số phòng ngủ |
 | `priceUnit` | `String?` | Đơn vị giá: `"month"` / `"total"` / `"sqm"` / `"hour"` / `"day"` |
 | `serviceArea` | `String?` | Dịch vụ: phạm vi phục vụ |
+| `completedWithUserId` | `String?` | FK → `User.id` — partner giao dịch khi author bấm "Hoàn thành" |
+| `completedAt` | `DateTime?` | Thời điểm bấm "Hoàn thành" |
 | `authorId` | `String?` | FK → `User.id` |
 | `createdAt` | `DateTime` | Tự động |
 | `updatedAt` | `DateTime` | Tự động |
+
+**Post.status flow:** `available` (mới đăng) → `reserved` (đã chốt, chờ giao) → `done` (hoàn thành, review được) / `hidden` (bị report/ẩn) / `archived` (user tự lưu) / `deleted_by_admin` (soft-delete admin, không hiển thị public)
 
 **Indexes:** status, province, listingType, itemCategory, authorId, createdAt, postType, bumpedAt, (status+listingType), (status+itemCategory)
 
@@ -84,9 +88,11 @@
 | `package` | `String` | `"plus_3d"` \| `"vip_7d"` |
 | `tier` | `Int` | `2`=Plus \| `3`=VIP |
 | `amount` | `Int` | Giá VNĐ: `5000` \| `15000` |
-| `status` | `String` | `pending` → `paid` / `expired` / `cancelled` |
+| `status` | `String` | `pending` → `paid` / `expired` / `cancelled` / `refunded` |
 | `payosOrderId` | `String?` | Mã đơn PayOS (unique) |
 | `expiredAt` | `DateTime?` | `null` khi chưa paid. Set khi webhook xác nhận thanh toán |
+| `refundedAt` | `DateTime?` | Thời điểm admin hoàn tiền |
+| `refundReason` | `String?` | Lý do hoàn tiền |
 | `createdAt` | `DateTime` | Tự động |
 
 **Indexes:** userId, postId, status, expiredAt
@@ -154,8 +160,8 @@
 | Type | Nguồn | Mô tả |
 |---|---|---|
 | `chat` | ChatGateway | Tin nhắn mới |
-| `deal` | DealService | Yêu cầu nhận / chấp nhận / từ chối |
-| `review` | ReviewService / DealService | Nhận đánh giá mới / deal hoàn thành |
+| `review` | ReviewService | Nhận đánh giá mới sau giao dịch hoàn thành |
+| `transaction_completed` | PostService | Giao dịch hoàn thành — cả 2 bên được mời review |
 | `follow` | FollowService | Có người follow mình |
 | `favorite` | FavoriteService | Có người thích bài của mình |
 | `new_post` | FollowService | Người mình follow đăng bài mới |
@@ -167,34 +173,22 @@
 
 ---
 
-### `Deal`
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| `id` | `String` (cuid) | PK |
-| `postId` | `String` | FK → `Post.id` |
-| `requesterId` | `String` | FK → `User.id` (người xin nhận) |
-| `ownerId` | `String` | FK → `User.id` (người đăng) |
-| `status` | `String` | `"pending"` / `"accepted"` / `"rejected"` / `"completed"` / `"cancelled"` |
-| `message` | `String?` | Lời nhắn kèm deal |
-| `createdAt` | `DateTime` | Tự động |
-| `updatedAt` | `DateTime` | Tự động |
-
----
-
 ### `Review`
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | `id` | `String` (cuid) | PK |
-| `dealId` | `String` | FK → `Deal.id` |
-| `reviewerId` | `String` | FK → `User.id` |
-| `revieweeId` | `String` | FK → `User.id` |
+| `postId` | `String` | FK → `Post.id` (cascade delete) — bài đăng đã hoàn thành |
+| `reviewerId` | `String` | FK → `User.id` (người viết review) |
+| `revieweeId` | `String` | FK → `User.id` (người nhận review) |
 | `rating` | `Int` | 1–5 sao |
-| `comment` | `String?` | Nhận xét |
+| `comment` | `String?` | Nhận xét (tối đa 1000 ký tự) |
 | `createdAt` | `DateTime` | Tự động |
+| `updatedAt` | `DateTime` | Tự động (cho phép edit 24h) |
 
-**Unique:** `[dealId, reviewerId]` — mỗi deal chỉ review 1 lần
+**Unique:** `[postId, reviewerId]` — mỗi user chỉ review 1 bài 1 lần
+
+**Flow:** Post status = 'done' → author + partner đều có thể tạo review → chỉnh sửa trong 24h đầu → freeze
 
 ---
 
@@ -237,6 +231,69 @@
 
 ---
 
+### `PostView`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `postId` | `String` | FK → `Post.id` (cascade delete) |
+| `date` | `DateTime` | Ngày UTC (00:00 midnight), mốc theo múi giờ VN +7 |
+| `count` | `Int` | Số lượt xem trong ngày |
+
+**Unique:** `[postId, date]`
+
+**Mục đích:** Aggregate lượt xem theo ngày cho admin dashboard. Source of truth cho analytics. `Post.viewCount` giữ nguyên cho mobile/web legacy — không dùng cho analytics.
+
+---
+
+### `Category`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `value` | `String` | UNIQUE, slug khớp `Post.itemCategory` (e.g. `"electronics"`) |
+| `label` | `String` | Nhãn hiển thị (e.g. `"Điện tử"`) |
+| `icon` | `String?` | Path asset hoặc URL icon |
+| `sortOrder` | `Int` | Thứ tự hiển thị, mặc định 0 |
+| `enabled` | `Boolean` | Admin disable → không hiện trong picker, bài cũ giữ nguyên value |
+| `createdAt` | `DateTime` | Tự động |
+| `updatedAt` | `DateTime` | Tự động |
+
+---
+
+### `AdminActionLog`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `adminId` | `String` | FK → `User.id` (admin thực hiện) |
+| `action` | `String` | `post.hide`, `post.delete`, `user.ban`, `user.unban`, `user.role`, `report.resolve`, `auth.reviewer_login`, ... |
+| `targetType` | `String` | `"post"` / `"user"` / `"report"` |
+| `targetId` | `String` | ID đối tượng bị tác động |
+| `metadata` | `Json?` | Chi tiết: `{ reason, oldRole, newRole, ... }` |
+| `createdAt` | `DateTime` | Tự động |
+
+**Mục đích:** Audit log mọi hành động admin — tracing khi có incident.
+
+---
+
+### `WebPushSubscription`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `userId` | `String` | FK → `User.id` (cascade delete) |
+| `endpoint` | `String` | UNIQUE, URL push service (Chrome/Firefox/Apple) |
+| `p256dh` | `String` | Public key client cho encryption |
+| `auth` | `String` | Auth secret cho encryption |
+| `userAgent` | `String?` | Tên browser (debug) |
+| `createdAt` | `DateTime` | Tự động |
+| `updatedAt` | `DateTime` | Tự động |
+
+**Mục đích:** Web Push (VAPID) — khác FCM mobile. 1 user có thể có nhiều subscription (Chrome + Firefox + Edge). Push 410 Gone → auto-prune.
+
+---
+
 ### `BannedIdentity`
 
 | Cột | Kiểu | Ghi chú |
@@ -256,4 +313,6 @@
 2. Ảnh lưu dưới dạng **URL MinIO đầy đủ** (e.g. `http://localhost:9000/traotay/posts/xxx.jpg`)
 3. `imageLabel` = ảnh thumbnail đại diện cho bài đăng (dùng trong chat banner, notification)
 4. User đăng nhập bằng **phone OTP** (Firebase) hoặc **email OTP** (Resend) — đều OTP-first, không có password. User có thể liên kết phương thức còn lại làm dự phòng (link-email cho user phone-only / link-phone cho user email-only)
-5. `ChatRoom` unique theo `[buyerId, sellerId]` — tức 1 cặp user chỉ có 1 room duy nhất bất kể bài đăng
+5. `ChatRoom` unique theo `[buyerId, sellerId]` — 1 cặp user chỉ có 1 room duy nhất. Khi hỏi về bài đăng khác, controller gửi system message "Đang hỏi về: [title]" trong cùng room (Option B — thiết kế có chủ đích). Không cần per-post rooms vì mobile client chỉ render 1 room/cặp.
+6. `Post.status = 'deleted_by_admin'` KHÔNG bao giờ được expose ra public listing — backend filter trong mọi public query.
+7. Không có bảng `Deal` — flow deal/offer được xử lý qua chat message + `Post.completedWithUserId` + `Post.status = 'done'`.

@@ -288,7 +288,9 @@ export class PostService {
           if (follows.length === 0) return;
           const author = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
           const authorName = author?.name ?? 'Ai đó';
-          const BATCH_SIZE = 50;
+          // Giảm từ 50 → 10: tránh 50 parallel DB writes saturate connection pool (size 10).
+          // Delay 100ms → 200ms: cho event loop xử lý request khác giữa các batch.
+          const BATCH_SIZE = 10;
           for (let i = 0; i < follows.length; i += BATCH_SIZE) {
             const batch = follows.slice(i, i + BATCH_SIZE);
             await Promise.all(batch.map(f =>
@@ -300,9 +302,8 @@ export class PostService {
                 JSON.stringify({ postId: post.id }),
               ).catch(() => {}),
             ));
-            // Delay nhỏ giữa batches — cho event loop xử lý request khác
             if (i + BATCH_SIZE < follows.length) {
-              await new Promise(resolve => setTimeout(resolve, 100));
+              await new Promise(resolve => setTimeout(resolve, 200));
             }
           }
         }).catch(() => {});

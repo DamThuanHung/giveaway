@@ -60,7 +60,7 @@ export class FollowService {
   // Danh sách người theo dõi mình (followers)
   async getFollowers(userId: string) {
     const rows = await this.prisma.follow.findMany({
-      where: { followingId: userId },
+      where: { followingId: userId, follower: { deletedAt: null } },
       include: {
         follower: { select: { id: true, name: true, avatar: true } },
       },
@@ -72,7 +72,7 @@ export class FollowService {
   // Danh sách mình đang theo dõi (following)
   async getFollowing(userId: string) {
     const rows = await this.prisma.follow.findMany({
-      where: { followerId: userId },
+      where: { followerId: userId, following: { deletedAt: null } },
       include: {
         following: { select: { id: true, name: true, avatar: true } },
       },
@@ -117,7 +117,7 @@ export class FollowService {
 
     if (visibleAuthorIds.length === 0) return { data: [], total: 0 };
 
-    const where = { authorId: { in: visibleAuthorIds }, status: 'available' };
+    const where = { authorId: { in: visibleAuthorIds }, status: 'available', author: { deletedAt: null } };
     const [data, total] = await Promise.all([
       this.prisma.post.findMany({
         where,

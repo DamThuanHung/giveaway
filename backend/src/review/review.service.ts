@@ -134,7 +134,7 @@ export class ReviewService {
     const where = { revieweeId: userId };
     const [reviews, stats] = await Promise.all([
       this.prisma.review.findMany({
-        where,
+        where: { ...where, reviewer: { deletedAt: null } },
         include: {
           reviewer: { select: { id: true, name: true, avatar: true } },
           post: { select: { id: true, title: true, listingType: true } },

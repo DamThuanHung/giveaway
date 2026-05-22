@@ -214,8 +214,8 @@ export class UserService {
   /// Public profile: KHÔNG trả email/phone. Dùng cho `/user/:id` (xem profile người khác).
   /// Chống PII enumeration — vi phạm Nghị định 13/2023 nếu để rò rỉ.
   async getPublicUserById(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
       select: {
         id: true,
         name: true,
