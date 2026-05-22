@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PostsExplorer } from "@/components/PostsExplorer";
+import { PostCardSkeleton } from "@/components/PostCardSkeleton";
 import { fetchPosts } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -35,7 +36,11 @@ export default async function PostsPage() {
       </section>
 
       <section className="py-8 max-w-7xl mx-auto px-4">
-        <Suspense fallback={<div className="py-20 text-center text-gray-500">Đang tải...</div>}>
+        <Suspense fallback={
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+            {Array.from({ length: 12 }).map((_, i) => <PostCardSkeleton key={i} />)}
+          </div>
+        }>
           <PostsExplorer initialData={initial} initialQuery={{ page: 1, limit: 24, sortBy: "newest" }} />
         </Suspense>
       </section>

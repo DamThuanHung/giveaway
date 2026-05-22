@@ -62,14 +62,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       backgroundColor: slide.color,
       body: SafeArea(
         child: Column(children: [
-          // Skip button
-          Align(
-            alignment: Alignment.topRight,
-            child: TextButton(
-              onPressed: _finish,
-              child: const Text('Bỏ qua', style: TextStyle(color: Colors.white70, fontSize: 14)),
-            ),
-          ),
+          // Skip button — ẩn ở slide cuối để force user xem CTA "Bắt đầu ngay"
+          if (_currentPage < _slides.length - 1)
+            Align(
+              alignment: Alignment.topRight,
+              child: TextButton(
+                onPressed: _finish,
+                child: const Text('Bỏ qua', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              ),
+            )
+          else
+            const SizedBox(height: 40),
 
           // Slides
           Expanded(

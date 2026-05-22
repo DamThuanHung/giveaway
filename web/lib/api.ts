@@ -88,15 +88,15 @@ export async function fetchPostById(id: string): Promise<Post | null> {
 /// Fetch all posts cho generateStaticParams — pre-render mọi /posts/[id]/.
 /// Cap 2000 mới nhất để cover gần như mọi bài active. Build vẫn <2 phút.
 /// Cron auto-rebuild mỗi giờ phủ user/post mới.
-export async function fetchAllPostIds(): Promise<{ id: string }[]> {
-  const allIds: { id: string }[] = [];
+export async function fetchAllPostIds(): Promise<{ id: string; updatedAt: string; bumpedAt?: string | null }[]> {
+  const allIds: { id: string; updatedAt: string; bumpedAt?: string | null }[] = [];
   let page = 1;
   const LIMIT = 100;
   const MAX_POSTS = 2000;
   while (allIds.length < MAX_POSTS) {
     const res = await fetchPosts({ page, limit: LIMIT });
     if (res.data.length === 0) break;
-    allIds.push(...res.data.map((p) => ({ id: p.id })));
+    allIds.push(...res.data.map((p) => ({ id: p.id, updatedAt: p.createdAt, bumpedAt: p.bumpedAt })));
     if (page >= res.meta.totalPages) break;
     page++;
   }

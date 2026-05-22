@@ -144,7 +144,17 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
         setState(() => _selectedProvince = matched);
         _refetch();
       }
-    } catch (_) {}
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Không xác định được vị trí, đang dùng Toàn quốc'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 
   // Filter 1 tỉnh cụ thể
@@ -358,7 +368,7 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                   const SizedBox(width: 8),
                   _FilterChip(label: 'Theo dõi', emoji: '👥', selected: _selectedChip == -1, onTap: () {
                     final auth = context.read<AuthProvider>();
-                    if (!auth.isAuth) { _showLoginPrompt(); return; }
+                    if (!auth.isAuth) { _showLoginPrompt(message: 'Đăng nhập để xem bài từ người theo dõi'); return; }
                     _onChipTap(-1);
                   }),
                 ],
@@ -468,10 +478,10 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
     );
   }
 
-  void _showLoginPrompt() {
+  void _showLoginPrompt({String message = 'Đăng nhập để lưu bài này'}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Vui lòng đăng nhập để sử dụng tính năng này'),
+        content: Text(message),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         action: SnackBarAction(
@@ -635,10 +645,9 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
                       builder: (_) => PostDetailScreen(
                         post: posts[i],
                         isFavorite: isAuth && _favoriteIds.contains(posts[i].id),
-                        // BUG FIX: gọi _toggleFavorite để thực sự gọi API
                         onToggleFavorite: () async => _toggleFavorite(posts[i].id),
                       ),
-                    )).then((_) => _loadFavorites()),
+                    )),
                     // BUG FIX: user chưa đăng nhập → hiện login prompt thay vì silent fail
                     onToggleFavorite: () => isAuth
                         ? _toggleFavorite(posts[i].id)

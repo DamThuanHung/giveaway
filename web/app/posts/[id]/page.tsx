@@ -91,6 +91,7 @@ export default async function PostDetailPage({
     name: post.title,
     description: post.description,
     image: post.images.length > 0 ? post.images : [post.imageUrl].filter(Boolean),
+    dateModified: post.bumpedAt ?? post.createdAt,
     offers: {
       "@type": "Offer",
       price: post.price,
@@ -103,6 +104,7 @@ export default async function PostDetailPage({
       seller: {
         "@type": "Person",
         name: post.author?.name || "Người dùng Trao Tay",
+        url: post.author?.id ? `https://traotay.com.vn/users/${post.author.id}/` : undefined,
       },
     },
     category: CATEGORIES[post.itemCategory] || "Đồ cũ",
