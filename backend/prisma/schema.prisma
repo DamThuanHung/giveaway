@@ -304,6 +304,17 @@ model AdminActionLog {
   @@index([createdAt])
 }
 
+/// Ghi nhận mỗi lượt tải app (APK/Play Store) qua redirect endpoint /download/:platform.
+/// Dùng để thống kê "lượt tải app" trong admin analytics tab.
+model AppDownloadLog {
+  id        String   @id @default(cuid())
+  platform  String   @default("android") // "android" | "ios"
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([platform, createdAt])
+}
+
 /// Web Push subscription cho mỗi browser của user. Khác FCM (mobile native)
 /// — Web Push dùng VAPID + Push API browser. 1 user có thể có nhiều subscription
 /// (Chrome desktop + Firefox + Edge). Backend gửi push qua web-push npm với

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FcmService } from '../fcm/fcm.service';
 import { Prisma } from '@prisma/client';
 import { formatPost } from '../post/post.service';
+import { AnalyticsPeriod, CloudflareAnalyticsService } from './cloudflare-analytics.service';
 
 const DELETED_BY_ADMIN = 'deleted_by_admin';
 
@@ -60,6 +61,7 @@ export class AdminService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private fcm: FcmService,
+    private cfAnalytics: CloudflareAnalyticsService,
   ) {}
 
   async onModuleInit() {
@@ -1286,5 +1288,55 @@ export class AdminService implements OnModuleInit {
       this.prisma.adminActionLog.count({ where }),
     ]);
     return { data: logs, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getAnalytics(period: AnalyticsPeriod) {
+    const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const nowVN = new Date(Date.now() + TZ_OFFSET_MS);
+
+    // Tính since cho DB download query theo period (UTC+7)
+    let since: Date;
+    if (period === 'day') {
+      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate()));
+    } else if (period === 'week') {
+      const daysFromMonday = (nowVN.getUTCDay() + 6) % 7;
+      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate() - daysFromMonday));
+    } else if (period === 'month') {
+      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), 1));
+    } else {
+      since = new Date(Date.UTC(nowVN.getUTCFullYear(), 0, 1));
+    }
+
+    // Download counts từ DB — group by date
+    const downloadRaw = await this.prisma.appDownloadLog.findMany({
+      where: { createdAt: { gte: since } },
+      select: { createdAt: true, platform: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Group theo ngày UTC+7
+    const dlByDate = new Map<string, number>();
+    for (const d of downloadRaw) {
+      const dateVN = new Date(d.createdAt.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
+      dlByDate.set(dateVN, (dlByDate.get(dateVN) ?? 0) + 1);
+    }
+    const dlPoints = Array.from(dlByDate.entries()).map(([date, count]) => ({ date, count }));
+
+    // CF web analytics
+    const [webRaw] = await Promise.all([
+      this.cfAnalytics.fetchWebAnalytics(period),
+    ]);
+
+    const dlGrouped = this.cfAnalytics.groupDownloadPoints(dlPoints, period);
+
+    return {
+      configured: this.cfAnalytics.configured,
+      period,
+      web: webRaw ?? { visitors: 0, pageViews: 0, requests: 0, byDay: [] },
+      app: {
+        total: downloadRaw.length,
+        byDay: dlGrouped,
+      },
+    };
   }
 }

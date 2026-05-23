@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param, Redirect } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
@@ -17,6 +17,18 @@ export class AppController {
 
   // GET /health — UptimeRobot / monitoring ping.
   // Trả 200 + check DB connection. Skip throttle để không bị rate limit bởi monitor.
+  // GET /download/android — redirect đến APK + ghi log lượt tải
+  @Get('download/:platform')
+  @SkipThrottle()
+  @Redirect()
+  async downloadApp(@Param('platform') platform: string) {
+    const safePlatform = ['android', 'ios'].includes(platform) ? platform : 'android';
+    await this.prisma.appDownloadLog.create({ data: { platform: safePlatform } });
+    const url = process.env.APK_DOWNLOAD_URL
+      || 'https://s3.traotay.com.vn/traotay/releases/traotay-latest.apk';
+    return { url, statusCode: 302 };
+  }
+
   @Get('health')
   @SkipThrottle()
   async health() {

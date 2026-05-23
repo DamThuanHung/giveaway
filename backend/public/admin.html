@@ -326,6 +326,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="8">⭐ Đánh giá</button>
     <button class="tab" data-tab="9">💬 Chat</button>
     <button class="tab" data-tab="10">🏷️ Danh mục</button>
+    <button class="tab" data-tab="11">📈 Phân tích</button>
   </div>
 
   <div class="content">
@@ -340,6 +341,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-reviews" style="display:none"></div>
     <div id="tab-chats" style="display:none"></div>
     <div id="tab-categories" style="display:none"></div>
+    <div id="tab-analytics" style="display:none"></div>
   </div>
 </div>
 
@@ -365,7 +367,7 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats','categories'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats','categories','analytics'];
 
 const state = {
   posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '', postsAuthorId: '', postsAuthorName: '',
@@ -379,6 +381,7 @@ const state = {
   reviews: [], reviewsPage: 0, reviewsTotal: 0, reviewsTotalPages: 1, reviewsRating: '', reviewsSearch: '',
   chats: [], chatsPage: 0, chatsTotal: 0, chatsTotalPages: 1, chatsSearch: '', chatsUserId: '', chatsUserName: '', currentChatRoom: null, currentChatMessages: [],
   categories: [],
+  analyticsData: null, analyticsPeriod: 'week',
 };
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -587,6 +590,7 @@ function loadCurrent(force = false) {
     case 8: if (force || state.reviews.length === 0) loadReviews(true); break;
     case 9: if (force || state.chats.length === 0) loadChats(true); break;
     case 10: if (force || state.categories.length === 0) loadCategories(); break;
+    case 11: if (force || !state.analyticsData) loadAnalytics(); break;
   }
 }
 
@@ -775,6 +779,16 @@ function handleContentClick(e) {
       renderUsers(false);
       break;
     case 'bulk-ban-users': bulkBanSelected(); break;
+
+    case 'set-analytics-period': {
+      const p = el.dataset.period || 'week';
+      if (p !== state.analyticsPeriod) {
+        state.analyticsPeriod = p;
+        state.analyticsData = null;
+        loadAnalytics();
+      }
+      break;
+    }
   }
 }
 
@@ -2286,6 +2300,181 @@ function toast(msg) {
 function avatarBg(name) {
   const colors = ['#26A69A','#42A5F5','#EF5350','#AB47BC','#FF7043','#66BB6A','#EC407A','#5C6BC0'];
   return colors[(name || 'U').charCodeAt(0) % colors.length];
+}
+
+// ─── Analytics tab ────────────────────────────────────────────────────────────
+
+async function loadAnalytics() {
+  const el = document.getElementById('tab-analytics');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang tải dữ liệu phân tích...</div>';
+  const data = await api(`/admin/analytics?period=${encodeURIComponent(state.analyticsPeriod)}`);
+  if (!data) return;
+  state.analyticsData = data;
+  renderAnalytics();
+}
+
+function renderAnalytics() {
+  const el = document.getElementById('tab-analytics');
+  const d = state.analyticsData;
+  if (!d) return;
+
+  const period = state.analyticsPeriod;
+  const periods = [
+    ['day', 'Hôm nay'],
+    ['week', 'Tuần này'],
+    ['month', 'Tháng này'],
+    ['year', 'Năm nay'],
+  ];
+  const chips = periods.map(([v, l]) =>
+    `<button type="button" class="period-chip ${period===v?'active':''}" data-action="set-analytics-period" data-period="${v}">${l}</button>`
+  ).join('');
+  const periodLabel = (periods.find(p => p[0] === period) || [])[1] || 'Tuần này';
+
+  const web = d.web || {};
+  const app = d.app || {};
+
+  const cfWarning = !d.configured
+    ? `<div class="alert-card" style="background:#FFF7ED;border-color:#FED7AA">
+        <span class="icon">⚙️</span>
+        <div class="msg" style="color:#92400E">Chưa cấu hình Cloudflare API — số liệu web hiển thị 0.
+        Thêm <strong>CF_ZONE_ID</strong> + <strong>CF_API_TOKEN</strong> vào <code>.env.docker</code> để bật.</div>
+      </div>` : '';
+
+  el.innerHTML = `
+    ${cfWarning}
+    <div class="section-title-row">
+      <div class="section-title" style="margin:0">Phân tích lưu lượng</div>
+      <div class="period-chips">${chips}</div>
+    </div>
+    <div class="period-note" style="margin-bottom:16px">Số liệu theo kỳ: ${periodLabel}</div>
+
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div style="font-size:24px">👥</div>
+        <div class="stat-value" style="color:var(--primary)">${fmtNum(web.visitors||0)}</div>
+        <div class="stat-label">Khách ghé web</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card">
+        <div style="font-size:24px">📄</div>
+        <div class="stat-value" style="color:#3B82F6">${fmtNum(web.pageViews||0)}</div>
+        <div class="stat-label">Lượt xem trang</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card">
+        <div style="font-size:24px">📲</div>
+        <div class="stat-value" style="color:#8B5CF6">${fmtNum(web.requests||0)}</div>
+        <div class="stat-label">Tổng request</div>
+        <div class="stat-sub">Web + API</div>
+      </div>
+      <div class="stat-card">
+        <div style="font-size:24px">⬇️</div>
+        <div class="stat-value" style="color:#F59E0B">${fmtNum(app.total||0)}</div>
+        <div class="stat-label">Lượt tải app</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:12px">📊 Lượt khách ghé web — ${periodLabel}</div>
+      ${renderVisitorChart(web.byDay||[], 'visitors', '#10B981')}
+    </div>
+
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:12px">📄 Lượt xem trang — ${periodLabel}</div>
+      ${renderVisitorChart(web.byDay||[], 'pageViews', '#3B82F6')}
+    </div>
+
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:12px">⬇️ Lượt tải app — ${periodLabel}</div>
+      ${renderDownloadChart(app.byDay||[])}
+    </div>
+
+    <div style="margin-top:12px;font-size:11px;color:var(--text3)">
+      Dữ liệu web: Cloudflare Analytics · Dữ liệu tải app: /download/android redirect
+    </div>
+  `;
+}
+
+function fmtNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return String(n);
+}
+
+function renderVisitorChart(byDay, field, color) {
+  if (!byDay || byDay.length === 0) {
+    return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có dữ liệu' + (field === 'visitors' ? ' — cấu hình CF_API_TOKEN để bật' : '') + '</div>';
+  }
+  const max = Math.max(...byDay.map(d => d[field] || 0), 1);
+  const w = 100, h = 80;
+  const barW = w / byDay.length;
+  const bars = byDay.map((d, i) => {
+    const val = d[field] || 0;
+    const bh = (val / max) * (h - 4);
+    const x = i * barW;
+    const lbl = d.label || d.date?.slice(5) || '';
+    return `<rect fill="${color}" opacity=".85" rx="1" x="${(x+0.2).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="${(barW-0.4).toFixed(1)}" height="${bh.toFixed(1)}"><title>${lbl}: ${fmtNum(val)}</title></rect>`;
+  }).join('');
+
+  // X-axis labels: tối đa 7 nhãn để không chật
+  const step = Math.max(1, Math.ceil(byDay.length / 7));
+  const labels = byDay
+    .filter((_, i) => i % step === 0 || i === byDay.length - 1)
+    .map(d => {
+      const i = byDay.indexOf(d);
+      const x = (i * barW + barW / 2).toFixed(1);
+      return `<text class="chart-label" x="${x}" y="${h + 8}" text-anchor="middle">${d.label||''}</text>`;
+    }).join('');
+
+  return `
+    <svg class="chart-svg" viewBox="0 0 ${w} ${h+12}" preserveAspectRatio="none" style="height:120px">
+      <line stroke="var(--border)" stroke-width=".5" x1="0" y1="${h}" x2="${w}" y2="${h}"/>
+      ${bars}
+      ${labels}
+    </svg>
+    <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:11px;margin-top:4px">
+      <span>${byDay[0]?.label||''}</span>
+      <span>Cao nhất: ${fmtNum(max)}</span>
+      <span>${byDay[byDay.length-1]?.label||''}</span>
+    </div>`;
+}
+
+function renderDownloadChart(byDay) {
+  if (!byDay || byDay.length === 0) {
+    return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có lượt tải nào</div>';
+  }
+  const max = Math.max(...byDay.map(d => d.count || 0), 1);
+  const w = 100, h = 80;
+  const barW = w / byDay.length;
+  const bars = byDay.map((d, i) => {
+    const val = d.count || 0;
+    const bh = (val / max) * (h - 4);
+    const x = i * barW;
+    const lbl = d.label || d.date?.slice(5) || '';
+    return `<rect fill="#F59E0B" opacity=".85" rx="1" x="${(x+0.2).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="${(barW-0.4).toFixed(1)}" height="${bh.toFixed(1)}"><title>${lbl}: ${val} lượt</title></rect>`;
+  }).join('');
+
+  const step = Math.max(1, Math.ceil(byDay.length / 7));
+  const labels = byDay
+    .filter((_, i) => i % step === 0 || i === byDay.length - 1)
+    .map(d => {
+      const i = byDay.indexOf(d);
+      const x = (i * barW + barW / 2).toFixed(1);
+      return `<text class="chart-label" x="${x}" y="${h + 8}" text-anchor="middle">${d.label||''}</text>`;
+    }).join('');
+
+  return `
+    <svg class="chart-svg" viewBox="0 0 ${w} ${h+12}" preserveAspectRatio="none" style="height:120px">
+      <line stroke="var(--border)" stroke-width=".5" x1="0" y1="${h}" x2="${w}" y2="${h}"/>
+      ${bars}
+      ${labels}
+    </svg>
+    <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:11px;margin-top:4px">
+      <span>${byDay[0]?.label||''}</span>
+      <span>Tổng: ${byDay.reduce((s,d)=>s+(d.count||0),0)} lượt</span>
+      <span>${byDay[byDay.length-1]?.label||''}</span>
+    </div>`;
 }
 </script>
 </body>

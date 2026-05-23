@@ -278,6 +278,13 @@ export class AdminController {
     return this.adminService.getAuditLog(+page, +limit, targetType, targetId, adminId);
   }
 
+  // ─── Analytics ────────────────────────────────────
+  @Get('analytics')
+  getAnalytics(@Query('period') period = 'week') {
+    const allowed = ['day', 'week', 'month', 'year'];
+    return this.adminService.getAnalytics(allowed.includes(period) ? (period as any) : 'week');
+  }
+
   // ─── System health ────────────────────────────────
   @Get('health-detail')
   getHealthDetail() {
