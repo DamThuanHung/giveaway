@@ -2402,79 +2402,94 @@ function fmtNum(n) {
   return String(n);
 }
 
-function renderVisitorChart(byDay, field, color) {
+function renderBarChart(byDay, getVal, color, emptyMsg, summaryFn) {
   if (!byDay || byDay.length === 0) {
-    return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có dữ liệu' + (field === 'visitors' ? ' — cấu hình CF_API_TOKEN để bật' : '') + '</div>';
+    return `<div style="text-align:center;color:var(--text2);padding:40px;font-size:13px">${emptyMsg}</div>`;
   }
-  const max = Math.max(...byDay.map(d => d[field] || 0), 1);
-  const w = 100, h = 80;
-  const barW = w / byDay.length;
-  const bars = byDay.map((d, i) => {
-    const val = d[field] || 0;
-    const bh = (val / max) * (h - 4);
-    const x = i * barW;
-    const lbl = d.label || d.date?.slice(5) || '';
-    return `<rect fill="${color}" opacity=".85" rx="1" x="${(x+0.2).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="${(barW-0.4).toFixed(1)}" height="${bh.toFixed(1)}"><title>${lbl}: ${fmtNum(val)}</title></rect>`;
+  const vals = byDay.map(d => getVal(d));
+  const max = Math.max(...vals, 1);
+
+  // Fixed coordinate space — bars evenly distributed
+  const PW = 600, PH = 160, PAD_L = 44, PAD_B = 28, PAD_T = 10;
+  const chartW = PW - PAD_L;
+  const chartH = PH - PAD_B - PAD_T;
+  const n = byDay.length;
+  const slotW = chartW / n;
+  const GAP = Math.max(slotW * 0.25, 2); // 25% gap tối thiểu 2px
+  const bw = slotW - GAP;
+
+  // Gridlines + Y labels (0, mid, max)
+  const gridLines = [0, 0.5, 1].map(ratio => {
+    const y = PAD_T + chartH * (1 - ratio);
+    const lbl = ratio === 0 ? '0' : fmtNum(Math.round(max * ratio));
+    return `
+      <line x1="${PAD_L}" y1="${y.toFixed(1)}" x2="${PW}" y2="${y.toFixed(1)}" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="${ratio===0?'none':'4 3'}"/>
+      <text x="${(PAD_L-4).toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="10" fill="#9CA3AF">${lbl}</text>`;
   }).join('');
 
-  // X-axis labels: tối đa 7 nhãn để không chật
-  const step = Math.max(1, Math.ceil(byDay.length / 7));
-  const labels = byDay
-    .filter((_, i) => i % step === 0 || i === byDay.length - 1)
-    .map(d => {
-      const i = byDay.indexOf(d);
-      const x = (i * barW + barW / 2).toFixed(1);
-      return `<text class="chart-label" x="${x}" y="${h + 8}" text-anchor="middle">${d.label||''}</text>`;
-    }).join('');
+  // Bars
+  const bars = byDay.map((d, i) => {
+    const val = getVal(d);
+    const bh = Math.max((val / max) * chartH, val > 0 ? 2 : 0);
+    const x = PAD_L + i * slotW + GAP / 2;
+    const y = PAD_T + chartH - bh;
+    const lbl = d.label || d.date?.slice(5) || '';
+    // Bo góc trên
+    const r = Math.min(3, bw / 2, bh);
+    const barPath = bh > r
+      ? `M${x},${(y+r).toFixed(1)} Q${x},${y.toFixed(1)} ${(x+r).toFixed(1)},${y.toFixed(1)} H${(x+bw-r).toFixed(1)} Q${(x+bw).toFixed(1)},${y.toFixed(1)} ${(x+bw).toFixed(1)},${(y+r).toFixed(1)} V${(y+bh).toFixed(1)} H${x.toFixed(1)}Z`
+      : `M${x},${y.toFixed(1)} H${(x+bw).toFixed(1)} V${(y+bh).toFixed(1)} H${x.toFixed(1)}Z`;
+    return `<path d="${barPath}" fill="${color}" opacity=".88"><title>${lbl}: ${fmtNum(val)}</title></path>`;
+  }).join('');
+
+  // X labels — tối đa 8, không chồng
+  const step = Math.max(1, Math.ceil(n / 8));
+  const xLabels = byDay.filter((_, i) => i % step === 0 || i === n - 1).map((d, _, arr) => {
+    const i = byDay.indexOf(d);
+    const x = PAD_L + i * slotW + slotW / 2;
+    const lbl = d.label || '';
+    return `<text x="${x.toFixed(1)}" y="${(PH - 6).toFixed(1)}" text-anchor="middle" font-size="10" fill="#9CA3AF">${lbl}</text>`;
+  }).join('');
+
+  const summary = summaryFn(vals, max);
 
   return `
-    <svg class="chart-svg" viewBox="0 0 ${w} ${h+12}" preserveAspectRatio="none" style="height:120px">
-      <line stroke="var(--border)" stroke-width=".5" x1="0" y1="${h}" x2="${w}" y2="${h}"/>
-      ${bars}
-      ${labels}
-    </svg>
-    <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:11px;margin-top:4px">
+    <div style="overflow-x:auto">
+      <svg viewBox="0 0 ${PW} ${PH}" style="width:100%;min-width:320px;height:180px;display:block">
+        ${gridLines}
+        ${bars}
+        ${xLabels}
+        <line x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${PAD_T+chartH}" stroke="#E5E7EB" stroke-width="1"/>
+      </svg>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--text3)">
       <span>${byDay[0]?.label||''}</span>
-      <span>Cao nhất: ${fmtNum(max)}</span>
-      <span>${byDay[byDay.length-1]?.label||''}</span>
+      <span style="color:var(--text2);font-weight:600">${summary}</span>
+      <span>${byDay[n-1]?.label||''}</span>
     </div>`;
 }
 
+function renderVisitorChart(byDay, field, color) {
+  const empty = field === 'visitors'
+    ? 'Chưa có dữ liệu — cấu hình CF_API_TOKEN để bật'
+    : 'Chưa có dữ liệu';
+  return renderBarChart(
+    byDay,
+    d => d[field] || 0,
+    color,
+    empty,
+    (vals, max) => `Cao nhất: ${fmtNum(max)}`,
+  );
+}
+
 function renderDownloadChart(byDay) {
-  if (!byDay || byDay.length === 0) {
-    return '<div style="text-align:center;color:var(--text2);padding:30px">Chưa có lượt tải nào</div>';
-  }
-  const max = Math.max(...byDay.map(d => d.count || 0), 1);
-  const w = 100, h = 80;
-  const barW = w / byDay.length;
-  const bars = byDay.map((d, i) => {
-    const val = d.count || 0;
-    const bh = (val / max) * (h - 4);
-    const x = i * barW;
-    const lbl = d.label || d.date?.slice(5) || '';
-    return `<rect fill="#F59E0B" opacity=".85" rx="1" x="${(x+0.2).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="${(barW-0.4).toFixed(1)}" height="${bh.toFixed(1)}"><title>${lbl}: ${val} lượt</title></rect>`;
-  }).join('');
-
-  const step = Math.max(1, Math.ceil(byDay.length / 7));
-  const labels = byDay
-    .filter((_, i) => i % step === 0 || i === byDay.length - 1)
-    .map(d => {
-      const i = byDay.indexOf(d);
-      const x = (i * barW + barW / 2).toFixed(1);
-      return `<text class="chart-label" x="${x}" y="${h + 8}" text-anchor="middle">${d.label||''}</text>`;
-    }).join('');
-
-  return `
-    <svg class="chart-svg" viewBox="0 0 ${w} ${h+12}" preserveAspectRatio="none" style="height:120px">
-      <line stroke="var(--border)" stroke-width=".5" x1="0" y1="${h}" x2="${w}" y2="${h}"/>
-      ${bars}
-      ${labels}
-    </svg>
-    <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:11px;margin-top:4px">
-      <span>${byDay[0]?.label||''}</span>
-      <span>Tổng: ${byDay.reduce((s,d)=>s+(d.count||0),0)} lượt</span>
-      <span>${byDay[byDay.length-1]?.label||''}</span>
-    </div>`;
+  return renderBarChart(
+    byDay,
+    d => d.count || 0,
+    '#F59E0B',
+    'Chưa có lượt tải nào',
+    (vals) => `Tổng: ${vals.reduce((a,b)=>a+b,0)} lượt`,
+  );
 }
 </script>
 </body>
