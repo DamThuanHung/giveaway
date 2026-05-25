@@ -140,6 +140,17 @@ function LoginForm() {
             </Link>
             .
           </p>
+          <p className="text-xs text-ink-400 text-center pt-3 leading-relaxed">
+            Bạn muốn đăng nhập bằng số điện thoại?{" "}
+            <a
+              href="https://play.google.com/store/apps/details?id=vn.traotay.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
+            >
+              Tải app Trao Tay ngay
+            </a>
+          </p>
         </form>
       ) : (
         <form onSubmit={onVerifyOtp} className="space-y-4">

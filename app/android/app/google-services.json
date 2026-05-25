@@ -9,6 +9,25 @@
       "client_info": {
         "mobilesdk_app_id": "1:734551474520:android:ebea903ca94493c0fde52d",
         "android_client_info": {
+          "package_name": "vn.chovatang.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQPer6nJ9A-W7qwwOIm_x6r_20aYjNs1c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:734551474520:android:3455e765f860d4b7fde52d",
+        "android_client_info": {
           "package_name": "vn.traotay.app"
         }
       },
