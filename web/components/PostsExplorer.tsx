@@ -450,7 +450,7 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
         {!loading && !fetchError && (
           <a
             href="/posts/new"
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-semibold text-sm shadow-lg hover:bg-primary-dark transition-colors whitespace-nowrap"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-7 py-4 rounded-full bg-primary text-white font-semibold text-base shadow-lg hover:bg-primary-dark transition-colors whitespace-nowrap"
           >
             <span>🛍️</span>
             Đăng bài ngay — miễn phí
