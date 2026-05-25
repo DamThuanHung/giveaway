@@ -450,12 +450,29 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
         {!loading && !fetchError && (
           <a
             href="/posts/new"
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-7 py-4 rounded-full bg-primary text-white font-semibold text-base shadow-lg hover:bg-primary-dark transition-colors whitespace-nowrap"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-8 py-4 rounded-full text-white font-bold text-base whitespace-nowrap animate-bounce-soft"
+            style={{
+              background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+              boxShadow: "0 0 0 0 rgba(16,185,129,0.5), 0 8px 24px rgba(16,185,129,0.4)",
+              animation: "pulse-glow 2s ease-in-out infinite",
+            }}
           >
-            <span>🛍️</span>
+            <span className="text-lg">✨</span>
             Đăng bài ngay — miễn phí
           </a>
         )}
+        <style>{`
+          @keyframes pulse-glow {
+            0%, 100% {
+              box-shadow: 0 0 0 0 rgba(16,185,129,0.5), 0 8px 24px rgba(16,185,129,0.4);
+              transform: translateX(-50%) scale(1);
+            }
+            50% {
+              box-shadow: 0 0 0 10px rgba(16,185,129,0), 0 8px 32px rgba(16,185,129,0.5);
+              transform: translateX(-50%) scale(1.04);
+            }
+          }
+        `}</style>
 
         {/* Posts grid */}
         {loading ? (
