@@ -55,6 +55,9 @@ async function bootstrap() {
         fontSrc: ["'self'", "https:", "data:"],
       },
     },
+    // API được gọi cross-origin từ traotay.com.vn → phải là cross-origin
+    // same-origin sẽ chặn browser đọc response dù CORS đã cho phép
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
 
   // CORS: production BẮT BUỘC set CORS_ORIGIN="https://traotay.com.vn,https://www.traotay.com.vn"
