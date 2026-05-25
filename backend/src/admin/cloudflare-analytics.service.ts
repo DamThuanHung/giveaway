@@ -46,8 +46,8 @@ export class CloudflareAnalyticsService {
     const query = useHourly
       ? `{ viewer { zones(filter:{zoneTag:"${this.zoneId}"}) { httpRequests1hGroups(
             filter:{datetime_geq:"${since}T00:00:00Z",datetime_leq:"${until}T23:59:59Z"}
-            orderBy:[datetimeHour_ASC] limit:25) {
-            dimensions{datetimeHour} sum{pageViews requests} uniq{uniques} }}}}`
+            limit:25) {
+            dimensions{datetime} sum{pageViews requests} uniq{uniques} }}}}`
       : `{ viewer { zones(filter:{zoneTag:"${this.zoneId}"}) { httpRequests1dGroups(
             filter:{date_geq:"${since}",date_leq:"${until}"}
             orderBy:[date_ASC] limit:370) {
@@ -82,7 +82,7 @@ export class CloudflareAnalyticsService {
       if (!groups) return null;
 
       const byDay: DayPoint[] = groups.map((g: any) => {
-        const rawDate = useHourly ? g.dimensions.datetimeHour : g.dimensions.date;
+        const rawDate = useHourly ? g.dimensions.datetime : g.dimensions.date;
         const dateStr = rawDate?.slice(0, 10) ?? '';
         const label = useHourly
           ? (rawDate?.slice(11, 13) ?? '') + ':00'
