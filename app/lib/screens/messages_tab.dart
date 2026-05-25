@@ -139,7 +139,7 @@ class _MessagesTabState extends State<MessagesTab> {
                       final lastMsg = msgs.isNotEmpty
                           ? (msgs[0]['text']?.toString().isNotEmpty == true
                               ? msgs[0]['text'].toString()
-                              : 'Yêu cầu nhận đồ')
+                              : 'Đã gửi ảnh')
                           : 'Bắt đầu cuộc trò chuyện';
                       final lastMsgTime = msgs.isNotEmpty ? msgs[0]['createdAt'] : null;
                       final post = room['post'] as Map? ?? {};

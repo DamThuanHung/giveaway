@@ -157,14 +157,14 @@ class _MapViewScreenState extends State<MapViewScreen> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
-                                color: isFree ? Colors.red : AppTheme.primary,
+                                color: isFree ? AppTheme.freeColor : AppTheme.primary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Colors.white,
                                   width: isSelected ? 3 : 2,
                                 ),
                                 boxShadow: [BoxShadow(
-                                  color: (isFree ? Colors.red : AppTheme.primary).withOpacity(0.4),
+                                  color: (isFree ? AppTheme.freeColor : AppTheme.primary).withOpacity(0.4),
                                   blurRadius: isSelected ? 10 : 6,
                                   spreadRadius: isSelected ? 2 : 0,
                                 )],
@@ -200,7 +200,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
               const SizedBox(width: 8),
               _FilterChip(label: 'Tất cả', value: 'all', current: _filter, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
               const SizedBox(width: 6),
-              _FilterChip(label: 'Tặng miễn phí', value: 'give', current: _filter, color: Colors.red, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
+              _FilterChip(label: 'Tặng miễn phí', value: 'give', current: _filter, color: AppTheme.freeColor, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
               const SizedBox(width: 6),
               _FilterChip(label: 'Bán', value: 'sell', current: _filter, color: AppTheme.primary, onTap: (v) => setState(() { _filter = v; _selectedPost = null; })),
             ]),
@@ -211,7 +211,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
             bottom: _selectedPost != null ? 196 : 20,
             left: 16,
             child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _Legend(color: Colors.red, label: 'Tặng miễn phí'),
+              _Legend(color: AppTheme.freeColor, label: 'Tặng miễn phí'),
               SizedBox(height: 4),
               _Legend(color: AppTheme.primary, label: 'Bán'),
             ]),
@@ -345,7 +345,7 @@ class _PostCard extends StatelessWidget {
               Text(
                 PostCard.formatPrice(post.price, post.listingType),
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold,
-                    color: isFree ? Colors.red : AppTheme.primary),
+                    color: isFree ? AppTheme.freeColor : AppTheme.primary),
               ),
               const SizedBox(height: 4),
               Row(children: [

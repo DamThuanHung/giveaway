@@ -85,13 +85,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Nhập tên mới'),
+          maxLength: 50,
+          decoration: const InputDecoration(hintText: 'Nhập tên mới (2–50 ký tự)'),
           textCapitalization: TextCapitalization.words,
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Huỷ')),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            onPressed: () {
+              final name = ctrl.text.trim();
+              if (name.length < 2) return;
+              Navigator.pop(ctx, name);
+            },
             child: const Text('Lưu'),
           ),
         ],
@@ -428,19 +433,31 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               icon: Icons.email_rounded,
               label: hasEmail ? 'Email dự phòng (đã liên kết)' : 'Liên kết email dự phòng',
               iconBgColor: const Color(0xFF9E9E9E),
-              onTap: hasEmail ? () {} : () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LinkEmailScreen()),
-              ).then((ok) { if (ok == true) _loadTrust(); }),
+              onTap: hasEmail
+                  ? () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Email đã được liên kết với tài khoản'),
+                        behavior: SnackBarBehavior.floating,
+                      ))
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LinkEmailScreen()),
+                    ).then((ok) { if (ok == true) _loadTrust(); }),
             ),
             _MenuItem(
               icon: Icons.phone_android_rounded,
               label: hasPhone ? 'SĐT dự phòng (đã liên kết)' : 'Liên kết SĐT dự phòng',
               iconBgColor: const Color(0xFF9E9E9E),
-              onTap: hasPhone ? () {} : () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LinkPhoneScreen()),
-              ).then((ok) { if (ok == true) _loadTrust(); }),
+              onTap: hasPhone
+                  ? () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Số điện thoại đã được liên kết với tài khoản'),
+                        behavior: SnackBarBehavior.floating,
+                      ))
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LinkPhoneScreen()),
+                    ).then((ok) { if (ok == true) _loadTrust(); }),
             ),
             _MenuItem(
               icon: Icons.logout_rounded,
@@ -739,11 +756,11 @@ class _FollowListScreenState extends State<_FollowListScreen> {
         foregroundColor: AppTheme.textPrimary,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : _users.isEmpty
               ? Center(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
+                    Icon(Icons.people_outline, size: 56, color: AppTheme.border),
                     const SizedBox(height: 12),
                     Text(
                       widget.mode == 'followers' ? 'Chưa có ai theo dõi bạn' : 'Bạn chưa theo dõi ai',

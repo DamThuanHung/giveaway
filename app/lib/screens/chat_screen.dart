@@ -238,9 +238,19 @@ class _ChatScreenState extends State<ChatScreen> {
     _socket?.on('receive_message', (data) {
       if (!mounted) return;
       setState(() {
+        if (data['senderId'] == _myId) {
+          // Echo-back tin nhắn của mình — thay thế optimistic entry thay vì duplicate
+          final idx = _messages.lastIndexWhere(
+            (m) => m['id'] == null && m['senderId'] == _myId && m['text'] == data['text'],
+          );
+          if (idx != -1) {
+            _messages[idx] = data;
+            return;
+          }
+        } else {
+          _otherHasRead = false;
+        }
         _messages.add(data);
-        // Khi nhận tin nhắn mới từ người kia → reset trạng thái đã xem của mình
-        if (data['senderId'] != _myId) _otherHasRead = false;
       });
       _scrollToBottom();
       // Đánh dấu đã đọc và thông báo cho người kia (best-effort, fire-and-forget)

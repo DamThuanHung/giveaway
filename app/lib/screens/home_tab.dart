@@ -40,18 +40,18 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    return const _HomeFeedJimoty();
+    return const _HomeFeed();
   }
 }
 
-class _HomeFeedJimoty extends StatefulWidget {
-  const _HomeFeedJimoty();
+class _HomeFeed extends StatefulWidget {
+  const _HomeFeed();
 
   @override
-  State<_HomeFeedJimoty> createState() => _HomeFeedJimotyState();
+  State<_HomeFeed> createState() => _HomeFeedState();
 }
 
-class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
+class _HomeFeedState extends State<_HomeFeed> {
   final Set<String> _favoriteIds = {};
   String _selectedProvince = 'Toàn quốc';
   RadiusMapResult? _radiusResult;
@@ -267,15 +267,19 @@ class _HomeFeedJimotyState extends State<_HomeFeedJimoty> {
   Future<void> _loadFavorites() async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuth || auth.userId == null) return;
-    final data = await ApiService.getFavorites(auth.userId!);
-    if (!mounted) return;
-    setState(() {
-      _favoriteIds.clear();
-      for (final item in data) {
-        final postId = item['postId']?.toString() ?? item['post']?['id']?.toString();
-        if (postId != null) _favoriteIds.add(postId);
-      }
-    });
+    try {
+      final data = await ApiService.getFavorites(auth.userId!);
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds.clear();
+        for (final item in data) {
+          final postId = item['postId']?.toString() ?? item['post']?['id']?.toString();
+          if (postId != null) _favoriteIds.add(postId);
+        }
+      });
+    } catch (_) {
+      // Không hiện lỗi — favorite là feature phụ trợ, không block chính
+    }
   }
 
   Future<void> _toggleFavorite(String postId) async {

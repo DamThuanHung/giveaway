@@ -177,13 +177,30 @@ class Post {
 
   String get itemCategoryLabel {
     switch (itemCategory) {
-      case 'furniture': return 'Nội thất';
-      case 'appliances': return 'Gia dụng';
-      case 'bicycle': return 'Xe đạp';
-      case 'motorbike': return 'Xe máy';
-      case 'computer': return 'Máy tính';
-      case 'phone': return 'Điện thoại';
-      case 'fashion': return 'Thời trang';
+      case 'electronics':  return 'Điện tử';
+      case 'furniture':    return 'Nội thất';
+      case 'clothing':     return 'Thời trang';
+      case 'kitchen':      return 'Gia dụng';
+      case 'books':        return 'Sách';
+      case 'toys':         return 'Đồ chơi';
+      case 'sports':       return 'Thể thao';
+      case 'vehicles':     return 'Xe cộ';
+      case 'beauty':       return 'Làm đẹp';
+      case 'pets':         return 'Thú cưng';
+      case 'tools':        return 'Đồ nghề';
+      case 'food':         return 'Thực phẩm';
+      case 'baby':         return 'Mẹ & Bé';
+      case 'music':        return 'Nhạc cụ';
+      case 'realestate':   return 'Bất động sản';
+      case 'service':      return 'Rao dịch vụ';
+      case 'jobs':         return 'Việc làm';
+      // Legacy values (data cũ có thể còn dùng)
+      case 'appliances':   return 'Gia dụng';
+      case 'bicycle':      return 'Xe đạp';
+      case 'motorbike':    return 'Xe máy';
+      case 'computer':     return 'Máy tính';
+      case 'phone':        return 'Điện thoại';
+      case 'fashion':      return 'Thời trang';
       default: return 'Khác';
     }
   }

@@ -69,6 +69,8 @@ class AppImage extends StatelessWidget {
     width: width,
     height: height,
     color: AppTheme.background,
-    child: const Icon(Icons.image_outlined, color: AppTheme.border),
+    child: const Center(
+      child: Icon(Icons.image_outlined, color: AppTheme.border, size: 32),
+    ),
   );
 }

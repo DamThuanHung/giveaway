@@ -16,9 +16,12 @@ import '../theme/app_theme.dart';
 import '../widgets/app_image.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/post_card.dart';
+import '../widgets/user_avatar.dart';
 import 'chat_screen.dart';
 import 'auth/phone_login_screen.dart';
 import 'profile/user_profile_screen.dart';
+
+const double _kBottomBarHeight = 100;
 
 class PostDetailScreen extends StatefulWidget {
   final Post post;
@@ -557,7 +560,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 100), // Khoảng trống cho nút Chat
+        padding: const EdgeInsets.only(bottom: _kBottomBarHeight), // Khoảng trống cho nút Chat
         children: [
           // 0. BOOST BANNER (Plus/VIP)
           if (_post.effectiveTier >= 2) _BoostBanner(tier: _post.effectiveTier),
@@ -567,8 +570,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             decoration: _post.effectiveTier == 3
                 ? const BoxDecoration(
                     border: Border(
-                      top: BorderSide(color: Color(0xFFC9A84A), width: 2),
-                      bottom: BorderSide(color: Color(0xFFC9A84A), width: 2),
+                      top: BorderSide(color: AppTheme.goldDark, width: 2),
+                      bottom: BorderSide(color: AppTheme.goldDark, width: 2),
                     ),
                   )
                 : null,
@@ -761,7 +764,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, color: Colors.grey, size: 20),
+                    const Icon(Icons.location_on, color: AppTheme.textSecondary, size: 20),
                     const SizedBox(width: 6),
                     Expanded(child: Text(_post.fullAddress, style: const TextStyle(fontSize: 15, color: Colors.black87))),
                   ],
@@ -786,7 +789,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           MarkerLayer(markers: [
                             Marker(
                               point: LatLng(_post.latitude, _post.longitude),
-                              child: const Icon(Icons.location_pin, color: Colors.red, size: 36),
+                              child: const Icon(Icons.location_pin, color: AppTheme.error, size: 36),
                             ),
                           ]),
                         ],
@@ -814,36 +817,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   onTap: _post.authorId != null ? _openSellerProfile : null,
                   child: Row(
                     children: [
-                      Builder(builder: (_) {
-                        final raw = _post.authorAvatar;
-                        final avatarUrl = (raw != null && raw.isNotEmpty)
-                            ? (raw.startsWith('http') ? raw : '${ApiService.baseUrl}/$raw')
-                            : null;
-                        final initials = (_post.authorName ?? 'U')[0].toUpperCase();
-                        return Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTheme.primaryLight,
-                          ),
-                          child: ClipOval(
-                            child: avatarUrl != null
-                                ? CachedNetworkImage(
-                                    imageUrl: avatarUrl,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => Center(
-                                      child: Text(initials,
-                                        style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
-                                    ),
-                                  )
-                                : Center(
-                                    child: Text(initials,
-                                      style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
-                                  ),
-                          ),
-                        );
-                      }),
+                      UserAvatar(
+                        imageUrl: _post.authorAvatar != null && _post.authorAvatar!.isNotEmpty
+                            ? (_post.authorAvatar!.startsWith('http')
+                                ? _post.authorAvatar
+                                : '${ApiService.baseUrl}/${_post.authorAvatar}')
+                            : null,
+                        name: _post.authorName,
+                        radius: 24,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -861,7 +843,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           style: FollowButtonStyle.compact,
                         ),
                       const SizedBox(width: 4),
-                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                      const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                     ],
                   ),
                 ),
@@ -1204,7 +1186,7 @@ class _FullscreenImageViewerState extends State<_FullscreenImageViewer> {
         onPageChanged: (i) => setState(() => _current = i),
         scrollPhysics: const BouncingScrollPhysics(),
         builder: (context, index) => PhotoViewGalleryPageOptions(
-          imageProvider: NetworkImage(widget.images[index]),
+          imageProvider: CachedNetworkImageProvider(widget.images[index]),
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered * 3,
           errorBuilder: (_, __, ___) => const Center(
