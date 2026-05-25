@@ -4,7 +4,6 @@ import '../../services/api_service.dart';
 import '../../services/analytics.dart';
 import '../../theme/app_theme.dart';
 
-const _kGoldLight = Color(0xFFF4D36A);
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +55,7 @@ const _packages = [
     label: 'VIP',
     badge: 'VIP',
     badgeColor: Color(0xFF2A2418),
-    badgeText: _kGoldLight,
+    badgeText: AppTheme.goldLight,
     amount: 15000,
     days: 7,
     perks: ['Viền vàng chạy + sao lấp lánh', 'Card to hơn trong feed', 'Ưu tiên hiển thị cao nhất', 'Badge "VIP" 7 ngày'],

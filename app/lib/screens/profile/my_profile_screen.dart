@@ -735,8 +735,8 @@ class _FollowListScreenState extends State<_FollowListScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(widget.title),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.textPrimary,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

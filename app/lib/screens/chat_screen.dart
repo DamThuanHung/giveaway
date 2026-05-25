@@ -63,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _completing = false;
 
   bool get _iAmAuthor => _myId != null && _postAuthorId != null && _myId == _postAuthorId;
-  bool get _canComplete => _iAmAuthor && (_postStatus == 'available' || _postStatus == 'reserved') && _partnerId != null;
+  bool get _canComplete => _iAmAuthor && (_postStatus == 'available' || _postStatus == 'reserved') && _partnerId != null && widget.postId != null;
 
   @override
   void initState() {

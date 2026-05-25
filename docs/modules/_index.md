@@ -55,7 +55,7 @@
 | Notifications | `notifications_screen.dart` | Done | Thông báo in-app (grouped by date) |
 | Profile | `profile_tab.dart` | Done | Hồ sơ cá nhân |
 | My Reviews | `profile/my_reviews_screen.dart` | Done | Đánh giá nhận được |
-| Deals | `deal/deals_screen.dart` | Done | Danh sách giao dịch |
+| Deals | *(đã bỏ)* | Đã bỏ | Module Deal bị xóa khỏi app; logic hoàn thành giao dịch chuyển vào ChatScreen |
 | User Profile | `user_profile_screen.dart` | Done | Hồ sơ user khác |
 | My Posts | `post/my_posts_screen.dart` | Done | Bài đăng của tôi + nút Đẩy bài |
 | Bump Package | `post/bump_package_screen.dart` | Done | Chọn gói boost (Free/Plus/VIP) + PayOSWebView |

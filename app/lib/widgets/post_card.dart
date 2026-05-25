@@ -6,10 +6,10 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'app_image.dart';
 
-// ─── Gold constants (shared giữa Tier 2 và Tier 3) ──────────────────────────
-const _kGoldDark  = Color(0xFFC9A84A);
-const _kGoldLight = Color(0xFFF4D36A);
-const _kGoldOrange= Color(0xFFFFa500);
+// Gold aliases — source of truth là AppTheme.goldDark/Light/Orange
+const _kGoldDark   = AppTheme.goldDark;
+const _kGoldLight  = AppTheme.goldLight;
+const _kGoldOrange = AppTheme.goldOrange;
 
 class PostCard extends StatefulWidget {
   final Post post;

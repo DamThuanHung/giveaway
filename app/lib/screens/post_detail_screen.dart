@@ -1047,7 +1047,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           post: p,
                           isFavorite: false,
                           onToggleFavorite: () async {},
-                          onTap: () => Navigator.pushReplacement(
+                          onTap: () => Navigator.push(
                             ctx,
                             MaterialPageRoute(builder: (_) => PostDetailScreen(
                               post: p,

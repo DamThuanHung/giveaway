@@ -192,7 +192,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
     final postData = {
       'title': _titleController.text.trim(),
       'description': _descController.text.trim(),
-      'price': (_listingType == 'give' || _isJob) ? (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()) : (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()),
+      'price': _listingType == 'give' ? '0' : (_priceController.text.trim().isEmpty ? '0' : _priceController.text.trim()),
       'listingType': (_isRealestate || _isJob) ? 'sell' : _listingType,
       'itemCategory': _itemCategory,
       'postType': _postType,

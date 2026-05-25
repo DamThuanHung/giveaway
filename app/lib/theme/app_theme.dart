@@ -98,6 +98,11 @@ class AppTheme {
   static const Color soldColor     = Color(0xFF9E9E9E);
   static const Color ctaOrange     = Color(0xFFF57C00);
 
+  // ─── Gold tokens (Bump VIP/Plus tier) ────────────────
+  static const Color goldDark   = Color(0xFFC9A84A);
+  static const Color goldLight  = Color(0xFFF4D36A);
+  static const Color goldOrange = Color(0xFFFFa500);
+
   // ─── Theme ────────────────────────────────────────────
   static ThemeData get light {
     final beVietnamPro = GoogleFonts.beVietnamProTextTheme();

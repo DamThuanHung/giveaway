@@ -56,7 +56,7 @@
 4. Giá (chỉ hiện khi `sell`, ẩn khi `give`)
 5. Danh mục (dropdown)
 6. Địa chỉ (tỉnh → quận → phường → chi tiết)
-7. Ảnh (tối đa 5, có preview)
+7. Ảnh (tối đa 10, có preview)
 
 ### Validation messages
 | Field | Điều kiện lỗi | Message |

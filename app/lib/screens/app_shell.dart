@@ -248,7 +248,7 @@ class _BottomBarState extends State<_BottomBar> with TickerProviderStateMixin {
                             children: [
                               Icon(
                                 selected ? item.iconFilled : item.icon,
-                                color: selected ? AppTheme.primary : Colors.grey,
+                                color: selected ? AppTheme.primary : AppTheme.textSecondary,
                                 size: 24,
                               ),
                               // Badge tin nhắn (tab Tin nhắn)
@@ -257,7 +257,7 @@ class _BottomBarState extends State<_BottomBar> with TickerProviderStateMixin {
                                   top: -4, right: -6,
                                   child: Container(
                                     padding: const EdgeInsets.all(3),
-                                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                    decoration: const BoxDecoration(color: AppTheme.error, shape: BoxShape.circle),
                                     constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                                     child: Text(
                                       widget.unreadMsgCount > 99 ? '99+' : '${widget.unreadMsgCount}',
