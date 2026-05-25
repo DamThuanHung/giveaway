@@ -446,22 +446,14 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
           )}
         </div>
 
-        {/* CTA banner — đăng bài */}
+        {/* CTA floating button — đăng bài, fixed bottom-center */}
         {!loading && !fetchError && (
           <a
             href="/posts/new"
-            className="flex items-center justify-between gap-3 mb-5 px-4 py-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors group"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-white font-semibold text-sm shadow-lg hover:bg-primary-dark transition-colors whitespace-nowrap"
           >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🛍️</span>
-              <div>
-                <p className="text-sm font-semibold text-ink-800">Bạn có đồ muốn bán hoặc cho tặng?</p>
-                <p className="text-xs text-ink-500">Đăng bài miễn phí, tiếp cận người mua ngay hôm nay</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-primary whitespace-nowrap group-hover:underline">
-              Đăng ngay →
-            </span>
+            <span>🛍️</span>
+            Đăng bài ngay — miễn phí
           </a>
         )}
 
