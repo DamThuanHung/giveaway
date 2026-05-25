@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đang tải bài đăng... · Trao Tay</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; background: #f5f5f0; color: #1a1a2e; }
+
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 16px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+    }
+    .header a {
+      font-size: 20px;
+      font-weight: 700;
+      color: #10b981;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+    /* Loading */
+    .skeleton { background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .sk-img { width: 100%; aspect-ratio: 4/3; border-radius: 12px; }
+    .sk-title { height: 28px; width: 70%; margin: 16px 0 8px; }
+    .sk-price { height: 20px; width: 30%; margin-bottom: 16px; }
+    .sk-line { height: 16px; width: 100%; margin-bottom: 8px; }
+    .sk-line.short { width: 60%; }
+
+    /* Post card */
+    .card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .gallery { position: relative; background: #f3f4f6; }
+    .gallery img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+    .badge {
+      position: absolute; top: 12px; left: 12px;
+      padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .badge-give { background: #d1fae5; color: #065f46; }
+    .badge-sell { background: #dbeafe; color: #1e40af; }
+    .badge-want { background: #fef3c7; color: #92400e; }
+
+    .body { padding: 16px; }
+    .price { font-size: 22px; font-weight: 700; color: #10b981; margin-bottom: 4px; }
+    .price.free { color: #10b981; }
+    .price.paid { color: #1a1a2e; }
+    .title { font-size: 18px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .meta span { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 4px; }
+    .divider { height: 1px; background: #f3f4f6; margin: 16px 0; }
+    .desc { font-size: 15px; line-height: 1.7; color: #374151; white-space: pre-wrap; word-break: break-word; }
+
+    .author-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f3f4f6; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #d1fae5; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: #065f46; overflow: hidden; flex-shrink: 0; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .author-info { flex: 1; }
+    .author-name { font-size: 14px; font-weight: 600; }
+    .author-since { font-size: 12px; color: #9ca3af; }
+
+    .contact-btn {
+      display: block; width: 100%; margin-top: 16px;
+      background: #10b981; color: #fff; border: none;
+      padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600;
+      text-align: center; text-decoration: none; cursor: pointer;
+      transition: background .15s;
+    }
+    .contact-btn:hover { background: #059669; }
+
+    .error-state { text-align: center; padding: 48px 16px; }
+    .error-state h2 { font-size: 18px; margin-bottom: 8px; }
+    .error-state p { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+    .error-state a { color: #10b981; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="/">Trao Tay</a>
+  </div>
+  <div class="container">
+    <div id="loading">
+      <div class="card">
+        <div class="skeleton sk-img"></div>
+        <div class="body">
+          <div class="skeleton sk-price"></div>
+          <div class="skeleton sk-title"></div>
+          <div class="skeleton sk-line"></div>
+          <div class="skeleton sk-line"></div>
+          <div class="skeleton sk-line short"></div>
+        </div>
+      </div>
+    </div>
+    <div id="post" style="display:none"></div>
+    <div id="error" style="display:none" class="error-state">
+      <h2>Không tìm thấy bài đăng</h2>
+      <p>Bài đăng này không tồn tại hoặc đã bị gỡ.</p>
+      <a href="/posts">← Xem tất cả bài đăng</a>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://api.traotay.com.vn';
+    const pathParts = window.location.pathname.replace(/\/$/, '').split('/');
+    const postId = pathParts[pathParts.length - 1];
+
+    const BADGE = { give: ['Cho tặng', 'badge-give'], sell: ['Bán', 'badge-sell'], want: ['Tìm mua', 'badge-want'] };
+
+    function fmtPrice(price, priceUnit) {
+      if (!price || price === 0) return { text: 'Miễn phí', cls: 'free' };
+      const p = Number(price);
+      const unit = priceUnit === 'month' ? '/tháng' : priceUnit === 'week' ? '/tuần' : '';
+      if (p >= 1e9) return { text: (p / 1e9).toFixed(1).replace('.0','') + ' tỷ' + unit, cls: 'paid' };
+      if (p >= 1e6) return { text: (p / 1e6).toFixed(1).replace('.0','') + ' triệu' + unit, cls: 'paid' };
+      if (p >= 1e3) return { text: (p / 1e3).toFixed(0) + 'k' + unit, cls: 'paid' };
+      return { text: p.toLocaleString('vi-VN') + 'đ' + unit, cls: 'paid' };
+    }
+
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function initials(name) {
+      return (name || '?').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase();
+    }
+
+    async function load() {
+      if (!postId || postId === 'posts') { showError(); return; }
+      try {
+        const res = await fetch(`${API}/post/${postId}`);
+        if (!res.ok) { showError(); return; }
+        const p = await res.json();
+        render(p);
+        document.title = `${p.title} · Trao Tay`;
+      } catch (e) {
+        showError();
+      }
+    }
+
+    function render(p) {
+      const [badgeText, badgeCls] = BADGE[p.listingType] || ['Bài đăng', 'badge-sell'];
+      const price = fmtPrice(p.price, p.priceUnit);
+      const imgs = (p.images || []).filter(Boolean);
+      const imgHtml = imgs.length
+        ? `<img src="${imgs[0]}" alt="${p.title}" loading="lazy" onerror="this.style.display='none'" />`
+        : '';
+      const loc = [p.district, p.province].filter(Boolean).join(', ');
+      const authorInitials = initials(p.author?.name);
+      const avatarHtml = p.author?.avatar
+        ? `<img src="${p.author.avatar}" alt="${p.author?.name}" />`
+        : authorInitials;
+
+      document.getElementById('post').innerHTML = `
+        <div class="card">
+          ${imgHtml ? `<div class="gallery"><span class="badge ${badgeCls}">${badgeText}</span>${imgHtml}</div>` : ''}
+          <div class="body">
+            <div class="price ${price.cls}">${price.text}</div>
+            <h1 class="title">${p.title}</h1>
+            <div class="meta">
+              ${loc ? `<span>📍 ${loc}</span>` : ''}
+              <span>🕐 ${fmtDate(p.createdAt)}</span>
+            </div>
+            <div class="divider"></div>
+            <div class="desc">${(p.description || '').replace(/</g,'&lt;')}</div>
+            <div class="author-row">
+              <div class="avatar">${avatarHtml}</div>
+              <div class="author-info">
+                <div class="author-name">${p.author?.name || 'Người dùng'}</div>
+                <div class="author-since">Thành viên từ ${fmtDate(p.author?.createdAt)}</div>
+              </div>
+            </div>
+            <a href="/chat/room?userId=${p.author?.id}" class="contact-btn">Nhắn tin người bán</a>
+          </div>
+        </div>
+      `;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('post').style.display = 'block';
+    }
+
+    function showError() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+    }
+
+    load();
+  </script>
+</body>
+</html>
