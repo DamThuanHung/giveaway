@@ -2,11 +2,15 @@ import { Controller, Get, Patch, Post, Delete, Param, Query, Body, UseGuards, Re
 import type { Response } from 'express';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
+import { AnalyticsCronService } from './analytics-cron.service';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private analyticsCron: AnalyticsCronService,
+  ) {}
 
   // ─── Dashboard stats ──────────────────────────────
   @Get('stats')
@@ -283,6 +287,11 @@ export class AdminController {
   getAnalytics(@Query('period') period = 'week') {
     const allowed = ['day', 'week', 'month', 'year'];
     return this.adminService.getAnalytics(allowed.includes(period) ? (period as any) : 'week');
+  }
+
+  @Post('analytics/send-report')
+  sendAnalyticsReport() {
+    return this.analyticsCron.sendDailyReport().then(() => ({ message: 'Đã gửi báo cáo' }));
   }
 
   // ─── System health ────────────────────────────────

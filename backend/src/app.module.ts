@@ -10,6 +10,7 @@ import { join } from 'path';
 import { AdminController } from './admin/admin.controller';
 import { AdminGuard } from './admin/admin.guard';
 import { AdminService } from './admin/admin.service';
+import { AnalyticsCronService } from './admin/analytics-cron.service';
 import { CloudflareAnalyticsService } from './admin/cloudflare-analytics.service';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -79,6 +80,7 @@ import { WebPushModule } from './web-push/web-push.module';
     AdminService,
     AdminGuard,
     CloudflareAnalyticsService,
+    AnalyticsCronService,
     PrismaService,
     UserService,
     PostService,
