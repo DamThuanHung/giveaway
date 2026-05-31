@@ -290,8 +290,9 @@ export class AdminController {
   }
 
   @Post('analytics/send-report')
-  sendAnalyticsReport() {
-    return this.analyticsCron.sendDailyReport().then(() => ({ message: 'Đã gửi báo cáo' }));
+  async sendAnalyticsReport() {
+    await this.analyticsCron.sendDailyReport();
+    return { message: 'Đã gửi báo cáo' };
   }
 
   // ─── System health ────────────────────────────────

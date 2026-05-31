@@ -67,7 +67,7 @@ export class AnalyticsCronService {
 
       const resend = new Resend(apiKey);
       await resend.emails.send({
-        from: 'Trao Tay <no-reply@traotay.com.vn>',
+        from: 'Trao Tay <noreply@traotay.com.vn>',
         to: adminEmail,
         subject: `📊 Báo cáo hôm nay — ${web.visitors} khách, ${app.total} lượt tải app`,
         html,
