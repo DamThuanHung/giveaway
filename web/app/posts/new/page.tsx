@@ -163,10 +163,36 @@ export default function NewPostPage() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude);
-        setLongitude(pos.coords.longitude);
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setLatitude(lat);
+        setLongitude(lng);
         setErr(null);
+
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&accept-language=vi`,
+            { headers: { 'User-Agent': 'TraoTay/1.0' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+
+          const street = addr.road || addr.pedestrian || addr.footway || '';
+          const wardName = addr.suburb || addr.quarter || addr.neighbourhood || '';
+          const districtName = addr.city_district || addr.district || '';
+          const rawProvince = addr.city || addr.state || '';
+          const cleanProvince = rawProvince
+            .replace(/^Tỉnh\s+/i, '')
+            .replace(/^Thành phố\s+/i, '')
+            .replace(/^TP\.\s+/i, '');
+
+          if (cleanProvince) setProvince(cleanProvince);
+          if (districtName) setDistrict(districtName);
+          if (wardName) setWard(wardName);
+          if (street) setAddressDetail(street);
+        } catch {
+          // Tọa độ đã lưu, điền địa chỉ thất bại — user tự nhập
+        }
       },
       () => {
         setErr("Không lấy được vị trí — kiểm tra quyền truy cập trình duyệt");
