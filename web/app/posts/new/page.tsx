@@ -279,7 +279,7 @@ export default function NewPostPage() {
       setErr(res.message || "Đăng bài thất bại");
       return;
     }
-    router.push(`/posts/${res.post.id}/`);
+    router.push(`/me/posts/?new=${res.post.id}`);
   }
 
   if (authLoading || !user) {

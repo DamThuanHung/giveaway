@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
@@ -30,9 +30,21 @@ const STATUS_CHIP: Record<string, { label: string; className: string }> = {
 export default function MyPostsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [posts, setPosts] = useState<any[] | null>(null);
   const [filter, setFilter] = useState("");
   const [fetchError, setFetchError] = useState(false);
+  const [newPostId, setNewPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = searchParams.get("new");
+    if (id) {
+      setNewPostId(id);
+      // Xóa query param khỏi URL, không reload page
+      router.replace("/me/posts/", { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const refetch = () => {
     setFetchError(false);
@@ -88,6 +100,22 @@ export default function MyPostsPage() {
           </Link>
         </div>
       </section>
+
+      {newPostId && (
+        <div className="max-w-5xl mx-auto px-4 pt-5">
+          <div className="bg-primary-100 border border-primary-300 text-primary-900 rounded-md px-4 py-3 flex items-center justify-between gap-3 text-sm font-medium shadow-soft">
+            <span>Đăng bài thành công! Bài đăng của bạn đang hiển thị.</span>
+            <button
+              type="button"
+              onClick={() => setNewPostId(null)}
+              className="text-primary-600 hover:text-primary-900 font-bold text-base leading-none"
+              aria-label="Đóng"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       <section className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex gap-2 flex-wrap mb-5 overflow-x-auto">
