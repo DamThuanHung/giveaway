@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
@@ -28,6 +28,14 @@ const STATUS_CHIP: Record<string, { label: string; className: string }> = {
 };
 
 export default function MyPostsPage() {
+  return (
+    <Suspense fallback={<><Header /><div className="text-center py-20 text-ink-500">Đang tải...</div><Footer /></>}>
+      <MyPostsContent />
+    </Suspense>
+  );
+}
+
+function MyPostsContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,13 +76,7 @@ export default function MyPostsPage() {
   }, [user, authLoading, filter, router]);
 
   if (authLoading || !user) {
-    return (
-      <>
-        <Header />
-        <div className="text-center py-20 text-ink-500">Đang tải...</div>
-        <Footer />
-      </>
-    );
+    return null;
   }
 
   return (
