@@ -70,7 +70,7 @@ export class PostController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @Throttle({ default: { limit: 10, ttl: 3_600_000 } }) // 10 post/giờ/user
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } }) // 30 post/giờ/user
   @UseInterceptors(FilesInterceptor('images', 10, multerOptions))
   async createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
     let imageUrls: string[] = [];
