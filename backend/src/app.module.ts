@@ -5,7 +5,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerViGuard } from './throttler-vi.guard';
 import { join } from 'path';
 import { AdminController } from './admin/admin.controller';
 import { AdminGuard } from './admin/admin.guard';
@@ -91,7 +92,7 @@ import { WebPushModule } from './web-push/web-push.module';
     // NotificationService/Gateway/Cron + FcmService moved into NotificationModule
     // KeywordAlertService comes from KeywordAlertModule (exported)
     JwtStrategy,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: ThrottlerViGuard },
   ],
 })
 export class AppModule {}
