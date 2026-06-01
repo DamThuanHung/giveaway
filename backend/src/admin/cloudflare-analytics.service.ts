@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-export type AnalyticsPeriod = 'day' | 'week' | 'month' | 'year';
+export type AnalyticsPeriod = 'day' | 'yesterday' | 'week' | 'month' | 'year';
 
 export interface DayPoint { date: string; label: string; visitors: number; pageViews: number; requests: number }
 export interface DownloadPoint { date: string; label: string; count: number }
@@ -24,12 +24,18 @@ export class CloudflareAnalyticsService {
 
   private dateRange(period: AnalyticsPeriod): { since: string; until: string; useHourly: boolean } {
     const now = new Date();
-    const until = now.toISOString().slice(0, 10);
-    if (period === 'day') return { since: until, until, useHourly: true };
+    const today = now.toISOString().slice(0, 10);
+    if (period === 'day') return { since: today, until: today, useHourly: true };
+    if (period === 'yesterday') {
+      const yd = new Date(now);
+      yd.setDate(yd.getDate() - 1);
+      const ydate = yd.toISOString().slice(0, 10);
+      return { since: ydate, until: ydate, useHourly: false };
+    }
     const days = period === 'week' ? 6 : period === 'month' ? 29 : 364;
     const d = new Date(now);
     d.setDate(d.getDate() - days);
-    return { since: d.toISOString().slice(0, 10), until, useHourly: false };
+    return { since: d.toISOString().slice(0, 10), until: today, useHourly: false };
   }
 
   private shortDate(iso: string): string {

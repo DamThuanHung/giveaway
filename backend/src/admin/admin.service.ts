@@ -1294,9 +1294,13 @@ export class AdminService implements OnModuleInit {
     const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
     const nowVN = new Date(Date.now() + TZ_OFFSET_MS);
 
-    // Tính since cho DB download query theo period (UTC+7)
+    // Tính since/until cho DB download query theo period (UTC+7)
     let since: Date;
-    if (period === 'day') {
+    let until: Date | undefined;
+    if (period === 'yesterday') {
+      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate() - 1));
+      until = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate()));
+    } else if (period === 'day') {
       since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate()));
     } else if (period === 'week') {
       const daysFromMonday = (nowVN.getUTCDay() + 6) % 7;
@@ -1309,7 +1313,7 @@ export class AdminService implements OnModuleInit {
 
     // Download counts từ DB — group by date
     const downloadRaw = await this.prisma.appDownloadLog.findMany({
-      where: { createdAt: { gte: since } },
+      where: { createdAt: { gte: since, ...(until ? { lt: until } : {}) } },
       select: { createdAt: true, platform: true },
       orderBy: { createdAt: 'asc' },
     });

@@ -20,13 +20,13 @@ export class AnalyticsCronService {
     }
 
     try {
-      const data = await this.adminService.getAnalytics('day');
+      const data = await this.adminService.getAnalytics('yesterday');
       const { web, app } = data;
 
       const html = `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px">
-          <h2 style="color:#10b981;margin-bottom:4px">Báo cáo hàng ngày — Trao Tay</h2>
-          <p style="color:#6b7280;font-size:13px;margin-top:0">${new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <h2 style="color:#10b981;margin-bottom:4px">Báo cáo hôm qua — Trao Tay</h2>
+          <p style="color:#6b7280;font-size:13px;margin-top:0">${new Date(Date.now() - 86400000).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
 
           <table style="width:100%;border-collapse:collapse;margin-top:16px">
             <tr>
@@ -60,7 +60,7 @@ export class AnalyticsCronService {
           </div>
 
           <p style="color:#9ca3af;font-size:11px;text-align:center;margin-top:24px">
-            Trao Tay · Báo cáo tự động lúc 8:00 sáng mỗi ngày
+            Trao Tay · Báo cáo hôm qua (trọn 24h) — gửi lúc 8:00 sáng
           </p>
         </div>
       `;
