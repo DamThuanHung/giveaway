@@ -51,6 +51,20 @@ export class AppController {
     `);
   }
 
+  // POST /threads/deauth — Threads gọi khi user gỡ quyền app (GDPR deauth callback)
+  @Get('threads/deauth')
+  @SkipThrottle()
+  threadsDeauth(@Res() res: Response) {
+    return res.status(200).json({ ok: true });
+  }
+
+  // POST /threads/delete — Threads gọi khi user yêu cầu xóa dữ liệu (GDPR data deletion)
+  @Get('threads/delete')
+  @SkipThrottle()
+  threadsDelete(@Res() res: Response) {
+    return res.status(200).json({ ok: true });
+  }
+
   @Get('health')
   @SkipThrottle()
   async health() {
