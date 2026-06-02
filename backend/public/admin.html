@@ -1047,7 +1047,9 @@ async function hidePost(id, idx) {
 }
 
 async function unhidePost(id, idx) {
-  await api(`/admin/posts/${id}/unhide`, {method:'PATCH'});
+  if (!confirm('Hiện lại bài đăng này? Bài sẽ xuất hiện công khai trở lại.')) return;
+  const res = await api(`/admin/posts/${id}/unhide`, {method:'PATCH'});
+  if (!res) return;
   if (state.posts[idx]) state.posts[idx].status = 'available';
   renderPosts(false); toast('Đã hiện lại bài');
 }
@@ -1055,7 +1057,9 @@ async function unhidePost(id, idx) {
 async function deletePost(id, idx, title) {
   const reason = prompt(`Xóa bài "${title||''}"?\n\nNhập lý do xóa (ghi vào audit log):`);
   if (reason === null) return; // user cancel
-  await api(`/admin/posts/${id}/delete`, {method:'PATCH', body: JSON.stringify({reason: reason || ''})});
+  if (!reason.trim()) { toast('Phải nhập lý do xóa'); return; }
+  const res = await api(`/admin/posts/${id}/delete`, {method:'PATCH', body: JSON.stringify({reason: reason.trim()})});
+  if (!res) return;
   if (state.posts[idx]) state.posts[idx].status = 'deleted_by_admin';
   renderPosts(false); toast('Đã xóa bài (soft delete)');
 }
@@ -1131,8 +1135,8 @@ function openGrantBumpForm(postId, currentTier) {
   const plusDisabled = currentTier >= 2;  // bài đang Plus hoặc VIP → không grant Plus
   const vipDisabled  = currentTier >= 3;  // bài đang VIP → không grant VIP
   const tierHint = currentTier === 0 ? '' :
-    `<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px">
-       Bài đang ở tier <strong>${currentTier === 2 ? 'Plus' : 'VIP'}</strong>${currentTier >= 3 ? ' — không thể grant cao hơn nữa.' : ' — chỉ có thể grant lên VIP.'}
+    `<div style="background:${currentTier >= 3 ? '#FEE2E2' : '#FEF3C7'};border:1px solid ${currentTier >= 3 ? '#FECACA' : '#FCD34D'};border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px">
+       Bài đang ở tier <strong>${currentTier === 2 ? 'Plus' : 'VIP'}</strong>${currentTier >= 3 ? ' — không thể grant thêm (đã ở tier cao nhất).' : ' — chỉ có thể grant lên VIP.'}
      </div>`;
 
   const body = `
@@ -1165,7 +1169,7 @@ function openGrantBumpForm(postId, currentTier) {
 
 async function submitGrantBump(postId) {
   const tierEl = document.querySelector('input[name="grant-tier"]:checked');
-  if (!tierEl) { toast('Chọn gói Plus hoặc VIP'); return; }
+  if (!tierEl) { toast('Không có gói nào khả dụng để grant cho bài này'); return; }
   const tier = tierEl.value;
   const days = parseInt(document.getElementById('grant-days').value || '0', 10);
   const reason = (document.getElementById('grant-reason').value || '').trim();
@@ -1370,8 +1374,9 @@ async function modalBanUser(id, ban) {
 }
 
 async function bulkBanSelected() {
-  const ids = Array.from(state.usersSelected);
-  if (ids.length === 0) return;
+  const selfId = localStorage.getItem('admin_id');
+  const ids = Array.from(state.usersSelected).filter(id => id !== selfId);
+  if (ids.length === 0) { toast('Không có user nào hợp lệ (đã lọc tài khoản của bạn)'); return; }
   if (ids.length > 50) { toast('Tối đa 50 user/lần'); return; }
   const reason = prompt(`Khóa ${ids.length} user đã chọn?\nMỗi user sẽ bị blacklist email/phone (không re-register).\n\nNhập lý do (ghi audit log từng user):`);
   if (reason === null) return;
@@ -1455,7 +1460,9 @@ function renderReports(loading) {
 
 async function resolveReport(id, idx, action) {
   if (action === 'resolved' && !confirm('Xử lý báo cáo này? Bài sẽ bị ẩn.')) return;
-  await api(`/admin/reports/${id}`, {method:'PATCH', body: JSON.stringify({action})});
+  if (action === 'dismissed' && !confirm('Bỏ qua báo cáo này? Báo cáo sẽ đóng lại mà không xử lý.')) return;
+  const res = await api(`/admin/reports/${id}`, {method:'PATCH', body: JSON.stringify({action})});
+  if (!res) return;
   if (state.reports[idx]) state.reports[idx].status = action;
   renderReports(false);
   toast(action === 'resolved' ? 'Đã xử lý & ẩn bài' : 'Đã bỏ qua báo cáo');
@@ -1544,6 +1551,12 @@ async function loadRevenue(reset = false) {
 }
 
 async function reloadTimeline() {
+  // Reset orders pagination khi đổi date range — tránh hiện data sai kỳ
+  state.orders = [];
+  state.ordersPage = 0;
+  state.ordersTotal = 0;
+  state.ordersTotalPages = 1;
+
   const tlParams = new URLSearchParams();
   if (state.timelineFrom && state.timelineTo) {
     tlParams.set('from', state.timelineFrom); tlParams.set('to', state.timelineTo);
@@ -1812,12 +1825,14 @@ async function editCategoryPrompt(id) {
   if (!cat) return;
   const label = prompt('Tên hiển thị mới:', cat.label);
   if (label === null) return;
-  const sortOrder = prompt('Thứ tự (số):', String(cat.sortOrder));
-  if (sortOrder === null) return;
+  const sortOrderRaw = prompt('Thứ tự (số nguyên):', String(cat.sortOrder));
+  if (sortOrderRaw === null) return;
+  const sortOrder = parseInt(sortOrderRaw, 10);
+  if (isNaN(sortOrder)) { toast('Thứ tự phải là số nguyên'); return; }
   const icon = prompt('Icon path:', cat.icon || '');
   const res = await api(`/admin/categories/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ label: label.trim(), sortOrder: +sortOrder, icon: icon === null ? undefined : (icon || null) }),
+    body: JSON.stringify({ label: label.trim(), sortOrder, icon: icon === null ? undefined : (icon || null) }),
   });
   if (!res) return;
   toast(`Đã cập nhật "${res.label}"`);
@@ -2079,10 +2094,10 @@ async function deleteReviewPrompt(id, idx) {
     body: JSON.stringify({ reason: reason.trim() || null }),
   });
   if (!res) return;
-  toast('Đã xóa đánh giá');
-  closeModal();
   if (idx != null) state.reviews.splice(idx, 1);
+  closeModal();
   renderReviews();
+  toast('Đã xóa đánh giá');
 }
 
 // ─── Broadcast notification ───────────────────────────────────────────────────
