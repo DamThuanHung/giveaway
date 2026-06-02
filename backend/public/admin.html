@@ -590,7 +590,7 @@ function loadCurrent(force = false) {
     case 8: if (force || state.reviews.length === 0) loadReviews(true); break;
     case 9: if (force || state.chats.length === 0) loadChats(true); break;
     case 10: if (force || state.categories.length === 0) loadCategories(); break;
-    case 11: if (force || !state.analyticsData) loadAnalytics(); break;
+    case 11: state.analyticsPeriod = 'day'; state.analyticsData = null; loadAnalytics(); break;
   }
 }
 
