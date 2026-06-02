@@ -6,6 +6,10 @@ import { formatPost } from '../post/post.service';
 import { AnalyticsPeriod, CloudflareAnalyticsService } from './cloudflare-analytics.service';
 
 const DELETED_BY_ADMIN = 'deleted_by_admin';
+const MAX_PAGE_LIMIT = 100;
+function capLimit(limit: number): number {
+  return Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
+}
 
 /// Tính mốc thời gian `since` cho period filter — dùng start-of-period theo
 /// múi giờ Asia/Bangkok (UTC+7) để match user expectation Việt Nam:
@@ -99,13 +103,12 @@ export class AdminService implements OnModuleInit {
   }
 
   async getStats() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = computeSince('day')!; // UTC+7 midnight
 
     const [
       totalUsers, totalPosts, totalCompleted, totalReviews,
       newUsersToday, newPostsToday, newCompletedToday,
-      pendingReports, availablePosts, donePosts, deletedPosts,
+      pendingReports, availablePosts, deletedPosts,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.post.count({ where: { NOT: { status: DELETED_BY_ADMIN } } }),
@@ -116,7 +119,6 @@ export class AdminService implements OnModuleInit {
       this.prisma.post.count({ where: { status: 'done', completedAt: { gte: today } } }),
       this.prisma.report.count({ where: { status: 'pending' } }),
       this.prisma.post.count({ where: { status: 'available' } }),
-      this.prisma.post.count({ where: { status: 'done' } }),
       this.prisma.post.count({ where: { status: DELETED_BY_ADMIN } }),
     ]);
 
@@ -125,7 +127,7 @@ export class AdminService implements OnModuleInit {
     return {
       overview: { totalUsers, totalPosts, totalCompleted, totalReviews },
       today: { newUsers: newUsersToday, newPosts: newPostsToday, newCompleted: newCompletedToday },
-      posts: { available: availablePosts, done: donePosts, other: totalPosts - availablePosts - donePosts, deletedByAdmin: deletedPosts },
+      posts: { available: availablePosts, done: totalCompleted, other: totalPosts - availablePosts - totalCompleted, deletedByAdmin: deletedPosts },
       moderation: { pendingReports },
       avgRating: avgRating._avg.rating ? +avgRating._avg.rating.toFixed(2) : 0,
     };
@@ -234,6 +236,7 @@ export class AdminService implements OnModuleInit {
   }
 
   async getAllPosts(page = 1, limit = 20, status?: string, search?: string, authorId?: string) {
+    limit = capLimit(limit);
     const where: any = {};
     if (status) where.status = status;
     if (search) where.title = { contains: search, mode: 'insensitive' };
@@ -265,8 +268,21 @@ export class AdminService implements OnModuleInit {
   async unhidePost(adminId: string, id: string) {
     const before = await this.prisma.post.findUnique({ where: { id }, select: { status: true } });
     if (!before) throw new NotFoundException('Bài đăng không tồn tại');
-    const result = await this.prisma.post.update({ where: { id }, data: { status: 'available' } });
-    await this.audit(adminId, 'post.unhide', 'post', id, { previousStatus: before.status });
+
+    // Tìm trạng thái trước khi bị ẩn từ audit log (post.hide action gần nhất)
+    const lastHide = await this.prisma.adminActionLog.findFirst({
+      where: { action: 'post.hide', targetType: 'post', targetId: id },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+    const meta = lastHide?.metadata as Record<string, any> | null;
+    const VALID_RESTORE = ['available', 'reserved'];
+    const restoreStatus = (meta?.previousStatus && VALID_RESTORE.includes(meta.previousStatus))
+      ? meta.previousStatus
+      : 'available';
+
+    const result = await this.prisma.post.update({ where: { id }, data: { status: restoreStatus } });
+    await this.audit(adminId, 'post.unhide', 'post', id, { previousStatus: before.status, restoredTo: restoreStatus });
     return result;
   }
 
@@ -448,6 +464,7 @@ export class AdminService implements OnModuleInit {
   }
 
   async getAllUsers(page = 1, limit = 20, search?: string, role?: string, banned?: string) {
+    limit = capLimit(limit);
     const where: any = {};
     if (search) {
       where.OR = [
@@ -502,19 +519,21 @@ export class AdminService implements OnModuleInit {
     });
     if (!user) throw new NotFoundException('User không tồn tại');
 
-    await this.prisma.user.update({ where: { id }, data: { isBanned: banFlag } });
-
-    if (banFlag) {
-      if (user.email) await this.prisma.bannedIdentity.upsert({
-        where: { email: user.email }, create: { email: user.email }, update: {},
-      });
-      if (user.phone) await this.prisma.bannedIdentity.upsert({
-        where: { phone: user.phone }, create: { phone: user.phone }, update: {},
-      });
-    } else {
-      if (user.email) await this.prisma.bannedIdentity.deleteMany({ where: { email: user.email } });
-      if (user.phone) await this.prisma.bannedIdentity.deleteMany({ where: { phone: user.phone } });
-    }
+    // Gộp user.update + bannedIdentity trong 1 transaction để tránh partial success
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { isBanned: banFlag } });
+      if (banFlag) {
+        if (user.email) await tx.bannedIdentity.upsert({
+          where: { email: user.email }, create: { email: user.email }, update: {},
+        });
+        if (user.phone) await tx.bannedIdentity.upsert({
+          where: { phone: user.phone }, create: { phone: user.phone }, update: {},
+        });
+      } else {
+        if (user.email) await tx.bannedIdentity.deleteMany({ where: { email: user.email } });
+        if (user.phone) await tx.bannedIdentity.deleteMany({ where: { phone: user.phone } });
+      }
+    });
 
     await this.audit(adminId, banFlag ? 'user.ban' : 'user.unban', 'user', id, {
       previousIsBanned: user.isBanned,
@@ -618,6 +637,7 @@ export class AdminService implements OnModuleInit {
   }
 
   async getAllReports(page = 1, limit = 20, status?: string) {
+    limit = capLimit(limit);
     const where: any = {};
     if (status) where.status = status;
     const skip = (page - 1) * limit;
@@ -663,6 +683,8 @@ export class AdminService implements OnModuleInit {
     if (action !== 'resolved' && action !== 'dismissed') {
       throw new BadRequestException('action chỉ nhận "resolved" hoặc "dismissed"');
     }
+    const existing = await this.prisma.report.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) throw new NotFoundException('Báo cáo không tồn tại');
     const report = await this.prisma.report.update({ where: { id }, data: { status: action } });
     if (action === 'resolved') {
       await this.prisma.post.update({ where: { id: report.postId }, data: { status: 'hidden' } });
@@ -675,9 +697,11 @@ export class AdminService implements OnModuleInit {
   }
 
   async getRevenueStats() {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const today = computeSince('day')!; // UTC+7 midnight
+    const thisMonth = computeSince('month')!;
+    const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const nowVN = new Date(Date.now() + TZ_OFFSET_MS);
+    const lastMonth = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth() - 1, 1) - TZ_OFFSET_MS);
 
     const [totalRevenue, todayRevenue, monthRevenue, lastMonthRevenue, plusCount, vipCount, activeBoosts] =
       await Promise.all([
@@ -793,6 +817,7 @@ export class AdminService implements OnModuleInit {
   }
 
   async getBumpOrders(page = 1, limit = 20, status?: string) {
+    limit = capLimit(limit);
     const where: any = {};
     if (status) where.status = status;
     const skip = (page - 1) * limit;
@@ -996,6 +1021,7 @@ export class AdminService implements OnModuleInit {
   /// List chat rooms order by recent activity (updatedAt). Filter optionally
   /// theo postId hoặc userId (xem chat của 1 user/post cụ thể).
   async getAllChatRooms(page = 1, limit = 20, search?: string, postId?: string, userId?: string) {
+    limit = capLimit(limit);
     const where: Prisma.ChatRoomWhereInput = {};
     if (postId) where.postId = postId;
     if (userId) where.OR = [{ buyerId: userId }, { sellerId: userId }];
@@ -1081,6 +1107,7 @@ export class AdminService implements OnModuleInit {
 
   // ─── Review moderation ────────────────────────────
   async getAllReviews(page = 1, limit = 20, rating?: number, search?: string, postId?: string) {
+    limit = capLimit(limit);
     const where: Prisma.ReviewWhereInput = {};
     if (rating && rating >= 1 && rating <= 5) where.rating = rating;
     if (postId) where.postId = postId;
@@ -1236,6 +1263,7 @@ export class AdminService implements OnModuleInit {
 
   /// Lấy lịch sử broadcast từ audit log (action='notification.broadcast').
   async getBroadcastHistory(page = 1, limit = 20) {
+    limit = capLimit(limit);
     const where = { action: 'notification.broadcast' };
     const skip = (page - 1) * limit;
     const [logs, total] = await Promise.all([
@@ -1273,6 +1301,7 @@ export class AdminService implements OnModuleInit {
   }
 
   async getAuditLog(page = 1, limit = 50, targetType?: string, targetId?: string, adminId?: string) {
+    limit = capLimit(limit);
     const where: any = {};
     if (targetType) where.targetType = targetType;
     if (targetId) where.targetId = targetId;
@@ -1292,24 +1321,22 @@ export class AdminService implements OnModuleInit {
 
   async getAnalytics(period: AnalyticsPeriod) {
     const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
-    const nowVN = new Date(Date.now() + TZ_OFFSET_MS);
 
-    // Tính since/until cho DB download query theo period (UTC+7)
+    // Dùng computeSince để đảm bảo timezone UTC+7 nhất quán (tránh bug UTC midnight).
+    // 'yesterday' không có trong computeSince → tính thủ công dựa trên computeSince('day').
     let since: Date;
     let until: Date | undefined;
     if (period === 'yesterday') {
-      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate() - 1));
-      until = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate()));
-    } else if (period === 'day') {
-      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate()));
-    } else if (period === 'week') {
-      const daysFromMonday = (nowVN.getUTCDay() + 6) % 7;
-      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), nowVN.getUTCDate() - daysFromMonday));
-    } else if (period === 'month') {
-      since = new Date(Date.UTC(nowVN.getUTCFullYear(), nowVN.getUTCMonth(), 1));
+      const todayVnMidnight = computeSince('day')!;
+      since = new Date(todayVnMidnight.getTime() - 86400000);
+      until = todayVnMidnight;
     } else {
-      since = new Date(Date.UTC(nowVN.getUTCFullYear(), 0, 1));
+      since = computeSince(period as 'day' | 'week' | 'month' | 'year')!;
     }
+
+    // VN date string để truyền sang CF Analytics (đảm bảo cùng kỳ với DB)
+    const sinceVnDate = new Date(since.getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
+    const untilVnDate = new Date((until ?? new Date()).getTime() + TZ_OFFSET_MS).toISOString().slice(0, 10);
 
     // Download counts từ DB — group by date
     const downloadRaw = await this.prisma.appDownloadLog.findMany({
@@ -1326,11 +1353,8 @@ export class AdminService implements OnModuleInit {
     }
     const dlPoints = Array.from(dlByDate.entries()).map(([date, count]) => ({ date, count }));
 
-    // CF web analytics
-    const [webRaw] = await Promise.all([
-      this.cfAnalytics.fetchWebAnalytics(period),
-    ]);
-
+    // CF web analytics — truyền cùng date range với DB để chart đồng bộ
+    const webRaw = await this.cfAnalytics.fetchWebAnalytics(period, sinceVnDate, untilVnDate);
     const dlGrouped = this.cfAnalytics.groupDownloadPoints(dlPoints, period);
 
     return {

@@ -69,7 +69,7 @@ export class AdminController {
     return this.adminService.getPostDetail(id);
   }
 
-  @Delete('posts/:id')
+  @Patch('posts/:id/delete')
   deletePost(@Request() req, @Param('id') id: string, @Body('reason') reason?: string) {
     return this.adminService.deletePost(req.user.id, id, reason);
   }

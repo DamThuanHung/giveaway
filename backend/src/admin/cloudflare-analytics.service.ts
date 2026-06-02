@@ -22,40 +22,25 @@ export class CloudflareAnalyticsService {
     return !!(this.zoneId && this.apiToken);
   }
 
-  private dateRange(period: AnalyticsPeriod): { since: string; until: string; useHourly: boolean } {
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    if (period === 'day') return { since: today, until: today, useHourly: true };
-    if (period === 'yesterday') {
-      const yd = new Date(now);
-      yd.setDate(yd.getDate() - 1);
-      const ydate = yd.toISOString().slice(0, 10);
-      return { since: ydate, until: ydate, useHourly: false };
-    }
-    const days = period === 'week' ? 6 : period === 'month' ? 29 : 364;
-    const d = new Date(now);
-    d.setDate(d.getDate() - days);
-    return { since: d.toISOString().slice(0, 10), until: today, useHourly: false };
-  }
-
   private shortDate(iso: string): string {
     // iso = "2026-05-17" → "17/5"
     const [, m, dd] = iso.split('-');
     return `${+dd}/${+m}`;
   }
 
-  async fetchWebAnalytics(period: AnalyticsPeriod): Promise<CfWebResult | null> {
+  /// sinceVnDate / untilVnDate: YYYY-MM-DD theo múi giờ VN (UTC+7).
+  /// Truyền từ getAnalytics() để CF dùng cùng kỳ với DB download data.
+  async fetchWebAnalytics(period: AnalyticsPeriod, sinceVnDate: string, untilVnDate: string): Promise<CfWebResult | null> {
     if (!this.configured) return null;
 
-    const { since, until, useHourly } = this.dateRange(period);
-
+    const useHourly = period === 'day';
     const query = useHourly
       ? `{ viewer { zones(filter:{zoneTag:"${this.zoneId}"}) { httpRequests1hGroups(
-            filter:{datetime_geq:"${since}T00:00:00Z",datetime_leq:"${until}T23:59:59Z"}
+            filter:{datetime_geq:"${sinceVnDate}T00:00:00Z",datetime_leq:"${untilVnDate}T23:59:59Z"}
             limit:25) {
             dimensions{datetime} sum{pageViews requests} uniq{uniques} }}}}`
       : `{ viewer { zones(filter:{zoneTag:"${this.zoneId}"}) { httpRequests1dGroups(
-            filter:{date_geq:"${since}",date_leq:"${until}"}
+            filter:{date_geq:"${sinceVnDate}",date_leq:"${untilVnDate}"}
             orderBy:[date_ASC] limit:370) {
             dimensions{date} sum{pageViews requests} uniq{uniques} }}}}`;
 

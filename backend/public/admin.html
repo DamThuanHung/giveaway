@@ -1055,7 +1055,7 @@ async function unhidePost(id, idx) {
 async function deletePost(id, idx, title) {
   const reason = prompt(`Xóa bài "${title||''}"?\n\nNhập lý do xóa (ghi vào audit log):`);
   if (reason === null) return; // user cancel
-  await api(`/admin/posts/${id}`, {method:'DELETE', body: JSON.stringify({reason: reason || ''})});
+  await api(`/admin/posts/${id}/delete`, {method:'PATCH', body: JSON.stringify({reason: reason || ''})});
   if (state.posts[idx]) state.posts[idx].status = 'deleted_by_admin';
   renderPosts(false); toast('Đã xóa bài (soft delete)');
 }
@@ -1201,7 +1201,7 @@ async function modalUnhidePost(id) {
 async function modalDeletePost(id, title) {
   const reason = prompt(`Xóa bài "${title||''}"?\n\nNhập lý do xóa:`);
   if (reason === null) return;
-  await api(`/admin/posts/${id}`, {method:'DELETE', body: JSON.stringify({reason: reason || ''})});
+  await api(`/admin/posts/${id}/delete`, {method:'PATCH', body: JSON.stringify({reason: reason || ''})});
   closeModal(); loadPosts(true); toast('Đã xóa bài (soft delete)');
 }
 
@@ -2349,11 +2349,11 @@ function renderAnalytics() {
     <div class="period-note" style="margin-bottom:16px">Số liệu theo kỳ: ${periodLabel}</div>
 
     <div class="stats-grid" style="margin-bottom:20px">
-      <div class="stat-card">
+      <div class="stat-card" title="Tổng lượt unique/ngày từ Cloudflare — cùng người ghé nhiều ngày được tính lại mỗi ngày">
         <div style="font-size:24px">👥</div>
         <div class="stat-value" style="color:var(--primary)">${fmtNum(web.visitors||0)}</div>
-        <div class="stat-label">Khách ghé web</div>
-        <div class="stat-sub">${periodLabel}</div>
+        <div class="stat-label">Lượt ghé web</div>
+        <div class="stat-sub" style="font-size:10px">unique/ngày · ${periodLabel}</div>
       </div>
       <div class="stat-card">
         <div style="font-size:24px">📄</div>
@@ -2376,7 +2376,7 @@ function renderAnalytics() {
     </div>
 
     <div class="chart-card">
-      <div class="section-title" style="margin-bottom:12px">📊 Lượt khách ghé web — ${periodLabel}</div>
+      <div class="section-title" style="margin-bottom:12px">📊 Lượt ghé web (unique/ngày) — ${periodLabel}</div>
       ${renderVisitorChart(web.byDay||[], 'visitors', '#10B981')}
     </div>
 
