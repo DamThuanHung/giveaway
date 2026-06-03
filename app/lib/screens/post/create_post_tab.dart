@@ -44,6 +44,26 @@ class _CreatePostTabState extends State<CreatePostTab> {
   String _priceUnit = 'month';       // month | total | sqm | hour | day
   final _serviceAreaController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _prefillLastAddress();
+  }
+
+  Future<void> _prefillLastAddress() async {
+    try {
+      final posts = await ApiService.getMyPosts();
+      if (posts.isEmpty) return;
+      final last = posts.first;
+      setState(() {
+        if ((last['province'] ?? '').toString().isNotEmpty) _selectedProvince = last['province'];
+        if ((last['district'] ?? '').toString().isNotEmpty) _selectedDistrict = last['district'];
+        if ((last['ward'] ?? '').toString().isNotEmpty) _selectedWard = last['ward'];
+        if ((last['addressDetail'] ?? '').toString().isNotEmpty) _selectedAddress = last['addressDetail'];
+      });
+    } catch (_) {}
+  }
+
   bool get _isRealestate => _itemCategory == 'realestate';
   bool get _isService => _itemCategory == 'service';
   bool get _isJob => _itemCategory == 'jobs';
