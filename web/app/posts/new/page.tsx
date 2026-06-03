@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
-import { createPost } from "@/lib/auth";
+import { createPost, getToken } from "@/lib/auth";
 import { CATEGORIES, TOP_PROVINCES } from "@/lib/api";
 
 const MAX_IMAGES = 10;
@@ -98,6 +98,27 @@ export default function NewPostPage() {
     if (authLoading) return;
     if (!user) router.replace("/login/?next=/posts/new/");
   }, [user, authLoading, router]);
+
+  // Pre-fill địa chỉ từ bài đăng gần nhất của user
+  useEffect(() => {
+    if (!user) return;
+    const token = getToken();
+    if (!token) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.traotay.com.vn";
+    fetch(`${apiUrl}/posts/my?limit=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        const last = Array.isArray(data) ? data[0] : data?.posts?.[0] ?? data?.data?.[0];
+        if (!last) return;
+        if (last.province) setProvince(last.province);
+        if (last.district) setDistrict(last.district);
+        if (last.ward) setWard(last.ward);
+        if (last.addressDetail) setAddressDetail(last.addressDetail);
+      })
+      .catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     return () => {
