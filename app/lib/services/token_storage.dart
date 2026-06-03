@@ -3,62 +3,76 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Lưu trữ JWT token an toàn qua Android Keystore / iOS Keychain.
 ///
-/// Trước đây token lưu plain text trong SharedPreferences → trên Android root
-/// hoặc iOS jailbreak có thể đọc được từ /data/data, attacker mạo danh user.
+/// Primary storage: FlutterSecureStorage (EncryptedSharedPreferences / Keychain).
+/// Fallback storage: SharedPreferences plain text (key `_backupKey`).
 ///
-/// Migration tự động: nếu user có token cũ trong SharedPreferences (key `auth_token`),
-/// `getToken()` sẽ copy sang SecureStorage rồi xoá khỏi SharedPreferences. User
-/// không cần re-login.
+/// Lý do cần fallback: Android Auto Backup có thể restore EncryptedSharedPreferences
+/// sang thiết bị mới/cài lại app, nhưng Keystore key là device-specific → decrypt
+/// fail hoàn toàn. Khi đó fallback SharedPreferences giữ user đăng nhập thay vì
+/// bị đăng xuất đột ngột. AndroidManifest đã set allowBackup=false để giảm thiểu
+/// khả năng xảy ra, nhưng fallback vẫn cần cho trường hợp Keystore lỗi khác
+/// (ROM custom, OTA update, factory reset partial).
 class TokenStorage {
   static const _key = 'auth_token';
   static const _legacyKey = 'auth_token';
+  static const _backupKey = 'auth_token_backup';
   static const _secure = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 
-  /// Lấy token. Ưu tiên SecureStorage, fallback SharedPreferences (legacy) +
-  /// auto-migrate sang SecureStorage để lần sau lấy nhanh hơn.
-  ///
-  /// Bug fix: SecureStorage có thể throw PlatformException trên 1 số device
-  /// (Android Keystore corrupt, EncryptedSharedPrefs init lỗi, ROM custom).
-  /// Trước đây throw → AuthProvider._tryAutoLogin treo, splash vô tận. Giờ
-  /// catch + fallback SharedPreferences plain text → user vẫn login được dù
-  /// keystore lỗi (security degraded nhưng app không bị brick).
+  /// Lấy token. Ưu tiên SecureStorage, fallback SharedPreferences.
   static Future<String?> getToken() async {
     try {
       final secure = await _secure.read(key: _key);
       if (secure != null && secure.isNotEmpty) return secure;
-    } catch (e) {
-      // Keystore corrupt — fallback đọc legacy SharedPreferences
+    } catch (_) {
+      // Keystore corrupt/inaccessible — fallback
     }
 
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // 1. Legacy migration (token cũ lưu plain text trước khi có SecureStorage)
       final legacy = prefs.getString(_legacyKey);
       if (legacy != null && legacy.isNotEmpty) {
-        // Thử migrate sang SecureStorage; nếu fail thì giữ legacy
         try {
           await _secure.write(key: _key, value: legacy);
           await prefs.remove(_legacyKey);
         } catch (_) {}
         return legacy;
       }
+
+      // 2. Backup plain text (fallback khi Keystore fail)
+      final backup = prefs.getString(_backupKey);
+      if (backup != null && backup.isNotEmpty) {
+        try {
+          await _secure.write(key: _key, value: backup);
+        } catch (_) {}
+        return backup;
+      }
     } catch (_) {}
     return null;
   }
 
-  /// Lưu token mới + xoá khỏi SharedPreferences nếu còn.
+  /// Lưu token: ghi vào SecureStorage + giữ bản plain text backup trong
+  /// SharedPreferences để fallback khi Keystore không đọc được.
   static Future<void> setToken(String token) async {
-    await _secure.write(key: _key, value: token);
+    try {
+      await _secure.write(key: _key, value: token);
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_legacyKey);
+    await prefs.setString(_backupKey, token);
   }
 
   /// Xoá token (logout).
   static Future<void> clearToken() async {
-    await _secure.delete(key: _key);
+    try {
+      await _secure.delete(key: _key);
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_legacyKey);
+    await prefs.remove(_backupKey);
   }
 }

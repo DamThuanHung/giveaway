@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import {
   AuthUser,
   getToken,
   getStoredUser,
   saveAuth,
+  updateUserCache,
   clearAuth as clearAuthStorage,
   fetchMyProfile,
 } from "@/lib/auth";
@@ -30,36 +31,42 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const syncingRef = useRef(false);
 
   async function syncFromToken() {
-    const token = getToken();
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-    // Optimistic: dùng cached user trong khi verify
-    const cached = getStoredUser();
-    if (cached) setUser(cached);
-
-    // Verify với backend
+    // Guard chống concurrent calls: saveAuth dispatch traotay:auth → onAuth gọi
+    // syncFromToken lại → vòng lặp vô hạn + race condition logout oan.
+    if (syncingRef.current) return;
+    syncingRef.current = true;
     try {
-      const fresh = await fetchMyProfile();
-      if (fresh) {
-        setUser(fresh);
-        // Update cache
-        const tk = getToken();
-        if (tk) saveAuth(tk, fresh);
-        // Sync favorites IDs cache (1 lần / load app)
-        syncFavoritesFromServer(fresh.id);
-      } else {
-        // Token invalid → clear
-        clearAuthStorage();
+      const token = getToken();
+      if (!token) {
         setUser(null);
+        return;
       }
-    } catch {
-      // Network error → giữ cached user, retry sau
+      // Optimistic: dùng cached user trong khi verify
+      const cached = getStoredUser();
+      if (cached) setUser(cached);
+
+      // Verify với backend
+      try {
+        const fresh = await fetchMyProfile();
+        if (fresh) {
+          setUser(fresh);
+          // Dùng updateUserCache thay saveAuth để KHÔNG dispatch traotay:auth
+          // (saveAuth trigger syncFromToken lại → infinite loop)
+          updateUserCache(fresh);
+          syncFavoritesFromServer(fresh.id);
+        } else {
+          // Token invalid → clear
+          clearAuthStorage();
+          setUser(null);
+        }
+      } catch {
+        // Network error → giữ cached user
+      }
     } finally {
+      syncingRef.current = false;
       setLoading(false);
     }
   }

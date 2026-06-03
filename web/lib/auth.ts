@@ -42,6 +42,13 @@ export function saveAuth(token: string, user: AuthUser) {
   window.dispatchEvent(new Event("traotay:auth"));
 }
 
+/** Cập nhật cache user mà KHÔNG dispatch event — dùng bên trong syncFromToken để
+ * tránh vòng lặp vô hạn: saveAuth → traotay:auth → syncFromToken → saveAuth → ... */
+export function updateUserCache(user: AuthUser) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
