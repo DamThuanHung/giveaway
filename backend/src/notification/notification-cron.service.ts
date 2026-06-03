@@ -100,31 +100,49 @@ export class NotificationCronService {
     if (count > 0) console.log(`[NotifCron] Deleted ${count} old notifications (>30d)`);
   }
 
-  // Group 4: Bản tin hàng ngày lúc 20:00 — số bài đăng mới hôm nay
-  // Chỉ gửi cho user có fcmToken (đang dùng app)
-  @Cron('0 20 * * *')
-  async sendDailyDigest() {
+  // Bản tin 12h trưa VN (05:00 UTC)
+  @Cron('0 5 * * *')
+  async sendMiddayDigest() {
+    await this.sendDigest();
+  }
+
+  // Bản tin 20h tối VN (13:00 UTC)
+  @Cron('0 13 * * *')
+  async sendEveningDigest() {
+    await this.sendDigest();
+  }
+
+  private async sendDigest() {
     const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    todayStart.setUTCHours(0, 0, 0, 0);
 
-    const todayCount = await this.prisma.post.count({
-      where: { createdAt: { gte: todayStart }, status: 'available' },
+    const [postCount, visitorCount] = await Promise.all([
+      this.prisma.post.count({ where: { status: 'available' } }),
+      this.prisma.user.count({ where: { updatedAt: { gte: todayStart } } }),
+    ]);
+
+    if (postCount === 0) return;
+
+    const title = 'Bản tin Trao Tay 📦';
+    const body = `Hôm nay có thêm ${visitorCount} lượt khách ghé thăm, có ${postCount} sản phẩm đang được rao trên đó`;
+
+    // Gửi cho tất cả user có FCM token HOẶC web push subscription
+    const [fcmUsers, webSubs] = await Promise.all([
+      this.prisma.user.findMany({ where: { fcmToken: { not: null } }, select: { id: true } }),
+      this.prisma.webPushSubscription.findMany({ select: { userId: true } }),
+    ]);
+
+    const userIds = [...new Set([
+      ...fcmUsers.map((u) => u.id),
+      ...webSubs.map((s) => s.userId),
+    ])];
+
+    if (userIds.length === 0) return;
+
+    await runInBatches(userIds, async (userId) => {
+      await this.notification.createNotification(userId, 'daily_digest', title, body).catch(() => {});
     });
 
-    if (todayCount === 0) return;
-
-    const users = await this.prisma.user.findMany({
-      where: { fcmToken: { not: null } },
-      select: { id: true },
-    });
-
-    await runInBatches(users, async (user) => {
-      await this.notification.createNotification(
-        user.id,
-        'daily_digest',
-        'Bản tin cuối ngày 📦',
-        `Hôm nay có ${todayCount} bài đăng mới trên Trao Tay. Khám phá ngay để không bỏ lỡ nhé!`,
-      ).catch(() => {});
-    });
+    console.log(`[NotifCron] Digest → ${userIds.length} users | ${visitorCount} visitors | ${postCount} posts`);
   }
 }
