@@ -34,16 +34,13 @@ export class CloudflareAnalyticsService {
     if (!this.configured) return null;
 
     const useHourly = period === 'day';
-    // clientRequestHTTPHost filter: chỉ lấy traffic vào web frontend (traotay.com.vn),
-    // loại bỏ API calls từ app Flutter đến api.traotay.com.vn
-    const webHost = 'traotay.com.vn';
     const query = useHourly
       ? `{ viewer { zones(filter:{zoneTag:"${this.zoneId}"}) { httpRequests1hGroups(
-            filter:{datetime_geq:"${sinceVnDate}T00:00:00Z",datetime_leq:"${untilVnDate}T23:59:59Z",clientRequestHTTPHost:"${webHost}"}
+            filter:{datetime_geq:"${sinceVnDate}T00:00:00Z",datetime_leq:"${untilVnDate}T23:59:59Z"}
             limit:25) {
             dimensions{datetime} sum{pageViews requests} uniq{uniques} }}}}`
       : `{ viewer { zones(filter:{zoneTag:"${this.zoneId}"}) { httpRequests1dGroups(
-            filter:{date_geq:"${sinceVnDate}",date_leq:"${untilVnDate}",clientRequestHTTPHost:"${webHost}"}
+            filter:{date_geq:"${sinceVnDate}",date_leq:"${untilVnDate}"}
             orderBy:[date_ASC] limit:370) {
             dimensions{date} sum{pageViews requests} uniq{uniques} }}}}`;
 

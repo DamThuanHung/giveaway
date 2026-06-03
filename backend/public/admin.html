@@ -2364,11 +2364,11 @@ function renderAnalytics() {
     <div class="period-note" style="margin-bottom:16px">Số liệu theo kỳ: ${periodLabel}</div>
 
     <div class="stats-grid" style="margin-bottom:20px">
-      <div class="stat-card" title="Unique visitor vào traotay.com.vn — chỉ tính web, không tính API. Cùng người ghé nhiều ngày được tính lại mỗi ngày.">
+      <div class="stat-card" title="Unique IP gọi đến zone traotay.com.vn — bao gồm cả web lẫn API từ app. CF Free không hỗ trợ filter theo hostname.">
         <div style="font-size:24px">👥</div>
         <div class="stat-value" style="color:var(--primary)">${fmtNum(web.visitors||0)}</div>
-        <div class="stat-label">Khách ghé web</div>
-        <div class="stat-sub" style="font-size:10px">unique · ${periodLabel}</div>
+        <div class="stat-label">Unique IP</div>
+        <div class="stat-sub" style="font-size:10px">web + API · ${periodLabel}</div>
       </div>
       <div class="stat-card">
         <div style="font-size:24px">📄</div>
@@ -2391,7 +2391,7 @@ function renderAnalytics() {
     </div>
 
     <div class="chart-card">
-      <div class="section-title" style="margin-bottom:12px">📊 Khách ghé web (unique) — ${periodLabel}</div>
+      <div class="section-title" style="margin-bottom:12px">📊 Unique IP (web+API) — ${periodLabel}</div>
       ${renderVisitorChart(web.byDay||[], 'visitors', '#10B981')}
     </div>
 
