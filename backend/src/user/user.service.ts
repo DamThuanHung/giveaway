@@ -173,7 +173,7 @@ export class UserService {
   }
 
   private signToken(user: { id: string; email?: string | null; phone?: string | null; name?: string | null; role?: string }) {
-    const expiresIn = user.role === 'admin' ? '30d' : '7d';
+    const expiresIn = '30d';
     return this.jwtService.signAsync(
       { sub: user.id, email: user.email ?? user.phone ?? '', name: user.name ?? null },
       { expiresIn },
