@@ -1149,6 +1149,58 @@ async function restorePost(id, idx) {
   toast('Đã khôi phục bài');
 }
 
+// ─── Bulk Post Actions ─────────────────────────────────────────────────────────
+
+async function bulkHidePostsSelected() {
+  const ids = Array.from(state.postsSelected);
+  if (ids.length === 0) return;
+  if (!confirm(`Ẩn ${ids.length} bài đã chọn?\nCác bài sẽ không hiển thị công khai, có thể hiện lại bất cứ lúc nào.`)) return;
+
+  toast(`Đang ẩn ${ids.length} bài...`);
+  let success = 0, failed = 0;
+  for (const pid of ids) {
+    const res = await api(`/admin/posts/${pid}/hide`, { method: 'PATCH' });
+    if (res) {
+      success++;
+      const found = state.posts.find(p => p.id === pid);
+      if (found) found.status = 'hidden';
+    } else {
+      failed++;
+    }
+  }
+  toast(failed > 0 ? `Đã ẩn ${success} bài · ${failed} thất bại` : `Đã ẩn ${success} bài`);
+  state.postsSelected.clear();
+  renderPosts(false);
+}
+
+async function bulkDeletePostsSelected() {
+  const ids = Array.from(state.postsSelected);
+  if (ids.length === 0) return;
+  const reason = prompt(`Xóa ${ids.length} bài đã chọn?\nLý do sẽ được ghi vào audit log từng bài.\n\nNhập lý do xóa:`);
+  if (reason === null) return;
+  if (!reason.trim()) { toast('Phải nhập lý do xóa'); return; }
+  if (!confirm(`Xác nhận xóa ${ids.length} bài?\nHành động này không thể hoàn tác bằng 1 lệnh — phải khôi phục từng bài.`)) return;
+
+  toast(`Đang xóa ${ids.length} bài...`);
+  let success = 0, failed = 0;
+  for (const pid of ids) {
+    const res = await api(`/admin/posts/${pid}/delete`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason.trim() }),
+    });
+    if (res) {
+      success++;
+      const found = state.posts.find(p => p.id === pid);
+      if (found) found.status = 'deleted_by_admin';
+    } else {
+      failed++;
+    }
+  }
+  toast(failed > 0 ? `Đã xóa ${success} bài · ${failed} thất bại` : `Đã xóa ${success} bài`);
+  state.postsSelected.clear();
+  renderPosts(false);
+}
+
 async function modalRestorePost(id) {
   if (!confirm('Khôi phục bài đã xóa?')) return;
   const res = await api(`/admin/posts/${id}/restore`, { method: 'PATCH' });
@@ -1560,9 +1612,8 @@ async function resolveReport(id, idx, action) {
   if (action === 'dismissed' && !confirm('Bỏ qua báo cáo này? Báo cáo sẽ đóng lại mà không xử lý.')) return;
   const res = await api(`/admin/reports/${id}`, {method:'PATCH', body: JSON.stringify({action})});
   if (!res) return;
-  if (state.reports[idx]) state.reports[idx].status = action;
-  renderReports(false);
   toast(action === 'resolved' ? 'Đã xử lý & ẩn bài' : 'Đã bỏ qua báo cáo');
+  loadReports(true);
 }
 
 async function openReportDetail(id) {
