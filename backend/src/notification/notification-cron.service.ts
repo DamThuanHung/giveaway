@@ -72,26 +72,8 @@ export class NotificationCronService {
     });
   }
 
-  // Group 3: Chào mừng 1 ngày sau khi đăng ký (chạy lúc 10:00 sáng)
-  @Cron('0 10 * * *')
-  async sendWelcomeNotification() {
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-
-    const newUsers = await this.prisma.user.findMany({
-      where: { createdAt: { gte: twoDaysAgo, lt: yesterday } },
-      select: { id: true, name: true },
-    });
-
-    await runInBatches(newUsers, async (user) => {
-      await this.notification.createNotification(
-        user.id,
-        'welcome',
-        'Chào mừng bạn đến với Trao Tay! 🎉',
-        `Xin chào ${user.name ?? 'bạn'}! Hãy bắt đầu bằng cách đăng bài đầu tiên hoặc khám phá những món đồ thú vị gần bạn nhé.`,
-      ).catch(() => {});
-    });
-  }
+  // Welcome notification đã chuyển sang trigger tại thời điểm đăng ký
+  // (user.service.ts) — không dùng cron nữa để tránh bỏ sót cửa sổ 24-48h.
 
   // Group 5: Dọn notification > 30 ngày (chạy 4:00 sáng)
   @Cron('0 4 * * *')
@@ -126,23 +108,15 @@ export class NotificationCronService {
     const title = 'Bản tin Trao Tay 📦';
     const body = `Hôm nay có thêm ${visitorCount} lượt khách ghé thăm, có ${postCount} sản phẩm đang được rao trên đó`;
 
-    // Gửi cho tất cả user có FCM token HOẶC web push subscription
-    const [fcmUsers, webSubs] = await Promise.all([
-      this.prisma.user.findMany({ where: { fcmToken: { not: null } }, select: { id: true } }),
-      this.prisma.webPushSubscription.findMany({ select: { userId: true } }),
-    ]);
+    // Tạo DB record cho TẤT CẢ user — push (FCM/WebPush) được xử lý
+    // có điều kiện bên trong createNotification dựa trên token của từng user.
+    const allUsers = await this.prisma.user.findMany({ select: { id: true } });
+    if (allUsers.length === 0) return;
 
-    const userIds = [...new Set([
-      ...fcmUsers.map((u) => u.id),
-      ...webSubs.map((s) => s.userId),
-    ])];
-
-    if (userIds.length === 0) return;
-
-    await runInBatches(userIds, async (userId) => {
-      await this.notification.createNotification(userId, 'daily_digest', title, body).catch(() => {});
+    await runInBatches(allUsers, async (user) => {
+      await this.notification.createNotification(user.id, 'daily_digest', title, body).catch(() => {});
     });
 
-    console.log(`[NotifCron] Digest → ${userIds.length} users | ${visitorCount} visitors | ${postCount} posts`);
+    console.log(`[NotifCron] Digest → ${allUsers.length} users | ${visitorCount} visitors | ${postCount} posts`);
   }
 }

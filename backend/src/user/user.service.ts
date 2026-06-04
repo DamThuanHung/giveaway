@@ -6,6 +6,7 @@ import { randomInt } from 'crypto';
 import * as admin from 'firebase-admin';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_TTL_MS = 5 * 60 * 1000;
@@ -15,6 +16,7 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly notificationService: NotificationService,
   ) {
     // PM3 (Tier 4): TTL cleanup chống Map unbounded growth (memory leak).
     // OTP_TTL_MS = 5 phút → entries quá 5 phút coi như expired, xoá.
@@ -292,6 +294,10 @@ export class UserService {
           name: `User_${phone.slice(-4)}`,
         },
       });
+      this.notificationService.createNotification(
+        user.id, 'welcome', 'Chào mừng bạn đến với Trao Tay! 🎉',
+        `Xin chào ${user.name}! Hãy bắt đầu bằng cách đăng bài đầu tiên hoặc khám phá những món đồ thú vị gần bạn nhé.`,
+      ).catch(() => {});
     } else if (!user.isPhoneVerified) {
       user = await this.prisma.user.update({
         where: { id: user.id },
@@ -459,6 +465,10 @@ export class UserService {
       });
       // Welcome email cho user mới qua OTP email — best effort
       this.sendWelcomeEmail(emailLower, user.name ?? 'bạn').catch(() => {});
+      this.notificationService.createNotification(
+        user.id, 'welcome', 'Chào mừng bạn đến với Trao Tay! 🎉',
+        `Xin chào ${user.name ?? 'bạn'}! Hãy bắt đầu bằng cách đăng bài đầu tiên hoặc khám phá những món đồ thú vị gần bạn nhé.`,
+      ).catch(() => {});
     } else if (isAdmin && user.role !== 'admin') {
       user = await this.prisma.user.update({
         where: { id: user.id },
