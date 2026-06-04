@@ -105,7 +105,7 @@ export default function NewPostPage() {
     const token = getToken();
     if (!token) return;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.traotay.com.vn";
-    fetch(`${apiUrl}/posts/my?limit=1`, {
+    fetch(`${apiUrl}/post/my?limit=1`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.ok ? r.json() : null)
