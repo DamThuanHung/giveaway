@@ -1047,9 +1047,22 @@ function renderPosts(loading) {
          <span>📦 Đang lọc bài của <strong>${esc(state.postsAuthorName||'user')}</strong> (${state.postsTotal} bài)</span>
          <button class="btn-sm btn-grey" data-action="clear-posts-author">Bỏ lọc</button>
        </div>` : '';
-  const searchHtml = `${authorBanner}<div class="toolbar">
+
+  // Bulk action bar — hiện khi có ít nhất 1 bài được chọn
+  const selCount = state.postsSelected.size;
+  const allOnPageSelected = state.posts.length > 0 && state.posts.every(p => state.postsSelected.has(p.id));
+  const bulkBar = selCount > 0
+    ? `<div class="bulk-bar">
+         <span>☑️ Đã chọn <strong>${selCount}</strong> bài</span>
+         <button class="btn-sm btn-orange" data-action="bulk-hide-posts">🙈 Ẩn ${selCount} bài</button>
+         <button class="btn-sm btn-red" data-action="bulk-delete-posts">🗑️ Xóa ${selCount} bài</button>
+         <button class="btn-sm btn-grey" data-action="clear-posts-selection">Bỏ chọn</button>
+       </div>` : '';
+
+  const searchHtml = `${authorBanner}${bulkBar}<div class="toolbar">
     <input id="posts-search" type="text" placeholder="🔍 Tìm theo tiêu đề..." value="${esc(state.postsSearch)}"/>
     <button class="btn-sm btn-green" data-action="do-search-posts">Tìm</button>
+    <button class="btn-sm btn-grey" data-action="select-all-posts" title="${allOnPageSelected?'Bỏ chọn tất cả':'Chọn tất cả trang này'}">${allOnPageSelected?'☑ Bỏ chọn':'☐ Chọn tất cả'}</button>
   </div>${filterChips}`;
 
   if (loading && state.posts.length === 0) {
@@ -1063,22 +1076,37 @@ function renderPosts(loading) {
   const items = state.posts.map((p, i) => {
     const isHidden = p.status === 'hidden';
     const isDeleted = p.status === 'deleted_by_admin';
+    const isSelected = state.postsSelected.has(p.id);
     const titleHtml = esc(p.title || '');
+    // Thumbnail: dùng imageUrl (computed bởi formatPost), fallback placeholder
+    const thumbUrl = p.imageUrl || (Array.isArray(p.images) && p.images[0]) || '';
+    const thumbHtml = thumbUrl
+      ? `<img class="post-thumb" src="${esc(thumbUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\"post-thumb-ph\\">📦</div>'">`
+      : `<div class="post-thumb-ph">📦</div>`;
     return `
-    <div class="item-card" data-action="open-post" data-id="${esc(p.id)}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div class="title">${titleHtml}</div>
-        ${chipStatus(p.status)}
+    <div class="item-card${isSelected?' selected':''}" data-action="open-post" data-id="${esc(p.id)}">
+      <div class="post-card-row">
+        <input type="checkbox" data-action="toggle-post-select" data-id="${esc(p.id)}"
+          ${isSelected?'checked':''} style="margin-top:4px;width:16px;height:16px;flex-shrink:0;cursor:pointer;accent-color:var(--primary)"
+          title="Chọn bài này"/>
+        ${thumbHtml}
+        <div class="post-card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div class="title">${titleHtml}</div>
+            ${chipStatus(p.status)}
+          </div>
+          <div class="meta">${esc(p.author?.name||'Ẩn danh')} · ${p.viewCount||0} lượt xem · ${fmoney(p.price||0)}</div>
+          ${isDeleted ? `<div class="item-actions">
+            <button class="btn-sm btn-green" data-action="restore-post" data-id="${esc(p.id)}" data-idx="${i}">↩ Khôi phục</button>
+          </div>` : `<div class="item-actions">
+            <button class="btn-sm btn-blue" data-action="view-post-public" data-id="${esc(p.id)}">🔗 Xem bài</button>
+            ${isHidden
+              ? `<button class="btn-sm btn-green" data-action="unhide-post" data-id="${esc(p.id)}" data-idx="${i}">Hiện lại</button>`
+              : `<button class="btn-sm btn-orange" data-action="hide-post" data-id="${esc(p.id)}" data-idx="${i}">Ẩn bài</button>`}
+            <button class="btn-sm btn-red" data-action="delete-post" data-id="${esc(p.id)}" data-idx="${i}" data-extra="${esc(p.title||'')}">Xóa</button>
+          </div>`}
+        </div>
       </div>
-      <div class="meta">${esc(p.author?.name||'Ẩn danh')} · ${p.viewCount||0} lượt xem · ${fmoney(p.price||0)}</div>
-      ${isDeleted ? `<div class="item-actions">
-        <button class="btn-sm btn-green" data-action="restore-post" data-id="${esc(p.id)}" data-idx="${i}">↩ Khôi phục</button>
-      </div>` : `<div class="item-actions">
-        ${isHidden
-          ? `<button class="btn-sm btn-green" data-action="unhide-post" data-id="${esc(p.id)}" data-idx="${i}">Hiện lại</button>`
-          : `<button class="btn-sm btn-orange" data-action="hide-post" data-id="${esc(p.id)}" data-idx="${i}">Ẩn bài</button>`}
-        <button class="btn-sm btn-red" data-action="delete-post" data-id="${esc(p.id)}" data-idx="${i}" data-extra="${esc(p.title||'')}">Xóa</button>
-      </div>`}
     </div>`;
   }).join('');
   const pagination = paginationInfo('posts', state.postsPage, state.postsTotalPages, state.postsTotal, state.posts.length);
