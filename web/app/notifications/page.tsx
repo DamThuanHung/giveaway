@@ -10,6 +10,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/lib/auth";
+import { WebPushToggle } from "@/components/WebPushToggle";
 
 type Notif = {
   id: string;
@@ -127,7 +128,11 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-4 py-6">
+      <section className="max-w-3xl mx-auto px-4 pt-6 pb-2">
+        <WebPushToggle />
+      </section>
+
+      <section className="max-w-3xl mx-auto px-4 pb-6">
         {notifs == null ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
