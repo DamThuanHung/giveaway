@@ -44,7 +44,7 @@ docker compose -f docker-compose.prod.yml build backend
 
 echo ""
 echo ">>> [4/5] Restart backend (DB + MinIO giữ nguyên)..."
-docker compose -f docker-compose.prod.yml up -d backend
+docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate backend
 
 echo ""
 echo ">>> [5/5] Chờ backend healthy..."
