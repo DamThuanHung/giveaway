@@ -19,6 +19,8 @@ import { ContactSellerButton } from "@/components/ContactSellerButton";
 import { OwnerActions } from "@/components/OwnerActions";
 import { PostImageGallery } from "@/components/PostImageGallery";
 
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
   return await fetchAllPostIds();
 }

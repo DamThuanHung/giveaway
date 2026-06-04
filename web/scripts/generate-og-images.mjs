@@ -19,7 +19,7 @@ import { Resvg } from "@resvg/resvg-js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-const OUT_DIR = join(ROOT, "out", "og");
+const OUT_DIR = join(ROOT, "public", "og");
 const FONT_DIR = join(ROOT, "public", "fonts");
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.traotay.com.vn";
 

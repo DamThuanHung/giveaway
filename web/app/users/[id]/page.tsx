@@ -13,6 +13,8 @@ import {
 } from "@/lib/api";
 import { BlockUserButton } from "@/components/BlockUserButton";
 
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
   return await fetchAllAuthorIds();
 }

@@ -1,11 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static export — không cần Node.js server, nginx serve thẳng folder out/.
-  // Posts mới appear sau mỗi lần rebuild (cron 1h).
-  output: 'export',
-  // Required với output:'export' vì <Image> cần optimization server.
+  // Standalone — Next.js Node.js server, nginx reverse proxy sang port 3000.
+  // Bài đăng mới render on-demand ngay lập tức (không cần cron rebuild).
+  output: 'standalone',
   images: { unoptimized: true },
-  // Trailing slash để nginx match dễ hơn (mỗi page là folder/index.html).
   trailingSlash: true,
 };
 
