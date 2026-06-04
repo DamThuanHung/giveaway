@@ -81,8 +81,8 @@ header .user-info{font-size:13px;color:var(--text2)}
 .btn-sm{padding:6px 14px;font-size:13px;font-weight:600;border-radius:8px;border:none;cursor:pointer}
 .btn-orange{background:#FEF3C7;color:#92400E}
 .btn-orange:hover{background:#FDE68A}
-.btn-red{background:#FEE2E2;color:var(--error)}
-.btn-red:hover{background:#FECACA}
+.btn-red{background:#EF4444;color:#fff}
+.btn-red:hover{background:#DC2626}
 .btn-grey{background:#F3F4F6;color:var(--text2)}
 .btn-grey:hover{background:#E5E7EB}
 .btn-green{background:var(--primary-light);color:var(--primary-dark)}
@@ -105,11 +105,19 @@ header .user-info{font-size:13px;color:var(--text2)}
 .period-chip:hover{border-color:var(--primary)}
 .period-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .period-note{font-size:11px;color:var(--text2);margin:-4px 0 8px;font-style:italic}
-.item-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:8px;cursor:pointer;transition:border .15s}
+.item-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:8px;cursor:pointer;transition:border .15s,background .15s}
 .item-card:hover{border-color:var(--primary)}
+.item-card.selected{border-color:var(--primary);background:var(--primary-light)}
 .item-card .title{font-weight:700;font-size:14px;margin-bottom:4px}
 .item-card .meta{font-size:12px;color:var(--text2);margin-bottom:10px}
 .item-actions{display:flex;gap:8px;flex-wrap:wrap}
+/* POST CARD WITH THUMBNAIL */
+.post-card-row{display:flex;align-items:flex-start;gap:10px}
+.post-card-body{flex:1;min-width:0}
+.post-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.post-thumb-ph{width:48px;height:48px;border-radius:8px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:1px solid var(--border)}
+/* BULK ACTION BAR */
+.bulk-bar{background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .chip{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}
 .chip-green{background:var(--primary-light);color:var(--primary-dark)}
 .chip-grey{background:#F3F4F6;color:var(--text2)}
@@ -320,13 +328,13 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="2">👤 Người dùng</button>
     <button class="tab" data-tab="3">🚩 Báo cáo</button>
     <button class="tab" data-tab="4">💰 Doanh thu</button>
-    <button class="tab" data-tab="5">📜 Lịch sử admin</button>
-    <button class="tab" data-tab="6">⚙️ Hệ thống</button>
-    <button class="tab" data-tab="7">📢 Broadcast</button>
-    <button class="tab" data-tab="8">⭐ Đánh giá</button>
-    <button class="tab" data-tab="9">💬 Chat</button>
-    <button class="tab" data-tab="10">🏷️ Danh mục</button>
-    <button class="tab" data-tab="11">📈 Phân tích</button>
+    <button class="tab" data-tab="5">📢 Broadcast</button>
+    <button class="tab" data-tab="6">⭐ Đánh giá</button>
+    <button class="tab" data-tab="7">💬 Chat</button>
+    <button class="tab" data-tab="8">🏷️ Danh mục</button>
+    <button class="tab" data-tab="9">📈 Phân tích</button>
+    <button class="tab" data-tab="10">📜 Lịch sử admin</button>
+    <button class="tab" data-tab="11">⚙️ Hệ thống</button>
   </div>
 
   <div class="content">
@@ -367,10 +375,10 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','audit','system','broadcast','reviews','chats','categories','analytics'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','broadcast','reviews','chats','categories','analytics','audit','system'];
 
 const state = {
-  posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '', postsAuthorId: '', postsAuthorName: '',
+  posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '', postsAuthorId: '', postsAuthorName: '', postsSelected: new Set(),
   users: [], usersPage: 0, usersTotal: 0, usersTotalPages: 1, usersSearch: '', usersRole: '', usersBanned: '', usersSelected: new Set(),
   reports: [], reportsPage: 0, reportsTotal: 0, reportsTotalPages: 1, reportsStatus: '',
   orders: [], ordersPage: 0, ordersTotal: 0, ordersTotalPages: 1,
@@ -584,13 +592,13 @@ function loadCurrent(force = false) {
     case 2: if (force || state.users.length === 0) loadUsers(true); break;
     case 3: if (force || state.reports.length === 0) loadReports(true); break;
     case 4: if (force || !state.revenueData) loadRevenue(true); break;
-    case 5: if (force || state.audit.length === 0) loadAudit(true); break;
-    case 6: loadSystem(); break;
-    case 7: loadBroadcast(); break;
-    case 8: if (force || state.reviews.length === 0) loadReviews(true); break;
-    case 9: if (force || state.chats.length === 0) loadChats(true); break;
-    case 10: if (force || state.categories.length === 0) loadCategories(); break;
-    case 11: state.analyticsPeriod = 'day'; state.analyticsData = null; loadAnalytics(); break;
+    case 5: loadBroadcast(); break;
+    case 6: if (force || state.reviews.length === 0) loadReviews(true); break;
+    case 7: if (force || state.chats.length === 0) loadChats(true); break;
+    case 8: if (force || state.categories.length === 0) loadCategories(); break;
+    case 9: state.analyticsPeriod = 'day'; state.analyticsData = null; loadAnalytics(); break;
+    case 10: if (force || state.audit.length === 0) loadAudit(true); break;
+    case 11: loadSystem(); break;
   }
 }
 
@@ -685,14 +693,17 @@ function handleContentClick(e) {
 
     case 'set-posts-status':
       state.postsStatus = el.dataset.value || '';
+      state.postsSelected.clear();
       loadPosts(true);
       break;
     case 'set-users-role':
       state.usersRole = el.dataset.value || '';
+      state.usersSelected.clear();
       loadUsers(true);
       break;
     case 'set-users-banned':
       state.usersBanned = el.dataset.value || '';
+      state.usersSelected.clear();
       loadUsers(true);
       break;
     case 'set-reports-status':
@@ -762,7 +773,34 @@ function handleContentClick(e) {
 
     case 'clear-posts-author':
       state.postsAuthorId = ''; state.postsAuthorName = '';
+      state.postsSelected.clear();
       loadPosts(true);
+      break;
+
+    case 'toggle-post-select':
+      e.stopPropagation();
+      if (state.postsSelected.has(id)) state.postsSelected.delete(id);
+      else state.postsSelected.add(id);
+      renderPosts(false);
+      break;
+    case 'select-all-posts': {
+      e.stopPropagation();
+      const allIds = state.posts.map(p => p.id);
+      const allChecked = allIds.length > 0 && allIds.every(pid => state.postsSelected.has(pid));
+      if (allChecked) allIds.forEach(pid => state.postsSelected.delete(pid));
+      else allIds.forEach(pid => state.postsSelected.add(pid));
+      renderPosts(false);
+      break;
+    }
+    case 'clear-posts-selection':
+      state.postsSelected.clear();
+      renderPosts(false);
+      break;
+    case 'bulk-hide-posts': bulkHidePostsSelected(); break;
+    case 'bulk-delete-posts': bulkDeletePostsSelected(); break;
+    case 'view-post-public':
+      e.stopPropagation();
+      window.open(`https://traotay.com.vn/posts/${id}`, '_blank', 'noopener,noreferrer');
       break;
     case 'clear-chats-user':
       state.chatsUserId = ''; state.chatsUserName = '';
@@ -779,6 +817,7 @@ function handleContentClick(e) {
       renderUsers(false);
       break;
     case 'bulk-ban-users': bulkBanSelected(); break;
+    case 'bulk-unban-users': bulkUnbanSelected(); break;
 
     case 'set-analytics-period': {
       const p = el.dataset.period || 'week';
@@ -838,7 +877,7 @@ function handleModalAction(e) {
       state.chatsUserName = extra || 'user';
       state.chats = []; state.chatsPage = 0; state.chatsSearch = '';
       closeModal();
-      switchTab(9);
+      switchTab(7);
       break;
     case 'delete-review': deleteReviewPrompt(id); break;
     case 'delete-message': deleteMessagePrompt(id); break;
@@ -869,15 +908,16 @@ async function loadStats() {
     ${alertHtml}
     <div class="stats-grid">
       ${[
-        ['Người dùng', ov.totalUsers || 0, '👤', colors[0]],
-        ['Bài đăng', ov.totalPosts || 0, '📦', colors[1]],
-        ['Giao dịch', ov.totalDeals || 0, '🤝', colors[2]],
-        ['Đánh giá TB', (data.avgRating || 0) + '⭐', '⭐', colors[3]],
-      ].map(([l,v,ic,c]) => `
+        ['Người dùng', ov.totalUsers || 0, '👤', colors[0], td.newUsers > 0 ? `+${td.newUsers} hôm nay` : null],
+        ['Bài đăng', ov.totalPosts || 0, '📦', colors[1], td.newPosts > 0 ? `+${td.newPosts} hôm nay` : null],
+        ['Giao dịch', ov.totalDeals || 0, '🤝', colors[2], td.newDeals > 0 ? `+${td.newDeals} hôm nay` : null],
+        ['Đánh giá TB', (data.avgRating || 0) + '⭐', '⭐', colors[3], null],
+      ].map(([l,v,ic,c,sub]) => `
       <div class="stat-card">
         <div style="font-size:24px">${ic}</div>
         <div class="stat-value" style="color:${c}">${v}</div>
         <div class="stat-label">${l}</div>
+        ${sub ? `<div class="stat-sub pos">${sub}</div>` : ''}
       </div>`).join('')}
     </div>
     <div class="section-title">Hoạt động hôm nay</div>
@@ -888,10 +928,10 @@ async function loadStats() {
     </div>
     <div class="section-title">Trạng thái bài đăng</div>
     <div class="bar-card">
-      ${barRow('Đang hiển thị', posts.available||0, ov.totalPosts||1, '#10B981')}
-      ${barRow('Đã hoàn tất', posts.done||0, ov.totalPosts||1, '#3B82F6')}
-      ${barRow('Trạng thái khác', posts.other||0, ov.totalPosts||1, '#F59E0B')}
-      ${posts.deletedByAdmin > 0 ? `<div style="margin-top:10px;font-size:12px;color:var(--text2)">Đã xóa bởi admin: <strong>${posts.deletedByAdmin}</strong></div>` : ''}
+      ${barRow('Đang hiển thị', posts.available||0, ov.totalPosts||1, '#10B981', 1)}
+      ${barRow('Đã hoàn tất', posts.done||0, ov.totalPosts||1, '#3B82F6', 1)}
+      ${barRow('Trạng thái khác', posts.other||0, ov.totalPosts||1, '#F59E0B', 1)}
+      ${posts.deletedByAdmin > 0 ? barRow('Đã xóa bởi admin', posts.deletedByAdmin, ov.totalPosts||1, '#EF4444', 1) : ''}
     </div>
     ${renderTopWidgets(state.topData)}
   `;
@@ -920,7 +960,10 @@ function renderTopWidgets(top) {
   return `
     <div class="section-title-row">
       <div class="section-title" style="margin:0">Bảng xếp hạng</div>
-      <div class="period-chips">${chips}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="period-chips">${chips}</div>
+        <div style="font-size:11px;color:var(--text3)">Áp dụng cho cả 3 cột</div>
+      </div>
     </div>
     <div class="top-grid">
       <div class="top-card">
@@ -958,10 +1001,15 @@ function renderTopWidgets(top) {
   `;
 }
 
-function barRow(label, value, total, color) {
+function barRow(label, value, total, color, tabTarget) {
   const pct = total > 0 ? Math.round(value/total*100) : 0;
-  return `<div class="bar-row">
-    <div class="bar-meta"><span>${label}</span><strong style="color:${color}">${value}</strong></div>
+  const clickAttrs = tabTarget != null ? `data-action="switch-tab" data-target="${tabTarget}" title="Nhấn để xem chi tiết" style="cursor:pointer"` : '';
+  const arrow = tabTarget != null ? ' <span style="font-size:10px;color:var(--text3)">›</span>' : '';
+  return `<div class="bar-row" ${clickAttrs}>
+    <div class="bar-meta">
+      <span>${label}${arrow}</span>
+      <span style="color:${color};font-weight:700">${value}<span style="color:var(--text3);font-weight:400;font-size:11px"> /${total} (${pct}%)</span></span>
+    </div>
     <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
   </div>`;
 }
@@ -969,7 +1017,7 @@ function barRow(label, value, total, color) {
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
 async function loadPosts(reset = false) {
-  if (reset) { state.posts = []; state.postsPage = 0; state.postsTotalPages = 1; state.postsTotal = 0; }
+  if (reset) { state.posts = []; state.postsPage = 0; state.postsTotalPages = 1; state.postsTotal = 0; state.postsSelected.clear(); }
   renderPosts(true);
   const page = state.postsPage + 1;
   const params = new URLSearchParams({page, limit:20});
@@ -1232,21 +1280,22 @@ function renderUsers(loading) {
   const el = document.getElementById('tab-users');
   const roleChips = [['','Tất cả'],['admin','Admin'],['user','User thường']]
     .map(([k,l]) => `<button class="fchip ${state.usersRole===k?'active':''}" data-action="set-users-role" data-value="${k}">${l}</button>`).join('');
-  const banChips = [['','Tất cả trạng thái'],['true','Bị khóa'],['false','Hoạt động']]
+  const banChips = [['','Tất cả'],['true','Bị khóa'],['false','Hoạt động']]
     .map(([k,l]) => `<button class="fchip ${state.usersBanned===k?'active':''}" data-action="set-users-banned" data-value="${k}">${l}</button>`).join('');
   const selectedCount = state.usersSelected.size;
   const bulkBar = selectedCount > 0
     ? `<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
          <span>☑️ Đã chọn <strong>${selectedCount}</strong> user</span>
          <button class="btn-sm btn-red" data-action="bulk-ban-users">🔒 Khóa ${selectedCount} user</button>
+         <button class="btn-sm btn-green" data-action="bulk-unban-users">🔓 Mở khóa ${selectedCount} user</button>
          <button class="btn-sm btn-grey" data-action="clear-users-selection">Bỏ chọn</button>
        </div>` : '';
   const searchHtml = `${bulkBar}<div class="toolbar">
     <input id="users-search" type="text" placeholder="🔍 Tìm theo tên/email/SĐT..." value="${esc(state.usersSearch)}"/>
     <button class="btn-sm btn-green" data-action="do-search-users">Tìm</button>
   </div>
-  <div class="filter-chips">${roleChips}</div>
-  <div class="filter-chips">${banChips}</div>`;
+  <div class="filter-chips"><span style="font-size:12px;color:var(--text2);margin-right:6px;line-height:28px">Vai trò:</span>${roleChips}</div>
+  <div class="filter-chips"><span style="font-size:12px;color:var(--text2);margin-right:6px;line-height:28px">Trạng thái:</span>${banChips}</div>`;
 
   if (loading && state.users.length === 0) {
     el.innerHTML = searchHtml + '<div class="loading"><div class="spinner"></div> Đang tải...</div>';
@@ -1279,7 +1328,7 @@ function renderUsers(loading) {
             ${isSelf?'<span class="chip chip-purple">Bạn</span>':''}
             ${(u.pendingReportsOnPosts||0) > 3 ? `<span class="chip chip-red" title="Bài của user này đang bị nhiều người báo cáo">🚩 ${u.pendingReportsOnPosts} báo cáo</span>` : ''}
           </div>
-          <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài · ${cnt.dealsAsRequester||0} deal</div>
+          <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài đăng · ${(cnt.dealsAsRequester||0)+(cnt.dealsAsOwner||0)} giao dịch</div>
         </div>
       </div>
     </div>`;
@@ -1392,6 +1441,26 @@ async function bulkBanSelected() {
   let msg = `Đã khóa ${res.success}/${ids.length}`;
   if (res.skippedSelf) msg += ` · bỏ qua tài khoản của bạn`;
   if (res.failed) msg += ` · ${res.failed} thất bại`;
+  toast(msg);
+  state.usersSelected.clear();
+  loadUsers(true);
+}
+
+async function bulkUnbanSelected() {
+  const selfId = localStorage.getItem('admin_id');
+  const ids = Array.from(state.usersSelected).filter(id => id !== selfId);
+  if (ids.length === 0) { toast('Không có user nào hợp lệ'); return; }
+  const reason = prompt(`Mở khóa ${ids.length} user đã chọn?\n\nNhập lý do (ghi audit log):`);
+  if (reason === null) return;
+  if (!reason.trim()) { toast('Phải nhập lý do'); return; }
+  toast(`Đang mở khóa ${ids.length} user...`);
+  let success = 0, failed = 0;
+  for (const id of ids) {
+    const res = await api(`/admin/users/${id}/ban`, { method: 'PATCH', body: JSON.stringify({ isBanned: false, reason: reason.trim() }) });
+    if (res) success++; else failed++;
+  }
+  let msg = `Đã mở khóa ${success}/${ids.length}`;
+  if (failed) msg += ` · ${failed} thất bại`;
   toast(msg);
   state.usersSelected.clear();
   loadUsers(true);
@@ -2254,9 +2323,9 @@ function closeModal() {
 
 function paginationInfo(scope, page, totalPages, total, loaded) {
   if (total === 0) return '';
+  const scopeLabel = {posts:'bài đăng',users:'người dùng',reports:'báo cáo',revenue:'giao dịch',audit:'lịch sử',chats:'cuộc trò chuyện',reviews:'đánh giá'}[scope] || scope;
   return `<div class="pagination-info">
-    <span>Trang <strong>${page}</strong>/${totalPages} · <strong>${loaded}</strong>/${total} đã tải</span>
-    <span>${scope}</span>
+    <span>Trang <strong>${page}</strong>/${totalPages} · ${loaded} / ${total} ${scopeLabel}</span>
   </div>`;
 }
 
