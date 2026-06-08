@@ -15,9 +15,6 @@ export default async function HomePage() {
     url: "https://traotay.com.vn",
     logo: "https://traotay.com.vn/assets/icon_512.png",
     description: "Chợ đồ cũ & trao tặng miễn phí cho người Việt",
-    sameAs: [
-      "https://play.google.com/store/apps/details?id=vn.traotay.app",
-    ],
   };
   const websiteSchema = {
     "@context": "https://schema.org",
@@ -81,9 +78,7 @@ export default async function HomePage() {
             </p>
             <div className="flex flex-wrap gap-3 mb-5">
               <a
-                href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-                target="_blank"
-                rel="noopener"
+                href="/tai-app/"
                 className="bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-semibold px-6 py-3.5 rounded-md shadow-card hover:shadow-elevated transition duration-250 ease-warm flex items-center gap-2"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>
@@ -219,9 +214,7 @@ export default async function HomePage() {
             tiêu dùng thông minh hơn?
           </h2>
           <a
-            href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-            target="_blank"
-            rel="noopener"
+            href="/tai-app/"
             className="inline-flex items-center gap-2 bg-white hover:bg-cream-100 text-primary-700 font-bold text-lg px-10 py-4 rounded-md shadow-elevated hover:shadow-float transition duration-250 ease-warm"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>

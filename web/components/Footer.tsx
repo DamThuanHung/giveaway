@@ -46,9 +46,7 @@ export function Footer() {
             damhungtpt@gmail.com
           </a>
           <a
-            href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-            target="_blank"
-            rel="noopener"
+            href="/tai-app/"
             className="inline-flex items-center gap-2 mt-2 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold px-3.5 py-2 rounded-md transition duration-250 ease-warm border border-white/15 w-fit"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>

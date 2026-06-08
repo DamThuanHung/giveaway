@@ -270,9 +270,7 @@ export default async function PostDetailPage({
               <p className="text-xs text-ink-500 text-center">
                 Hoặc{" "}
                 <a
-                  href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-                  target="_blank"
-                  rel="noopener"
+                  href="/tai-app/"
                   className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
                 >
                   tải app

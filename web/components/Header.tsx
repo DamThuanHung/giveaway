@@ -39,9 +39,7 @@ export function Header() {
               Bài đăng
             </Link>
             <a
-              href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-              target="_blank"
-              rel="noopener"
+              href="/tai-app/"
               className="hidden md:inline-flex bg-primary hover:bg-primary-dark active:scale-[0.97] text-white px-4 py-2 rounded-md font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
             >
               Tải app
@@ -99,9 +97,7 @@ export function Header() {
             </nav>
             <div className="p-4 border-t border-ink-200/70 bg-cream-100">
               <a
-                href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-                target="_blank"
-                rel="noopener"
+                href="/tai-app/"
                 className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-center font-semibold px-4 py-3 rounded-md shadow-soft transition duration-250 ease-warm"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>

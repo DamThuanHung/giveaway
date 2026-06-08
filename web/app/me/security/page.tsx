@@ -105,9 +105,7 @@ export default function SecurityPage() {
             Liên kết SĐT chỉ thực hiện được trên app mobile (xác minh OTP qua Firebase).
             <br />
             <a
-              href="https://play.google.com/store/apps/details?id=vn.traotay.app"
-              target="_blank"
-              rel="noopener"
+              href="/tai-app/"
               className="text-primary-600 hover:text-primary-700 hover:underline"
             >
               Tải app
