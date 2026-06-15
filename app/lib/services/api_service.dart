@@ -861,12 +861,17 @@ class ApiService {
 
   static Future<void> saveFcmToken(String token) async {
     try {
-      await http.post(
+      final res = await http.post(
         Uri.parse('$baseUrl/notification/fcm-token'),
         headers: await _authHeaders(),
         body: jsonEncode({'token': token}),
       ).timeout(const Duration(seconds: 5));
-    } catch (_) {}
+      if (res.statusCode != 200 && res.statusCode != 201) {
+        debugPrint('[FCM] saveFcmToken failed: ${res.statusCode} ${res.body}');
+      }
+    } catch (e) {
+      debugPrint('[FCM] saveFcmToken error: $e');
+    }
   }
 
   static Future<String?> linkPhone(String idToken) async {

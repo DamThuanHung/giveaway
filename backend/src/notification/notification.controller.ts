@@ -45,6 +45,7 @@ export class NotificationController {
       where: { id: req.user.id },
       data: { fcmToken: body.token },
     });
+    console.log(`[FCM] Token saved userId=${req.user.id} token=${body.token?.substring(0, 20)}...`);
     return { ok: true };
   }
 

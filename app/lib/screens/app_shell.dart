@@ -24,7 +24,7 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
   late final List<Widget> _pages = [
@@ -38,6 +38,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       if (auth.isAuth && auth.userId != null) {
@@ -47,6 +48,14 @@ class _AppShellState extends State<AppShell> {
       // Cold-start: xử lý pending FCM message
       _handlePendingFcmMessage();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final auth = context.read<AuthProvider>();
+      if (auth.isAuth) _registerFcmToken();
+    }
   }
 
   Future<void> _handlePendingFcmMessage() async {
@@ -92,12 +101,19 @@ class _AppShellState extends State<AppShell> {
     if (kIsWeb) return;
     try {
       final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) await ApiService.saveFcmToken(token);
-    } catch (_) {}
+      if (token != null) {
+        await ApiService.saveFcmToken(token);
+      } else {
+        debugPrint('[FCM] AppShell: getToken() returned null');
+      }
+    } catch (e) {
+      debugPrint('[FCM] AppShell: _registerFcmToken error: $e');
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     context.read<NotificationProvider>().stop();
     super.dispose();
   }

@@ -73,8 +73,14 @@ class AuthProvider with ChangeNotifier {
   Future<void> _sendFcmToken() async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) await ApiService.saveFcmToken(token);
-    } catch (_) {}
+      if (token != null) {
+        await ApiService.saveFcmToken(token);
+      } else {
+        debugPrint('[FCM] getToken() returned null');
+      }
+    } catch (e) {
+      debugPrint('[FCM] _sendFcmToken error: $e');
+    }
   }
 
   Future<String?> devLogin(String email) async {
