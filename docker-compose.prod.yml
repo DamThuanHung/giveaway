@@ -75,11 +75,13 @@ services:
     ports:
       # 3000 bind 127.0.0.1 — Nginx proxy sang traotay.com.vn:443
       - "127.0.0.1:3000:3000"
+    depends_on:
+      - backend
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://api.traotay.com.vn
-    mem_limit: 256m
-    mem_reservation: 192m
+    mem_limit: 512m
+    mem_reservation: 256m
     logging:
       driver: json-file
       options:

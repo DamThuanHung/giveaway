@@ -26,6 +26,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
+  DateTime? _lastFcmRegistration;
 
   late final List<Widget> _pages = [
     const HomeTab(),
@@ -39,6 +40,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+      if (mounted) ApiService.saveFcmToken(token);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       if (auth.isAuth && auth.userId != null) {
@@ -52,7 +56,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && mounted) {
       final auth = context.read<AuthProvider>();
       if (auth.isAuth) _registerFcmToken();
     }
@@ -99,8 +103,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Future<void> _registerFcmToken() async {
     if (kIsWeb) return;
+    final now = DateTime.now();
+    if (_lastFcmRegistration != null &&
+        now.difference(_lastFcmRegistration!) < const Duration(minutes: 5)) {
+      return;
+    }
+    _lastFcmRegistration = now;
     try {
       final token = await FirebaseMessaging.instance.getToken();
+      if (!mounted) return;
       if (token != null) {
         await ApiService.saveFcmToken(token);
       } else {

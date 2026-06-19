@@ -4,7 +4,6 @@ const nextConfig = {
   // Bài đăng mới render on-demand ngay lập tức (không cần cron rebuild).
   output: 'standalone',
   images: { unoptimized: true },
-  trailingSlash: true,
 };
 
 export default nextConfig;

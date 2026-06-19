@@ -1,9 +1,21 @@
-"use client";
-
+import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-const APK_URL = "https://api.traotay.com.vn/download/android";
+export const metadata: Metadata = {
+  title: "Tải app Trao Tay — Android APK",
+  description:
+    "Tải app Trao Tay cho Android. Chat realtime, nhận thông báo tức thì khi có người quan tâm tới bài đăng của bạn.",
+  openGraph: {
+    title: "Tải app Trao Tay — Android APK",
+    description:
+      "Chat realtime, nhận thông báo tức thì khi có người quan tâm tới bài đăng của bạn.",
+    url: "https://traotay.com.vn/tai-app/",
+    images: [{ url: "https://traotay.com.vn/assets/icon_512.png" }],
+  },
+};
+
+const APK_URL = `${process.env.NEXT_PUBLIC_API_URL ?? "https://api.traotay.com.vn"}/download/android`;
 
 export default function TaiAppPage() {
   return (
@@ -41,13 +53,13 @@ export default function TaiAppPage() {
               </a>
               <details className="mt-4 text-sm text-ink-600">
                 <summary className="cursor-pointer font-medium text-ink-700 hover:text-ink-900">
-                  Hướng dẫn cài đặt (lần đầu cần bật "Cài từ nguồn không xác định")
+                  Hướng dẫn cài đặt (lần đầu cần bật &quot;Cài từ nguồn không xác định&quot;)
                 </summary>
                 <ol className="list-decimal list-inside mt-2 space-y-1.5 text-ink-600">
-                  <li>Bấm nút "Tải APK cho Android" ở trên, chờ tải xong.</li>
+                  <li>Bấm nút &quot;Tải APK cho Android&quot; ở trên, chờ tải xong.</li>
                   <li>Mở file vừa tải trong mục Thông báo hoặc Tệp tải xuống.</li>
                   <li>
-                    Nếu điện thoại cảnh báo "Không thể cài đặt ứng dụng không xác định" —
+                    Nếu điện thoại cảnh báo &quot;Không thể cài đặt ứng dụng không xác định&quot; —
                     chọn <span className="font-medium">Cài đặt</span> →{" "}
                     <span className="font-medium">Cho phép từ nguồn này</span>, sau đó quay lại cài như bình thường.
                   </li>
