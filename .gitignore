@@ -57,6 +57,12 @@ backend/firebase-service-account.json
 !.claude/commands/**
 plans/
 
+# Social auto-poster credentials & draft caption
+scripts/social/.env
+scripts/social/next-post.txt
+scripts/social/queue/done/
+scripts/social/post-all.log
+
 # Logs
 *.log
 npm-debug.log*
