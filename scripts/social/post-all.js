@@ -48,17 +48,34 @@ function getNextCaption() {
     .filter(f => f.endsWith('.txt') && f !== 'done')
     .sort();
 
-  if (files.length === 0) {
-    console.error('❌ Queue trống! Chạy /len-bai trong Claude Code để thêm caption vào queue.');
+  if (files.length > 0) {
+    const file = files[0];
+    const caption = fs.readFileSync(path.join(QUEUE_DIR, file), 'utf8').trim();
+    return { caption, file, fromDone: false };
+  }
+
+  // Queue trống → tái sử dụng bài cũ nhất trong done/ (vòng quay round-robin)
+  const doneFiles = fs.readdirSync(DONE_DIR)
+    .filter(f => f.endsWith('.txt'))
+    .sort();
+
+  if (doneFiles.length === 0) {
+    console.error('❌ Queue trống và chưa có bài nào từng đăng! Chạy /len-bai để thêm caption.');
     process.exit(1);
   }
 
-  const file = files[0];
-  const caption = fs.readFileSync(path.join(QUEUE_DIR, file), 'utf8').trim();
-  return { caption, file };
+  const file = doneFiles[0];
+  const caption = fs.readFileSync(path.join(DONE_DIR, file), 'utf8').trim();
+  return { caption, file, fromDone: true };
 }
 
-function markDone(file) {
+function markDone(file, fromDone) {
+  if (fromDone) {
+    // Tái đăng: đẩy file xuống cuối vòng quay (re-timestamp) để các bài khác được luân phiên trước
+    const originalName = file.replace(/^\d+-/, '');
+    fs.renameSync(path.join(DONE_DIR, file), path.join(DONE_DIR, `${Date.now()}-${originalName}`));
+    return;
+  }
   const src = path.join(QUEUE_DIR, file);
   const dest = path.join(DONE_DIR, `${Date.now()}-${file}`);
   fs.renameSync(src, dest);
@@ -183,11 +200,11 @@ async function postThreads(caption) {
 async function main() {
   if (isListQueue) { listQueue(); return; }
 
-  const { caption, file } = getNextCaption();
+  const { caption, file, fromDone } = getNextCaption();
 
   console.log('\n📣 TRAO TAY — SOCIAL AUTO-POSTER');
   console.log('═'.repeat(50));
-  console.log(`📄 File: ${file}`);
+  console.log(`📄 File: ${file}${fromDone ? ' (tái sử dụng từ done/)' : ''}`);
   console.log(`📝 Caption (${caption.length} ký tự):\n${caption.slice(0, 120)}${caption.length > 120 ? '…' : ''}`);
   console.log('═'.repeat(50));
 
@@ -221,12 +238,14 @@ async function main() {
   console.log('\n' + '═'.repeat(50));
 
   if (allOk) {
-    markDone(file);
+    markDone(file, fromDone);
     const remaining = fs.readdirSync(QUEUE_DIR).filter(f => f.endsWith('.txt')).length;
     console.log(`🗑️  ${file} → done/`);
     console.log(`📋 Queue còn lại: ${remaining} bài`);
-    if (remaining <= 2) {
-      console.log('⚠️  Queue sắp hết! Hãy chạy /fb-post để tạo thêm caption.');
+    if (remaining === 0) {
+      console.log('🔁 Queue trống — từ giờ tự tái sử dụng bài cũ theo vòng (cũ nhất trước). Chạy /len-bai để thêm caption mới, tránh lặp bài trong ngày.');
+    } else if (remaining <= 2) {
+      console.log('⚠️  Queue sắp hết! Hãy chạy /len-bai để tạo thêm caption.');
     }
   } else {
     process.exit(1);
