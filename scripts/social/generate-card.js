@@ -189,12 +189,17 @@ async function renderCardPng(hookText) {
 }
 
 // ─── MinIO upload (dùng chung bucket với backend, đọc credentials từ .env.docker) ──
+//
+// Script này chạy trực tiếp trên EC2 host (cron), KHÔNG nằm trong docker network
+// của backend — nên không thể dùng hostname nội bộ "minio" trong .env.docker.
+// MinIO container expose port 9000 ra 127.0.0.1 trên host (docker-compose.prod.yml),
+// nên luôn nối qua localhost, chỉ lấy access key/secret/bucket từ .env.docker.
 
 function getMinioClient() {
   return new Minio.Client({
-    endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-    port: parseInt(process.env.MINIO_PORT || '9000', 10),
-    useSSL: process.env.MINIO_USE_SSL === 'true',
+    endPoint: '127.0.0.1',
+    port: 9000,
+    useSSL: false,
     accessKey: process.env.MINIO_ACCESS_KEY,
     secretKey: process.env.MINIO_SECRET_KEY,
   });
