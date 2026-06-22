@@ -16,6 +16,7 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { extractHook, getOrCreateCardUrl } = require('./generate-card');
 
 // ─── Load env ─────────────────────────────────────────────────────────────────
 
@@ -136,29 +137,37 @@ function httpPost(url, payload, headers = {}) {
 
 // ─── Platforms ────────────────────────────────────────────────────────────────
 
-async function postFacebook(caption) {
+async function postFacebook(caption, imageUrl) {
   const pageId = process.env.FB_PAGE_ID;
   const token = process.env.FB_PAGE_ACCESS_TOKEN;
   if (!pageId || !token) return { platform: 'Facebook Page', skipped: true, reason: 'chưa set credentials' };
 
-  const res = await httpPost(
-    `https://graph.facebook.com/v19.0/${pageId}/feed?access_token=${token}`,
-    { message: caption }
-  );
+  // Có ảnh → đăng kèm ảnh qua /photos (caption làm chú thích ảnh).
+  // Không có ảnh (lỗi render/upload) → fallback /feed text-only như cũ.
+  const res = imageUrl
+    ? await httpPost(
+        `https://graph.facebook.com/v19.0/${pageId}/photos?access_token=${token}`,
+        { url: imageUrl, caption }
+      )
+    : await httpPost(
+        `https://graph.facebook.com/v19.0/${pageId}/feed?access_token=${token}`,
+        { message: caption }
+      );
+
   if (res.status === 200 && res.body.id) return { platform: 'Facebook Page', ok: true, id: res.body.id };
   return { platform: 'Facebook Page', ok: false, error: res.body?.error?.message || JSON.stringify(res.body) };
 }
 
-async function postInstagram(caption) {
+async function postInstagram(caption, imageUrl) {
   const accountId = process.env.IG_ACCOUNT_ID;
   const token = process.env.IG_ACCESS_TOKEN;
-  const imageUrl = process.env.IG_DEFAULT_IMAGE_URL || 'https://traotay.com.vn/og-image.jpg';
+  const finalImageUrl = imageUrl || process.env.IG_DEFAULT_IMAGE_URL || 'https://traotay.com.vn/og-image.jpg';
   if (!accountId || !token) return { platform: 'Instagram', skipped: true, reason: 'chưa set credentials' };
 
   // Bước 1: Tạo container IMAGE (Instagram bắt buộc phải có ảnh)
   const containerRes = await httpPost(
     `https://graph.facebook.com/v19.0/${accountId}/media?access_token=${token}`,
-    { image_url: imageUrl, caption }
+    { image_url: finalImageUrl, caption }
   );
 
   if (!containerRes.body?.id) {
@@ -175,14 +184,16 @@ async function postInstagram(caption) {
   return { platform: 'Instagram', ok: false, error: publishRes.body?.error?.message || JSON.stringify(publishRes.body) };
 }
 
-async function postThreads(caption) {
+async function postThreads(caption, imageUrl) {
   const userId = process.env.THREADS_USER_ID;
   const token = process.env.THREADS_ACCESS_TOKEN;
   if (!userId || !token) return { platform: 'Threads', skipped: true, reason: 'chưa set credentials' };
 
   const createRes = await httpPost(
     `https://graph.threads.net/v1.0/${userId}/threads`,
-    { media_type: 'TEXT', text: caption, access_token: token }
+    imageUrl
+      ? { media_type: 'IMAGE', image_url: imageUrl, text: caption, access_token: token }
+      : { media_type: 'TEXT', text: caption, access_token: token }
   );
   if (!createRes.body?.id) return { platform: 'Threads', ok: false, error: createRes.body?.error?.message || JSON.stringify(createRes.body) };
 
@@ -209,15 +220,26 @@ async function main() {
   console.log('═'.repeat(50));
 
   if (isDryRun) {
-    console.log('\n🔍 DRY RUN — không đăng thật\n');
+    console.log('\n🔍 DRY RUN — không đăng thật, không render/upload ảnh\n');
+    console.log(`🖼️  Hook ảnh sẽ dùng: "${extractHook(caption)}"`);
     console.log(caption);
     return;
   }
 
+  // Ảnh thương hiệu riêng cho caption này — render + upload MinIO (cache nếu đã có).
+  // Lỗi (MinIO down, font thiếu...) không được làm fail cả bài đăng — fallback text-only.
+  let imageUrl = null;
+  try {
+    imageUrl = await getOrCreateCardUrl(file, caption);
+    console.log(`🖼️  Ảnh: ${imageUrl}`);
+  } catch (err) {
+    console.warn(`⚠️  Không tạo được ảnh (${err.message}) — đăng text-only.`);
+  }
+
   const results = await Promise.allSettled([
-    postFacebook(caption),
-    postInstagram(caption),
-    postThreads(caption),
+    postFacebook(caption, imageUrl),
+    postInstagram(caption, imageUrl),
+    postThreads(caption, imageUrl),
   ]);
 
   console.log('\n📊 KẾT QUẢ:\n');
