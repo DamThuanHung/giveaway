@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { createPost, getToken } from "@/lib/auth";
 import { CATEGORIES, TOP_PROVINCES } from "@/lib/api";
+import { compressImages } from "@/lib/imageCompress";
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -57,6 +58,7 @@ export default function NewPostPage() {
 
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   // Per-field error map cho inline validation (UI_UX_STANDARDS §7.3)
@@ -148,28 +150,35 @@ export default function NewPostPage() {
     }
   }
 
-  function onFilesPicked(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFilesPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
+    if (fileRef.current) fileRef.current.value = "";
     if (files.length === 0) return;
 
     const remaining = MAX_IMAGES - images.length;
-    const accepted: File[] = [];
+    const candidates: File[] = [];
     let rejectedReason: string | null = null;
     for (const f of files.slice(0, remaining)) {
       if (!/^image\//.test(f.type)) {
         rejectedReason = "Chỉ chấp nhận ảnh";
         continue;
       }
-      if (f.size > MAX_IMAGE_SIZE) {
-        rejectedReason = "Ảnh tối đa 5MB/file";
-        continue;
-      }
-      accepted.push(f);
+      candidates.push(f);
     }
+
+    setCompressing(true);
+    const { compressed, errors } = await compressImages(candidates);
+    setCompressing(false);
+
+    // Check size SAU khi nén — nén luôn chạy trước, không loại ảnh gốc to ngay từ đầu
+    // (mobile cũng nén mọi ảnh bất kể size gốc, không có hard cap lúc chọn).
+    const accepted = compressed.filter((f) => f.size <= MAX_IMAGE_SIZE);
+    if (compressed.length > accepted.length) rejectedReason = "Ảnh sau khi nén vẫn vượt 5MB";
+    if (errors.length > 0) rejectedReason = errors[0];
+
     setImages((prev) => [...prev, ...accepted]);
     setPreviews((prev) => [...prev, ...accepted.map((f) => URL.createObjectURL(f))]);
     if (rejectedReason) setErr(rejectedReason);
-    if (fileRef.current) fileRef.current.value = "";
   }
 
   function removeImage(idx: number) {
@@ -679,10 +688,20 @@ export default function NewPostPage() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="aspect-square border-2 border-dashed border-ink-300 hover:border-primary text-ink-400 hover:text-primary rounded-md flex flex-col items-center justify-center transition duration-150 ease-warm bg-cream-100/50 hover:bg-primary-100/30"
+                disabled={compressing}
+                className="aspect-square border-2 border-dashed border-ink-300 hover:border-primary text-ink-400 hover:text-primary rounded-md flex flex-col items-center justify-center transition duration-150 ease-warm bg-cream-100/50 hover:bg-primary-100/30 disabled:opacity-60"
               >
-                <span className="text-2xl">📷</span>
-                <span className="text-xs font-medium mt-1">Thêm ảnh</span>
+                {compressing ? (
+                  <>
+                    <span className="text-2xl animate-pulse">⏳</span>
+                    <span className="text-xs font-medium mt-1">Đang xử lý...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-2xl">📷</span>
+                    <span className="text-xs font-medium mt-1">Thêm ảnh</span>
+                  </>
+                )}
               </button>
             )}
           </div>
