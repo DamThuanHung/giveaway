@@ -1,0 +1,57 @@
+workflows:
+  ios-testflight:
+    name: Trao Tay — iOS TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "vn.traotay.app"
+        XCODE_WORKSPACE: "Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        API_URL: "https://api.traotay.com.vn"
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "ios-v*"
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Set up code signing (automatic, qua App Store Connect API)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Get Flutter packages
+        script: |
+          cd app
+          flutter packages pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          cd app/ios
+          pod install
+      - name: Build iOS release (.ipa)
+        script: |
+          cd app
+          flutter build ipa --release \
+            --dart-define=API_URL="$API_URL" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers"

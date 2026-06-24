@@ -70,22 +70,42 @@ export default function TaiAppPage() {
           </div>
         </div>
 
-        {/* iOS */}
+        {/* iOS — PWA qua Safari, bản native đang chờ Apple duyệt */}
         <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-6 md:p-8">
           <div className="flex items-start gap-4">
             <div className="text-3xl shrink-0">🍎</div>
             <div className="flex-1">
               <h2 className="text-lg font-bold text-ink-900">iOS (iPhone/iPad)</h2>
               <p className="text-sm text-ink-600 mt-1">
-                Bản iOS đang được phát triển. Trong lúc chờ, bạn có thể dùng Trao Tay ngay trên
-                trình duyệt — đầy đủ tính năng đăng bài, chat, yêu thích.
+                Bản app native đang chờ Apple duyệt. Trong lúc chờ, anh chị có thể thêm Trao Tay
+                vào màn hình chính — mở như app thật, đầy đủ tính năng đăng bài, chat, yêu thích,
+                thông báo.
               </p>
-              <a
-                href="/"
-                className="inline-block mt-4 text-primary-600 hover:text-primary-700 hover:underline font-medium text-sm"
-              >
-                Vào traotay.com.vn →
-              </a>
+              <details className="mt-4 text-sm text-ink-600">
+                <summary className="cursor-pointer font-medium text-ink-700 hover:text-ink-900">
+                  Hướng dẫn thêm vào màn hình chính (mất chưa đầy 1 phút)
+                </summary>
+                <ol className="list-decimal list-inside mt-2 space-y-1.5 text-ink-600">
+                  <li>
+                    Mở <span className="font-medium">traotay.com.vn</span> bằng trình duyệt{" "}
+                    <span className="font-medium">Safari</span> (bắt buộc Safari, Chrome/Firefox
+                    trên iOS không hỗ trợ bước này).
+                  </li>
+                  <li>
+                    Bấm nút <span className="font-medium">Chia sẻ</span> (hình vuông có mũi tên
+                    hướng lên) ở thanh dưới màn hình.
+                  </li>
+                  <li>
+                    Cuộn xuống chọn{" "}
+                    <span className="font-medium">Thêm vào màn hình chính</span> (Add to Home
+                    Screen).
+                  </li>
+                  <li>Bấm Thêm — icon Trao Tay sẽ xuất hiện trên màn hình chính như app thật.</li>
+                  <li>
+                    Mở từ icon đó để vào thẳng app, không hiện thanh địa chỉ Safari.
+                  </li>
+                </ol>
+              </details>
             </div>
           </div>
         </div>

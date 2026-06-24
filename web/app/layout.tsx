@@ -51,7 +51,12 @@ export const metadata: Metadata = {
     description: "Đồ cũ người này, Báu vật người kia.",
     images: ["/assets/icon_512.png"],
   },
-  icons: { icon: "/assets/icon_512.png" },
+  icons: { icon: "/assets/icon_512.png", apple: "/icons/icon-192.png" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Trao Tay",
+  },
 };
 
 export default function RootLayout({
