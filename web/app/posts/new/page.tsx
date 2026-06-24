@@ -69,9 +69,9 @@ export default function NewPostPage() {
     description: (v: string) => v.trim().length < 10 ? 'Mô tả tối thiểu 10 ký tự (nên 50+ để dễ giao dịch)' : null,
     province: (v: string) => !v.trim() ? 'Chọn tỉnh/thành để người mua tìm thấy' : null,
     price: (v: string) => {
-      if (listingType === 'give') return null;
+      if (listingType === 'give' || !v.trim()) return null; // Để trống = thương lượng, đồng bộ mobile
       const n = parseInt(v.replace(/\D/g, ''), 10);
-      if (!v || isNaN(n)) return 'Nhập giá (VNĐ)';
+      if (isNaN(n)) return null;
       if (n < 1000) return 'Giá tối thiểu 1.000đ';
       if (n > 999_000_000_000) return 'Giá quá lớn';
       return null;
