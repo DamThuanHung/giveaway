@@ -103,10 +103,10 @@ export class NotificationCronService {
       this.prisma.user.count({ where: { updatedAt: { gte: todayStart } } }),
     ]);
 
-    if (postCount === 0) return;
-
     const title = 'Bản tin Trao Tay 📦';
-    const body = `Hôm nay có thêm ${visitorCount} lượt khách ghé thăm, có ${postCount} sản phẩm đang được rao trên đó`;
+    const body = postCount === 0
+      ? 'Hôm nay chưa có bài đăng nào. Đăng ngay món đồ không dùng đến để Trao Tay sôi động hơn nhé!'
+      : `Hôm nay có thêm ${visitorCount} lượt khách ghé thăm, có ${postCount} sản phẩm đang được rao trên đó`;
 
     // Tạo DB record cho TẤT CẢ user — push (FCM/WebPush) được xử lý
     // có điều kiện bên trong createNotification dựa trên token của từng user.
