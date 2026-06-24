@@ -125,6 +125,7 @@ Gõ "lưu" để tôi cập nhật tự động.
 [24/04/2026] MSYS Git Bash tự convert đường dẫn Unix `/sdcard/...` thành `C:/Program Files/Git/sdcard/...` khi gọi adb. Fix: dùng PowerShell (không có path translation) hoặc set `MSYS_NO_PATHCONV=1` (chỉ ảnh hưởng destination path adb) — Xác nhận qua fix thực tế
 [24/04/2026] Claude Code giới hạn ảnh ≤ 2000px mỗi chiều trong session có nhiều ảnh ("many-image threshold"). Screenshot Android 1240x2772 sẽ fail. Resize xuống 1600px max chiều dài bằng PowerShell System.Drawing HighQualityBicubic — lưu bản preview riêng, giữ file gốc cho Play Store
 [24/04/2026] Flutter app không expose text qua uiautomator dump — toàn bộ UI hierarchy chỉ có `FlutterView`, không có text/content-desc. Để tap chính xác phải đọc source Dart (Expanded, EdgeInsets, Row flex) và tính tọa độ từ layout
+[24/06/2026] Web phải nén ảnh client-side trước khi upload, mirror logic mobile (`app/lib/services/image_compress.dart`: resize 1920px, JPEG quality 80, skip nếu đã nhỏ <500KB) — web trước đây gửi thẳng ảnh gốc 2-6MB gây chờ ~5s khi đăng bài. Nén phải chạy ngay lúc CHỌN ảnh (`onFilesPicked`), trước check giới hạn 5MB — không phải lúc Submit, vì nén lúc Submit sẽ để limit 5MB reject ảnh gốc to trước khi kịp nén (mobile không có hard cap lúc chọn nên nén được mọi ảnh dù gốc to cỡ nào). Dùng `createImageBitmap(file, {imageOrientation:"from-image"})` để giữ đúng hướng ảnh chụp dọc từ điện thoại — Xác nhận qua fix thực tế + verify bằng Playwright thật (ảnh test 6MB giảm còn ~1.2MB, giữ đúng orientation)
 
 ---
 
