@@ -11,6 +11,9 @@
  * Queue: mỗi file trong scripts/social/queue/ là 1 bài đăng.
  * File được đặt tên theo thứ tự: 001.txt, 002.txt, ...
  * Sau khi đăng xong, file được chuyển vào queue/done/
+ *
+ * Hashtag (dòng cuối file, bắt đầu bằng #) chỉ đăng kèm trên Instagram —
+ * Facebook & Threads nhận caption không hashtag (xem splitCaptionAndHashtags).
  */
 
 const https = require('https');
@@ -80,6 +83,23 @@ function markDone(file, fromDone) {
   const src = path.join(QUEUE_DIR, file);
   const dest = path.join(DONE_DIR, `${Date.now()}-${file}`);
   fs.renameSync(src, dest);
+}
+
+// Tách block hashtag (dòng cuối cùng, toàn token bắt đầu bằng #) ra khỏi nội dung chính.
+// Facebook & Threads: đăng caption KHÔNG hashtag (hashtag không giúp reach, dễ trông spam).
+// Instagram: giữ nguyên caption + hashtag (hashtag là tín hiệu discovery cho Explore).
+function splitCaptionAndHashtags(raw) {
+  const lines = raw.split('\n');
+  let lastIdx = lines.length - 1;
+  while (lastIdx >= 0 && lines[lastIdx].trim() === '') lastIdx--;
+  const lastLine = (lines[lastIdx] || '').trim();
+  const isHashtagLine = lastLine.length > 0 && lastLine.split(/\s+/).every(tok => tok.startsWith('#'));
+  if (!isHashtagLine) return { body: raw.trim(), hashtags: '' };
+
+  let bodyEnd = lastIdx - 1;
+  while (bodyEnd >= 0 && lines[bodyEnd].trim() === '') bodyEnd--;
+  const body = lines.slice(0, bodyEnd + 1).join('\n').trim();
+  return { body, hashtags: lastLine };
 }
 
 function listQueue() {
@@ -212,6 +232,8 @@ async function main() {
   if (isListQueue) { listQueue(); return; }
 
   const { caption, file, fromDone } = getNextCaption();
+  const { body, hashtags } = splitCaptionAndHashtags(caption);
+  const igCaption = hashtags ? `${body}\n\n${hashtags}` : body;
 
   console.log('\n📣 TRAO TAY — SOCIAL AUTO-POSTER');
   console.log('═'.repeat(50));
@@ -222,7 +244,10 @@ async function main() {
   if (isDryRun) {
     console.log('\n🔍 DRY RUN — không đăng thật, không render/upload ảnh\n');
     console.log(`🖼️  Hook ảnh sẽ dùng: "${extractHook(caption)}"`);
-    console.log(caption);
+    console.log('--- Facebook & Threads (không hashtag) ---');
+    console.log(body);
+    console.log('--- Instagram (kèm hashtag) ---');
+    console.log(igCaption);
     return;
   }
 
@@ -237,9 +262,9 @@ async function main() {
   }
 
   const results = await Promise.allSettled([
-    postFacebook(caption, imageUrl),
-    postInstagram(caption, imageUrl),
-    postThreads(caption, imageUrl),
+    postFacebook(body, imageUrl),
+    postInstagram(igCaption, imageUrl),
+    postThreads(body, imageUrl),
   ]);
 
   console.log('\n📊 KẾT QUẢ:\n');
