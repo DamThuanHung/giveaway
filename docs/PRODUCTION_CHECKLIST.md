@@ -21,10 +21,11 @@
 10. [PRE-PRODUCTION — Email (Resend)](#10-pre-production--email-resend)
 11. [PRE-PRODUCTION — DNS & Domain](#11-pre-production--dns--domain)
 12. [PRE-PRODUCTION — Play Store](#12-pre-production--play-store)
-13. [DEPLOY DAY](#13-deploy-day)
-14. [POST-PRODUCTION — Tuần đầu](#14-post-production--tuần-đầu)
-15. [POST-PRODUCTION — Vận hành](#15-post-production--vận-hành)
-16. [Rollback Plan](#16-rollback-plan)
+13. [PRE-PRODUCTION — iOS / App Store](#13-pre-production--ios--app-store)
+14. [DEPLOY DAY](#14-deploy-day)
+15. [POST-PRODUCTION — Tuần đầu](#15-post-production--tuần-đầu)
+16. [POST-PRODUCTION — Vận hành](#16-post-production--vận-hành)
+17. [Rollback Plan](#17-rollback-plan)
 
 ---
 
@@ -446,7 +447,43 @@ Xem [docs/modules/playstore-screenshots.md](modules/playstore-screenshots.md).
 
 ---
 
-## 13. DEPLOY DAY
+## 13. PRE-PRODUCTION — iOS / App Store
+
+Xem runbook đầy đủ tại [docs/IOS_DEPLOYMENT.md](IOS_DEPLOYMENT.md).
+
+### 🚨 CRITICAL — Bundle Identifier
+- [x] ~~`com.example.choVaTang` (placeholder mặc định, Apple reject domain `com.example.*`)~~ ✅ đổi sang `vn.traotay.app` (đồng nhất Android `applicationId`) — 6 chỗ trong `app/ios/Runner.xcodeproj/project.pbxproj`
+
+### 🚨 CRITICAL — Firebase iOS
+- [ ] Đăng ký iOS app trong Firebase Console (project `chovatang-b5bd9`) → tải `GoogleService-Info.plist` → đặt vào `app/ios/Runner/`
+- [ ] Thêm case `TargetPlatform.ios` vào `app/lib/firebase_options.dart` (hiện chỉ có case `android`) — **thiếu sẽ throw `UnsupportedError` ngay khi mở app trên iOS**
+
+### 🚨 CRITICAL — Info.plist permission keys
+- [x] ~~Thiếu `NSCameraUsageDescription`/`NSPhotoLibraryUsageDescription`/`NSLocationWhenInUseUsageDescription`~~ ✅ đã thêm vào `app/ios/Runner/Info.plist` — thiếu các key này app **crash ngay** khi gọi camera/ảnh/vị trí (OS-level enforcement, không chỉ App Store reject)
+
+### ⚠️ HIGH — App icon
+- [x] ~~`flutter_icons.ios: false`~~ ✅ bật `ios: true` + `remove_alpha_ios: true` (tránh Apple reject icon có alpha channel) trong `pubspec.yaml`, đã chạy `flutter pub run flutter_launcher_icons`
+
+### ⚠️ HIGH — Apple Developer Program
+- [ ] Đăng ký developer.apple.com/programs/enroll ($99/năm, verify 1-2 ngày)
+- [ ] Tạo App Store Connect app record (bundle ID `vn.traotay.app`)
+
+### ⚠️ HIGH — CI/CD build (Codemagic)
+- [x] `codemagic.yaml` đã tạo ở repo root — build Flutter iOS + auto-publish TestFlight qua automatic code signing
+- [ ] Tạo App Store Connect API Key (Users and Access → Integrations) cho Codemagic
+- [ ] Connect repo trên Codemagic, set up group biến môi trường `app_store_credentials` (`APP_STORE_CONNECT_PRIVATE_KEY`, `KEY_IDENTIFIER`, `ISSUER_ID`)
+- [ ] Trigger build đầu tiên (push tag `ios-v*`), thường fail 1-2 lần do signing config
+
+### ⚙️ MEDIUM — TestFlight rollout
+- [ ] Internal Testing (≤100 tester, available ngay, không cần Apple review)
+- [ ] External/Public TestFlight (cần Apple Beta App Review 24-48h)
+
+### 💡 LOW — PWA tạm thời (đã live, không cần chờ TestFlight)
+- [x] PWA qua Safari "Add to Home Screen" tại `traotay.com.vn` (`web/app/manifest.ts` + meta tags `web/app/layout.tsx`) — free, không cần Apple Developer Program, dùng được ngay trong lúc chờ TestFlight/App Store
+
+---
+
+## 14. DEPLOY DAY
 
 ### Timeline đề xuất (không nên làm vào tối muộn)
 
@@ -486,7 +523,7 @@ Xem [docs/modules/playstore-screenshots.md](modules/playstore-screenshots.md).
 
 ---
 
-## 14. POST-PRODUCTION — Tuần đầu
+## 15. POST-PRODUCTION — Tuần đầu
 
 ### Ngày 1-3: Monitor liên tục
 - [ ] Check logs backend mỗi 2-3 giờ: `docker logs --tail 200 traotay_backend | grep -i error`
@@ -514,7 +551,7 @@ Xem [docs/modules/playstore-screenshots.md](modules/playstore-screenshots.md).
 
 ---
 
-## 15. POST-PRODUCTION — Vận hành
+## 16. POST-PRODUCTION — Vận hành
 
 ### ⚠️ HIGH — Monitoring & Alerting
 - [ ] Cài **UptimeRobot** free: ping `https://api.traotay.com.vn/` mỗi 5 phút → alert email nếu down
@@ -526,6 +563,26 @@ Xem [docs/modules/playstore-screenshots.md](modules/playstore-screenshots.md).
 ### ⚠️ HIGH — Backup discipline
 - [ ] Daily backup verify: tự động email check "backup size tuần này"
 - [ ] Monthly restore drill: 1 lần/tháng restore vào staging, verify data OK
+
+### 🚨 CRITICAL — Purge Cloudflare cache sau MỌI lần redeploy web
+Next.js set `Cache-Control: s-maxage=31536000` (1 năm) cho trang static — Cloudflare giữ
+nguyên HTML/JS cũ ở edge dù origin đã có code mới, container restart không tự invalidate.
+Sự cố thật: 2026-06-24, fix bug "Giá bắt buộc" deploy xong nhưng user vẫn thấy lỗi cũ suốt
+nhiều lần test vì Cloudflare trả bản cache cũ (`Cf-Cache-Status: HIT`, `Age: 2055s`).
+
+Sau mỗi lần `docker compose -f docker-compose.prod.yml --env-file .env.docker up -d --build web`:
+```bash
+curl -s -X POST "https://api.cloudflare.com/client/v4/zones/d105a8ac126abc0cae5dcdb3634965f3/purge_cache" \
+  -H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json" \
+  --data '{"purge_everything":true}'
+```
+- [ ] `CF_API_TOKEN` trong `.env.docker` cần quyền **Zone → Cache Purge → Purge** (token hiện tại
+      chỉ có quyền đọc Analytics — phải vào Cloudflare Dashboard → My Profile → API Tokens → Edit
+      token → thêm permission, hoặc tạo token mới rồi cập nhật `.env.docker`)
+- [ ] Nếu không có quyền API: purge tay qua Dashboard → chọn domain → Caching → Configuration →
+      Purge Everything (mất ~5 giây có hiệu lực)
+- [ ] Verify sau purge: `curl -sI https://traotay.com.vn/<route> | grep -i cf-cache-status` phải
+      ra `MISS` (không phải `HIT`)
 
 ### ⚙️ MEDIUM — Security maintenance
 - [ ] Monthly: `npm audit` backend, `flutter pub outdated` app, fix CVE
@@ -550,7 +607,7 @@ Xem [docs/modules/playstore-screenshots.md](modules/playstore-screenshots.md).
 
 ---
 
-## 16. Rollback Plan
+## 17. Rollback Plan
 
 Khi deploy gặp lỗi nghiêm trọng, thứ tự rollback:
 
@@ -596,7 +653,8 @@ Nếu cả code + DB hỏng:
 | Ngày | Thay đổi | Commit |
 |---|---|---|
 | 2026-04-24 | Tạo mới, tổng hợp từ audit full codebase | — |
+| 2026-06-24 | Thêm section 13 (iOS / App Store); renumber 13-16 → 14-17 | — |
 
 ---
 
-**Nguyên tắc:** Trước khi deploy production **lần đầu**, tick ít nhất 🚨 CRITICAL và ⚠️ HIGH trong section 1-12. ⚙️ MEDIUM và 💡 LOW có thể làm post-launch.
+**Nguyên tắc:** Trước khi deploy production **lần đầu**, tick ít nhất 🚨 CRITICAL và ⚠️ HIGH trong section 1-13. ⚙️ MEDIUM và 💡 LOW có thể làm post-launch.
