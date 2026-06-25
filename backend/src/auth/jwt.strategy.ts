@@ -16,6 +16,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: { sub: string; email: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user || user.isBanned) throw new UnauthorizedException();
+
+    // Throttle: chỉ ghi lastActiveAt 1 lần/ngày, tránh ghi DB trên mọi request
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    if (!user.lastActiveAt || user.lastActiveAt < todayStart) {
+      this.prisma.user
+        .update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
+        .catch(() => {});
+    }
+
     return { id: user.id, email: user.email, name: user.name, role: user.role };
   }
 }

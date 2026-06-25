@@ -100,7 +100,7 @@ export class NotificationCronService {
 
     const [postCount, visitorCount] = await Promise.all([
       this.prisma.post.count({ where: { status: 'available' } }),
-      this.prisma.user.count({ where: { updatedAt: { gte: todayStart } } }),
+      this.prisma.user.count({ where: { lastActiveAt: { gte: todayStart } } }),
     ]);
 
     const title = 'Bản tin Trao Tay 📦';

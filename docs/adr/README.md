@@ -16,6 +16,10 @@ Xem `docs/standards/ADR_TEMPLATE.md` cho template chi tiết.
 | 0007 | [Defer Dark Mode tới Stage 2 GA](0007-defer-dark-mode.md) | Accepted | 2026-05-08 |
 | 0008 | [Defer Atomic Design folder refactor tới >30 reusable components](0008-defer-atomic-design-refactor.md) | Accepted | 2026-05-08 |
 | 0009 | [Defer Usability Testing 5-user tới Stage 2 + Recruit Strategy](0009-defer-usability-testing-5-user.md) | Accepted | 2026-05-08 |
+| 0010 | [PostView aggregate theo ngày — Top bài lượt xem theo period](0010-postview-aggregate-table.md) | Accepted | 2026-05-08 |
+| 0011 | [Post.status DB-level CHECK constraint](0011-post-status-db-constraint.md) | Accepted | 2026-05-23 |
+| 0012 | [AppDownloadLog: bảng tracking lượt tải app](0012-app-download-tracking-table.md) | Accepted | 2026-05-24 |
+| 0013 | [Migration tổng hợp đóng băng schema drift + thêm User.lastActiveAt](0013-sync-schema-drift-last-active-at.md) | Accepted | 2026-06-25 |
 
 ## Workflow tạo ADR mới
 
