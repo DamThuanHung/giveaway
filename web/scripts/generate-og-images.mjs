@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 /**
- * Generate OG images cho mỗi post sau next build.
+ * Generate OG images cho mỗi post — chạy trong Dockerfile builder stage,
+ * sau next build, trước khi COPY public/ sang runner stage.
  *
- * Output: web/out/og/{postId}.png — 1200x630 PNG.
+ * Output: web/public/og/{postId}.png — 1200x630 PNG.
  * Reference: meta og:image trong app/posts/[id]/page.tsx.
  *
- * Why pre-generate: web dùng output:'export' static — không có Node runtime
- * trên server, không thể dùng @vercel/og Edge endpoint. Pre-generate ở build
- * time để mỗi post có banner đẹp khi share Zalo/FB.
- *
- * Cron 1h rebuild → posts mới sẽ có OG image trong vòng 1 giờ.
+ * Posts mới tạo giữa 2 lần deploy chưa có OG image (404) tới khi deploy kế
+ * tiếp rebuild lại image — chấp nhận được vì web rebuild khá thường xuyên.
  */
 import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
