@@ -122,8 +122,15 @@ export async function fetchAllAuthorIds(): Promise<{ id: string }[]> {
   return Array.from(seen).slice(0, MAX_AUTHORS).map((id) => ({ id }));
 }
 
+export function isFreePost(post: { listingType: string }): boolean {
+  return post.listingType === "give" || post.listingType === "free";
+}
+
+/// Giá hiển thị thuần số — price=0 ở bài "sell" nghĩa là "để trống = thương
+/// lượng" (khác "Miễn phí" của bài "give"). Dùng isFreePost() để phân biệt
+/// trước khi gọi hàm này.
 export function formatPrice(amount: number): string {
-  if (amount === 0) return "Miễn phí";
+  if (amount === 0) return "Thương lượng";
   if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)} tỷ`;
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)} triệu`;
   if (amount >= 1_000) return `${Math.round(amount / 1_000)}.000đ`;

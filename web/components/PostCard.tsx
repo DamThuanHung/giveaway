@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Post, formatPrice, formatLocation, CATEGORIES } from "@/lib/api";
+import { Post, formatPrice, formatLocation, isFreePost, CATEGORIES } from "@/lib/api";
 import { FavoriteButton } from "./FavoriteButton";
 
 // Sparkles VIP — 6 ngôi sao với phase shift khác nhau, port từ mobile
@@ -28,7 +28,7 @@ export function PostCard({ post }: { post: Post }) {
   const tier = post.boostTier || 0;
   const isVip = tier === 3;
   const isPlus = tier === 2;
-  const isFree = post.price === 0 || post.listingType === "give";
+  const isFree = isFreePost(post);
   const isSold = post.status === "done";
   const isReserved = post.status === "reserved";
   const imageCount = post.images?.length ?? 0;

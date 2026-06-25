@@ -33,7 +33,6 @@ const LISTING_TYPES = [
 ];
 
 const PRICE_RANGES: { label: string; min?: number; max?: number }[] = [
-  { label: "🎁 Miễn phí", max: 0 },
   { label: "< 100k", max: 100_000 },
   { label: "100k–500k", min: 100_000, max: 500_000 },
   { label: "500k–2tr", min: 500_000, max: 2_000_000 },
@@ -147,6 +146,15 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
     });
   }
 
+  // "Miễn phí" là listingType=give, không phải price<=0 — bài bán để giá
+  // trống (thương lượng) cũng có price=0 nhưng không phải hàng cho tặng.
+  // Xóa min/max cũ vì give luôn có price=0, để lại minPrice>0 sẽ làm rỗng kết quả.
+  function applyFreeFilter() {
+    setMinInput("");
+    setMaxInput("");
+    updateQuery({ type: "give", min: undefined, max: undefined });
+  }
+
   function applyCustomPrice() {
     const min = parsePriceInput(minInput);
     const max = parsePriceInput(maxInput);
@@ -218,12 +226,22 @@ export function PostsExplorer({ initialData, initialQuery }: Props) {
             <button
               onClick={() => applyPriceRange(undefined, undefined)}
               className={`col-span-2 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-warm ${
-                query.minPrice == null && query.maxPrice == null
+                query.minPrice == null && query.maxPrice == null && query.listingType !== "give"
                   ? "bg-primary text-white shadow-soft"
                   : "bg-ink-100 hover:bg-ink-200 text-ink-700"
               }`}
             >
               Tất cả
+            </button>
+            <button
+              onClick={applyFreeFilter}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-warm ${
+                query.listingType === "give"
+                  ? "bg-primary text-white shadow-soft"
+                  : "bg-ink-100 hover:bg-ink-200 text-ink-700"
+              }`}
+            >
+              🎁 Miễn phí
             </button>
             {PRICE_RANGES.map((r) => (
               <button

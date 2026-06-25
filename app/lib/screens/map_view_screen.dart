@@ -47,8 +47,8 @@ class _MapViewScreenState extends State<MapViewScreen> {
 
   List<Post> get _filteredPosts {
     switch (_filter) {
-      case 'give': return _allPosts.where((p) => p.listingType == 'give' || p.price == 0).toList();
-      case 'sell': return _allPosts.where((p) => p.listingType != 'give' && p.price > 0).toList();
+      case 'give': return _allPosts.where((p) => p.isFree).toList();
+      case 'sell': return _allPosts.where((p) => !p.isFree).toList();
       default: return _allPosts;
     }
   }
@@ -143,7 +143,7 @@ class _MapViewScreenState extends State<MapViewScreen> {
                     ),
                     MarkerLayer(
                       markers: posts.map((post) {
-                        final isFree = post.listingType == 'give' || post.price == 0;
+                        final isFree = post.isFree;
                         final isSelected = _selectedPost?.id == post.id;
                         return Marker(
                           point: LatLng(post.latitude, post.longitude),
@@ -318,7 +318,7 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFree = post.listingType == 'give' || post.price == 0;
+    final isFree = post.isFree;
     return GestureDetector(
       onTap: onTap,
       child: Container(

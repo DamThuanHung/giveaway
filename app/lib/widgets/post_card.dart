@@ -77,7 +77,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final post = widget.post;
     final tier = post.effectiveTier;
-    final bool isFree = post.listingType == 'give' || post.price == 0;
+    final bool isFree = post.isFree;
     final bool isSold = post.status == 'done';
     final bool isReserved = post.status == 'reserved';
 

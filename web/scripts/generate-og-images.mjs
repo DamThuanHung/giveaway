@@ -49,8 +49,9 @@ const CATEGORIES = {
   other: "Khác",
 };
 
-function formatVND(price) {
-  if (!price || price === 0) return "Miễn phí";
+function formatVND(price, listingType) {
+  if (listingType === "give" || listingType === "free") return "Miễn phí";
+  if (!price || price === 0) return "Thương lượng";
   if (price >= 1_000_000_000) return `${(price / 1_000_000_000).toFixed(1)}tỷ`;
   if (price >= 1_000_000) return `${(price / 1_000_000).toFixed(1)}tr`;
   if (price >= 1000) return `${Math.round(price / 1000)}k`;
@@ -81,7 +82,7 @@ async function fetchImageDataUri(url) {
   }
 }
 
-function template({ title, price, location, category, imageDataUri }) {
+function template({ title, price, listingType, location, category, imageDataUri }) {
   // Layout 1200x630 — left 60% banner image với gradient overlay,
   // right 40% panel màu emerald primary với info.
   return {
@@ -201,7 +202,7 @@ function template({ title, price, location, category, imageDataUri }) {
                           color: "#047857",
                           lineHeight: 1,
                         },
-                        children: formatVND(price),
+                        children: formatVND(price, listingType),
                       },
                     },
                     location && {
@@ -246,6 +247,7 @@ async function renderPng(post, fonts) {
   const node = template({
     title: post.title || "(không tên)",
     price: post.price,
+    listingType: post.listingType,
     location: post.province || "",
     category: CATEGORIES[post.itemCategory] || post.itemCategory,
     imageDataUri,

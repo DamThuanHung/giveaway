@@ -756,7 +756,7 @@ class _SearchTabState extends State<SearchTab> {
               itemCount: _viewedPosts.length,
               itemBuilder: (_, i) {
                 final p = _viewedPosts[i];
-                final isFree = p['listingType'] == 'give' || (p['price'] as int? ?? 0) == 0;
+                final isFree = p['listingType'] == 'give' || p['listingType'] == 'free';
                 final imgUrl = (p['images'] as List?)?.isNotEmpty == true
                     ? p['images'][0].toString()
                     : p['imageLabel']?.toString().isNotEmpty == true
@@ -803,7 +803,7 @@ class _SearchTabState extends State<SearchTab> {
                                 maxLines: 2, overflow: TextOverflow.ellipsis),
                             const Spacer(),
                             Text(
-                              isFree ? 'Miễn phí' : PostCard.formatPrice(p['price'] as int? ?? 0, p['listingType'] ?? 'sell'),
+                              PostCard.formatPrice(p['price'] as int? ?? 0, p['listingType'] ?? 'sell'),
                               style: TextStyle(
                                 fontSize: 11, fontWeight: FontWeight.bold,
                                 color: isFree ? AppTheme.freeColor : AppTheme.priceColor,

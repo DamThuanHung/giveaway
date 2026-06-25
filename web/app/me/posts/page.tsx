@@ -7,7 +7,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { fetchMyPosts } from "@/lib/auth";
-import { formatPrice, formatDate, CATEGORIES } from "@/lib/api";
+import { formatPrice, formatDate, isFreePost, CATEGORIES } from "@/lib/api";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -188,8 +188,8 @@ function MyPostsContent() {
                         {chip.label}
                       </span>
                     </div>
-                    <div className={`text-base font-extrabold mb-1 ${p.price === 0 ? "text-primary-600" : "text-ink-900"}`}>
-                      {p.price === 0 ? "🎁 Miễn phí" : formatPrice(p.price)}
+                    <div className={`text-base font-extrabold mb-1 ${isFreePost(p) ? "text-primary-600" : "text-ink-900"}`}>
+                      {isFreePost(p) ? "🎁 Miễn phí" : formatPrice(p.price)}
                     </div>
                     <div className="text-xs text-ink-500 mb-3">
                       {CATEGORIES[p.itemCategory] || p.itemCategory} · {p.viewCount || 0} lượt xem · {formatDate(p.createdAt)}

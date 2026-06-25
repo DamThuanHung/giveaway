@@ -678,7 +678,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   children: [
                     Text(
                       PostCard.formatPrice(_post.price, _post.listingType),
-                      style: TextStyle(fontSize: 22, color: (_post.listingType == 'give' || _post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 22, color: _post.isFree ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold),
                     ),
                     if (_post.priceUnit != null && _post.priceUnit!.isNotEmpty && _post.priceUnitLabel.isNotEmpty)
                       Text(
@@ -949,7 +949,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
-                                                color: p.price == 0 ? AppTheme.freeColor : AppTheme.priceColor,
+                                                color: p.isFree ? AppTheme.freeColor : AppTheme.priceColor,
                                               ),
                                             ),
                                           ],

@@ -11,6 +11,7 @@ app/build/
 web/out/
 web/.next/
 web/tsconfig.tsbuildinfo
+web/public/og/
 
 # Environment
 .env

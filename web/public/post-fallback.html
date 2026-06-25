@@ -111,8 +111,9 @@
 
     const BADGE = { give: ['Cho tặng', 'badge-give'], sell: ['Bán', 'badge-sell'], want: ['Tìm mua', 'badge-want'] };
 
-    function fmtPrice(price, priceUnit) {
-      if (!price || price === 0) return { text: 'Miễn phí', cls: 'free' };
+    function fmtPrice(price, priceUnit, listingType) {
+      if (listingType === 'give' || listingType === 'free') return { text: 'Miễn phí', cls: 'free' };
+      if (!price || price === 0) return { text: 'Thương lượng', cls: 'paid' };
       const p = Number(price);
       const unit = priceUnit === 'month' ? '/tháng' : priceUnit === 'week' ? '/tuần' : '';
       if (p >= 1e9) return { text: (p / 1e9).toFixed(1).replace('.0','') + ' tỷ' + unit, cls: 'paid' };
@@ -145,7 +146,7 @@
 
     function render(p) {
       const [badgeText, badgeCls] = BADGE[p.listingType] || ['Bài đăng', 'badge-sell'];
-      const price = fmtPrice(p.price, p.priceUnit);
+      const price = fmtPrice(p.price, p.priceUnit, p.listingType);
       const imgs = (p.images || []).filter(Boolean);
       const imgHtml = imgs.length
         ? `<img src="${imgs[0]}" alt="${p.title}" loading="lazy" onerror="this.style.display='none'" />`

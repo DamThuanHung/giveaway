@@ -225,7 +225,7 @@ class _FavoriteItem extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: (post.listingType == 'give' || post.price == 0) ? AppTheme.freeColor : AppTheme.priceColor,
+                        color: post.isFree ? AppTheme.freeColor : AppTheme.priceColor,
                       )),
                   const SizedBox(height: 6),
                   Row(children: [

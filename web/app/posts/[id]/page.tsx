@@ -10,6 +10,7 @@ import {
   formatPrice,
   formatDate,
   formatLocation,
+  isFreePost,
   CATEGORIES,
 } from "@/lib/api";
 import { PostCard } from "@/components/PostCard";
@@ -44,8 +45,10 @@ export async function generateMetadata({
     ...(post.imageUrl ? [{ url: post.imageUrl, alt: post.title }] : []),
   ];
 
+  const priceLabel = isFreePost(post) ? "Miễn phí" : formatPrice(post.price);
+
   return {
-    title: `${post.title} — ${formatPrice(post.price)} · ${post.province}`,
+    title: `${post.title} — ${priceLabel} · ${post.province}`,
     description: desc,
     alternates: { canonical: url },
     openGraph: {
@@ -83,7 +86,7 @@ export default async function PostDetailPage({
     .filter((p) => p.id !== post.id)
     .slice(0, 4);
 
-  const isFree = post.price === 0;
+  const isFree = isFreePost(post);
   const isVip = post.boostTier === 3;
   const isPlus = post.boostTier === 2;
 

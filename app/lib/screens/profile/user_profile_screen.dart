@@ -315,7 +315,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             (ctx, i) {
                               final post = _posts[i];
                               final imgUrl = _getImageUrl(post);
-                              final isFree = post.price == 0 || post.listingType == 'give';
+                              final isFree = post.isFree;
                               return GestureDetector(
                                 onTap: () => Navigator.push(ctx, MaterialPageRoute(
                                   builder: (_) => PostDetailScreen(
