@@ -46,7 +46,7 @@ class _MessagesTabState extends State<MessagesTab> {
   @override
   void initState() {
     super.initState();
-    _loadRooms();
+    if (context.read<AuthProvider>().isAuth) _loadRooms();
   }
 
   Future<void> _loadRooms() async {

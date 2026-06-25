@@ -86,11 +86,12 @@ class _HomeFeedState extends State<_HomeFeed> {
     ],
   };
 
+  bool _locationRequested = false;
+
   @override
   void initState() {
     super.initState();
     _loadFavorites();
-    _detectLocation();
   }
 
   Future<void> _detectLocation() async {
@@ -207,6 +208,12 @@ class _HomeFeedState extends State<_HomeFeed> {
   void _onFeedTab(int index) {
     if (_feedTab == index) return;
     setState(() => _feedTab = index);
+    // Chỉ xin quyền vị trí khi user thực sự bấm "Gần bạn" — không xin ngay
+    // lúc mở Home (đã từng gây phiền vì xin quyền trước khi user thấy giá trị gì).
+    if (index == 2 && !_locationRequested) {
+      _locationRequested = true;
+      _detectLocation();
+    }
     _refetch();
   }
 
@@ -284,7 +291,10 @@ class _HomeFeedState extends State<_HomeFeed> {
 
   Future<void> _toggleFavorite(String postId) async {
     final auth = context.read<AuthProvider>();
-    if (!auth.isAuth || auth.userId == null) return;
+    if (!auth.isAuth || auth.userId == null) {
+      _showLoginPrompt();
+      return;
+    }
     final isFav = _favoriteIds.contains(postId);
 
     // OPTIMISTIC UI: update state ngay, KHÔNG đợi server

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Redirect, Res } from '@nestjs/common';
+import { Controller, Get, HttpCode, Param, Post, Query, Redirect, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AppService } from './app.service';
@@ -18,16 +18,29 @@ export class AppController {
 
   // GET /health — UptimeRobot / monitoring ping.
   // Trả 200 + check DB connection. Skip throttle để không bị rate limit bởi monitor.
-  // GET /download/android — redirect đến APK + ghi log lượt tải
+  // GET /download/android — chỉ redirect đến APK, KHÔNG ghi log (xem lý do dưới
+  // POST /download/track). Giữ route này để link cũ/QR/share không bị 404.
   @Get('download/:platform')
   @SkipThrottle()
   @Redirect()
   async downloadApp(@Param('platform') platform: string) {
-    const safePlatform = ['android', 'ios'].includes(platform) ? platform : 'android';
-    await this.prisma.appDownloadLog.create({ data: { platform: safePlatform } });
     const url = process.env.APK_DOWNLOAD_URL
       || 'https://s3.traotay.com.vn/traotay/releases/traotay-latest.apk';
     return { url, statusCode: 302 };
+  }
+
+  // POST /download/track/android — ghi log lượt tải, gọi bằng JS từ nút bấm
+  // trên landing page (web/components/DownloadAppButton.tsx). Trước đây log tại
+  // GET /download/:platform nhưng request đó bị bot/crawler (Facebook link
+  // preview, Googlebot, GPTBot...) gọi tới đúng URL mỗi khi link được share,
+  // khiến số liệu sai lệch ~65% (xem ADR-0012). Bot không chạy JS nên không gọi
+  // được endpoint này → số liệu phản ánh đúng người bấm thật.
+  @Post('download/track/:platform')
+  @SkipThrottle()
+  @HttpCode(204)
+  async trackDownload(@Param('platform') platform: string) {
+    const safePlatform = ['android', 'ios'].includes(platform) ? platform : 'android';
+    await this.prisma.appDownloadLog.create({ data: { platform: safePlatform } });
   }
 
   // GET /threads/callback — nhận OAuth code từ Threads API, hiển thị để lấy token

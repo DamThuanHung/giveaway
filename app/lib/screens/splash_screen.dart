@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import 'onboarding_screen.dart';
 import 'app_shell.dart';
-import 'auth/phone_login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -121,10 +120,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (!mounted) return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      _fadeRoute(auth.isAuth ? const AppShell() : const PhoneLoginScreen()),
-    );
+    // Cho xem feed trước, không ép login — AppShell tự gate từng tab/action
+    // cần auth (Đăng tin, Cá nhân, Tin nhắn, lưu bài...) bằng PhoneLoginScreen.
+    Navigator.pushReplacement(context, _fadeRoute(const AppShell()));
   }
 
   PageRouteBuilder _fadeRoute(Widget page) => PageRouteBuilder(

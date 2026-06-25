@@ -130,12 +130,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   void _onItemTapped(int index) async {
+    // Đăng tin (2) và Cá nhân (4) cần auth — guest bấm vào thì đưa qua đăng nhập
+    // thay vì để lộ tab trống/giả định có user (gây crash hoặc UI vô nghĩa).
+    if ((index == 2 || index == 4) && !context.read<AuthProvider>().isAuth) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen(popOnSuccess: true)));
+      return;
+    }
     if (index == 2) {
-      final auth = context.read<AuthProvider>();
-      if (!auth.isAuth) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const PhoneLoginScreen()));
-        return;
-      }
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const CreatePostTab()),

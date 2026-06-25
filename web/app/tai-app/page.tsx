@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { DownloadAppButton } from "@/components/DownloadAppButton";
 
 export const metadata: Metadata = {
   title: "Tải app Trao Tay — Android APK",
@@ -45,12 +46,13 @@ export default function TaiAppPage() {
               <p className="text-sm text-ink-600 mt-1">
                 Tải file APK và cài trực tiếp — không cần qua Play Store.
               </p>
-              <a
+              <DownloadAppButton
+                platform="android"
                 href={APK_URL}
                 className="inline-block mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-sm font-semibold px-5 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
               >
                 ⬇️ Tải APK cho Android
-              </a>
+              </DownloadAppButton>
               <details className="mt-4 text-sm text-ink-600">
                 <summary className="cursor-pointer font-medium text-ink-700 hover:text-ink-900">
                   Hướng dẫn cài đặt (lần đầu cần bật &quot;Cài từ nguồn không xác định&quot;)
