@@ -150,7 +150,18 @@ Khi user thể hiện frustration ("sao càng làm càng lỗi", "?????", "trẫ
 - Tuyệt đối không đưa option "để mai"/"nghỉ" trong list đề xuất
 - User quyết định lúc dừng
 
-### 4.9 Hiệu quả > tốc độ
+### 4.9 Phản hồi khi bị chỉ trích / sửa lỗi
+
+Khi user chỉ trích hoặc sửa lỗi output vừa đưa ra, PHẢI thực hiện đúng 4 bước:
+
+1. **NHẬN LỖI NGAY** — dòng đầu tiên là nhận lỗi cụ thể, KHÔNG giải thích dài, KHÔNG biện hộ
+2. **XÁC ĐỊNH GỐC RỄ** — tại sao sai? (thiếu thông tin / suy luận sai / chưa đọc file thực tế?)
+3. **CẬP NHẬT RULE** — tạo rule cụ thể để không lặp lại; lưu vào memory + AI_WORKING_RULES.md nếu pattern quan trọng
+4. **ÁP DỤNG NGAY** — response kế tiếp đã thay đổi hành vi thực tế
+
+Trigger: user dùng từ chỉ trích ("sao lại", "trẫm bảo rồi", "????", "lại làm sai") hoặc sửa output vừa đưa ra.
+
+### 4.10 Hiệu quả > tốc độ
 - KHÔNG đề xuất "bỏ feature để rút ngắn scope" làm option default
 - Order options:
   1. Default = đầy đủ + đúng
