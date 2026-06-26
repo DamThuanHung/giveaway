@@ -155,6 +155,19 @@ function httpPost(url, payload, headers = {}) {
   });
 }
 
+// ─── Threads text (giới hạn cứng 500 ký tự, caption gốc luôn dài hơn) ──────────
+
+const SLOGAN = 'Đồ cũ người này, Báu vật người kia';
+
+function buildThreadsText(body) {
+  const lines = body.split('\n').map(l => l.trim()).filter(Boolean);
+  const opening = lines[1] || lines[0] || '';
+  const bullet = lines.find(l => /^[\u{1F300}-\u{1FAFF}☀-➿]/u.test(l)) || '';
+  let text = [opening, bullet, `"${SLOGAN}"`, '🌐 traotay.com.vn'].filter(Boolean).join('\n\n');
+  if (text.length > 500) text = text.slice(0, 497) + '...';
+  return text;
+}
+
 // ─── Platforms ────────────────────────────────────────────────────────────────
 
 async function postFacebook(caption, imageUrl) {
@@ -204,16 +217,21 @@ async function postInstagram(caption, imageUrl) {
   return { platform: 'Instagram', ok: false, error: publishRes.body?.error?.message || JSON.stringify(publishRes.body) };
 }
 
-async function postThreads(caption, imageUrl) {
+// Threads không critical: lỗi Threads (vd vượt 500 ký tự) không được chặn
+// FB/Instagram advance queue — tránh đăng trùng lặp lên 2 nền tảng chính
+// mỗi giờ khi Threads cứ lỗi mãi (sự cố thật 2026-06-26: 1 bài bị đăng trùng
+// 13 lần lên FB+IG vì Threads lỗi chặn markDone).
+async function postThreads(body, imageUrl) {
   const userId = process.env.THREADS_USER_ID;
   const token = process.env.THREADS_ACCESS_TOKEN;
   if (!userId || !token) return { platform: 'Threads', skipped: true, reason: 'chưa set credentials' };
 
+  const text = buildThreadsText(body);
   const createRes = await httpPost(
     `https://graph.threads.net/v1.0/${userId}/threads`,
     imageUrl
-      ? { media_type: 'IMAGE', image_url: imageUrl, text: caption, access_token: token }
-      : { media_type: 'TEXT', text: caption, access_token: token }
+      ? { media_type: 'IMAGE', image_url: imageUrl, text, access_token: token }
+      : { media_type: 'TEXT', text, access_token: token }
   );
   if (!createRes.body?.id) return { platform: 'Threads', ok: false, error: createRes.body?.error?.message || JSON.stringify(createRes.body) };
 
@@ -244,10 +262,12 @@ async function main() {
   if (isDryRun) {
     console.log('\n🔍 DRY RUN — không đăng thật, không render/upload ảnh\n');
     console.log(`🖼️  Hook ảnh sẽ dùng: "${extractHook(caption)}"`);
-    console.log('--- Facebook & Threads (không hashtag) ---');
+    console.log('--- Facebook (không hashtag) ---');
     console.log(body);
     console.log('--- Instagram (kèm hashtag) ---');
     console.log(igCaption);
+    console.log(`--- Threads (rút gọn ≤500 ký tự, ${buildThreadsText(body).length} ký tự) ---`);
+    console.log(buildThreadsText(body));
     return;
   }
 
@@ -269,8 +289,11 @@ async function main() {
 
   console.log('\n📊 KẾT QUẢ:\n');
   let allOk = true;
+  // Facebook & Instagram critical (lỗi thì giữ bài lại để retry giờ sau).
+  // Threads không critical: lỗi Threads không được chặn FB/IG advance queue.
+  const PLATFORM_CRITICAL = [true, true, false];
 
-  results.forEach(r => {
+  results.forEach((r, i) => {
     const result = r.status === 'fulfilled' ? r.value : { platform: '?', ok: false, error: r.reason?.message };
     if (result.skipped) {
       console.log(`⏭️  ${result.platform}: bỏ qua — ${result.reason}`);
@@ -278,7 +301,7 @@ async function main() {
       console.log(`✅ ${result.platform}: thành công (id: ${result.id})`);
     } else {
       console.log(`❌ ${result.platform}: lỗi — ${result.error}`);
-      allOk = false;
+      if (PLATFORM_CRITICAL[i]) allOk = false;
     }
   });
 
