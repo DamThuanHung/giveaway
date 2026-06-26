@@ -73,6 +73,23 @@ function getNextCaption() {
   return { caption, file, fromDone: true };
 }
 
+// ─── Stuck-file detection ───────────────────────────────────────────────────
+// State nhỏ ghi lại file + số lần retry liên tiếp, để cảnh báo sớm nếu 1 file
+// bị kẹt nhiều lần (xem postmortem 2026-06-26-threads-caption-limit-duplicate-posts.md
+// — trước đây phải đợi user hỏi mới phát hiện 13 lần đăng trùng).
+
+const RETRY_STATE_FILE = path.join(__dirname, '.retry-state.json');
+
+function trackRetry(file) {
+  let state = { file: null, count: 0 };
+  try { state = JSON.parse(fs.readFileSync(RETRY_STATE_FILE, 'utf8')); } catch {}
+  state = state.file === file ? { file, count: state.count + 1 } : { file, count: 1 };
+  fs.writeFileSync(RETRY_STATE_FILE, JSON.stringify(state));
+  if (state.count > 2) {
+    console.warn(`⚠️  STUCK: file ${file} đã thử ${state.count} lần liên tiếp — kiểm tra log lỗi platform critical (Facebook/Instagram) phía trên.`);
+  }
+}
+
 function markDone(file, fromDone) {
   if (fromDone) {
     // Tái đăng: đẩy file xuống cuối vòng quay (re-timestamp) để các bài khác được luân phiên trước
@@ -254,8 +271,10 @@ async function main() {
   const igCaption = hashtags ? `${body}\n\n${hashtags}` : body;
 
   console.log('\n📣 TRAO TAY — SOCIAL AUTO-POSTER');
+  console.log(`🕐 ${new Date().toISOString()}`);
   console.log('═'.repeat(50));
   console.log(`📄 File: ${file}${fromDone ? ' (tái sử dụng từ done/)' : ''}`);
+  if (!isDryRun) trackRetry(file);
   console.log(`📝 Caption (${caption.length} ký tự):\n${caption.slice(0, 120)}${caption.length > 120 ? '…' : ''}`);
   console.log('═'.repeat(50));
 
@@ -309,6 +328,7 @@ async function main() {
 
   if (allOk) {
     markDone(file, fromDone);
+    fs.writeFileSync(RETRY_STATE_FILE, JSON.stringify({ file: null, count: 0 }));
     const remaining = fs.readdirSync(QUEUE_DIR).filter(f => f.endsWith('.txt')).length;
     console.log(`🗑️  ${file} → done/`);
     console.log(`📋 Queue còn lại: ${remaining} bài`);
