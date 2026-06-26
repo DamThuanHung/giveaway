@@ -20,8 +20,27 @@ export class AnalyticsCronService {
     }
 
     try {
-      const data = await this.adminService.getAnalytics('yesterday');
+      const [data, digest, revenueStats] = await Promise.all([
+        this.adminService.getAnalytics('yesterday'),
+        this.adminService.getYesterdayDigest(),
+        this.adminService.getRevenueStats(),
+      ]);
       const { web, app } = data;
+      const { newUsers, newPosts, newCompleted, pendingReports, revenueYesterday } = digest;
+      const { momPct } = revenueStats;
+
+      const reportColor = pendingReports > 0 ? '#ef4444' : '#10b981';
+      const reportBg = pendingReports > 0 ? '#fef2f2' : '#f0fdf4';
+
+      const momRow = momPct === null ? '' : `
+            <tr>
+              <td style="padding:12px;background:#fefce8;border-radius:8px;text-align:center;width:25%">
+                <div style="font-size:20px;font-weight:bold;color:${momPct < 0 ? '#ef4444' : '#10b981'}">${momPct > 0 ? '+' : ''}${momPct}%</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">Doanh thu so tháng trước</div>
+              </td>
+              <td style="width:8px"></td>
+              <td colspan="3"></td>
+            </tr>`;
 
       const html = `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px">
@@ -50,6 +69,37 @@ export class AnalyticsCronService {
                 <div style="font-size:12px;color:#6b7280;margin-top:4px">Lượt tải app</div>
               </td>
             </tr>
+            <tr><td colspan="5" style="padding-top:8px"></td></tr>
+            <tr>
+              <td style="padding:12px;background:#ecfeff;border-radius:8px;text-align:center;width:25%">
+                <div style="font-size:28px;font-weight:bold;color:#06b6d4">${newPosts}</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">Bài đăng mới</div>
+              </td>
+              <td style="width:8px"></td>
+              <td style="padding:12px;background:#eef2ff;border-radius:8px;text-align:center;width:25%">
+                <div style="font-size:28px;font-weight:bold;color:#6366f1">${newUsers}</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">User mới</div>
+              </td>
+              <td style="width:8px"></td>
+              <td style="padding:12px;background:#f0fdfa;border-radius:8px;text-align:center;width:25%">
+                <div style="font-size:28px;font-weight:bold;color:#14b8a6">${newCompleted}</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">Giao dịch hoàn tất</div>
+              </td>
+              <td style="width:8px"></td>
+              <td style="padding:12px;background:${reportBg};border-radius:8px;text-align:center;width:25%">
+                <div style="font-size:28px;font-weight:bold;color:${reportColor}">${pendingReports}</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">Report chờ xử lý</div>
+              </td>
+            </tr>
+            <tr><td colspan="5" style="padding-top:8px"></td></tr>
+            <tr>
+              <td style="padding:12px;background:#f0fdf4;border-radius:8px;text-align:center;width:25%">
+                <div style="font-size:20px;font-weight:bold;color:#10b981">${revenueYesterday.toLocaleString('vi-VN')}đ</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">Doanh thu hôm qua</div>
+              </td>
+              <td style="width:8px"></td>
+              <td colspan="3"></td>
+            </tr>${momRow}
           </table>
 
           <div style="margin-top:24px;text-align:center">
@@ -65,11 +115,12 @@ export class AnalyticsCronService {
         </div>
       `;
 
+      const reportWarning = pendingReports > 0 ? `⚠️ ${pendingReports} report chờ xử lý — ` : '';
       const resend = new Resend(apiKey);
       await resend.emails.send({
         from: 'Trao Tay <noreply@traotay.com.vn>',
         to: adminEmail,
-        subject: `📊 Báo cáo hôm qua — ${web.visitors} khách, ${app.total} lượt tải app`,
+        subject: `📊 ${reportWarning}Báo cáo hôm qua — ${web.visitors} khách, ${app.total} lượt tải app`,
         html,
       });
 

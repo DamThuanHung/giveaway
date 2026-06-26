@@ -133,6 +133,29 @@ export class AdminService implements OnModuleInit {
     };
   }
 
+  /// Số liệu vận hành "hôm qua" (ngày trước ngày hiện tại theo UTC+7) — dùng cho mail báo cáo hàng ngày.
+  async getYesterdayDigest() {
+    const todayStart = computeSince('day')!;
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+    const dayFilter = { gte: yesterdayStart, lt: todayStart };
+
+    const [newUsers, newPosts, newCompleted, pendingReports, revenue] = await Promise.all([
+      this.prisma.user.count({ where: { createdAt: dayFilter } }),
+      this.prisma.post.count({ where: { createdAt: dayFilter, NOT: { status: DELETED_BY_ADMIN } } }),
+      this.prisma.post.count({ where: { status: 'done', completedAt: dayFilter } }),
+      this.prisma.report.count({ where: { status: 'pending' } }),
+      this.prisma.bumpOrder.aggregate({ where: { status: 'paid', createdAt: dayFilter }, _sum: { amount: true } }),
+    ]);
+
+    return {
+      newUsers,
+      newPosts,
+      newCompleted,
+      pendingReports,
+      revenueYesterday: revenue._sum.amount ?? 0,
+    };
+  }
+
   /// Top users by posts/deals + top posts by views — cho widget dashboard.
   /// period: 'day' | 'week' | 'month' | 'year' | 'all' (mặc định 'all').
   /// - topUsersByPosts: đếm Post.createdAt >= since
