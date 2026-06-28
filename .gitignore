@@ -63,6 +63,12 @@ scripts/social/.env
 scripts/social/next-post.txt
 scripts/social/queue/done/
 scripts/social/post-all.log
+scripts/social/.retry-state.json
+scripts/social/tmp/
+scripts/social/test-reel.mp4
+scripts/social/assets/music/*.mp3
+scripts/social/assets/music/*.wav
+scripts/social/assets/music/*.m4a
 
 # Logs
 *.log

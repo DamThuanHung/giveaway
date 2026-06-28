@@ -20,6 +20,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { extractHook, getOrCreateCardUrl } = require('./generate-card');
+const { getOrCreateReelUrl } = require('./generate-video');
 
 // ─── Load env ─────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,27 @@ function getNextCaption() {
   const file = doneFiles[0];
   const caption = fs.readFileSync(path.join(DONE_DIR, file), 'utf8').trim();
   return { caption, file, fromDone: true };
+}
+
+// ─── Lock file chống cron overlap ──────────────────────────────────────────
+// Video Reels chạy lâu hơn ảnh nhiều (ffmpeg + IG polling tối đa 60s) — tăng
+// khả năng job giờ sau chạy đè lên job giờ trước nếu job trước chưa xong.
+
+const LOCK_FILE = path.join(__dirname, '.post-all.lock');
+const LOCK_STALE_MS = 10 * 60 * 1000; // 10 phút — job nào chạy lâu hơn coi như treo, bỏ qua lock cũ
+
+function acquireLock() {
+  if (fs.existsSync(LOCK_FILE)) {
+    const age = Date.now() - fs.statSync(LOCK_FILE).mtimeMs;
+    if (age < LOCK_STALE_MS) return false;
+    console.warn(`⚠️  Lock file cũ (${Math.round(age / 1000)}s) — coi như job trước đã treo, vẫn tiếp tục.`);
+  }
+  fs.writeFileSync(LOCK_FILE, String(process.pid));
+  return true;
+}
+
+function releaseLock() {
+  fs.rmSync(LOCK_FILE, { force: true });
 }
 
 // ─── Stuck-file detection ───────────────────────────────────────────────────
@@ -172,6 +194,44 @@ function httpPost(url, payload, headers = {}) {
   });
 }
 
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, res => {
+      let data = '';
+      res.on('data', chunk => (data += chunk));
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+        catch { resolve({ status: res.statusCode, body: data }); }
+      });
+    }).on('error', reject);
+  });
+}
+
+// FB Reels bước "transfer" (trỏ tới video qua URL public) cần file_url + Authorization
+// truyền qua HEADER, không phải JSON body — khác mọi call khác trong file này.
+function httpPostHeaders(url, headers) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const req = https.request(
+      { hostname: urlObj.hostname, path: urlObj.pathname + urlObj.search, method: 'POST', headers },
+      res => {
+        let data = '';
+        res.on('data', chunk => (data += chunk));
+        res.on('end', () => {
+          try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+          catch { resolve({ status: res.statusCode, body: data }); }
+        });
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ─── Threads text (giới hạn cứng 500 ký tự, caption gốc luôn dài hơn) ──────────
 
 const SLOGAN = 'Đồ cũ người này, Báu vật người kia';
@@ -234,6 +294,89 @@ async function postInstagram(caption, imageUrl) {
   return { platform: 'Instagram', ok: false, error: publishRes.body?.error?.message || JSON.stringify(publishRes.body) };
 }
 
+// ─── Video Reels rollout theo giờ (dần dò) ────────────────────────────────
+// Convert rõ ràng bằng Intl, không phụ thuộc OS timezone của máy chạy script
+// (EC2 system time là UTC — xác nhận từ setup-cron.sh "0 1-15 * * *" = 8h-22h VN).
+
+function getCurrentHourVN() {
+  const h = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', hour12: false });
+  return parseInt(h, 10) % 24;
+}
+
+function isVideoSlot() {
+  const raw = process.env.VIDEO_REELS_HOURS; // vd "12,19" — để trống = không bao giờ video
+  if (!raw) return false;
+  return raw.split(',').map(h => parseInt(h.trim(), 10)).includes(getCurrentHourVN());
+}
+
+// 3-phase: start (lấy video_id) → transfer (trỏ tới videoUrl public qua header) → finish (publish).
+// Xem docs/video-api/guides/reels-publishing chính thức — verify lại nếu Meta đổi version/field.
+async function postFacebookReel(caption, videoUrl) {
+  const pageId = process.env.FB_PAGE_ID;
+  const token = process.env.FB_PAGE_ACCESS_TOKEN;
+  if (!pageId || !token) return { platform: 'Facebook Reel', skipped: true, reason: 'chưa set credentials' };
+
+  const startRes = await httpPost(
+    `https://graph.facebook.com/v19.0/${pageId}/video_reels?access_token=${token}`,
+    { upload_phase: 'start' }
+  );
+  const videoId = startRes.body?.video_id;
+  if (!videoId) return { platform: 'Facebook Reel', ok: false, error: startRes.body?.error?.message || JSON.stringify(startRes.body) };
+
+  const transferRes = await httpPostHeaders(
+    `https://rupload.facebook.com/video-upload/v19.0/${videoId}`,
+    { Authorization: `OAuth ${token}`, file_url: videoUrl }
+  );
+  if (transferRes.status !== 200) {
+    return { platform: 'Facebook Reel', ok: false, error: transferRes.body?.error?.message || JSON.stringify(transferRes.body) };
+  }
+
+  const finishRes = await httpPost(
+    `https://graph.facebook.com/v19.0/${pageId}/video_reels?access_token=${token}`,
+    { video_id: videoId, upload_phase: 'finish', video_state: 'PUBLISHED', description: caption }
+  );
+  if (!finishRes.body?.success) {
+    return { platform: 'Facebook Reel', ok: false, error: finishRes.body?.error?.message || JSON.stringify(finishRes.body) };
+  }
+  return { platform: 'Facebook Reel', ok: true, id: videoId };
+}
+
+// Container REELS (như ảnh) nhưng Instagram xử lý video bất đồng bộ — phải poll
+// status_code cho tới FINISHED trước khi publish, khác hẳn ảnh (publish ngay).
+async function postInstagramReel(caption, videoUrl) {
+  const accountId = process.env.IG_ACCOUNT_ID;
+  const token = process.env.IG_ACCESS_TOKEN;
+  if (!accountId || !token) return { platform: 'Instagram Reel', skipped: true, reason: 'chưa set credentials' };
+
+  const containerRes = await httpPost(
+    `https://graph.facebook.com/v19.0/${accountId}/media?access_token=${token}`,
+    { media_type: 'REELS', video_url: videoUrl, caption, share_to_feed: true }
+  );
+  const creationId = containerRes.body?.id;
+  if (!creationId) return { platform: 'Instagram Reel', ok: false, error: containerRes.body?.error?.message || JSON.stringify(containerRes.body) };
+
+  let statusCode = null;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await sleep(3000);
+    const statusRes = await httpGet(
+      `https://graph.facebook.com/v19.0/${creationId}?fields=status_code&access_token=${token}`
+    );
+    statusCode = statusRes.body?.status_code;
+    if (statusCode === 'FINISHED') break;
+    if (statusCode === 'ERROR') return { platform: 'Instagram Reel', ok: false, error: 'status_code=ERROR khi xử lý video' };
+  }
+  if (statusCode !== 'FINISHED') {
+    return { platform: 'Instagram Reel', ok: false, error: `Timeout chờ xử lý video sau 60s (status_code cuối: ${statusCode})` };
+  }
+
+  const publishRes = await httpPost(
+    `https://graph.facebook.com/v19.0/${accountId}/media_publish?access_token=${token}`,
+    { creation_id: creationId }
+  );
+  if (publishRes.body?.id) return { platform: 'Instagram Reel', ok: true, id: publishRes.body.id };
+  return { platform: 'Instagram Reel', ok: false, error: publishRes.body?.error?.message || JSON.stringify(publishRes.body) };
+}
+
 // Threads không critical: lỗi Threads (vd vượt 500 ký tự) không được chặn
 // FB/Instagram advance queue — tránh đăng trùng lặp lên 2 nền tảng chính
 // mỗi giờ khi Threads cứ lỗi mãi (sự cố thật 2026-06-26: 1 bài bị đăng trùng
@@ -266,6 +409,19 @@ async function postThreads(body, imageUrl) {
 async function main() {
   if (isListQueue) { listQueue(); return; }
 
+  if (!isDryRun && !acquireLock()) {
+    console.warn('⏭️  Job trước còn chạy (lock < 10 phút) — skip lượt này, đợi cron giờ sau.');
+    return;
+  }
+
+  try {
+    await runOnce();
+  } finally {
+    if (!isDryRun) releaseLock();
+  }
+}
+
+async function runOnce() {
   const { caption, file, fromDone } = getNextCaption();
   const { body, hashtags } = splitCaptionAndHashtags(caption);
   const igCaption = hashtags ? `${body}\n\n${hashtags}` : body;
@@ -279,7 +435,8 @@ async function main() {
   console.log('═'.repeat(50));
 
   if (isDryRun) {
-    console.log('\n🔍 DRY RUN — không đăng thật, không render/upload ảnh\n');
+    console.log(`🎬 Slot giờ VN ${getCurrentHourVN()}h: ${isVideoSlot() ? 'VIDEO Reels' : 'ảnh tĩnh'} (VIDEO_REELS_HOURS=${process.env.VIDEO_REELS_HOURS || '(trống)'})`);
+    console.log('\n🔍 DRY RUN — không đăng thật, không render/upload ảnh/video\n');
     console.log(`🖼️  Hook ảnh sẽ dùng: "${extractHook(caption)}"`);
     console.log('--- Facebook (không hashtag) ---');
     console.log(body);
@@ -290,8 +447,20 @@ async function main() {
     return;
   }
 
+  // Slot video (giờ vàng, dần dò qua VIDEO_REELS_HOURS) — lỗi bất kỳ bước nào
+  // (getOrCreateReelUrl không throw) đều fallback êm về ảnh tĩnh, không chặn lượt đăng.
+  let videoUrl = null;
+  if (isVideoSlot()) {
+    console.log('🎬 Slot VIDEO_REELS_HOURS — thử render Reels...');
+    videoUrl = await getOrCreateReelUrl(file, caption);
+    if (videoUrl) console.log(`🎬 Video: ${videoUrl}`);
+    else console.warn('⚠️  Render Reels thất bại — fallback ảnh tĩnh cho slot này.');
+  }
+
   // Ảnh thương hiệu riêng cho caption này — render + upload MinIO (cache nếu đã có).
-  // Lỗi (MinIO down, font thiếu...) không được làm fail cả bài đăng — fallback text-only.
+  // Luôn render dù đã có video: Threads luôn cần ảnh tĩnh, và đây cũng là fallback
+  // tự nhiên cho FB/IG nếu videoUrl null. Lỗi (MinIO down, font thiếu...) không
+  // được làm fail cả bài đăng — fallback text-only.
   let imageUrl = null;
   try {
     imageUrl = await getOrCreateCardUrl(file, caption);
@@ -301,9 +470,9 @@ async function main() {
   }
 
   const results = await Promise.allSettled([
-    postFacebook(body, imageUrl),
-    postInstagram(igCaption, imageUrl),
-    postThreads(body, imageUrl),
+    videoUrl ? postFacebookReel(body, videoUrl) : postFacebook(body, imageUrl),
+    videoUrl ? postInstagramReel(igCaption, videoUrl) : postInstagram(igCaption, imageUrl),
+    postThreads(body, imageUrl), // luôn ảnh tĩnh, không đổi dù slot này có video hay không
   ]);
 
   console.log('\n📊 KẾT QUẢ:\n');
@@ -338,7 +507,7 @@ async function main() {
       console.log('⚠️  Queue sắp hết! Hãy chạy /len-bai để tạo thêm caption.');
     }
   } else {
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 
