@@ -335,6 +335,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <button class="tab" data-tab="9">📈 Phân tích</button>
     <button class="tab" data-tab="10">📜 Lịch sử admin</button>
     <button class="tab" data-tab="11">⚙️ Hệ thống</button>
+    <button class="tab" data-tab="12">🎵 TikTok</button>
   </div>
 
   <div class="content">
@@ -350,6 +351,7 @@ header .user-info{font-size:13px;color:var(--text2)}
     <div id="tab-chats" style="display:none"></div>
     <div id="tab-categories" style="display:none"></div>
     <div id="tab-analytics" style="display:none"></div>
+    <div id="tab-tiktok" style="display:none"></div>
   </div>
 </div>
 
@@ -375,7 +377,7 @@ let autoRefreshTimer = null;
 let resendTimer = null;
 let resendSecondsLeft = 0;
 
-const TAB_IDS = ['stats','posts','users','reports','revenue','broadcast','reviews','chats','categories','analytics','audit','system'];
+const TAB_IDS = ['stats','posts','users','reports','revenue','broadcast','reviews','chats','categories','analytics','audit','system','tiktok'];
 
 const state = {
   posts: [], postsPage: 0, postsTotal: 0, postsTotalPages: 1, postsSearch: '', postsStatus: '', postsAuthorId: '', postsAuthorName: '', postsSelected: new Set(),
@@ -599,6 +601,7 @@ function loadCurrent(force = false) {
     case 9: state.analyticsPeriod = 'day'; state.analyticsData = null; loadAnalytics(); break;
     case 10: if (force || state.audit.length === 0) loadAudit(true); break;
     case 11: loadSystem(); break;
+    case 12: loadTiktok(); break;
   }
 }
 
@@ -668,6 +671,7 @@ function handleContentClick(e) {
     case 'dismiss-report': resolveReport(id, idx, 'dismissed'); break;
 
     case 'switch-tab': switchTab(+el.dataset.target); break;
+    case 'tiktok-connect': tiktokConnect(); break;
 
     case 'set-top-period': {
       const p = el.dataset.period || 'all';
@@ -2382,6 +2386,157 @@ function formatUptime(s) {
   if (s < 3600) return Math.floor(s/60) + 'm ' + (s%60) + 's';
   if (s < 86400) return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
   return Math.floor(s/86400) + 'd ' + Math.floor((s%86400)/3600) + 'h';
+}
+
+// ─── TikTok ─────────────────────────────────────────────────────────────────
+// Trang đăng tay lên TikTok — bắt buộc người chọn privacy level + commercial
+// disclosure cho TỪNG video (quy định TikTok "Required UX Implementation",
+// không có ngoại lệ, không được đặt giá trị mặc định). KHÔNG phải tự động
+// hoàn toàn như tab Broadcast — xem docs/postmortems hoặc hỏi lại lý do nếu
+// định sửa thành tự bắn theo giờ.
+
+async function loadTiktok() {
+  const el = document.getElementById('tab-tiktok');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Đang kiểm tra kết nối...</div>';
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('tiktok_connected')) { toast('Đã kết nối TikTok thành công'); history.replaceState(null, '', location.pathname); }
+  if (params.get('tiktok_error')) { toast('Lỗi kết nối TikTok: ' + params.get('tiktok_error')); history.replaceState(null, '', location.pathname); }
+
+  const status = await api('/admin/tiktok/status');
+  if (!status) return;
+
+  if (!status.configured) {
+    el.innerHTML = '<div class="bar-card" style="text-align:center;padding:30px;color:var(--text2)">Chưa cấu hình TIKTOK_CLIENT_KEY/SECRET trên server.</div>';
+    return;
+  }
+  if (!status.connected) { renderTiktokConnectPrompt(); return; }
+
+  const creator = await api('/admin/tiktok/creator-info');
+  renderTiktokForm(creator);
+}
+
+function renderTiktokConnectPrompt() {
+  document.getElementById('tab-tiktok').innerHTML = `
+    <div class="bar-card" style="text-align:center;padding:40px">
+      <p style="margin-bottom:20px;color:var(--text2)">Chưa kết nối tài khoản TikTok.</p>
+      <button class="btn btn-primary" style="width:auto;padding:12px 28px" data-action="tiktok-connect">Kết nối TikTok</button>
+    </div>`;
+}
+
+async function tiktokConnect() {
+  const data = await api('/admin/tiktok/auth-url');
+  if (data && data.url) location.href = data.url;
+}
+
+function renderTiktokForm(creator) {
+  const el = document.getElementById('tab-tiktok');
+  if (!creator) {
+    el.innerHTML = '<div class="bar-card" style="text-align:center;padding:30px;color:var(--text2)">Không lấy được thông tin tài khoản. Thử kết nối lại.</div>';
+    return;
+  }
+
+  const privacyLabels = {
+    PUBLIC_TO_EVERYONE: 'Công khai',
+    MUTUAL_FOLLOW_FRIENDS: 'Bạn bè theo dõi lẫn nhau',
+    FOLLOWER_OF_CREATOR: 'Người theo dõi',
+    SELF_ONLY: 'Chỉ mình tôi (riêng tư)',
+  };
+  const privacyOptions = (creator.privacy_level_options || [])
+    .map(p => `<option value="${esc(p)}">${esc(privacyLabels[p] || p)}</option>`).join('');
+
+  el.innerHTML = `
+    <div class="bar-card" style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <img src="${esc(creator.creator_avatar_url||'')}" style="width:48px;height:48px;border-radius:9999px" onerror="this.style.display='none'"/>
+      <div>
+        <div style="font-weight:600">${esc(creator.creator_nickname||creator.creator_username||'')}</div>
+        <div style="color:var(--text2);font-size:13px">@${esc(creator.creator_username||'')}</div>
+      </div>
+    </div>
+
+    <div class="section-title">Đăng video lên TikTok</div>
+    <div class="bar-card" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Video URL (dán link MinIO video đã render qua /len-bai)</label>
+        <input type="text" id="tk-video-url" placeholder="https://s3.traotay.com.vn/traotay/social-reels/..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px"/>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Caption</label>
+        <textarea id="tk-caption" rows="3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px"></textarea>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Quyền riêng tư (bắt buộc tự chọn — theo quy định TikTok, không có mặc định)</label>
+        <select id="tk-privacy" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px">
+          <option value="" selected disabled>-- Chọn --</option>
+          ${privacyOptions}
+        </select>
+      </div>
+      <div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="tk-disclosure-enabled"/> Khai báo nội dung thương mại
+        </label>
+        <div id="tk-disclosure-options" style="display:none;margin-top:8px;padding-left:26px;gap:16px">
+          <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="tk-brand-organic"/> Thương hiệu của bạn</label>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:6px"><input type="checkbox" id="tk-branded-content"/> Nội dung tài trợ</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px">
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="tk-allow-comment" ${creator.comment_disabled?'':'checked'}/> Cho phép Comment</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="tk-allow-duet" ${creator.duet_disabled?'':'checked'}/> Cho phép Duet</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="tk-allow-stitch" ${creator.stitch_disabled?'':'checked'}/> Cho phép Stitch</label>
+      </div>
+      <button class="btn btn-primary" id="tk-publish-btn" disabled style="width:auto;padding:12px 28px;align-self:flex-start">Đăng lên TikTok</button>
+      <div id="tk-result"></div>
+    </div>
+  `;
+
+  const privacySelect = document.getElementById('tk-privacy');
+  const publishBtn = document.getElementById('tk-publish-btn');
+  privacySelect.addEventListener('change', () => { publishBtn.disabled = !privacySelect.value; });
+
+  document.getElementById('tk-disclosure-enabled').addEventListener('change', e => {
+    document.getElementById('tk-disclosure-options').style.display = e.target.checked ? 'block' : 'none';
+  });
+
+  publishBtn.addEventListener('click', tiktokPublish);
+}
+
+async function tiktokPublish() {
+  const videoUrl = document.getElementById('tk-video-url').value.trim();
+  const caption = document.getElementById('tk-caption').value.trim();
+  const privacyLevel = document.getElementById('tk-privacy').value;
+  if (!videoUrl || !caption || !privacyLevel) { toast('Thiếu thông tin bắt buộc'); return; }
+
+  const disclosureEnabled = document.getElementById('tk-disclosure-enabled').checked;
+  const brandOrganic = document.getElementById('tk-brand-organic').checked;
+  const brandedContent = document.getElementById('tk-branded-content').checked;
+  if (disclosureEnabled && !brandOrganic && !brandedContent) {
+    toast('Đã bật khai báo thương mại — cần chọn ít nhất 1 mục');
+    return;
+  }
+
+  const btn = document.getElementById('tk-publish-btn');
+  btn.disabled = true; btn.textContent = 'Đang đăng...';
+  const result = await api('/admin/tiktok/publish', {
+    method: 'POST',
+    body: JSON.stringify({
+      videoUrl, caption, privacyLevel,
+      disclosure: { enabled: disclosureEnabled, brandOrganic, brandedContent },
+      disableComment: !document.getElementById('tk-allow-comment').checked,
+      disableDuet: !document.getElementById('tk-allow-duet').checked,
+      disableStitch: !document.getElementById('tk-allow-stitch').checked,
+    }),
+  });
+  btn.disabled = false; btn.textContent = 'Đăng lên TikTok';
+
+  const resultEl = document.getElementById('tk-result');
+  if (!result) { resultEl.innerHTML = '<div class="chip chip-red">Lỗi khi gọi API</div>'; return; }
+  if (result.status === 'PUBLISH_COMPLETE') {
+    resultEl.innerHTML = `<div class="chip chip-green">Thành công — publish_id: ${esc(result.publishId)}</div>`;
+    toast('Đăng TikTok thành công');
+  } else {
+    resultEl.innerHTML = `<div class="chip chip-red">Trạng thái: ${esc(result.status)}${result.failReason ? ' — ' + esc(result.failReason) : ''}</div>`;
+  }
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────

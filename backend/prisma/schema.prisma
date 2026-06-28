@@ -316,6 +316,20 @@ model AppDownloadLog {
   @@index([platform, createdAt])
 }
 
+/// Token OAuth của tài khoản TikTok chính thức Trao Tay (1 row duy nhất — không
+/// phải per-user, dùng để admin đăng video qua TikTok Content Posting API).
+/// access_token sống 24h, refresh_token sống 365 ngày — service tự refresh khi
+/// gần hết hạn (xem tiktok.service.ts).
+model TiktokCredential {
+  id           String   @id @default(cuid())
+  openId       String
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 /// Web Push subscription cho mỗi browser của user. Khác FCM (mobile native)
 /// — Web Push dùng VAPID + Push API browser. 1 user có thể có nhiều subscription
 /// (Chrome desktop + Firefox + Edge). Backend gửi push qua web-push npm với

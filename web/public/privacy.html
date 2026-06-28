@@ -129,12 +129,25 @@
     <tr><td>PayOS</td><td>Mã đơn, số tiền (KHÔNG bao gồm thông tin thẻ)</td><td>Xử lý thanh toán Bump</td></tr>
     <tr><td>AWS (EC2 + EBS)</td><td>Toàn bộ dữ liệu app (server hosting)</td><td>Lưu trữ và xử lý dữ liệu</td></tr>
     <tr><td>Cloudflare</td><td>IP truy cập, request log</td><td>Bảo mật + tăng tốc CDN</td></tr>
+    <tr><td>Meta (Facebook/Instagram/Threads)</td><td>Video, hình ảnh, caption marketing</td><td>Đăng bài quảng bá Trao Tay trên trang chính thức</td></tr>
+    <tr><td>TikTok</td><td>Access token tài khoản TikTok chính thức của Trao Tay (mã hóa), video, caption marketing</td><td>Đăng video quảng bá Trao Tay lên tài khoản TikTok chính thức qua TikTok Content Posting API</td></tr>
   </tbody>
 </table>
 
 <p>
   Các nhà cung cấp trên có chính sách bảo mật riêng, chúng tôi đã chọn các bên uy tín có cam kết
   GDPR / quyền riêng tư.
+</p>
+
+<h3>4.1 Tích hợp TikTok API</h3>
+<p>
+  Trao Tay sử dụng <strong>TikTok Content Posting API</strong> để tự động đăng video quảng bá
+  lên tài khoản TikTok chính thức của Trao Tay (do Trao Tay sở hữu và vận hành, không liên quan
+  tài khoản TikTok của người dùng app). Chúng tôi lưu trữ access token/refresh token của tài
+  khoản này (mã hóa) chỉ để phục vụ việc đăng bài. Trao Tay <strong>không</strong> thu thập,
+  truy cập hay chia sẻ dữ liệu cá nhân, danh sách bạn bè, hay hành vi của bất kỳ người dùng
+  TikTok nào khác cho bên thứ ba. Có thể ngắt kết nối tích hợp này bất kỳ lúc nào qua trang cài
+  đặt bảo mật của chính tài khoản TikTok đó.
 </p>
 
 <h2>5. Lưu trữ dữ liệu</h2>

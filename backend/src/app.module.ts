@@ -13,6 +13,8 @@ import { AdminGuard } from './admin/admin.guard';
 import { AdminService } from './admin/admin.service';
 import { AnalyticsCronService } from './admin/analytics-cron.service';
 import { CloudflareAnalyticsService } from './admin/cloudflare-analytics.service';
+import { TiktokController } from './admin/tiktok.controller';
+import { TiktokService } from './admin/tiktok.service';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtStrategy } from './auth/jwt.strategy';
@@ -68,6 +70,7 @@ import { WebPushModule } from './web-push/web-push.module';
   controllers: [
     AppController,
     AdminController,
+    TiktokController,
     UserController,
     PostController,
     ReportController,
@@ -82,6 +85,7 @@ import { WebPushModule } from './web-push/web-push.module';
     AdminGuard,
     CloudflareAnalyticsService,
     AnalyticsCronService,
+    TiktokService,
     PrismaService,
     UserService,
     PostService,
