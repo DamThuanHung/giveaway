@@ -87,6 +87,7 @@ export class AppController {
         status: 'ok',
         uptime: Math.floor(process.uptime()),
         timestamp: new Date().toISOString(),
+        gitSha: process.env.GIT_SHA ?? 'unknown',
       };
     } catch (err) {
       return {

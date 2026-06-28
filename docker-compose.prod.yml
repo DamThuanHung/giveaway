@@ -89,7 +89,10 @@ services:
         max-file: "3"
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        GIT_SHA: ${GIT_SHA:-unknown}
     container_name: traotay_backend
     restart: always
     ports:

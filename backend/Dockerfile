@@ -25,6 +25,11 @@ FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
+# Commit SHA lúc build — expose qua GET /health để verify container đang chạy
+# code mới nhất, không phải so sánh thủ công timestamp Created (không tin cậy).
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 # Chỉ copy những gì cần để chạy production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist

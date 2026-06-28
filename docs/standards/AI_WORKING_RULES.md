@@ -90,6 +90,7 @@ hợp lý + minimal rework.
 - Sửa API backend → mức 4
 - Schema migration → **mức 5** + verify table thật trên prod DB
 - Cross-service (mobile + backend + push) → **mức 5** + trigger E2E pipeline 1 lần thật
+- Code chạy qua cron/scheduled job — Docker `@Cron` (vd `analytics-cron.service.ts`) hoặc cron riêng trên EC2 (vd `scripts/social/post-all.js`, `scripts/backup.sh`) — **mức 5**: deploy (rebuild backend hoặc `git pull` trên EC2) + verify ngay trong cùng session. Code này không có HTTP request từ user để tự lộ lỗi, chờ tới lần cron chạy kế tiếp mới phát hiện được nên KHÔNG được tách "commit" và "deploy" thành 2 việc độc lập. Verify deploy qua `gitSha` trong response `GET /health`, không so thủ công timestamp `docker inspect`. (Sự cố 2026-06-29: mail báo cáo gửi nội dung cũ 3 ngày vì commit xong nhưng quên rebuild container)
 
 ### 3.3 Báo cáo phải dùng đúng "ngôn ngữ 3 mức"
 - Mức 1-2: "Compile pass, CHƯA test runtime"

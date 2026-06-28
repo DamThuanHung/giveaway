@@ -9,15 +9,17 @@ Xem `docs/standards/INCIDENT_RUNBOOK.md` cho template chi tiết.
 |---|---|---|---|---|
 | 2026-05-08 | [Web Push schema migration miss](2026-05-08-web-push-schema-miss.md) | SEV-2 | 5 phút (sau identify) | 4/7 |
 | 2026-06-26 | [Threads vượt giới hạn 500 ký tự, đăng trùng FB/IG](2026-06-26-threads-caption-limit-duplicate-posts.md) | SEV-3 | ~20 phút (sau identify) | 5/5 |
+| 2026-06-29 | [Mail báo cáo gửi nội dung cũ 3 ngày — quên deploy](2026-06-29-stale-mail-content-missing-deploy.md) | SEV-4 | ~10 phút (sau identify) | 3/3 |
 
 ## Stats
 
-- Total postmortems: 2
+- Total postmortems: 3
 - SEV-1: 0
 - SEV-2: 1
 - SEV-3: 1
+- SEV-4: 1
 - Average MTTR: ~12 phút
-- Action items closure rate: 75% (9/12)
+- Action items closure rate: 80% (12/15)
 
 ## Trends
 
