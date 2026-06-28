@@ -228,7 +228,7 @@ async function getOrCreateCardUrl(file, captionText) {
   return url;
 }
 
-module.exports = { extractHook, renderCardPng, getOrCreateCardUrl };
+module.exports = { extractHook, renderCardPng, getOrCreateCardUrl, getFonts, SLOGAN };
 
 // ─── CLI test mode — render 1 ảnh mẫu ra file local, không cần MinIO ──
 
