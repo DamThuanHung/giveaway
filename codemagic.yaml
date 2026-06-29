@@ -34,10 +34,6 @@ workflows:
         script: |
           cd app
           flutter packages pub get
-      - name: Install CocoaPods dependencies
-        script: |
-          cd app/ios
-          pod install
       - name: Build iOS release (.ipa)
         script: |
           cd app

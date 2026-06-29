@@ -51,5 +51,7 @@
 	<string>Trao Tay cần quyền truy cập ảnh để bạn chọn ảnh đăng bài</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Trao Tay cần vị trí để hiển thị bài đăng gần bạn</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
