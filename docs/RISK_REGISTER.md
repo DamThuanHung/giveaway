@@ -48,20 +48,25 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 - **Probability:** 3 / **Impact:** 4 / **Score:** 12 (Orange)
 - **Owner:** Hoàng thượng
 - **Status:** Open
-- **Description:** Admin account hiện chỉ password + JWT. Nếu password leak → full takeover.
-- **Mitigation:** Implement TOTP 2FA cho admin trong sprint kế. Backup code 10 mã.
+- **Description:** Admin account hiện chỉ password + JWT (TTL 1d). Nếu password leak → full takeover.
+- **Verify 2026-06-30 (audit nâng cấp hệ thống):** Lý do "không phát hiện được nếu bị chiếm quyền" mà em từng lo lúc đề xuất là SAI — `AdminActionLog` đã có sẵn và đang ghi thật (19 action thật trên production: ban, hide, grant bump...), dùng ở `admin.service.ts` (8 chỗ) + `user.service.ts`. Forensic trail sau sự cố là có, chỉ thiếu MFA để NGĂN trước (preventive), không phải hoàn toàn mù (detective).
+- **Mitigation:** Implement TOTP 2FA cho admin khi đạt trigger. Backup code 10 mã.
 - **Trigger to revisit:** Trước khi onboard admin thứ 2
 - **Date logged:** 2026-05-08
+- **Date re-verified:** 2026-06-30
 
-### R-006: GDPR right to erasure chưa implement đầy đủ
+### R-006: GDPR right to erasure — RESOLVED phần lớn 2026-06-30
 - **Category:** Compliance
-- **Probability:** 2 / **Impact:** 5 / **Score:** 10 (Orange)
+- **Probability:** 2 / **Impact:** 5 / **Score:** 10 (Orange) → **3 (Yellow, residual nhỏ)**
 - **Owner:** Hoàng thượng
-- **Status:** Open
-- **Description:** User request xóa account → soft delete (deletedAt). Chưa hard delete sau 30 ngày + cascade post/comment/file.
-- **Mitigation:** Implement cron job hard-delete user soft-deleted > 30 ngày + cascade. Document trong COMPLIANCE.
+- **Status:** ✅ Mitigated (gần Resolved)
+- **Description (cũ, sai):** "User request xóa account → chỉ soft delete, chưa cascade." — không đúng thực tế code.
+- **Verify 2026-06-30:** Đọc thẳng `user.service.ts deleteAccount()` (trigger qua `DELETE /user/me`, user tự xoá, không cần admin) — đã hard-delete CASCADE thật trong 1 transaction: notification, favorite, follow, blockedUser, review, message, chatRoom, post. User row chỉ còn lại bị ẩn danh hoá (name/email/phone/avatar/fcmToken null hết) + `deletedAt` — không còn field PII nào sót lại trên User model.
+- **Risk còn lại (nhỏ):** User row rỗng (chỉ id + cờ, không PII) tồn tại vĩnh viễn thay vì purge hẳn — về bản chất không còn là personal data nên risk thực tế thấp, nhưng chưa có cron purge stub này nếu muốn "sạch tuyệt đối" theo nghĩa đen của right to erasure.
+- **Mitigation residual:** Cron purge stub User đã anonymize > N ngày — low priority, làm khi rảnh hoặc khi compliance audit yêu cầu.
 - **Trigger to revisit:** Khi có user EU đầu tiên hoặc compliance audit
 - **Date logged:** 2026-05-08
+- **Date re-verified:** 2026-06-30
 
 ### R-007: Vendor lock-in MinIO → S3 migration cost
 - **Category:** Vendor
