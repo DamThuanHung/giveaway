@@ -1,7 +1,7 @@
 # Risk Register — Trao Tay
 
-Last full review: 2026-05-08
-Next scheduled review: 2026-06-01 (đầu tháng 6)
+Last full review: 2026-06-30
+Next scheduled review: 2026-08-01
 
 Format theo `docs/standards/RISK_REGISTER.md`. Score = Probability × Impact (1-25).
 Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
@@ -29,16 +29,6 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 - **Mitigation:** `.env*` trong `.gitignore`, gitleaks GitHub Action chạy mỗi PR, pre-commit hook detect-secrets pattern AKIA + ghp_ + private key.
 - **Trigger to revisit:** Sau mọi rotation secret
 - **Date logged:** 2026-04-26
-
-### R-003: Backup restore chưa được test thực
-- **Category:** Technical
-- **Probability:** 4 / **Impact:** 5 / **Score:** 20 (Red)
-- **Owner:** Hoàng thượng
-- **Status:** Open
-- **Description:** Backup chạy auto từ 2026-04-30 nhưng chưa restore thử nghiệm. "Backup không test = không tin được."
-- **Mitigation:** Schedule DR drill Q3 2026 — restore backup mới nhất lên staging, verify data integrity, đo RTO thực tế.
-- **Trigger to revisit:** Sau drill Q3 2026
-- **Date logged:** 2026-04-30
 
 ### R-004: Tester crisis Closed Testing
 - **Category:** Business
@@ -148,7 +138,19 @@ Color: Green (1-4) | Yellow (5-9) | Orange (10-15) | Red (16-25).
 
 ## Closed risks
 
-(empty — chưa có risk closed)
+### R-003: Backup restore chưa được test thực — RESOLVED 2026-06-30
+- **Category:** Technical
+- **Probability:** 4 / **Impact:** 5 / **Score:** 20 (Red) → **0 (Resolved)**
+- **Owner:** Hoàng thượng
+- **Status:** ✅ Resolved
+- **Description (cũ):** Backup tưởng chạy auto từ 2026-04-30 nhưng chưa restore thử nghiệm.
+- **Phát hiện 2026-06-30 (audit nâng cấp hệ thống):** Thực tế nặng hơn doc cũ ghi — `scripts/backup.sh` mất execute bit từ **2026-05-08** (`-rw-rw-r--`, có thể do 1 lần git operation ghi đè permission), cron `0 20 * * *` fail "Permission denied" **mọi ngày suốt 53 ngày liên tiếp**, không có alert nên không ai phát hiện. Backup gần nhất trước khi fix: `db-2026-05-07_2000.sql.gz` (cả local lẫn B2).
+- **Fix:** `chmod +x scripts/backup.sh` → chạy thử thành công → file mới `db-2026-06-30_1201.sql.gz` xuất hiện cả local lẫn B2. Cron tối nay (20:00) tự chạy lại bình thường.
+- **DR drill thực hiện ngay sau fix:** Restore `db-2026-06-30_1201.sql.gz` vào Postgres tạm cô lập (Docker container riêng, không đụng production) → **RTO đo được: 11 giây**. So sánh 20 bảng + sample data (users=13, posts=60, bumpOrders=18, tiktokCred=1) → **khớp 100%** với production. Container + volume tạm đã xoá sạch sau drill.
+- **Risk còn lại:** Drill mới test restore DB dump (Postgres), CHƯA test restore MinIO data (ảnh bài đăng) từ B2 sync. Chưa test kịch bản mất nguyên EC2 instance (chỉ test mất DB).
+- **Trigger to revisit:** Drill kế tiếp nên test luôn restore MinIO + kịch bản rebuild EC2 từ đầu — Q4 2026 hoặc khi volume dữ liệu tăng đáng kể.
+- **Date logged:** 2026-04-30
+- **Date resolved:** 2026-06-30
 
 ---
 
