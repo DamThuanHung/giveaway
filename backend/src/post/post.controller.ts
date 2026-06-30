@@ -9,6 +9,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { PostService } from './post.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 const multerOptions = {
   storage: memoryStorage(),
@@ -72,7 +74,7 @@ export class PostController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 50, ttl: 3_600_000 } }) // 50 post/giờ/user
   @UseInterceptors(FilesInterceptor('images', 10, multerOptions))
-  async createPost(@Request() req, @Body() body: any, @UploadedFiles() files: any[]) {
+  async createPost(@Request() req, @Body() body: CreatePostDto, @UploadedFiles() files: any[]) {
     let imageUrls: string[] = [];
     if (files && files.length > 0) {
       try {
@@ -89,7 +91,7 @@ export class PostController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  updatePost(@Param('id') id: string, @Request() req, @Body() body: any) {
+  updatePost(@Param('id') id: string, @Request() req, @Body() body: UpdatePostDto) {
     return this.postService.updatePost(id, req.user.id, body);
   }
 

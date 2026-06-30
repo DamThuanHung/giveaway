@@ -1,35 +1,14 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
 
+// Phải dùng SAU JwtAuthGuard trong chain (vd @UseGuards(JwtAuthGuard, AdminGuard)) —
+// JwtStrategy.validate() đã verify token + query User (kèm check isBanned/deletedAt)
+// và set req.user, nên ở đây chỉ cần đọc lại role, không re-verify/re-query.
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(
-    private jwtService: JwtService,
-    private prisma: PrismaService,
-  ) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
-    const auth = req.headers['authorization'];
-    if (!auth || !auth.startsWith('Bearer ')) throw new ForbiddenException('Cần đăng nhập');
-
-    const token = auth.slice(7);
-    let payload: any;
-    try {
-      payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
-    } catch {
-      throw new ForbiddenException('Token không hợp lệ');
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user || user.role !== 'admin') throw new ForbiddenException('Chỉ admin mới có quyền truy cập');
-    if (user.isBanned) throw new ForbiddenException('Tài khoản đã bị cấm');
-    if (user.deletedAt) throw new ForbiddenException('Tài khoản đã bị xóa');
-
-    req.user = { id: user.id, role: user.role };
+    if (!req.user) throw new ForbiddenException('Cần đăng nhập');
+    if (req.user.role !== 'admin') throw new ForbiddenException('Chỉ admin mới có quyền truy cập');
     return true;
   }
 }

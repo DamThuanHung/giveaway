@@ -471,20 +471,28 @@ export class PostService {
   }
 
   async getMyStats(userId: string) {
-    const [totalPosts, availablePosts, donePosts, totalViews, totalFavorites] =
-      await Promise.all([
-        this.prisma.post.count({ where: { authorId: userId } }),
-        this.prisma.post.count({ where: { authorId: userId, status: 'available' } }),
-        this.prisma.post.count({ where: { authorId: userId, status: 'done' } }),
-        this.prisma.post.aggregate({ where: { authorId: userId }, _sum: { viewCount: true } }),
-        this.prisma.favorite.count({
-          where: { post: { authorId: userId } },
-        }),
-      ]);
+    // Gộp 4 query (total/available/done count + view sum) thành 1 groupBy —
+    // Prisma groupBy hỗ trợ _count + _sum cùng lúc theo từng status.
+    const [byStatus, totalFavorites] = await Promise.all([
+      this.prisma.post.groupBy({
+        by: ['status'],
+        where: { authorId: userId },
+        _count: true,
+        _sum: { viewCount: true },
+      }),
+      this.prisma.favorite.count({
+        where: { post: { authorId: userId } },
+      }),
+    ]);
+
+    const totalPosts = byStatus.reduce((sum, g) => sum + g._count, 0);
+    const availablePosts = byStatus.find((g) => g.status === 'available')?._count ?? 0;
+    const donePosts = byStatus.find((g) => g.status === 'done')?._count ?? 0;
+    const totalViews = byStatus.reduce((sum, g) => sum + (g._sum.viewCount ?? 0), 0);
 
     return {
       posts: { total: totalPosts, available: availablePosts, done: donePosts },
-      totalViews: totalViews._sum.viewCount || 0,
+      totalViews,
       totalFavorites,
       totalCompleted: donePosts, // alias rõ nghĩa: số giao dịch hoàn thành
     };
