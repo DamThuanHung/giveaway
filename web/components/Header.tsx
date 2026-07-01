@@ -4,9 +4,11 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { HeaderSearchBox } from "./HeaderSearchBox";
 import { UserMenu } from "./UserMenu";
+import { useAuth } from "./AuthProvider";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -95,10 +97,23 @@ export function Header() {
                 <span className="mr-2.5">❤️</span>Bài đã lưu
               </Link>
             </nav>
-            <div className="p-4 border-t border-ink-200/70 bg-cream-100">
+            <div className="p-4 border-t border-ink-200/70 bg-cream-100 flex flex-col gap-2">
+              {!user && (
+                <Link
+                  href="/login/"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-center font-semibold px-4 py-3 rounded-md bg-primary hover:bg-primary-dark active:scale-[0.97] text-white shadow-soft transition duration-250 ease-warm"
+                >
+                  Đăng nhập / Đăng ký
+                </Link>
+              )}
               <a
                 href="/tai-app/"
-                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white text-center font-semibold px-4 py-3 rounded-md shadow-soft transition duration-250 ease-warm"
+                className={`flex items-center justify-center gap-2 text-center font-semibold px-4 py-3 rounded-md transition duration-250 ease-warm ${
+                  user
+                    ? "bg-primary hover:bg-primary-dark active:scale-[0.97] text-white shadow-soft"
+                    : "border border-ink-300 text-ink-700 hover:border-primary hover:text-primary"
+                }`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5c0-.8.5-1.2 1.1-.9l14.4 8.5c.7.4.7 1.4 0 1.8L4.1 21.4c-.6.3-1.1-.1-1.1-.9z"/></svg>
                 Tải app Android
