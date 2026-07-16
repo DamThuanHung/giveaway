@@ -21,6 +21,7 @@ Xem `docs/standards/ADR_TEMPLATE.md` cho template chi tiết.
 | 0012 | [AppDownloadLog: bảng tracking lượt tải app](0012-app-download-tracking-table.md) | Accepted | 2026-05-24 |
 | 0013 | [Migration tổng hợp đóng băng schema drift + thêm User.lastActiveAt](0013-sync-schema-drift-last-active-at.md) | Accepted | 2026-06-25 |
 | 0014 | [Lưu OAuth token TikTok trong Postgres (TiktokCredential), 1 row duy nhất](0014-tiktok-credential-storage.md) | Proposed | 2026-06-29 |
+| 0015 | [DacDinhAttempt: bảng tracking kết quả làm bài /dac-dinh](0015-dac-dinh-attempt-tracking.md) | Accepted | 2026-07-17 |
 
 ## Workflow tạo ADR mới
 

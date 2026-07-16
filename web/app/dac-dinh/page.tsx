@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
+import { recordDacDinhAttempt } from "@/lib/auth";
 import {
   PARTS,
   CHAPTERS,
@@ -259,7 +260,10 @@ export default function DacDinhPage() {
       setCurrent(current + 1);
     } else {
       const sc = nextAnswers.filter((a, i) => a === correctIndexAt(i)).length;
-      if (chapterId && activeExercise) saveBestScore(exerciseStorageKey(chapterId, activeExercise), sc, total);
+      if (chapterId && activeExercise) {
+        saveBestScore(exerciseStorageKey(chapterId, activeExercise), sc, total);
+        recordDacDinhAttempt(chapterId, activeExercise, sc, total);
+      }
       setBestScores(loadBestScores());
       setScreen("result");
     }
@@ -296,7 +300,10 @@ export default function DacDinhPage() {
       setReorderRevealed(false);
     } else {
       const sc = reorderAnswers.filter(Boolean).length;
-      if (chapterId) saveBestScore(exerciseStorageKey(chapterId, "reorder"), sc, reorderQuestions.length);
+      if (chapterId) {
+        saveBestScore(exerciseStorageKey(chapterId, "reorder"), sc, reorderQuestions.length);
+        recordDacDinhAttempt(chapterId, "reorder", sc, reorderQuestions.length);
+      }
       setBestScores(loadBestScores());
       setScreen("result");
     }
@@ -333,7 +340,10 @@ export default function DacDinhPage() {
       setPlanningRevealed(false);
     } else {
       const sc = planningAnswers.filter(Boolean).length;
-      if (chapterId) saveBestScore(exerciseStorageKey(chapterId, "planning"), sc, planningQuestions.length);
+      if (chapterId) {
+        saveBestScore(exerciseStorageKey(chapterId, "planning"), sc, planningQuestions.length);
+        recordDacDinhAttempt(chapterId, "planning", sc, planningQuestions.length);
+      }
       setBestScores(loadBestScores());
       setScreen("result");
     }

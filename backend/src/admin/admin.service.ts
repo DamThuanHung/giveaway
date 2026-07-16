@@ -18,7 +18,7 @@ function capLimit(limit: number): number {
 /// - month: 00:00 ngày 1 tháng này
 /// - year: 00:00 ngày 1 tháng 1 năm này
 /// - all: null (không filter)
-function computeSince(period: 'day' | 'week' | 'month' | 'year' | 'all'): Date | null {
+export function computeSince(period: 'day' | 'week' | 'month' | 'year' | 'all'): Date | null {
   if (period === 'all') return null;
   const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
   const nowVN = new Date(Date.now() + TZ_OFFSET_MS);
@@ -1388,6 +1388,59 @@ export class AdminService implements OnModuleInit {
         total: downloadRaw.length,
         byDay: dlGrouped,
       },
+    };
+  }
+
+  // ─── /dac-dinh (luyện thi Đặc định kỹ năng) — ADR-0015 ─────────
+  // "Online" = proxy đơn giản, không phải WebSocket presence thật: đếm userId phân biệt
+  // có attempt trong N phút gần nhất.
+  async getDacDinhOnlineCount(minutes = 10) {
+    const since = new Date(Date.now() - minutes * 60_000);
+    const rows = await this.prisma.dacDinhAttempt.findMany({
+      where: { createdAt: { gte: since } },
+      distinct: ['userId'],
+      select: { userId: true },
+    });
+    return { onlineCount: rows.length, sinceMinutes: minutes };
+  }
+
+  // "Hoàn thành 1 chương" = có attempt exerciseType="quiz" đạt score=total ở chương đó — xem lý
+  // do chọn mốc "quiz" trong ADR-0015. Prisma không so sánh được 2 cột (score vs total) trong
+  // where nên fetch rồi lọc ở application layer — chấp nhận được vì đây là truy vấn admin,
+  // không phải hot path, khối lượng dữ liệu nhỏ.
+  async getDacDinhLeaderboard(period: 'day' | 'week' = 'day', limit = 20) {
+    const since = computeSince(period);
+    const rows = await this.prisma.dacDinhAttempt.findMany({
+      where: { exerciseType: 'quiz', ...(since ? { createdAt: { gte: since } } : {}) },
+      select: { userId: true, chapterId: true, score: true, total: true },
+    });
+
+    const chaptersByUser = new Map<string, Set<string>>();
+    for (const r of rows) {
+      if (r.total <= 0 || r.score !== r.total) continue;
+      if (!chaptersByUser.has(r.userId)) chaptersByUser.set(r.userId, new Set());
+      chaptersByUser.get(r.userId)!.add(r.chapterId);
+    }
+
+    const ranked = [...chaptersByUser.entries()]
+      .map(([userId, chapters]) => ({ userId, chaptersCompleted: chapters.size }))
+      .sort((a, b) => b.chaptersCompleted - a.chaptersCompleted)
+      .slice(0, capLimit(limit));
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ranked.map((r) => r.userId) } },
+      select: { id: true, name: true, avatar: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return {
+      period,
+      leaderboard: ranked.map((r) => ({
+        userId: r.userId,
+        name: userMap.get(r.userId)?.name ?? 'Người dùng ẩn danh',
+        avatar: userMap.get(r.userId)?.avatar ?? null,
+        chaptersCompleted: r.chaptersCompleted,
+      })),
     };
   }
 }

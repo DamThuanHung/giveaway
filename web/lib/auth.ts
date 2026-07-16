@@ -446,3 +446,23 @@ export async function confirmLinkEmail(
   const data = await res.json().catch(() => ({}));
   return { ok: res.ok, message: data.message || (res.ok ? "Liên kết thành công" : "Lỗi") };
 }
+
+// ─── /dac-dinh (luyện thi Đặc định kỹ năng) — ADR-0015 ────────────────────────
+
+/// Ghi lại 1 lần hoàn thành dạng bài lên server, song song với localStorage (không thay thế).
+/// Best-effort: lỗi mạng không chặn UI, chỉ đơn giản không tính vào thống kê admin lần đó.
+export async function recordDacDinhAttempt(
+  chapterId: string,
+  exerciseType: string,
+  score: number,
+  total: number
+): Promise<void> {
+  try {
+    await authFetch("/dac-dinh/attempt", {
+      method: "POST",
+      body: JSON.stringify({ chapterId, exerciseType, score, total }),
+    });
+  } catch {
+    // best-effort, không chặn luồng làm bài của user
+  }
+}

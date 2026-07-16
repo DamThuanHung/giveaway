@@ -41,6 +41,7 @@ model User {
   bumpOrders         BumpOrder[]
   adminActions       AdminActionLog[] @relation("AdminActionLog_admin")
   webPushSubscriptions WebPushSubscription[]
+  dacDinhAttempts    DacDinhAttempt[]
 }
 
 model Post {
@@ -57,6 +58,7 @@ model Post {
   province            String      @default("")
   status              String      @default("available")
   ward                String      @default("")
+  country             String      @default("VN") // "VN" | "JP" — quốc gia nơi món đồ đang ở
   id                  String      @id @default(cuid())
   latitude            Float       @default(0.0)
   longitude           Float       @default(0.0)
@@ -94,6 +96,7 @@ model Post {
   @@index([status, itemCategory])
   @@index([postType])
   @@index([bumpedAt])
+  @@index([country])
 }
 
 model BumpOrder {
@@ -337,6 +340,29 @@ model TiktokCredential {
 ///
 /// Khi push fail với 410 Gone → endpoint expire → xóa khỏi DB (prune).
 /// Khi user logout → xóa tất cả sub của user trên browser hiện tại (theo endpoint).
+/// Ghi nhận mỗi lần hoàn thành 1 dạng bài ở 1 chương trong /dac-dinh (luyện thi Đặc định
+/// kỹ năng ngành nhà hàng). exerciseType khớp với union ExerciseType phía web:
+/// "vocab" | "translation" | "reorder" | "quiz" | "judgment" | "planning".
+/// Dùng cho admin xem: số user hoạt động gần đây (proxy "online" = có attempt trong N phút)
+/// + bảng xếp hạng số chương hoàn thành 100% theo ngày/tuần — ADR-00xx.
+/// "Hoàn thành 1 chương" = có attempt score=total cho exerciseType="quiz" ở chương đó
+/// (quiz là dạng duy nhất chắc chắn có mặt ở cả 25/25 chương, dùng làm mốc thống nhất).
+model DacDinhAttempt {
+  id           String   @id @default(cuid())
+  userId       String
+  chapterId    String // "sm-ch1", "hy-ch3"...
+  exerciseType String // vocab | translation | reorder | quiz | judgment | planning
+  score        Int
+  total        Int
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([exerciseType, createdAt])
+}
+
 model WebPushSubscription {
   id        String   @id @default(cuid())
   userId    String

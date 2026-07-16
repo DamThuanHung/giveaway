@@ -202,6 +202,14 @@ backend/src/
 | DELETE | `/favorite` | JWT | Xóa yêu thích (`{ postId }`) |
 | GET | `/favorite/:userId` | — | Danh sách yêu thích |
 
+### Dac Dinh — `/dac-dinh` (luyện thi Đặc định kỹ năng, web-only — ADR-0015)
+
+| Method | Path | Auth | Mô tả |
+|---|---|---|---|
+| POST | `/dac-dinh/attempt` | JWT | Ghi 1 lần hoàn thành dạng bài (`{ chapterId, exerciseType, score, total }`) — best-effort, chạy song song với localStorage phía client |
+
+Thống kê admin — `GET /admin/dac-dinh/online?minutes=10` và `GET /admin/dac-dinh/leaderboard?period=day|week&limit=20` (đều AdminGuard), nằm chung trong `AdminController`/`AdminService` như mọi domain admin khác (không có module riêng).
+
 ### Follow — `/follow`
 
 | Method | Path | Auth | Mô tả |

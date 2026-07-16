@@ -37,6 +37,8 @@ import { UserService } from './user/user.service';
 import { KeywordAlertModule } from './keyword-alert/keyword-alert.module';
 import { BumpModule } from './bump/bump.module';
 import { WebPushModule } from './web-push/web-push.module';
+import { DacDinhController } from './dac-dinh/dac-dinh.controller';
+import { DacDinhService } from './dac-dinh/dac-dinh.service';
 
 @Module({
   imports: [
@@ -77,6 +79,7 @@ import { WebPushModule } from './web-push/web-push.module';
     FavoriteController,
     FollowController,
     ReviewController,
+    DacDinhController,
     // NotificationController moved into NotificationModule
   ],
   providers: [
@@ -93,6 +96,7 @@ import { WebPushModule } from './web-push/web-push.module';
     FavoriteService,
     FollowService,
     ReviewService,
+    DacDinhService,
     // NotificationService/Gateway/Cron + FcmService moved into NotificationModule
     // KeywordAlertService comes from KeywordAlertModule (exported)
     JwtStrategy,

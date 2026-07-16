@@ -301,4 +301,19 @@ export class AdminController {
   getHealthDetail() {
     return this.adminService.getHealthDetail();
   }
+
+  // ─── /dac-dinh (luyện thi Đặc định kỹ năng) — ADR-0015 ─────────
+  @Get('dac-dinh/online')
+  getDacDinhOnline(@Query('minutes') minutes = '10') {
+    return this.adminService.getDacDinhOnlineCount(+minutes);
+  }
+
+  @Get('dac-dinh/leaderboard')
+  getDacDinhLeaderboard(
+    @Query('period') period: 'day' | 'week' = 'day',
+    @Query('limit') limit = '20',
+  ) {
+    const safePeriod = period === 'week' ? 'week' : 'day';
+    return this.adminService.getDacDinhLeaderboard(safePeriod, +limit);
+  }
 }

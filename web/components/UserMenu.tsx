@@ -140,6 +140,15 @@ export function UserMenu() {
                 <span>🔧</span> Trang quản trị
               </a>
             )}
+            {user.role === "admin" && (
+              <Link
+                href="/admin/dac-dinh/"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-md hover:bg-ink-100 text-violet-700 font-semibold transition-colors duration-150 ease-warm"
+              >
+                <span>📊</span> Thống kê Đặc định
+              </Link>
+            )}
             <button
               onClick={() => {
                 logout();

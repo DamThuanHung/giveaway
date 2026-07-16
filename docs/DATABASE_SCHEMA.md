@@ -294,6 +294,22 @@
 
 ---
 
+### `DacDinhAttempt`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `String` (cuid) | PK |
+| `userId` | `String` | FK → `User.id` (cascade delete) |
+| `chapterId` | `String` | ví dụ "sm-ch1" — khớp id chương phía `web/app/dac-dinh/data.ts` |
+| `exerciseType` | `String` | vocab \| translation \| reorder \| quiz \| judgment \| planning |
+| `score` | `Int` | |
+| `total` | `Int` | |
+| `createdAt` | `DateTime` | Tự động, có index riêng + index kết hợp `[userId,createdAt]` và `[exerciseType,createdAt]` |
+
+**Mục đích:** Ghi lại mỗi lần hoàn thành 1 dạng bài ở `/dac-dinh` — nguồn dữ liệu cho admin xem số người đang hoạt động + bảng xếp hạng (ADR-0015). Chạy song song với `localStorage` phía client, KHÔNG thay thế (logic mở khóa dạng bài tuần tự vẫn dựa vào localStorage). "Hoàn thành 1 chương" định nghĩa là có attempt `exerciseType="quiz"` đạt `score=total` ở chương đó.
+
+---
+
 ### `BannedIdentity`
 
 | Cột | Kiểu | Ghi chú |
