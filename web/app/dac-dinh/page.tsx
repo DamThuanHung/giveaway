@@ -14,14 +14,28 @@ import {
   translationsByChapter,
   vocabByChapter,
   reordersByChapter,
+  scenariosByChapter,
+  planningsByChapter,
   type QuizQuestion,
   type TranslationQuestion,
   type VocabQuestion,
   type ReorderQuestion,
+  type ScenarioQuestion,
+  type PlanningQuestion,
   type ExerciseType,
 } from "./data";
 
-type Screen = "parts" | "chapters" | "exercise" | "vocab" | "translation" | "reorder" | "quiz" | "result";
+type Screen =
+  | "parts"
+  | "chapters"
+  | "exercise"
+  | "vocab"
+  | "translation"
+  | "reorder"
+  | "quiz"
+  | "judgment"
+  | "planning"
+  | "result";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -36,13 +50,16 @@ type BestScore = { score: number; total: number; date: string };
 
 const STORAGE_KEY = "dac-dinh-best-scores-v2";
 
-// Thứ tự học: Từ vựng → Dịch câu → Sắp xếp câu → Trắc nghiệm kiến thức.
+// Thứ tự học: Từ vựng → Dịch câu → Sắp xếp câu → Trắc nghiệm kiến thức → Tình huống & Tính toán → Lập kế hoạch.
 // Dạng sau chỉ mở khóa khi dạng ngay trước đạt 100% (điểm tuyệt đối) ở chương đó.
+// 2 dạng cuối mô phỏng 実技試験 (thực hành) của đề thi thật — xem docs/modules/dac-dinh.md phần chuẩn nguồn.
 const EXERCISE_TYPES: { id: ExerciseType; emoji: string; label: string }[] = [
   { id: "vocab", emoji: "🔤", label: "Từ vựng" },
   { id: "translation", emoji: "🔄", label: "Dịch câu" },
   { id: "reorder", emoji: "🧩", label: "Sắp xếp câu" },
   { id: "quiz", emoji: "📝", label: "Trắc nghiệm kiến thức" },
+  { id: "judgment", emoji: "🎯", label: "Tình huống & Tính toán" },
+  { id: "planning", emoji: "📋", label: "Lập kế hoạch" },
 ];
 
 function exerciseStorageKey(chapterId: string, exerciseId: ExerciseType) {
@@ -91,6 +108,16 @@ export default function DacDinhPage() {
   const [reorderBuilt, setReorderBuilt] = useState<string[]>([]);
   const [reorderRevealed, setReorderRevealed] = useState(false);
   const [reorderAnswers, setReorderAnswers] = useState<boolean[]>([]);
+
+  // Tình huống & Tính toán (判断試験 + tính toán) — dùng chung cơ chế chọn 1 đáp án như quiz.
+  const [scenarioQuestions, setScenarioQuestions] = useState<ScenarioQuestion[]>([]);
+
+  // Lập kế hoạch (計画立案試験) — cơ chế ghép giống Sắp xếp câu, nhưng mỗi "step" hiện song song ja+vi.
+  const [planningQuestions, setPlanningQuestions] = useState<PlanningQuestion[]>([]);
+  const [planningPool, setPlanningPool] = useState<{ ja: string; vi: string }[]>([]);
+  const [planningBuilt, setPlanningBuilt] = useState<{ ja: string; vi: string }[]>([]);
+  const [planningRevealed, setPlanningRevealed] = useState(false);
+  const [planningAnswers, setPlanningAnswers] = useState<boolean[]>([]);
   // CHỈ DÙNG ĐỂ TEST — mở khóa tạm thời toàn bộ dạng bài để xem giao diện, không đụng vào localStorage/điểm số thật.
   // Gỡ bỏ khi các dạng bài đã có đủ nội dung và không cần bypass nữa.
   const [devUnlockAll, setDevUnlockAll] = useState(false);
@@ -173,6 +200,34 @@ export default function DacDinhPage() {
     setScreen("reorder");
   }
 
+  function startJudgment(chId: string) {
+    if (!requireAuth()) return;
+    const ss = scenariosByChapter(chId);
+    if (ss.length === 0) return;
+    setChapterId(chId);
+    setActiveExercise("judgment");
+    setScenarioQuestions(ss);
+    setCurrent(0);
+    setSelected(null);
+    setAnswers([]);
+    setScreen("judgment");
+  }
+
+  function startPlanning(chId: string) {
+    if (!requireAuth()) return;
+    const ps = planningsByChapter(chId);
+    if (ps.length === 0) return;
+    setChapterId(chId);
+    setActiveExercise("planning");
+    setPlanningQuestions(ps);
+    setCurrent(0);
+    setPlanningPool(shuffleArray(ps[0].steps));
+    setPlanningBuilt([]);
+    setPlanningRevealed(false);
+    setPlanningAnswers([]);
+    setScreen("planning");
+  }
+
   function pickAnswer(index: number) {
     if (selected !== null) return; // đã chọn rồi, khóa lại
     setSelected(index);
@@ -182,6 +237,7 @@ export default function DacDinhPage() {
     if (activeExercise === "quiz") return questions[i]?.correctIndex;
     if (activeExercise === "translation") return translationQuestions[i]?.correctIndex;
     if (activeExercise === "vocab") return vocabQuestions[i]?.correctIndex;
+    if (activeExercise === "judgment") return scenarioQuestions[i]?.correctIndex;
     return undefined;
   }
 
@@ -191,7 +247,13 @@ export default function DacDinhPage() {
     setSelected(null);
 
     const total =
-      activeExercise === "quiz" ? questions.length : activeExercise === "translation" ? translationQuestions.length : vocabQuestions.length;
+      activeExercise === "quiz"
+        ? questions.length
+        : activeExercise === "translation"
+        ? translationQuestions.length
+        : activeExercise === "judgment"
+        ? scenarioQuestions.length
+        : vocabQuestions.length;
 
     if (current + 1 < total) {
       setCurrent(current + 1);
@@ -240,6 +302,43 @@ export default function DacDinhPage() {
     }
   }
 
+  // Lập kế hoạch: bấm bước trong "pool" để thêm vào chuỗi đang ghép, bấm lại trong chuỗi để trả về pool.
+  function pickPlanningStep(index: number) {
+    if (planningRevealed) return;
+    const step = planningPool[index];
+    setPlanningPool((p) => p.filter((_, i) => i !== index));
+    setPlanningBuilt((b) => [...b, step]);
+  }
+
+  function unpickPlanningStep(index: number) {
+    if (planningRevealed) return;
+    const step = planningBuilt[index];
+    setPlanningBuilt((b) => b.filter((_, i) => i !== index));
+    setPlanningPool((p) => [...p, step]);
+  }
+
+  function checkPlanning() {
+    const pq = planningQuestions[current];
+    const correct = JSON.stringify(planningBuilt.map((s) => s.ja)) === JSON.stringify(pq.steps.map((s) => s.ja));
+    setPlanningRevealed(true);
+    setPlanningAnswers((a) => [...a, correct]);
+  }
+
+  function nextPlanningQuestion() {
+    const nextIdx = current + 1;
+    if (nextIdx < planningQuestions.length) {
+      setCurrent(nextIdx);
+      setPlanningPool(shuffleArray(planningQuestions[nextIdx].steps));
+      setPlanningBuilt([]);
+      setPlanningRevealed(false);
+    } else {
+      const sc = planningAnswers.filter(Boolean).length;
+      if (chapterId) saveBestScore(exerciseStorageKey(chapterId, "planning"), sc, planningQuestions.length);
+      setBestScores(loadBestScores());
+      setScreen("result");
+    }
+  }
+
   function backToParts() {
     setScreen("parts");
     setPartId(null);
@@ -261,13 +360,46 @@ export default function DacDinhPage() {
 
   // Dạng bài chỉ mở khóa khi dạng ngay trước nó đã đạt 100% ở cùng chương.
   // Từ vựng (dạng đầu tiên) luôn mở.
+  function contentLengthFor(chId: string, exerciseId: ExerciseType): number {
+    if (exerciseId === "quiz") return questionsByChapter(chId).length;
+    if (exerciseId === "translation") return translationsByChapter(chId).length;
+    if (exerciseId === "vocab") return vocabByChapter(chId).length;
+    if (exerciseId === "reorder") return reordersByChapter(chId).length;
+    if (exerciseId === "judgment") return scenariosByChapter(chId).length;
+    return planningsByChapter(chId).length; // "planning"
+  }
+
+  // Dạng bài chỉ mở khóa khi dạng NGAY TRƯỚC ĐÓ CÓ NỘI DUNG đạt 100%. Nếu 1 chương không có nội dung
+  // cho dạng liền trước (ví dụ chương chỉ có Lập kế hoạch mà không có Tình huống & Tính toán), bỏ qua
+  // dạng rỗng đó và lùi tiếp về dạng có nội dung gần nhất — tránh khóa vĩnh viễn dạng bài phía sau.
   function isUnlocked(chId: string, exerciseId: ExerciseType): boolean {
     if (devUnlockAll) return true; // CHỈ DÙNG ĐỂ TEST
-    const idx = EXERCISE_TYPES.findIndex((e) => e.id === exerciseId);
-    if (idx <= 0) return true;
-    const prevId = EXERCISE_TYPES[idx - 1].id;
-    const prevBest = bestScores[exerciseStorageKey(chId, prevId)];
-    return !!prevBest && prevBest.total > 0 && prevBest.score === prevBest.total;
+    let idx = EXERCISE_TYPES.findIndex((e) => e.id === exerciseId) - 1;
+    while (idx >= 0) {
+      const prevId = EXERCISE_TYPES[idx].id;
+      if (contentLengthFor(chId, prevId) === 0) {
+        idx -= 1;
+        continue;
+      }
+      const prevBest = bestScores[exerciseStorageKey(chId, prevId)];
+      return !!prevBest && prevBest.total > 0 && prevBest.score === prevBest.total;
+    }
+    return true;
+  }
+
+  // Nhãn dạng bài THẬT SỰ đang được yêu cầu hoàn thành 100% để mở khóa (bỏ qua các dạng rỗng ở giữa) —
+  // dùng để hiển thị đúng thông báo khóa, tránh nhắc tên 1 dạng không có nội dung trong chương đó.
+  function requiredPrevLabel(chId: string, exerciseId: ExerciseType): string | null {
+    let idx = EXERCISE_TYPES.findIndex((e) => e.id === exerciseId) - 1;
+    while (idx >= 0) {
+      const prevId = EXERCISE_TYPES[idx].id;
+      if (contentLengthFor(chId, prevId) === 0) {
+        idx -= 1;
+        continue;
+      }
+      return EXERCISE_TYPES[idx].label;
+    }
+    return null;
   }
 
   const part = PARTS.find((p) => p.id === partId);
@@ -276,6 +408,8 @@ export default function DacDinhPage() {
   const tq = translationQuestions[current];
   const vq = vocabQuestions[current];
   const rq = reorderQuestions[current];
+  const sq = scenarioQuestions[current];
+  const pq = planningQuestions[current];
   const resultTotal =
     activeExercise === "quiz"
       ? questions.length
@@ -283,10 +417,16 @@ export default function DacDinhPage() {
       ? translationQuestions.length
       : activeExercise === "vocab"
       ? vocabQuestions.length
+      : activeExercise === "judgment"
+      ? scenarioQuestions.length
+      : activeExercise === "planning"
+      ? planningQuestions.length
       : reorderQuestions.length;
   const score =
     activeExercise === "reorder"
       ? reorderAnswers.filter(Boolean).length
+      : activeExercise === "planning"
+      ? planningAnswers.filter(Boolean).length
       : answers.filter((a, i) => a === correctIndexAt(i)).length;
 
   return (
@@ -410,22 +550,15 @@ export default function DacDinhPage() {
 
             <div className="grid sm:grid-cols-2 gap-3">
               {EXERCISE_TYPES.map((ex, idx) => {
-                const contentLength =
-                  ex.id === "quiz"
-                    ? questionsByChapter(chapter.id).length
-                    : ex.id === "translation"
-                    ? translationsByChapter(chapter.id).length
-                    : ex.id === "vocab"
-                    ? vocabByChapter(chapter.id).length
-                    : reordersByChapter(chapter.id).length;
+                const contentLength = contentLengthFor(chapter.id, ex.id);
                 const hasContent = contentLength > 0;
                 const unlocked = isUnlocked(chapter.id, ex.id);
                 const available = unlocked && hasContent;
 
                 let statusText = "Sắp có nội dung";
                 if (!unlocked) {
-                  const prevLabel = EXERCISE_TYPES[idx - 1].label;
-                  statusText = `Khóa — cần đạt 100% "${prevLabel}" trước`;
+                  const prevLabel = requiredPrevLabel(chapter.id, ex.id);
+                  statusText = prevLabel ? `Khóa — cần đạt 100% "${prevLabel}" trước` : "Khóa";
                 } else if (hasContent) {
                   statusText = `${contentLength} câu`;
                 }
@@ -439,6 +572,8 @@ export default function DacDinhPage() {
                       else if (ex.id === "translation") startTranslation(chapter.id);
                       else if (ex.id === "vocab") startVocab(chapter.id);
                       else if (ex.id === "reorder") startReorder(chapter.id);
+                      else if (ex.id === "judgment") startJudgment(chapter.id);
+                      else if (ex.id === "planning") startPlanning(chapter.id);
                     }}
                     disabled={!available}
                     className={`text-left border rounded-md p-4 flex items-center gap-3 transition duration-150 ease-warm ${
@@ -812,6 +947,212 @@ export default function DacDinhPage() {
           </div>
         )}
 
+        {screen === "judgment" && sq && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-ink-600">
+                {part?.emoji} {chapter?.titleVi} · {sq.kind === "calculation" ? "🧮 Tính toán" : "🎯 Phán đoán tình huống"}
+              </p>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className="text-sm text-ink-500">
+                  Câu {current + 1}/{scenarioQuestions.length}
+                </p>
+                <button
+                  onClick={exitExercise}
+                  className="text-xs font-semibold text-ink-500 hover:text-primary border border-ink-200 hover:border-primary rounded-full px-2.5 py-1 transition duration-150 ease-warm"
+                >
+                  ✕ Thoát
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full h-2 bg-ink-100 rounded-full overflow-hidden mb-5">
+              <div
+                className="h-full bg-primary transition-all duration-250 ease-warm"
+                style={{ width: `${((current + 1) / scenarioQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 md:p-6">
+              <div className="bg-amber-50 border border-amber-200/70 rounded-md p-3 mb-4">
+                <p className="text-xs font-bold text-amber-700 mb-1">🎭 Tình huống mô phỏng</p>
+                <p className="text-sm text-ink-800 leading-relaxed">{sq.scenarioJa}</p>
+                <p className="text-xs text-ink-500 mt-1">{sq.scenarioVi}</p>
+              </div>
+
+              <p className="text-lg font-bold text-ink-900 leading-relaxed">{sq.questionJa}</p>
+              <p className="text-sm text-ink-500 mt-1 mb-5">{sq.questionVi}</p>
+
+              <div className="space-y-2.5">
+                {sq.options.map((opt, i) => {
+                  const isCorrect = i === sq.correctIndex;
+                  const isSelected = i === selected;
+                  const revealed = selected !== null;
+
+                  let style =
+                    "border-ink-200/70 bg-white hover:border-primary hover:bg-primary-100/20";
+                  if (revealed && isCorrect) {
+                    style = "border-primary bg-primary-100/40";
+                  } else if (revealed && isSelected && !isCorrect) {
+                    style = "border-red-300 bg-red-50";
+                  } else if (revealed) {
+                    style = "border-ink-200/70 bg-white opacity-60";
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => pickAnswer(i)}
+                      disabled={revealed}
+                      className={`w-full text-left border rounded-md px-4 py-3 transition duration-150 ease-warm ${style}`}
+                    >
+                      <p className="font-semibold text-ink-900">{opt.ja}</p>
+                      <p className="text-sm text-ink-500">{opt.vi}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selected !== null && (
+                <div className="mt-5 bg-cream-50 border border-ink-200/50 rounded-md p-4 animate-fade-in">
+                  <p className="font-bold text-sm mb-1">
+                    {selected === sq.correctIndex ? "✅ Chính xác!" : "❌ Chưa đúng — đáp án đúng là:"}
+                  </p>
+                  {selected !== sq.correctIndex && (
+                    <p className="text-sm font-semibold text-primary-dark mb-2">
+                      {sq.options[sq.correctIndex].vi}
+                    </p>
+                  )}
+                  <p className="text-sm text-ink-600 leading-relaxed">{sq.explanationVi}</p>
+                  <div className="mt-3 pt-3 border-t border-ink-200/50">
+                    <p className="text-xs text-ink-500 leading-relaxed">
+                      📖 Căn cứ quy tắc OTAFF — {chapter && SOURCE_DOC_BY_PART[chapter.partId]}, trang {sq.sourcePage}:
+                      「{sq.sourceQuoteJa}」
+                    </p>
+                  </div>
+                  <button
+                    onClick={nextQuestion}
+                    className="mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+                  >
+                    {current + 1 < scenarioQuestions.length ? "Câu tiếp theo →" : "Xem kết quả"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {screen === "planning" && pq && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-ink-600">
+                {part?.emoji} {chapter?.titleVi} · 📋 Lập kế hoạch
+              </p>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className="text-sm text-ink-500">
+                  Câu {current + 1}/{planningQuestions.length}
+                </p>
+                <button
+                  onClick={exitExercise}
+                  className="text-xs font-semibold text-ink-500 hover:text-primary border border-ink-200 hover:border-primary rounded-full px-2.5 py-1 transition duration-150 ease-warm"
+                >
+                  ✕ Thoát
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full h-2 bg-ink-100 rounded-full overflow-hidden mb-5">
+              <div
+                className="h-full bg-primary transition-all duration-250 ease-warm"
+                style={{ width: `${((current + 1) / planningQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 md:p-6">
+              <div className="bg-amber-50 border border-amber-200/70 rounded-md p-3 mb-4">
+                <p className="text-xs font-bold text-amber-700 mb-1">🎭 Tình huống mô phỏng</p>
+                <p className="text-sm text-ink-800 leading-relaxed">{pq.scenarioJa}</p>
+                <p className="text-xs text-ink-500 mt-1">{pq.scenarioVi}</p>
+              </div>
+
+              <p className="text-xs font-semibold text-primary-dark mb-3">
+                Bấm các bước bên dưới theo đúng thứ tự thực hiện
+              </p>
+
+              <div className="min-h-[3.5rem] border-2 border-dashed border-ink-200 rounded-md p-3 flex flex-col gap-2 mb-4 bg-cream-50">
+                {planningBuilt.length === 0 && (
+                  <p className="text-sm text-ink-400">Bấm bước bên dưới để bắt đầu sắp xếp...</p>
+                )}
+                {planningBuilt.map((step, i) => (
+                  <button
+                    key={i}
+                    onClick={() => unpickPlanningStep(i)}
+                    disabled={planningRevealed}
+                    className="text-left bg-primary-100 border border-primary text-primary-dark font-semibold text-sm px-3 py-2 rounded-md hover:bg-primary-100/60 transition duration-150 ease-warm"
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-xs font-bold mr-2">
+                      {i + 1}
+                    </span>
+                    {step.ja}
+                    <span className="block text-xs font-normal text-primary-dark/70 ml-7">{step.vi}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2 mb-4">
+                {planningPool.map((step, i) => (
+                  <button
+                    key={i}
+                    onClick={() => pickPlanningStep(i)}
+                    className="text-left bg-white border border-ink-200/70 text-ink-900 font-semibold text-sm px-3 py-2 rounded-md hover:border-primary hover:bg-primary-100/20 transition duration-150 ease-warm"
+                  >
+                    {step.ja}
+                    <span className="block text-xs font-normal text-ink-500">{step.vi}</span>
+                  </button>
+                ))}
+              </div>
+
+              {!planningRevealed && (
+                <button
+                  onClick={checkPlanning}
+                  disabled={planningPool.length > 0}
+                  className="bg-primary hover:bg-primary-dark active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+                >
+                  Kiểm tra
+                </button>
+              )}
+
+              {planningRevealed && (
+                <div className="mt-2 bg-cream-50 border border-ink-200/50 rounded-md p-4 animate-fade-in">
+                  <p className="font-bold text-sm mb-2">
+                    {JSON.stringify(planningBuilt.map((s) => s.ja)) === JSON.stringify(pq.steps.map((s) => s.ja))
+                      ? "✅ Chính xác!"
+                      : "❌ Chưa đúng thứ tự"}
+                  </p>
+                  <div className="space-y-1 mb-3">
+                    {pq.steps.map((s, i) => (
+                      <p key={i} className="text-sm text-ink-900">
+                        <span className="font-bold">{i + 1}.</span> {s.ja}{" "}
+                        <span className="text-ink-500">— {s.vi}</span>
+                      </p>
+                    ))}
+                  </div>
+                  <p className="text-xs text-ink-500 leading-relaxed border-t border-ink-200/50 pt-2">
+                    📖 Căn cứ quy tắc OTAFF — {chapter && SOURCE_DOC_BY_PART[chapter.partId]}, trang {pq.sourcePage}:
+                    「{pq.sourceQuoteJa}」
+                  </p>
+                  <button
+                    onClick={nextPlanningQuestion}
+                    className="mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+                  >
+                    {current + 1 < planningQuestions.length ? "Câu tiếp theo →" : "Xem kết quả"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {screen === "result" && (
           <div className="animate-fade-in">
             <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-6 text-center">
@@ -936,6 +1277,62 @@ export default function DacDinhPage() {
                     </div>
                   );
                 })}
+
+              {activeExercise === "judgment" &&
+                scenarioQuestions.map((sqq, i) => {
+                  const userAnswer = answers[i];
+                  const correct = userAnswer === sqq.correctIndex;
+                  return (
+                    <div
+                      key={sqq.id}
+                      className={`bg-white border rounded-md p-4 ${correct ? "border-ink-200/70" : "border-red-200"}`}
+                    >
+                      <p className="text-xs text-ink-400 mb-1">{sqq.kind === "calculation" ? "🧮 Tính toán" : "🎯 Phán đoán"}</p>
+                      <p className="text-xs text-ink-500 italic mb-1">{sqq.scenarioVi}</p>
+                      <p className="text-sm font-semibold text-ink-900">
+                        {correct ? "✅" : "❌"} {sqq.questionJa}
+                      </p>
+                      <p className="text-xs text-ink-500 mb-2">{sqq.questionVi}</p>
+                      {!correct && userAnswer !== null && userAnswer !== undefined && (
+                        <p className="text-xs text-red-600 mb-1">Bạn chọn: {sqq.options[userAnswer].vi}</p>
+                      )}
+                      <p className="text-xs text-primary-dark font-semibold mb-1">
+                        Đáp án đúng: {sqq.options[sqq.correctIndex].vi}
+                      </p>
+                      <p className="text-xs text-ink-600 leading-relaxed mb-2">{sqq.explanationVi}</p>
+                      <p className="text-xs text-ink-400 leading-relaxed border-t border-ink-200/50 pt-2">
+                        📖 Căn cứ quy tắc OTAFF — {part && SOURCE_DOC_BY_PART[part.id]}, trang {sqq.sourcePage}:
+                        「{sqq.sourceQuoteJa}」
+                      </p>
+                    </div>
+                  );
+                })}
+
+              {activeExercise === "planning" &&
+                planningQuestions.map((pqq, i) => {
+                  const correct = planningAnswers[i];
+                  return (
+                    <div
+                      key={pqq.id}
+                      className={`bg-white border rounded-md p-4 ${correct ? "border-ink-200/70" : "border-red-200"}`}
+                    >
+                      <p className="text-xs text-ink-400 mb-1">📋 Lập kế hoạch</p>
+                      <p className="text-xs text-ink-500 italic mb-2">{pqq.scenarioVi}</p>
+                      <p className="text-sm font-semibold text-ink-900 mb-1">{correct ? "✅ Đúng thứ tự" : "❌ Sai thứ tự"}</p>
+                      <div className="space-y-0.5 mb-2">
+                        {pqq.steps.map((s, si) => (
+                          <p key={si} className="text-xs text-ink-600">
+                            <span className="font-semibold">{si + 1}.</span> {s.ja} — {s.vi}
+                          </p>
+                        ))}
+                      </div>
+                      <p className="text-xs text-ink-400 leading-relaxed border-t border-ink-200/50 pt-2">
+                        📖 Căn cứ quy tắc OTAFF — {part && SOURCE_DOC_BY_PART[part.id]}, trang {pqq.sourcePage}:
+                        「{pqq.sourceQuoteJa}」
+                      </p>
+                    </div>
+                  );
+                })}
             </div>
 
             <div className="mt-6 flex gap-3">
@@ -946,6 +1343,8 @@ export default function DacDinhPage() {
                   else if (activeExercise === "translation") startTranslation(chapterId);
                   else if (activeExercise === "vocab") startVocab(chapterId);
                   else if (activeExercise === "reorder") startReorder(chapterId);
+                  else if (activeExercise === "judgment") startJudgment(chapterId);
+                  else if (activeExercise === "planning") startPlanning(chapterId);
                 }}
                 className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-4 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
               >

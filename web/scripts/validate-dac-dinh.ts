@@ -3,7 +3,7 @@
 // KHÔNG kiểm tra được nội dung có bỏ sót tài liệu OTAFF hay không — việc đó vẫn phải làm thủ công
 // theo quy trình Bước A-B-C (xem comment kiểm kê trong app/dac-dinh/data.ts).
 
-import { CHAPTERS, QUESTIONS, TRANSLATIONS, REORDERS, VOCAB } from "../app/dac-dinh/data";
+import { CHAPTERS, QUESTIONS, TRANSLATIONS, REORDERS, VOCAB, SCENARIOS, PLANNINGS } from "../app/dac-dinh/data";
 
 type Issue = { level: "error" | "warn"; message: string };
 
@@ -72,15 +72,20 @@ checkDuplicateIds(QUESTIONS, "QUESTIONS");
 checkDuplicateIds(TRANSLATIONS, "TRANSLATIONS");
 checkDuplicateIds(REORDERS, "REORDERS");
 checkDuplicateIds(VOCAB, "VOCAB");
+checkDuplicateIds(SCENARIOS, "SCENARIOS");
+checkDuplicateIds(PLANNINGS, "PLANNINGS");
 
 checkChapterRefs(QUESTIONS, "QUESTIONS");
 checkChapterRefs(TRANSLATIONS, "TRANSLATIONS");
 checkChapterRefs(REORDERS, "REORDERS");
 checkChapterRefs(VOCAB, "VOCAB");
+checkChapterRefs(SCENARIOS, "SCENARIOS");
+checkChapterRefs(PLANNINGS, "PLANNINGS");
 
 checkMCQ(QUESTIONS, "QUESTIONS");
 checkMCQ(TRANSLATIONS, "TRANSLATIONS");
 checkMCQ(VOCAB, "VOCAB");
+checkMCQ(SCENARIOS, "SCENARIOS");
 
 for (const r of REORDERS) {
   if (r.chunks.length < 2) err(`[REORDERS] ${r.id} chỉ có ${r.chunks.length} cụm — cần tối thiểu 2`);
@@ -90,20 +95,36 @@ for (const r of REORDERS) {
   }
 }
 
+for (const p of PLANNINGS) {
+  if (p.steps.length < 2) err(`[PLANNINGS] ${p.id} chỉ có ${p.steps.length} bước — cần tối thiểu 2`);
+  if (!p.scenarioJa?.trim() || !p.scenarioVi?.trim()) err(`[PLANNINGS] ${p.id} thiếu scenarioJa/scenarioVi`);
+  const jaSteps = p.steps.map((s) => s.ja);
+  if (new Set(jaSteps).size !== jaSteps.length) {
+    warn(`[PLANNINGS] ${p.id} có bước trùng nhau trong steps — có thể gây nhầm lẫn khi sắp xếp`);
+  }
+}
+
+for (const s of SCENARIOS) {
+  if (!s.scenarioJa?.trim() || !s.scenarioVi?.trim()) err(`[SCENARIOS] ${s.id} thiếu scenarioJa/scenarioVi`);
+}
+
 checkCitation(QUESTIONS, "QUESTIONS");
 checkCitation(TRANSLATIONS, "TRANSLATIONS");
 checkCitation(REORDERS, "REORDERS");
+checkCitation(SCENARIOS, "SCENARIOS");
+checkCitation(PLANNINGS, "PLANNINGS");
 
 checkDistribution(QUESTIONS, "QUESTIONS");
 checkDistribution(TRANSLATIONS, "TRANSLATIONS");
 checkDistribution(VOCAB, "VOCAB");
+checkDistribution(SCENARIOS, "SCENARIOS");
 
 const errors = issues.filter((i) => i.level === "error");
 const warnings = issues.filter((i) => i.level === "warn");
 
 console.log("\n=== Kiểm tra dữ liệu /dac-dinh ===");
 console.log(
-  `Chương: ${CHAPTERS.length} | Trắc nghiệm: ${QUESTIONS.length} | Dịch câu: ${TRANSLATIONS.length} | Sắp xếp câu: ${REORDERS.length} | Từ vựng: ${VOCAB.length}\n`
+  `Chương: ${CHAPTERS.length} | Trắc nghiệm: ${QUESTIONS.length} | Dịch câu: ${TRANSLATIONS.length} | Sắp xếp câu: ${REORDERS.length} | Từ vựng: ${VOCAB.length} | Tình huống & Tính toán: ${SCENARIOS.length} | Lập kế hoạch: ${PLANNINGS.length}\n`
 );
 
 if (errors.length) {

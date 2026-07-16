@@ -65,7 +65,7 @@
 
 | Module | File tài liệu | Trạng thái | Mô tả |
 |---|---|---|---|
-| /dac-dinh | [dac-dinh.md](dac-dinh.md) | Nội dung + Lớp 1-2 test HOÀN TẤT — chỉ còn thiếu Mức 4 (browser thật, cần user) | Luyện thi Đặc định kỹ năng ngành nhà hàng — song ngữ, 4 dạng bài, dựa theo tài liệu OTAFF |
+| /dac-dinh | [dac-dinh.md](dac-dinh.md) | HOÀN TẤT 6/6 dạng bài, 25/25 chương, cả 4 Phần — chỉ còn thiếu Lớp 1 Mức 4 (browser thật, cần user) | Luyện thi Đặc định kỹ năng ngành nhà hàng — song ngữ, 6 dạng bài, dựa theo tài liệu OTAFF |
 
 ## Quy trình phát hành
 

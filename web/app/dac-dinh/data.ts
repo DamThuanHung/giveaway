@@ -17,7 +17,7 @@ export type Chapter = {
   titleJa: string;
 };
 
-export type ExerciseType = "quiz" | "vocab" | "translation" | "reorder";
+export type ExerciseType = "quiz" | "vocab" | "translation" | "reorder" | "judgment" | "planning";
 
 export type QuizQuestion = {
   id: string;
@@ -30,6 +30,48 @@ export type QuizQuestion = {
   /** Trích dẫn nguyên văn tiếng Nhật từ tài liệu OTAFF làm căn cứ cho đáp án đúng. */
   sourceQuoteJa: string;
   /** Số trang nội bộ (in ở cuối trang) trong tài liệu OTAFF gốc chứa trích dẫn trên. */
+  sourcePage: number;
+};
+
+/**
+ * 判断試験 (phán đoán tình huống) + câu tính toán — mô phỏng phần 実技試験 của đề thi thật.
+ * TÌNH HUỐNG (scenario) do AI tự soạn, KHÔNG trích dẫn nguyên văn — nhưng đáp án đúng + giải thích
+ * bắt buộc bám đúng 1 quy tắc/số liệu đã có `sourceQuoteJa`/`sourcePage` xác minh trong OTAFF gốc
+ * (tái dùng citation đã verify ở QUESTIONS/TRANSLATIONS/REORDERS cùng chương, không tạo quy tắc mới).
+ * kind="judgment": chọn hành động/xử lý đúng theo tình huống.
+ * kind="calculation": tính toán số liệu dựa trên công thức/tỷ lệ đã có trong tài liệu gốc.
+ */
+export type ScenarioQuestion = {
+  id: string;
+  chapterId: string;
+  kind: "judgment" | "calculation";
+  scenarioJa: string;
+  scenarioVi: string;
+  questionJa: string;
+  questionVi: string;
+  options: { ja: string; vi: string }[];
+  correctIndex: number;
+  explanationVi: string;
+  sourceQuoteJa: string;
+  sourcePage: number;
+};
+
+/**
+ * 計画立案試験 (lập kế hoạch/quy trình) — mô phỏng phần 実技試験 của đề thi thật.
+ * TÌNH HUỐNG do AI tự soạn; các BƯỚC (steps) phải là quy trình thật bám đúng `sourceQuoteJa`/`sourcePage`
+ * đã xác minh trong OTAFF gốc, chỉ đổi thứ tự hiển thị (xáo trộn) chứ không tự bịa bước mới.
+ * Khác với ReorderQuestion (ghép từng cụm từ thành 1 câu, chỉ hiện nghĩa sau khi ghép xong):
+ * ở đây mỗi "step" là 1 bước quy trình độc lập, hiển thị SONG SONG ja+vi ngay từ đầu — vì bài kiểm tra
+ * logic thứ tự quy trình, không phải kiểm tra ngữ pháp câu.
+ */
+export type PlanningQuestion = {
+  id: string;
+  chapterId: string;
+  scenarioJa: string;
+  scenarioVi: string;
+  /** Các bước theo đúng thứ tự thật (sẽ bị xáo trộn khi hiển thị cho người học). */
+  steps: { ja: string; vi: string }[];
+  sourceQuoteJa: string;
   sourcePage: number;
 };
 
@@ -13726,6 +13768,1223 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs5-31", chapterId: "cs-ch5", direction: "ja-to-vi", term: "来店頻度", options: ["Đơn giá trung bình khách", "Số lượng nhân viên", "Tần suất khách quay lại trong 1 khoảng thời gian", "Diện tích cửa hàng"], correctIndex: 2 },
 ];
 
+// Thí điểm Phần 1 (店舗運営, sm-ch1..8) trước khi nhân rộng — xem docs/modules/dac-dinh.md.
+// Chuẩn nguồn: TÌNH HUỐNG (scenario) do AI tự soạn, KHÔNG trích dẫn nguyên văn — nhưng đáp án đúng +
+// giải thích bắt buộc bám đúng 1 quy tắc/công thức/số liệu đã có sourceQuoteJa/sourcePage xác minh
+// trong QUESTIONS/REORDERS cùng chương (tái dùng citation, không tạo quy tắc mới). Số liệu trong các
+// câu tính toán (kind="calculation") là số liệu MỚI do AI đặt ra để áp dụng công thức thật, không phải
+// số liệu trích nguyên văn từ tài liệu — công thức mới là phần được cite.
+export const SCENARIOS: ScenarioQuestion[] = [
+  {
+    id: "sg-sm1-1",
+    chapterId: "sm-ch1",
+    kind: "judgment",
+    scenarioJa: "あなたはある焼肉店でホールスタッフとして働いています。お客様が入店してすぐに最初の1品を注文しました。",
+    scenarioVi: "Bạn làm nhân viên phục vụ tại một quán nướng thịt (焼肉店). Khách vừa vào quán liền gọi món đầu tiên.",
+    questionJa: "QSCスタンダードに従うと、この最初の1品は何分以内に提供すべきか。",
+    questionVi: "Theo tiêu chuẩn QSC, món đầu tiên này cần được phục vụ trong vòng bao nhiêu phút?",
+    options: [
+      { ja: "3分以内", vi: "Trong 3 phút" },
+      { ja: "5分以内", vi: "Trong 5 phút" },
+      { ja: "8分以内", vi: "Trong 8 phút" },
+      { ja: "12分以内", vi: "Trong 12 phút" },
+    ],
+    correctIndex: 1,
+    explanationVi:
+      "Theo tiêu chuẩn Q ưu tiên số 3, quán nhậu/quán nướng thịt (居酒屋・焼肉店) có tiêu chuẩn riêng nhanh hơn: món đầu tiên phải ra trong 5 phút — khác với mức 6-8 phút cho bữa trưa thông thường.",
+    sourceQuoteJa: "早く出す・・・ランチ6～8分以内、ディナー12分以内（居酒屋、焼き肉店などは最初の1品が5分以内）",
+    sourcePage: 2,
+  },
+  {
+    id: "sg-sm1-2",
+    chapterId: "sm-ch1",
+    kind: "judgment",
+    scenarioJa:
+      "ランチタイム中、常連のお客様から「最近このメニューの値段が高くなった気がする」というクレームが入りました。あなたはその時間帯の責任者です。",
+    scenarioVi: "Trong giờ trưa, một khách quen phàn nàn \"Dạo này thấy giá món này tăng lên rồi\". Bạn đang là người phụ trách khung giờ này (時間帯責任者).",
+    questionJa: "このクレーム対応は、時間帯責任者のマネジメント業務に含まれるか。",
+    questionVi: "Việc xử lý khiếu nại này có thuộc phạm vi công việc quản lý của người phụ trách khung giờ không?",
+    options: [
+      { ja: "含まれる。顧客管理（クレーム対応）は時間帯責任者の業務の一つ", vi: "Có. Quản lý khách hàng (xử lý khiếu nại) là một trong các công việc của người phụ trách khung giờ" },
+      { ja: "含まれない。価格に関することは本部の専権事項なので一切対応してはいけない", vi: "Không. Vì liên quan giá cả là thẩm quyền riêng của trụ sở chính nên tuyệt đối không được xử lý" },
+      { ja: "含まれない。クレームは店長のみが対応する", vi: "Không. Chỉ cửa hàng trưởng mới được xử lý khiếu nại" },
+      { ja: "含まれるが、その場で値下げを即決してよい", vi: "Có, và được quyền quyết định giảm giá ngay tại chỗ" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "顧客管理（クレーム対応）nằm trong 4 mảng quản lý mà 時間帯責任者 phụ trách theo tài liệu (cùng với giá vốn, chi phí điện nước, giờ công nhân sự). Tuy nhiên xử lý khiếu nại không đồng nghĩa với tự ý giảm giá — cần theo đúng quy trình xử lý khiếu nại chuẩn của cửa hàng.",
+    sourceQuoteJa:
+      "※上記のマネジメントとは、原価管理に関する発注・検品収納管理、水道光熱費などコスト管理、顧客管理（カスタマリーリレーションやクレーム対応）、人件費に関する時間管理や不足要員の手配などです。",
+    sourcePage: 1,
+  },
+  {
+    id: "sg-sm2-1",
+    chapterId: "sm-ch2",
+    kind: "calculation",
+    scenarioJa: "ある店舗の1日の売上高は500,000円、その日の総労働時間は100時間でした。",
+    scenarioVi: "Doanh thu 1 ngày của một cửa hàng là 500.000 yên, tổng giờ lao động trong ngày là 100 giờ.",
+    questionJa: "この日の人時売上高はいくらか。",
+    questionVi: "Doanh thu theo giờ công (人時売上高) của ngày hôm đó là bao nhiêu?",
+    options: [
+      { ja: "50,000円", vi: "50.000 yên" },
+      { ja: "500円", vi: "500 yên" },
+      { ja: "5,000円", vi: "5.000 yên" },
+      { ja: "5,000,000円", vi: "5.000.000 yên" },
+    ],
+    correctIndex: 2,
+    explanationVi: "人時売上高 ＝ 売上高÷総労働時間 → 500,000円÷100時間＝5,000円.",
+    sourceQuoteJa: "１日の売上高÷１日の総労働時間=人時売上高",
+    sourcePage: 3,
+  },
+  {
+    id: "sg-sm2-2",
+    chapterId: "sm-ch2",
+    kind: "calculation",
+    scenarioJa: "ある月の原価高は45,000円、売上高は150,000円でした。",
+    scenarioVi: "Trong một tháng, giá vốn (原価高) là 45.000 yên, doanh thu là 150.000 yên.",
+    questionJa: "この月の原価率はいくらか。",
+    questionVi: "Tỷ lệ giá vốn (原価率) của tháng đó là bao nhiêu?",
+    options: [
+      { ja: "45%", vi: "45%" },
+      { ja: "30%", vi: "30%" },
+      { ja: "15%", vi: "15%" },
+      { ja: "3.3%", vi: "3.3%" },
+    ],
+    correctIndex: 1,
+    explanationVi: "原価率＝原価高÷売上高×100 → 45,000円÷150,000円×100＝30%.",
+    sourceQuoteJa: "原価高を売上高で割り１００を掛けたものが原価率となります。",
+    sourcePage: 4,
+  },
+  {
+    id: "sg-sm2-3",
+    chapterId: "sm-ch2",
+    kind: "calculation",
+    scenarioJa: "あるお客様が来店し、3品を注文しました。一品当たりの平均単価は500円でした。",
+    scenarioVi: "Một khách đến quán và gọi 3 món. Đơn giá trung bình mỗi món là 500 yên.",
+    questionJa: "このお客様の客単価はいくらか。",
+    questionVi: "Đơn giá trung bình (客単価) của vị khách này là bao nhiêu?",
+    options: [
+      { ja: "500円", vi: "500 yên" },
+      { ja: "167円", vi: "167 yên" },
+      { ja: "1,000円", vi: "1.000 yên" },
+      { ja: "1,500円", vi: "1.500 yên" },
+    ],
+    correctIndex: 3,
+    explanationVi: "客単価＝注文点数×一品平均単価 → 3×500円＝1,500円.",
+    sourceQuoteJa: "客単価＝注文点数×一品平均単価",
+    sourcePage: 6,
+  },
+  {
+    id: "sg-sm2-4",
+    chapterId: "sm-ch2",
+    kind: "judgment",
+    scenarioJa: "月末の集計で、あなたの店舗の労働分配率が48％になっていることが分かりました。",
+    scenarioVi: "Vào cuối tháng, bạn phát hiện tỷ lệ phân phối lao động (労働分配率) của cửa hàng mình là 48%.",
+    questionJa: "この数値についてどう判断すべきか。",
+    questionVi: "Bạn nên đánh giá con số này như thế nào?",
+    options: [
+      { ja: "適正範囲（35～40%）を超えており、店舗としての目安（40%以下）も上回っている危険水準", vi: "Vượt ngưỡng hợp lý (35-40%), đồng thời vượt cả mức khuyến nghị cho từng cửa hàng (dưới 40%) — mức nguy hiểm" },
+      { ja: "問題ない、労働分配率は高いほど良い指標だから", vi: "Không sao, vì tỷ lệ phân phối lao động càng cao càng tốt" },
+      { ja: "適正範囲内なので何もしなくてよい", vi: "Nằm trong ngưỡng hợp lý nên không cần làm gì" },
+      { ja: "労働分配率は原価率と無関係な指標なので無視してよい", vi: "Đây là chỉ số không liên quan gì đến tỷ lệ giá vốn nên có thể bỏ qua" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "労働分配率 hợp lý theo OTAFF là 35-40%; để cả doanh nghiệp giữ trong ngưỡng đó, TỪNG cửa hàng cần giảm xuống dưới 40%. 48% đã vượt xa cả 2 mốc này, cần rà soát giảm giờ công hoặc tăng doanh thu.",
+    sourceQuoteJa:
+      "企業全体として労働分配率を適正値内で収めるには、店舗での労働分配率を４０％以下に低減させる必要があるのです。",
+    sourcePage: 4,
+  },
+  {
+    id: "sg-sm3-1",
+    chapterId: "sm-ch3",
+    kind: "judgment",
+    scenarioJa: "マグロを10キロ発注し、納品書にも10キロと記載されていましたが、検収作業で実際に測ると6キロしかありませんでした。",
+    scenarioVi: "Bạn đặt 10kg cá ngừ, phiếu giao hàng cũng ghi 10kg, nhưng khi kiểm nhận thực tế cân lại chỉ có 6kg.",
+    questionJa: "このとき、あなたが取るべき正しい行動はどれか。",
+    questionVi: "Trong tình huống này, hành động đúng bạn cần làm là gì?",
+    options: [
+      { ja: "納品書通りなので、そのままサインして受け取る", vi: "Vì khớp với phiếu giao hàng nên cứ ký nhận bình thường" },
+      { ja: "現品の数量を確認し、納品書との差異をその場で業者に指摘し訂正を求める", vi: "Xác nhận số lượng thực tế, chỉ ra ngay tại chỗ chênh lệch với phiếu giao hàng và yêu cầu điều chỉnh" },
+      { ja: "差異には気づいたが、少量なので無視してサインする", vi: "Nhận ra chênh lệch nhưng vì ít nên bỏ qua và vẫn ký" },
+      { ja: "業者を疑うのは失礼なので確認自体をしない", vi: "Nghi ngờ nhà cung cấp là bất lịch sự nên không kiểm tra gì cả" },
+    ],
+    correctIndex: 1,
+    explanationVi:
+      "検収 đòi hỏi xác nhận cả B) số lượng trên phiếu và C) số lượng+chất lượng thực tế. Nếu ký nhận theo phiếu (10kg) trong khi thực tế chỉ 6kg, cửa hàng vẫn phải trả tiền cho phần thiếu — phát sinh khoản hao hụt \"vô hình\" như ví dụ thực tế trong tài liệu (thiếu 4kg tương đương 20.000 yên).",
+    sourceQuoteJa:
+      "例えば、仕入れ単価の高いマグロの納品書の数量（B）は１０キロと記されていても、実際に納入された現品の数量（C）が６キロの場合、検収時に気づかず納品書にサインして業者に手渡せば、この段階で４キロのロスが発生しています。仮にキロ当たり５千円のマグロなら２万円のロスです。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-sm3-2",
+    chapterId: "sm-ch3",
+    kind: "judgment",
+    scenarioJa: "マグロを10キロ発注しましたが、納品書には12キロ、実際の現品も12キロで、数量も品質も一致していました。",
+    scenarioVi: "Bạn đặt 10kg cá ngừ, nhưng phiếu giao hàng ghi 12kg và hàng thực tế cũng đúng 12kg, số lượng và chất lượng đều khớp nhau.",
+    questionJa: "この状況について正しい理解はどれか。",
+    questionVi: "Cách hiểu đúng về tình huống này là gì?",
+    options: [
+      { ja: "納品書と現品が一致しているので何の問題もない", vi: "Vì phiếu giao hàng khớp với hàng thực tế nên hoàn toàn không có vấn đề gì" },
+      { ja: "多く納品されたのはサービスなので黙って受け取ってよい", vi: "Giao nhiều hơn là ưu đãi của nhà cung cấp nên cứ im lặng nhận" },
+      { ja: "発注数量（10キロ）より2キロ多く納品されており、廃棄ロスや余分な支払いにつながる問題がある", vi: "Đã giao nhiều hơn 2kg so với lượng đặt (10kg), có thể dẫn đến hao hụt phải vứt bỏ và phải trả thêm tiền" },
+      { ja: "検収作業では発注数量は確認しなくてよい", vi: "Khi kiểm nhận thì không cần đối chiếu với số lượng đã đặt" },
+    ],
+    correctIndex: 2,
+    explanationVi:
+      "Khớp giữa phiếu-thực tế không đồng nghĩa khớp với lượng ĐÃ ĐẶT. 2kg dư ra dễ tồn kho, hư hỏng, phải vứt bỏ (廃棄ロス), đồng thời cửa hàng vẫn phải trả tiền cho phần dư đó.",
+    sourceQuoteJa:
+      "仮にこのときのマグロの発注数量（A）が１０キロであったとすれば、２キロ多く納品されており問題です。売上予測に基づく発注量より多い２キロは、売れずに商品の劣化が進んで廃棄ロスになってしまいます。また、業者への支払い額も２キロ分増え問題です。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-sm3-3",
+    chapterId: "sm-ch3",
+    kind: "calculation",
+    scenarioJa:
+      "和牛を8キロ発注し、納品書にも8キロと記載されていましたが、検収時によく確認せずサインしてしまい、後で調べると実際は5キロしかありませんでした。仕入れ単価はキロ当たり6,000円です。",
+    scenarioVi:
+      "Bạn đặt 8kg thịt bò Wagyu, phiếu giao hàng cũng ghi 8kg, nhưng lúc kiểm nhận không kiểm tra kỹ mà đã ký nhận ngay — sau đó phát hiện thực tế chỉ có 5kg. Đơn giá nhập là 6.000 yên/kg.",
+    questionJa: "この検収ミスによる見えないロスの金額はいくらか。",
+    questionVi: "Số tiền hao hụt \"vô hình\" phát sinh từ sai sót kiểm nhận này là bao nhiêu?",
+    options: [
+      { ja: "18,000円", vi: "18.000 yên" },
+      { ja: "48,000円", vi: "48.000 yên" },
+      { ja: "30,000円", vi: "30.000 yên" },
+      { ja: "3,000円", vi: "3.000 yên" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "Thiếu 8kg−5kg＝3kg. Lỗ ẩn ＝ 3kg × 6,000円/kg ＝ 18,000円 — áp dụng đúng logic tính lỗ ẩn như ví dụ cá ngừ trong tài liệu (thiếu 4kg × 5,000円/kg = 20,000円).",
+    sourceQuoteJa:
+      "例えば、仕入れ単価の高いマグロの納品書の数量（B）は１０キロと記されていても、実際に納入された現品の数量（C）が６キロの場合、検収時に気づかず納品書にサインして業者に手渡せば、この段階で４キロのロスが発生しています。仮にキロ当たり５千円のマグロなら２万円のロスです。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-sm4-1",
+    chapterId: "sm-ch4",
+    kind: "judgment",
+    scenarioJa: "あなたの店舗は昼と夜の食事時間帯以外（午後2時～5時）に客足が少なく困っています。",
+    scenarioVi: "Cửa hàng của bạn gặp khó khăn vì vắng khách vào khung giờ ngoài bữa trưa và bữa tối (14h-17h).",
+    questionJa: "このアイドルタイム対策として最も適切な販売促進はどれか。",
+    questionVi: "Biện pháp xúc tiến bán hàng nào phù hợp nhất để đối phó với khung giờ vắng khách này?",
+    options: [
+      { ja: "時間帯割引商品を導入し、その時間帯だけ値引き商品を置く", vi: "Áp dụng sản phẩm giảm giá theo khung giờ, chỉ giảm giá trong khung giờ đó" },
+      { ja: "ポイント制度を新たに導入する", vi: "Áp dụng mới chế độ tích điểm" },
+      { ja: "全メニューを一律値上げする", vi: "Tăng giá đồng loạt toàn bộ thực đơn" },
+      { ja: "宅配サービスをやめる", vi: "Ngừng dịch vụ giao hàng tận nơi" },
+    ],
+    correctIndex: 0,
+    explanationVi: "時間帯割引商品 nhắm đúng vào アイドルタイム (khung giờ vắng khách ngoài giờ ăn chính) để thu hút khách đến — đúng với tình huống nêu.",
+    sourceQuoteJa: "時間帯割引商品は、アイドルタイム（食事時間帯以外）用に値引き商品を置くことで来店客の誘引につなげます。",
+    sourcePage: 17,
+  },
+  {
+    id: "sg-sm4-2",
+    chapterId: "sm-ch4",
+    kind: "judgment",
+    scenarioJa: "レジでお会計を終えたお客様に、次回使える割引券を渡そうとしています。",
+    scenarioVi: "Bạn định đưa phiếu giảm giá cho lần sau cho một khách vừa thanh toán xong tại quầy thu ngân.",
+    questionJa: "このタイミングでの割引券の渡し方は適切か。",
+    questionVi: "Việc đưa phiếu giảm giá vào thời điểm này có phù hợp không?",
+    options: [
+      { ja: "不適切。来店直後に渡すべきだった", vi: "Không phù hợp. Lẽ ra phải đưa ngay lúc khách vừa vào quán" },
+      { ja: "適切。レジ精算時に渡すのが正しいタイミングで再来店を促す", vi: "Phù hợp. Đưa lúc thanh toán là đúng thời điểm, giúp khuyến khích khách quay lại" },
+      { ja: "不適切。割引券は絶対に渡してはいけない", vi: "Không phù hợp. Tuyệt đối không được đưa phiếu giảm giá" },
+      { ja: "適切だが、効果は来店時に渡す場合と全く同じ", vi: "Phù hợp, nhưng hiệu quả hoàn toàn giống như đưa lúc khách vừa vào" },
+    ],
+    correctIndex: 1,
+    explanationVi:
+      "割引券 nhằm khuyến khích khách QUAY LẠI lần sau nên phải đưa lúc thanh toán. Nếu đưa ngay lúc khách vào quán thì chỉ là giảm giá đơn thuần cho lượt này, làm giảm doanh thu — khác hẳn hiệu quả.",
+    sourceQuoteJa:
+      "割引券の目的は再来店を促すためのもので、レジ精算時に渡します。ただし、来店時に渡すと単純に値引きをしているだけに過ぎないので、売上を下げる要因になります。",
+    sourcePage: 17,
+  },
+  {
+    id: "sg-sm4-3",
+    chapterId: "sm-ch4",
+    kind: "calculation",
+    scenarioJa: "全メニューを売上順に並べ、累計売上構成比を計算したところ、あるメニューの累計構成比は82％でした。",
+    scenarioVi: "Sau khi xếp toàn bộ thực đơn theo doanh thu và tính tỷ lệ cộng dồn, một món có tỷ lệ cộng dồn đạt 82%.",
+    questionJa: "ABC分析でこのメニューはどの分類に入るか。",
+    questionVi: "Theo phân tích ABC, món này thuộc nhóm nào?",
+    options: [
+      { ja: "A分類", vi: "Nhóm A" },
+      { ja: "B分類", vi: "Nhóm B" },
+      { ja: "C分類", vi: "Nhóm C" },
+      { ja: "分類対象外", vi: "Không thuộc nhóm nào" },
+    ],
+    correctIndex: 1,
+    explanationVi: "ABC分析: cộng dồn đến 70% là A, 70-90% là B, 90-100% là C. 82% nằm trong khoảng 70-90% nên thuộc nhóm B.",
+    sourceQuoteJa:
+      "ABC分析とは全メニューを売上順又は売れ個数順に並べトータルの７０％を構成するメニューをAとし、７０％から９０％を構成するメニューをBとし、９０％から１００％を構成するメニューをCとします。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-sm5-1",
+    chapterId: "sm-ch5",
+    kind: "judgment",
+    scenarioJa: "駅前に立地するあなたの店舗では、来店するお客様の多くが「これまで見たことのない顔」です。",
+    scenarioVi: "Cửa hàng của bạn nằm ngay trước ga tàu, phần lớn khách đến là \"những gương mặt chưa từng thấy trước đây\".",
+    questionJa: "このような立地の店舗で高くなりやすい顧客構成はどれか。",
+    questionVi: "Với vị trí cửa hàng như vậy, cơ cấu khách hàng nào thường có tỷ lệ cao?",
+    options: [
+      { ja: "固定顧客率", vi: "Tỷ lệ khách quen cố định" },
+      { ja: "準固定顧客率のみ", vi: "Chỉ tỷ lệ khách bán cố định" },
+      { ja: "客数が常にゼロになる", vi: "Số khách luôn bằng 0" },
+      { ja: "新規顧客率", vi: "Tỷ lệ khách hàng mới" },
+    ],
+    correctIndex: 3,
+    explanationVi:
+      "Cửa hàng gần ga tàu, nơi lưu lượng người qua lại lớn, thường có tỷ lệ khách MỚI (新規顧客率) cao hơn — khác với đa số cửa hàng khác nơi tỷ lệ khách quen+bán cố định cao hơn.",
+    sourceQuoteJa: "交通量の多い駅周辺では、新規顧客率が高くなり、それ以外の多くの店は固定顧客と準固定顧客の比率が高くなります。",
+    sourcePage: 17,
+  },
+  {
+    id: "sg-sm5-2",
+    chapterId: "sm-ch5",
+    kind: "judgment",
+    scenarioJa: "常連のお客様が来店しました。あなたは以前、その方が辛い料理が苦手だと聞いたことを覚えています。",
+    scenarioVi: "Một khách quen vừa đến quán. Bạn nhớ trước đây từng nghe khách này không ăn được cay.",
+    questionJa: "固定顧客の目減りを防ぐ観点から、最も適切な接客はどれか。",
+    questionVi: "Xét từ góc độ ngăn khách quen sụt giảm, cách phục vụ phù hợp nhất là gì?",
+    options: [
+      { ja: "顔と好みを覚えていることを活かし、「いつもありがとうございます」と声をかけ、辛さを控えたメニューをおすすめする", vi: "Tận dụng việc nhớ mặt và sở thích, chào \"cảm ơn quý khách luôn ủng hộ\", rồi gợi ý món ít cay" },
+      { ja: "毎回初対面のように接客し、好みには一切触れない", vi: "Mỗi lần đều phục vụ như lần đầu gặp, không đề cập gì đến sở thích" },
+      { ja: "覚えていることをアピールせず、価格だけを説明する", vi: "Không thể hiện việc đã nhớ, chỉ giải thích về giá" },
+      { ja: "好みを覚えていたことを理由に、確認せず勝手に注文を決めて出す", vi: "Lấy lý do đã nhớ sở thích, tự ý quyết định món mà không hỏi lại khách" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "Giảm sụt giảm khách quen cần: nhớ mặt, chào quen thuộc, và nhớ sở thích của họ (với tiền đề không hạ chất lượng). Tuy vậy vẫn cần tôn trọng quyền quyết định của khách — chỉ nên GỢI Ý dựa trên thông tin đã biết, không tự ý quyết thay.",
+    sourceQuoteJa:
+      "固定顧客の目減りを減らすためには、当然品質は落とさないことは前提ですが、固定顧客の顔をしっかり覚え、あいさつの時「いつもありがとうございます」の一言を添え、好みのメニューや席なども覚えることです。",
+    sourcePage: 17,
+  },
+  {
+    id: "sg-sm6-1",
+    chapterId: "sm-ch6",
+    kind: "calculation",
+    scenarioJa: "あるスタッフの時給は1,000円です。この日、週40時間を超える時間外労働を2時間おこないました（深夜や休日ではありません）。",
+    scenarioVi: "Một nhân viên có lương giờ 1.000 yên. Hôm đó nhân viên làm thêm 2 giờ vượt quá 40 giờ/tuần (không phải ban đêm, không phải ngày nghỉ).",
+    questionJa: "この2時間分の割増賃金（本給とは別に加算される分）の最低額はいくらか。",
+    questionVi: "Số tiền lương phụ trội tối thiểu (cộng thêm ngoài lương gốc) cho 2 giờ đó là bao nhiêu?",
+    options: [
+      { ja: "500円", vi: "500 yên" },
+      { ja: "250円", vi: "250 yên" },
+      { ja: "1,000円", vi: "1.000 yên" },
+      { ja: "2,000円", vi: "2.000 yên" },
+    ],
+    correctIndex: 0,
+    explanationVi: "時間外労働 割増率tối thiểu 25%. 2時間×1,000円×25%＝500円 là phần phụ trội cộng thêm.",
+    sourceQuoteJa: "週４０時間を超えた労働（時間外労働）時間は割増賃金（２５％以上）を支払う必要があります。",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-sm6-2",
+    chapterId: "sm-ch6",
+    kind: "calculation",
+    scenarioJa:
+      "あるスタッフが夜22時から24時まで（2時間）勤務しました。この時間帯はすでに週40時間を超えた残業時間にも該当します。時給は1,200円です。",
+    scenarioVi: "Một nhân viên làm việc từ 22h đến 24h (2 giờ). Khung giờ này đồng thời đã là làm thêm giờ vượt quá 40 giờ/tuần. Lương giờ là 1.200 yên.",
+    questionJa: "この2時間分の割増賃金（本給とは別に加算される分）の最低額はいくらか。",
+    questionVi: "Số tiền lương phụ trội tối thiểu cho 2 giờ đó là bao nhiêu?",
+    options: [
+      { ja: "600円", vi: "600 yên" },
+      { ja: "1,440円", vi: "1.440 yên" },
+      { ja: "1,200円", vi: "1.200 yên" },
+      { ja: "1,800円", vi: "1.800 yên" },
+    ],
+    correctIndex: 2,
+    explanationVi: "深夜労働(22時-5時)と時間外労働が重複: 割増率tối thiểu 50%. 2時間×1,200円×50%＝1,200円.",
+    sourceQuoteJa: "その時間帯が残業（時間外労働）になっていれば５０％以上の割増賃金となります。",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-sm6-3",
+    chapterId: "sm-ch6",
+    kind: "calculation",
+    scenarioJa:
+      "あるスタッフは今月すでに残業時間が62時間に達しています。今夜、深夜0時から1時まで（1時間）さらに勤務してもらう予定です。時給は1,500円です。",
+    scenarioVi: "Một nhân viên tháng này đã làm thêm giờ đến 62 giờ. Tối nay dự kiến làm thêm 1 giờ từ 0h đến 1h sáng. Lương giờ là 1.500 yên.",
+    questionJa: "この1時間分の割増賃金（本給とは別に加算される分）の最低額はいくらか。",
+    questionVi: "Số tiền lương phụ trội tối thiểu cho 1 giờ đó là bao nhiêu?",
+    options: [
+      { ja: "375円", vi: "375 yên" },
+      { ja: "1,125円", vi: "1.125 yên" },
+      { ja: "750円", vi: "750 yên" },
+      { ja: "900円", vi: "900 yên" },
+    ],
+    correctIndex: 1,
+    explanationVi:
+      "Đã vượt 60 giờ làm thêm trong tháng, đồng thời trong khung giờ đêm (深夜) → áp dụng mức phụ trội cao nhất 75%. 1時間×1,500円×75%＝1,125円.",
+    sourceQuoteJa: "月超６０時間残業労働と重複する場合：７５%以上（超６０時間残業＋深夜労働）",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-sm6-4",
+    chapterId: "sm-ch6",
+    kind: "judgment",
+    scenarioJa: "店長が「9時間勤務のうち、出勤してすぐの最初の10分間を休憩時間にしよう」と提案しました。",
+    scenarioVi: "Quản lý cửa hàng đề xuất: \"Trong ca làm 9 tiếng, hãy tính 10 phút đầu ngay sau khi vào ca là giờ nghỉ\".",
+    questionJa: "この提案は労働基準法上、問題があるか。",
+    questionVi: "Đề xuất này có vi phạm Luật Tiêu chuẩn Lao động không?",
+    options: [
+      { ja: "問題ない。休憩時間はいつ設定してもよい", vi: "Không sao. Giờ nghỉ có thể đặt vào bất kỳ lúc nào" },
+      { ja: "問題ない。10分あれば休憩時間の長さとして十分", vi: "Không sao. 10 phút là đủ độ dài cho giờ nghỉ" },
+      { ja: "問題あるが、店長の裁量で決めてよい", vi: "Có vấn đề, nhưng quản lý được quyền tự quyết" },
+      { ja: "問題がある。休憩時間を始業直後に設定することは認められておらず、8時間を超える勤務なら60分以上の休憩も必要", vi: "Có vấn đề. Không được phép đặt giờ nghỉ ngay sau khi vào ca, và ca vượt quá 8 tiếng cần tối thiểu 60 phút nghỉ" },
+    ],
+    correctIndex: 3,
+    explanationVi:
+      "Luật cấm bố trí giờ nghỉ ngay đầu ca (始業直後) hoặc cuối ca (終業直前). Ngoài ra ca vượt quá 8 giờ (ở đây là 9 giờ) cần tối thiểu 60 phút nghỉ (không phải 10 phút) — đề xuất sai cả 2 điểm.",
+    sourceQuoteJa: "休憩時間を始業直後や終業直前に設定することはできません。",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-sm7-1",
+    chapterId: "sm-ch7",
+    kind: "judgment",
+    scenarioJa: "現場で実際の接客をしながら、先輩スタッフがつきっきりで指導する形式で新人を教えることになりました。",
+    scenarioVi: "Bạn sẽ đào tạo nhân viên mới bằng hình thức: vừa phục vụ khách thực tế tại hiện trường, vừa có nhân viên đàn anh kèm sát chỉ dẫn.",
+    questionJa: "この教育形式は何と呼ばれるか。",
+    questionVi: "Hình thức đào tạo này được gọi là gì?",
+    options: [
+      { ja: "OJT", vi: "OJT" },
+      { ja: "OFFJT", vi: "OFFJT" },
+      { ja: "ストアツアー", vi: "Store Tour" },
+      { ja: "啓発", vi: "Khai mở (啓発)" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "OJT (実地訓練) = đào tạo ngay tại hiện trường công việc thực tế (như cửa hàng) — khác với OFFJT (đào tạo tập trung, học lý thuyết bên ngoài hiện trường).",
+    sourceQuoteJa: "OJT は実地訓練のことで、店舗など現場でおこなうサービスや作業の技術を体得させるトレーニングです。",
+    sourcePage: 21,
+  },
+  {
+    id: "sg-sm8-1",
+    chapterId: "sm-ch8",
+    kind: "judgment",
+    scenarioJa: "厨房のフライヤーで揚げ油が過熱し、突然火が上がりました。",
+    scenarioVi: "Dầu trong chảo chiên ở bếp quá nóng và bất ngờ bốc cháy.",
+    questionJa: "この火災に本文が挙げている最も適した消火法はどれか。",
+    questionVi: "Phương pháp chữa cháy phù hợp nhất được tài liệu nêu ra cho đám cháy này là gì?",
+    options: [
+      { ja: "水をかけて消火する（冷却消火法）", vi: "Dội nước để dập lửa" },
+      { ja: "毛布やシーツのような布をかぶせ、酸素を遮断する（窒息消火法）", vi: "Phủ chăn hoặc vải như ga trải giường lên để chặn oxy" },
+      { ja: "そのまま放置し自然に消えるのを待つ", vi: "Cứ để mặc và chờ tự tắt" },
+      { ja: "アルコールを混ぜて薄める", vi: "Trộn cồn vào để pha loãng" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Với dầu ăn bốc cháy trên fryer, tài liệu nêu rõ phương pháp 窒息消火法: phủ chăn/vải để chặn oxy, dập lửa ngay.",
+    sourceQuoteJa:
+      "イ 窒息消火法 燃えている油に布などをかぶせ酸素を遮断することで火を消す方法。火が上がったフライヤーに毛布やシーツのような布をかぶせることで一気に鎮火する。",
+    sourcePage: 23,
+  },
+  {
+    id: "sg-sm8-2",
+    chapterId: "sm-ch8",
+    kind: "judgment",
+    scenarioJa: "厨房の床にこぼれたアルコールに、コンロの火花が引火してしまいました。",
+    scenarioVi: "Cồn đổ tràn trên sàn bếp bị tia lửa từ bếp ga bén vào và bắt lửa.",
+    questionJa: "この火災に対し、本文が挙げている消火法はどれか。",
+    questionVi: "Phương pháp chữa cháy được tài liệu nêu ra cho trường hợp này là gì?",
+    options: [
+      { ja: "水をかけて薄めて鎮火させる（希釈消火法）", vi: "Dội nước pha loãng để dập lửa" },
+      { ja: "毛布をかぶせるのみ（窒息消火法）", vi: "Chỉ phủ chăn (chữa cháy bằng chặn oxy)" },
+      { ja: "ガスの元栓を閉めるのみ（除去消火法）", vi: "Chỉ đóng van gas (chữa cháy bằng loại bỏ)" },
+      { ja: "窒素ガスが充満するのを待つのみ（科学的消火法）", vi: "Chỉ chờ khí nitơ tràn ra (chữa cháy bằng phản ứng hóa học)" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Riêng với cồn (アルコール) đổ tràn bắt lửa, tài liệu chỉ rõ phương pháp 希釈消火法: dội nước pha loãng để dập lửa.",
+    sourceQuoteJa:
+      "エ 希釈消火 燃焼しているアルコールを水で薄めて火を消す方法。床にこぼれたアルコールに引火した場合は水をかけ薄めて鎮火させる。",
+    sourcePage: 23,
+  },
+  {
+    id: "sg-sm8-3",
+    chapterId: "sm-ch8",
+    kind: "judgment",
+    scenarioJa: "ガスコンロの元栓の閉め忘れが原因で、炎が上がり続けています。",
+    scenarioVi: "Ngọn lửa tiếp tục cháy do quên đóng van gas ở bếp.",
+    questionJa: "この場合、火を消すために本文が挙げている方法はどれか。",
+    questionVi: "Phương pháp được tài liệu nêu ra để dập lửa trong trường hợp này là gì?",
+    options: [
+      { ja: "とにかく大量の水をかけ続ける", vi: "Cứ dội thật nhiều nước liên tục" },
+      { ja: "アルコールをかけて薄める", vi: "Đổ cồn vào để pha loãng" },
+      { ja: "ガスの元栓を閉めるなど、燃えるものを取り去る（除去消火法）", vi: "Đóng van gas, loại bỏ vật liệu cháy khỏi nguồn" },
+      { ja: "窒素ガスが充満するのを待つ", vi: "Chờ khí nitơ tràn ra" },
+    ],
+    correctIndex: 2,
+    explanationVi: "Khi nguồn cháy là do gas hở, phương pháp đúng là 除去消火法: đóng van gas, loại bỏ vật liệu cháy khỏi nguồn.",
+    sourceQuoteJa: "ア 除去消火法 ガスの元栓を閉めるなど燃えるものを取り去ることで火を消す方法。",
+    sourcePage: 22,
+  },
+  // Phần 2: 衛生管理 (hy-ch1..5)
+  {
+    id: "sg-hy1-1",
+    chapterId: "hy-ch1",
+    kind: "judgment",
+    scenarioJa: "新人スタッフが「異物混入の対策さえしっかりやれば食中毒は防げますよね？」と質問してきました。",
+    scenarioVi: "Một nhân viên mới hỏi: \"Chỉ cần làm tốt biện pháp chống dị vật lẫn vào món ăn là đủ để phòng ngừa ngộ độc thực phẩm phải không?\"",
+    questionJa: "この質問に対する適切な回答はどれか。",
+    questionVi: "Câu trả lời phù hợp cho câu hỏi này là gì?",
+    options: [
+      { ja: "異物混入対策だけで十分、微生物対策は不要", vi: "Chỉ cần biện pháp chống dị vật là đủ, không cần biện pháp vi sinh vật" },
+      { ja: "食中毒の主原因（約90％以上）は有害微生物であり、手洗いや温度管理などの微生物対策こそ最も重要", vi: "Nguyên nhân chính (trên 90%) gây ngộ độc thực phẩm là vi sinh vật có hại, nên biện pháp vi sinh vật (rửa tay, quản lý nhiệt độ) mới là quan trọng nhất" },
+      { ja: "食中毒対策は法律上おこなう義務がない", vi: "Luật không bắt buộc phải phòng ngừa ngộ độc thực phẩm" },
+      { ja: "微生物対策より接客マナーの方が重要", vi: "Tác phong tiếp khách quan trọng hơn biện pháp vi sinh vật" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Trên 90% ngộ độc thực phẩm do vi sinh vật có hại gây ra, nên biện pháp phòng vi sinh vật (rửa tay, quản lý nhiệt độ...) mới là trọng tâm — chống dị vật lẫn là vấn đề khác, không thay thế được.",
+    sourceQuoteJa: "ほとんどの食中毒（約９０％以上）は、食品を汚染する細菌、ウイルス、寄生虫などの有害微生物が原因物質です。",
+    sourcePage: 1,
+  },
+  {
+    id: "sg-hy2-1",
+    chapterId: "hy-ch2",
+    kind: "judgment",
+    scenarioJa:
+      "ノロウイルスによる食中毒が心配な季節になりました。「つけない」「増やさない」「やっつける」の3原則のうち、新人にどれが特に重要か説明することになりました。",
+    scenarioVi: "Sắp vào mùa lo ngại ngộ độc do Norovirus. Bạn cần giải thích cho nhân viên mới xem nguyên tắc nào trong 3 nguyên tắc quan trọng hơn cả với virus này.",
+    questionJa: "ノロウイルス対策として、なぜ「増やさない」ではなく「つけない」が特に重要なのか。",
+    questionVi: "Vì sao với đối phó Norovirus, nguyên tắc \"không để lây nhiễm\" (つけない) quan trọng hơn \"không để sinh sôi\" (増やさない)?",
+    options: [
+      { ja: "ウイルスは加熱しても死滅しないため", vi: "Vì virus dù nấu chín cũng không chết" },
+      { ja: "ウイルスは食品中では増えないため「増やさない」の原則が適用できず、手洗いなどの「つけない」対策が特に重要になる", vi: "Vì virus không sinh sôi trong thực phẩm nên nguyên tắc \"không để sinh sôi\" không áp dụng được, biện pháp \"không để lây nhiễm\" (như rửa tay) mới đặc biệt quan trọng" },
+      { ja: "ウイルスは冷蔵庫内でのみ増殖するため", vi: "Vì virus chỉ sinh sôi trong tủ lạnh" },
+      { ja: "「増やさない」の方が「つけない」より常に効果的なため", vi: "Vì \"không để sinh sôi\" luôn hiệu quả hơn \"không để lây nhiễm\"" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Virus KHÔNG tự sinh sôi trong thực phẩm (khác vi khuẩn), nên nguyên tắc 増やさない không áp dụng được cho virus — vì vậy 手洗い/つけない mới là biện pháp then chốt với Norovirus.",
+    sourceQuoteJa: "ただし、ウイルスは食品中で増えないため、この原則は適用できません。",
+    sourcePage: 3,
+  },
+  {
+    id: "sg-hy2-2",
+    chapterId: "hy-ch2",
+    kind: "judgment",
+    scenarioJa: "厨房内の室温は現在25℃です。調理済みの肉料理をここに3時間放置してしまいました。",
+    scenarioVi: "Nhiệt độ phòng bếp hiện tại là 25°C. Món thịt đã nấu chín bị để quên ở đây 3 tiếng.",
+    questionJa: "この状況は「増やさない」の観点からどう評価すべきか。",
+    questionVi: "Xét từ góc độ nguyên tắc \"không để sinh sôi\", tình huống này nên được đánh giá thế nào?",
+    options: [
+      { ja: "問題ない。25℃は安全な温度である", vi: "Không sao. 25°C là nhiệt độ an toàn" },
+      { ja: "危険。25℃は低温（10℃以下）にも高温（60℃以上）にも該当せず、細菌が増殖しやすい温度帯である", vi: "Nguy hiểm. 25°C không thuộc mức thấp (≤10°C) cũng không thuộc mức cao (≥60°C) — nằm trong vùng nhiệt độ thuận lợi cho vi khuẩn sinh sôi" },
+      { ja: "問題ない。常温保存が推奨される温度である", vi: "Không sao. Đây là nhiệt độ được khuyến nghị để bảo quản thường" },
+      { ja: "3時間以内であれば常に安全", vi: "Trong vòng 3 tiếng thì luôn an toàn" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Để tránh vi khuẩn sinh sôi, cần bảo quản ở nhiệt độ thấp (≤10°C) hoặc cao (≥60°C). 25°C nằm giữa 2 mốc này — vùng nhiệt độ lý tưởng cho vi khuẩn phát triển, nguy hiểm nếu để lâu.",
+    sourceQuoteJa: "保存する食品の低温（１０℃以下）あるいは高温（６０℃以上）保管などです。",
+    sourcePage: 3,
+  },
+  {
+    id: "sg-hy4-1",
+    chapterId: "hy-ch4",
+    kind: "judgment",
+    scenarioJa: "厨房の紫外線殺菌灯の使用記録を確認したところ、すでに3,200時間使用していることが分かりました。",
+    scenarioVi: "Kiểm tra hồ sơ, bạn phát hiện đèn khử trùng tia UV trong bếp đã sử dụng 3.200 giờ.",
+    questionJa: "この状況にどう対応すべきか。",
+    questionVi: "Bạn nên xử lý tình huống này như thế nào?",
+    options: [
+      { ja: "寿命（約3,000時間）を超えているため、交換を検討すべき", vi: "Đã vượt tuổi thọ (khoảng 3.000 giờ) nên cần cân nhắc thay mới" },
+      { ja: "まだ十分に使えるので交換不要", vi: "Vẫn còn dùng tốt nên chưa cần thay" },
+      { ja: "3,200時間はまだ寿命の半分以下", vi: "3.200 giờ vẫn chưa tới nửa tuổi thọ" },
+      { ja: "紫外線殺菌灯に寿命という概念はない", vi: "Đèn khử trùng UV không có khái niệm tuổi thọ" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Đèn khử trùng tia UV có tuổi thọ khoảng 3.000 giờ, hiệu quả khử trùng giảm dần theo thời gian sử dụng. 3.200 giờ đã vượt mốc này nên cần cân nhắc thay mới.",
+    sourceQuoteJa: "紫外線殺菌灯は使用時間の経過に伴って殺菌効果が減少し、その寿命は３，０００時間程度です。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-hy4-2",
+    chapterId: "hy-ch4",
+    kind: "calculation",
+    scenarioJa: "殺菌装置の作業開始前点検で、残留塩素濃度を測定したところ0.05ppmでした。",
+    scenarioVi: "Khi kiểm tra thiết bị khử trùng trước ca làm, bạn đo được nồng độ clo dư là 0.05ppm.",
+    questionJa: "この数値は基準を満たしているか。",
+    questionVi: "Con số này có đạt tiêu chuẩn không?",
+    options: [
+      { ja: "満たしている。基準は0.01ppm以上", vi: "Đạt. Tiêu chuẩn là từ 0.01ppm trở lên" },
+      { ja: "満たしていない。基準は0.1ppm以上必要", vi: "Không đạt. Tiêu chuẩn yêu cầu từ 0.1ppm trở lên" },
+      { ja: "満たしている。残留塩素は多いほど良い", vi: "Đạt. Clo dư càng nhiều càng tốt" },
+      { ja: "残留塩素の基準は存在しない", vi: "Không có tiêu chuẩn nào về clo dư" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Tiêu chuẩn yêu cầu nồng độ clo dư đạt tối thiểu 0.1ppm. 0.05ppm chưa đạt một nửa mức tối thiểu này — chưa đủ tiêu chuẩn.",
+    sourceQuoteJa: "作業開始前に異常の有無を確認し、作動状況と残留塩素濃度が０．１ppm 以上あることを確認します。",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-hy4-3",
+    chapterId: "hy-ch4",
+    kind: "judgment",
+    scenarioJa: "業者による大規模なゴキブリ駆除処理をおこなった翌日、厨房の床に駆除されたゴキブリの死骸をいくつか見つけました。",
+    scenarioVi: "Sau khi công ty diệt côn trùng xử lý diệt gián quy mô lớn, hôm sau bạn thấy vài xác gián trên sàn bếp.",
+    questionJa: "このとき取るべき正しい対応はどれか。",
+    questionVi: "Hành động đúng cần làm lúc này là gì?",
+    options: [
+      { ja: "死骸はそのまま放置してよい、いずれ自然になくなる", vi: "Có thể để nguyên xác gián, rồi tự nhiên sẽ hết" },
+      { ja: "異物混入やお客様の目にふれないよう、見つけたらすぐに取り除く", vi: "Thấy là phải lấy bỏ ngay, tránh lẫn vào món ăn hoặc lọt vào mắt khách" },
+      { ja: "死骸は次回の駆除まで保管しておく", vi: "Giữ lại xác gián đến lần diệt côn trùng tiếp theo" },
+      { ja: "特に対応する必要はない", vi: "Không cần xử lý gì đặc biệt" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Sau xử lý diệt gián số lượng lớn, xác gián dễ xuất hiện — cần phát hiện và loại bỏ ngay để tránh lẫn vào thức ăn hoặc bị khách nhìn thấy.",
+    sourceQuoteJa: "駆除処理後の調理施設内にはゴキブリの死骸が見つかりやすいので、異物混入やお客様の目にふれないように見つけたらすぐに取り除きます。",
+    sourcePage: 19,
+  },
+  {
+    id: "sg-hy4-4",
+    chapterId: "hy-ch4",
+    kind: "judgment",
+    scenarioJa: "記録を確認したところ、この店舗ではねずみ・昆虫の駆除を昨年1回しか実施していませんでした。",
+    scenarioVi: "Kiểm tra hồ sơ, bạn phát hiện cửa hàng này năm ngoái chỉ diệt chuột/côn trùng đúng 1 lần.",
+    questionJa: "この実施状況は基準を満たしているか。",
+    questionVi: "Tình trạng thực hiện này có đạt tiêu chuẩn không?",
+    options: [
+      { ja: "満たしていない。基準は年2回以上の実施", vi: "Không đạt. Tiêu chuẩn là từ 2 lần/năm trở lên" },
+      { ja: "満たしている。年1回で十分", vi: "Đạt. 1 lần/năm là đủ" },
+      { ja: "駆除の頻度に基準はない", vi: "Tần suất diệt trừ không có tiêu chuẩn nào" },
+      { ja: "満たしている。5年に1回で十分", vi: "Đạt. 5 năm 1 lần là đủ" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Tiêu chuẩn yêu cầu diệt chuột/côn trùng tối thiểu 2 lần/năm và lưu hồ sơ 1 năm. Chỉ thực hiện 1 lần là chưa đạt.",
+    sourceQuoteJa: "ねずみおよび昆虫の駆除は、１年に２回以上は実施し、その記録を１年間保管します。",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-hy5-1",
+    chapterId: "hy-ch5",
+    kind: "judgment",
+    scenarioJa: "冷凍しておいた鶏肉を、明日の営業に備えて解凍したいと考えています。時間には余裕があります。",
+    scenarioVi: "Bạn muốn rã đông thịt gà đông lạnh để chuẩn bị cho kinh doanh ngày mai. Bạn có đủ thời gian.",
+    questionJa: "衛生管理上、最も適切な解凍方法はどれか。",
+    questionVi: "Xét về quản lý vệ sinh, phương pháp rã đông phù hợp nhất là gì?",
+    options: [
+      { ja: "室温に一晩置いて自然解凍する", vi: "Để qua đêm ở nhiệt độ phòng cho rã đông tự nhiên" },
+      { ja: "時間はかかるが、冷蔵庫内で解凍する", vi: "Tốn thời gian, nhưng rã đông trong tủ lạnh" },
+      { ja: "厨房の窓際の日当たりの良い場所に置いておく", vi: "Để ở chỗ gần cửa sổ có nắng trong bếp" },
+      { ja: "解凍方法はどれを選んでも衛生上の差はない", vi: "Chọn phương pháp nào cũng không khác gì về vệ sinh" },
+    ],
+    correctIndex: 1,
+    explanationVi:
+      "Rã đông trong tủ lạnh tốn thời gian nhưng phù hợp để giữ chất lượng và ức chế vi khuẩn sinh sôi. Rã đông tự nhiên/nhiệt độ phòng bị cấm vì tạo cơ hội cho vi khuẩn sinh sôi trên bề mặt thực phẩm.",
+    sourceQuoteJa: "冷蔵庫内で解凍：冷蔵庫内の空気の対流によって低温環境で解凍するため、時間がかかりますが、品質の保持、細菌増殖の抑制に適しています。",
+    sourcePage: 32,
+  },
+  {
+    id: "sg-hy5-2",
+    chapterId: "hy-ch5",
+    kind: "calculation",
+    scenarioJa: "14:00に加熱調理が完了した料理を、14:35に温度チェックしたところ22℃でした。",
+    scenarioVi: "Món ăn hoàn thành nấu lúc 14:00. Bạn kiểm tra nhiệt độ lúc 14:35, đo được 22°C.",
+    questionJa: "この冷却状況は「大量調理施設衛生管理マニュアル」の基準を満たしているか。",
+    questionVi: "Tình trạng làm nguội này có đạt tiêu chuẩn của \"Sổ tay quản lý vệ sinh cơ sở nấu ăn số lượng lớn\" không?",
+    options: [
+      { ja: "満たしていない。調理後35分経過しても20℃に達しておらず、30分以内20℃の基準を超過している", vi: "Không đạt. Đã qua 35 phút sau khi nấu mà vẫn chưa đạt 20°C, vượt quá mốc 30 phút/20°C" },
+      { ja: "満たしている。1時間以内に10℃になれば良いので問題ない", vi: "Đạt. Chỉ cần trong 1 tiếng đạt 10°C là được nên không sao" },
+      { ja: "満たしている。22℃は十分低い温度である", vi: "Đạt. 22°C đã là nhiệt độ đủ thấp" },
+      { ja: "冷却時間に基準は存在しない", vi: "Không có tiêu chuẩn nào về thời gian làm nguội" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "Theo sổ tay, cần đạt 20°C trong 30 phút HOẶC 10°C trong 1 giờ. Ở đây đã qua 35 phút (vượt mốc 30 phút) mà vẫn còn 22°C (chưa đạt 20°C) — đã vi phạm mốc đầu tiên nên chưa đạt chuẩn tại thời điểm kiểm tra.",
+    sourceQuoteJa: "加熱済み食品の冷却方法について、「大量調理施設衛生管理マニュアル」では、３０分以内に２０℃または１時間以内に１０℃まで冷却することとしています。",
+    sourcePage: 32,
+  },
+  {
+    id: "sg-hy5-3",
+    chapterId: "hy-ch5",
+    kind: "calculation",
+    scenarioJa: "温蔵庫内の唐揚げの温度を測定したところ58℃でした。",
+    scenarioVi: "Bạn đo nhiệt độ món gà rán trong tủ giữ ấm, được 58°C.",
+    questionJa: "この温度は温蔵保管の基準を満たしているか。",
+    questionVi: "Nhiệt độ này có đạt tiêu chuẩn bảo quản giữ ấm không?",
+    options: [
+      { ja: "満たしていない。温蔵品の基準は65℃以上", vi: "Không đạt. Tiêu chuẩn cho món giữ ấm là từ 65°C trở lên" },
+      { ja: "満たしている。温蔵品の基準は50℃以上", vi: "Đạt. Tiêu chuẩn cho món giữ ấm là từ 50°C trở lên" },
+      { ja: "満たしている。58℃は十分に高い温度", vi: "Đạt. 58°C đã là nhiệt độ đủ cao" },
+      { ja: "温蔵保管に温度基準は存在しない", vi: "Không có tiêu chuẩn nhiệt độ nào cho bảo quản giữ ấm" },
+    ],
+    correctIndex: 0,
+    explanationVi: "温蔵品 (thực phẩm giữ ấm) cần đạt tối thiểu 65°C. 58°C chưa đạt mốc này, còn thiếu 7°C.",
+    sourceQuoteJa: "温蔵品は温蔵庫内で６５℃以上、常温品は専用ケース１５～２５℃、冷蔵品は食品冷蔵庫（棚）で１０℃以下、冷凍品は食品冷凍庫内で－１５℃以下などが目安になります。",
+    sourcePage: 34,
+  },
+  // Phần 3: 飲食物調理 (ck-ch1..7)
+  {
+    id: "sg-ck1-1",
+    chapterId: "ck-ch1",
+    kind: "judgment",
+    scenarioJa: "本日、鮮魚と貝類が同時に入荷しました。今夜のメニューでどちらを優先して使い切るべきか考えています。",
+    scenarioVi: "Hôm nay cá tươi và động vật có vỏ (nghêu, sò) cùng về hàng. Bạn đang cân nhắc nên ưu tiên dùng hết loại nào trước cho thực đơn tối nay.",
+    questionJa: "鮮度の観点から、優先して使い切るべきはどちらか。",
+    questionVi: "Xét về độ tươi, nên ưu tiên dùng hết loại nào trước?",
+    options: [
+      { ja: "鮮魚。貝類は傷みにくいため後回しでよい", vi: "Cá tươi. Động vật có vỏ khó hỏng nên để sau cũng được" },
+      { ja: "どちらも同じ速さで傷むため順序は関係ない", vi: "Cả hai hỏng nhanh như nhau nên thứ tự không quan trọng" },
+      { ja: "貝類。魚介類の中でもっとも早く傷むため", vi: "Động vật có vỏ. Vì đây là loại hư hỏng nhanh nhất trong các loại hải sản" },
+      { ja: "冷凍すれば順序を考える必要はない", vi: "Nếu cấp đông thì không cần nghĩ đến thứ tự nữa" },
+    ],
+    correctIndex: 2,
+    explanationVi: "Hải sản hư hỏng nhanh hơn thịt; trong đó động vật có vỏ (nghêu, sò...) là hư hỏng nhanh nhất, nên cần ưu tiên dùng hết trước.",
+    sourceQuoteJa: "魚介類は肉類に比べ劣化が早く、小さな魚ほど早く傷みます。もっとも早く傷むのは貝類です。",
+    sourcePage: 3,
+  },
+  {
+    id: "sg-ck3-1",
+    chapterId: "ck-ch3",
+    kind: "judgment",
+    scenarioJa: "揚げ油を数日間交換せずに使い続けたところ、油の表面に泡が消えにくくなり、色も濃く粘り気が出てきました。",
+    scenarioVi: "Dầu chiên đã dùng liên tục nhiều ngày không thay, bề mặt dầu xuất hiện bọt khó tan, màu đậm hơn và có độ nhớt.",
+    questionJa: "この現象は何を示しているか。",
+    questionVi: "Hiện tượng này cho thấy điều gì?",
+    options: [
+      { ja: "油の品質が向上している証拠", vi: "Bằng chứng cho thấy chất lượng dầu đang tốt lên" },
+      { ja: "油が酸化して劣化している兆候であり、交換を検討すべき", vi: "Dấu hiệu dầu bị oxy hóa và xuống cấp, cần cân nhắc thay dầu" },
+      { ja: "特に問題のない正常な状態", vi: "Trạng thái bình thường, không có vấn đề gì" },
+      { ja: "塩分が不足しているサイン", vi: "Dấu hiệu thiếu muối" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Nếu tiếp tục chiên nhiều lần, dầu sẽ bị oxy hóa: màu và mùi kém đi, độ nhớt tăng, mặt dầu xuất hiện bọt khí bền — đây là dấu hiệu cần thay dầu.",
+    sourceQuoteJa: "揚げ物を揚げ続けると油が酸化され、色や香りが悪くなり粘りが増してきます。そのため、油の表面には持続性の泡立ちが起こるようになります。",
+    sourcePage: 6,
+  },
+  {
+    id: "sg-ck3-2",
+    chapterId: "ck-ch3",
+    kind: "judgment",
+    scenarioJa: "厨房に2種類の冷凍食材があります。①刺身用の生食用冷凍魚介類 ②衣をつけて凍結したフライ半製品。",
+    scenarioVi: "Trong bếp có 2 loại thực phẩm đông lạnh: ① Hải sản đông lạnh dùng ăn sống (sashimi) ② Bán thành phẩm chiên đã tẩm bột và cấp đông.",
+    questionJa: "①と②の適切な調理法の組み合わせはどれか。",
+    questionVi: "Tổ hợp cách chế biến phù hợp cho ① và ② là gì?",
+    options: [
+      { ja: "①も②も常温で急速に解凍する", vi: "Cả ① và ② đều rã đông nhanh ở nhiệt độ phòng" },
+      { ja: "①も②も凍ったまま提供する", vi: "Cả ① và ② đều phục vụ khi còn đông" },
+      { ja: "①は凍ったまま提供、②は低温でゆっくり解凍する", vi: "① phục vụ khi còn đông, ② rã đông chậm ở nhiệt độ thấp" },
+      { ja: "①は低温で時間をかけて解凍する／②は凍ったまま揚げるか電子レンジで解凍・加熱する", vi: "① rã đông ở nhiệt độ thấp trong thời gian dài / ② chiên khi còn đông hoặc rã đông-nấu chín bằng lò vi sóng" },
+    ],
+    correctIndex: 3,
+    explanationVi:
+      "① Hải sản đông lạnh dùng ăn sống phải rã đông ở nhiệt độ thấp, kéo dài thời gian để tránh phá hủy cấu trúc/chảy nước. ② Bán thành phẩm chiên tẩm bột được chế biến ngay khi còn đông (nướng/hấp/chiên) hoặc rã đông-nấu chín bằng lò vi sóng.",
+    sourceQuoteJa:
+      "刺身のような「生食用冷凍魚介類」は、組織の破壊や汁の流出が起きないようになるべく低温で時間をかけて解凍します。 凍結前未加熱の冷凍食品や衣をつけたフライなどのそうざい半製品は凍ったまま焼いたり、蒸したり、揚げたりするほか、電子レンジによる解凍や加熱調理をおこないます。",
+    sourcePage: 7,
+  },
+  {
+    id: "sg-ck4-1",
+    chapterId: "ck-ch4",
+    kind: "calculation",
+    scenarioJa: "フライヤーの油を検査したところ、酸化値（AV値）が3.5でした。",
+    scenarioVi: "Kiểm tra dầu trong máy chiên, chỉ số oxy hóa (AV) đo được là 3.5.",
+    questionJa: "この結果に基づき、取るべき対応はどれか。",
+    questionVi: "Dựa trên kết quả này, hành động cần làm là gì?",
+    options: [
+      { ja: "基準値内なので交換不要", vi: "Nằm trong ngưỡng chuẩn nên không cần thay" },
+      { ja: "AV値が低いほど危険なので今すぐ使用を停止する", vi: "AV càng thấp càng nguy hiểm nên phải dừng dùng ngay" },
+      { ja: "基準値（AV3.0未満が正常）を超えているため、その日の営業終了時に油を交換する", vi: "Đã vượt ngưỡng chuẩn (bình thường AV dưới 3.0), cần thay dầu vào cuối ca làm việc ngày đó" },
+      { ja: "AV値と油の交換時期は無関係", vi: "Chỉ số AV không liên quan gì đến thời điểm thay dầu" },
+    ],
+    correctIndex: 2,
+    explanationVi: "Chuẩn: AV dưới 3.0 là bình thường; từ 3.0 trở lên phải thay dầu vào cuối ca làm việc ngày đó. 3.5 đã vượt ngưỡng này.",
+    sourceQuoteJa: "フライヤーの油の酸化値（AV 値３．０未満）が正常か確認してください。AV 値３．０以上であれば、その日の営業終了時に油を交換してください。",
+    sourcePage: 8,
+  },
+  {
+    id: "sg-ck4-2",
+    chapterId: "ck-ch4",
+    kind: "judgment",
+    scenarioJa: "本日のコースでマグロの刺身を薄く美しく切り分ける作業を任されました。",
+    scenarioVi: "Hôm nay bạn được giao nhiệm vụ thái cá ngừ sashimi mỏng và đẹp cho set món.",
+    questionJa: "この作業に最も適した包丁はどれか。",
+    questionVi: "Loại dao phù hợp nhất cho công việc này là gì?",
+    options: [
+      { ja: "柳刃包丁（刺身包丁）", vi: "Dao Yanagiba (dao sashimi)" },
+      { ja: "出刃包丁（魚をさばく用、骨も切れる重い包丁）", vi: "Dao Deba (dùng mổ cá, nặng, cắt được cả xương)" },
+      { ja: "菜切包丁（野菜専用）", vi: "Dao Nakiri (chuyên dùng cho rau)" },
+      { ja: "中華包丁", vi: "Dao Trung Hoa" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Dao Yanagiba (柳刃包丁): lưỡi dài, chủ yếu dùng để cắt sashimi, còn gọi là 'dao sashimi' — phù hợp nhất cho việc thái mỏng, đẹp.",
+    sourceQuoteJa: "柳刃包丁：刃渡りが長く、主に刺身を切るときに使用する包丁で「刺身包丁」とも呼びます。",
+    sourcePage: 9,
+  },
+  {
+    id: "sg-ck5-1",
+    chapterId: "ck-ch5",
+    kind: "judgment",
+    scenarioJa: "フライヤーでの揚げ物作業を担当することになった新人スタッフが、サンダルのまま作業を始めようとしています。",
+    scenarioVi: "Nhân viên mới được giao phụ trách chiên đồ ở fryer, đang định làm việc trong khi đi dép lê.",
+    questionJa: "この状況で、あなたが指摘すべきことはどれか。",
+    questionVi: "Trong tình huống này, điều bạn cần nhắc nhở là gì?",
+    options: [
+      { ja: "サンダルのままで問題ない", vi: "Đi dép lê cũng không sao" },
+      { ja: "素手で作業すれば問題ない", vi: "Làm bằng tay không cũng không sao" },
+      { ja: "防護具は上級者にのみ必要", vi: "Đồ bảo hộ chỉ cần cho người có kinh nghiệm" },
+      { ja: "サンダルではなく、長靴・長エプロン・耐熱手袋を着用してから作業するべき", vi: "Không nên đi dép lê, phải mang ủng, tạp dề dài, găng tay chịu nhiệt trước khi làm việc" },
+    ],
+    correctIndex: 3,
+    explanationVi: "Khi dùng fryer, bắt buộc phải mang ủng, tạp dề dài, găng tay chịu nhiệt — dép lê không đủ bảo hộ trước nguy cơ dầu nóng bắn.",
+    sourceQuoteJa: "フライヤーを使う際は、長靴、長エプロン、耐熱手袋を着用しましょう。",
+    sourcePage: 14,
+  },
+  {
+    id: "sg-ck5-2",
+    chapterId: "ck-ch5",
+    kind: "judgment",
+    scenarioJa: "食品加工用の切断機に食材が詰まってしまいました。急いでいたので、機械を止めずに手を入れて詰まりを取り除こうとしています。",
+    scenarioVi: "Máy cắt thực phẩm bị kẹt nguyên liệu. Vì đang vội, bạn định thò tay vào lấy chỗ kẹt ra mà không tắt máy.",
+    questionJa: "この行動は安全上、適切か。",
+    questionVi: "Hành động này có an toàn không?",
+    options: [
+      { ja: "適切。急いでいるときは手で取り除いてよい", vi: "An toàn. Khi vội thì lấy tay ra cũng được" },
+      { ja: "不適切。原材料の送給や取りだし時には機械の運転を停止するか用具を使用すべき", vi: "Không an toàn. Khi đưa/lấy nguyên liệu phải dừng máy hoặc dùng dụng cụ hỗ trợ" },
+      { ja: "適切。切断機に安全上の注意点はない", vi: "An toàn. Máy cắt không có lưu ý an toàn nào cả" },
+      { ja: "不適切だが、経験者なら問題ない", vi: "Không an toàn, nhưng người có kinh nghiệm thì không sao" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Máy cắt/thái thực phẩm phải lắp nắp che ở bộ phận nguy hiểm; khi đưa nguyên liệu vào hoặc lấy ra, PHẢI dừng máy hoặc dùng dụng cụ hỗ trợ thay vì dùng tay trực tiếp — không có ngoại lệ cho người có kinh nghiệm.",
+    sourceQuoteJa: "食品加工用切断機や切削機による切断、切削の危険の防止 切断に必要な部分以外の危険な部分に覆いなどを設置 原材料の送給や取りだし時には、機械の運転を停止するか用具などを使用",
+    sourcePage: 15,
+  },
+  {
+    id: "sg-ck7-1",
+    chapterId: "ck-ch7",
+    kind: "judgment",
+    scenarioJa: "ハムやソーセージなどの加工肉製品で、肉本来の赤みを保ち美味しそうな色合いに保つための添加物を選びたいと考えています。",
+    scenarioVi: "Bạn muốn chọn phụ gia để giữ màu đỏ tự nhiên đẹp mắt cho các sản phẩm thịt chế biến như giăm bông, xúc xích.",
+    questionJa: "この目的に適した添加物の種類はどれか。",
+    questionVi: "Loại phụ gia phù hợp với mục đích này là gì?",
+    options: [
+      { ja: "甘味料", vi: "Chất tạo ngọt" },
+      { ja: "膨張剤", vi: "Chất tạo xốp/nở" },
+      { ja: "発色剤（例：亜硝酸ナトリウム）", vi: "Chất tạo màu ổn định (ví dụ: natri nitrit)" },
+      { ja: "防カビ剤", vi: "Chất chống mốc" },
+    ],
+    correctIndex: 2,
+    explanationVi: "発色剤 (chất tạo màu ổn định) giúp cải thiện màu sắc/hương vị của thịt, ví dụ natri nitrit, natri nitrat — đúng mục đích giữ màu đỏ đẹp cho thịt chế biến.",
+    sourceQuoteJa: "発色剤 肉類の色調・風味を改善する 亜硝酸ナトリウム、硝酸ナトリウム",
+    sourcePage: 17,
+  },
+  // Phần 4: 接客全般 (cs-ch1..5)
+  {
+    id: "sg-cs1-1",
+    chapterId: "cs-ch1",
+    kind: "judgment",
+    scenarioJa: "常連のお客様が予約時に電話番号と自宅住所を教えてくれました。同僚が「暇だから友達に教えてあげよう」と言っています。",
+    scenarioVi: "Một khách quen cung cấp số điện thoại và địa chỉ nhà lúc đặt bàn. Đồng nghiệp của bạn nói \"Rảnh quá, kể cho bạn mình nghe luôn\".",
+    questionJa: "この状況に対する正しい理解はどれか。",
+    questionVi: "Cách hiểu đúng về tình huống này là gì?",
+    options: [
+      { ja: "適切。仲の良い同僚同士なら問題ない", vi: "Phù hợp. Đồng nghiệp thân nhau thì không sao" },
+      { ja: "不適切。個人情報の漏えいや不正利用が起きないよう十分注意し、従業員を指導・監督する必要がある", vi: "Không phù hợp. Phải hết sức chú ý tránh rò rỉ/sử dụng sai mục đích thông tin cá nhân, và hướng dẫn/giám sát nhân viên" },
+      { ja: "適切。個人情報は自由に第三者に伝えてよい", vi: "Phù hợp. Có thể tự do kể thông tin cá nhân cho bên thứ ba" },
+      { ja: "適切。予約情報は個人情報に該当しない", vi: "Phù hợp. Thông tin đặt bàn không tính là thông tin cá nhân" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Số điện thoại/địa chỉ là thông tin định danh cá nhân — phải hết sức chú ý tránh rò rỉ, thất lạc, bị nhân viên sử dụng sai mục đích, và cần hướng dẫn/giám sát nhân viên tuân thủ quy tắc bảo mật.",
+    sourceQuoteJa:
+      "顧客データに、氏名、住所、電話番号など、個人を特定できる「個人情報」が含まれる場合は、漏えいや紛失、従業員による不正利用や本来の目的以外での利用などが発生しないよう、十分に注意する必要があります。そのため、従業員にルールを守るよう、指導・監督することが重要です。",
+    sourcePage: 8,
+  },
+  {
+    id: "sg-cs2-1",
+    chapterId: "cs-ch2",
+    kind: "judgment",
+    scenarioJa: "予約の電話で、お客様から「えびアレルギーがあります」と伝えられました。",
+    scenarioVi: "Khách gọi điện đặt bàn và báo trước: \"Tôi bị dị ứng tôm\".",
+    questionJa: "このお客様への対応として重要なことはどれか。",
+    questionVi: "Điều quan trọng khi phục vụ vị khách này là gì?",
+    options: [
+      { ja: "特に気にせず通常通り提供する", vi: "Không cần bận tâm, cứ phục vụ như bình thường" },
+      { ja: "口頭で伝えられただけなので無視してよい", vi: "Vì chỉ nói miệng nên có thể bỏ qua" },
+      { ja: "料理に使用されている原材料・食材を正しく把握し、お客様からの問合せに対応できるようにしておく", vi: "Nắm rõ nguyên liệu/thực phẩm dùng trong món ăn, để có thể trả lời khi khách hỏi" },
+      { ja: "えびさえ避ければ他の原材料は確認しなくてよい", vi: "Chỉ cần tránh tôm, không cần kiểm tra nguyên liệu khác" },
+    ],
+    correctIndex: 2,
+    explanationVi:
+      "Cần nắm rõ nguyên liệu/thực phẩm dùng trong từng món để trả lời chính xác khi khách hỏi — đặc biệt quan trọng với khách có dị ứng, vì tài liệu nêu rõ hậu quả xấu nhất của dị ứng thực phẩm có thể là sốc phản vệ dẫn đến tử vong.",
+    sourceQuoteJa: "料理に使用されている原材料、食材を正しく把握し、お客様からの問合せに対応できるようにしておくことが重要です。",
+    sourcePage: 8,
+  },
+  {
+    id: "sg-cs2-2",
+    chapterId: "cs-ch2",
+    kind: "judgment",
+    scenarioJa: "厨房で、消費期限が昨日までだった食材を見つけました。見た目には問題なさそうです。",
+    scenarioVi: "Bạn phát hiện trong bếp có nguyên liệu hạn sử dụng (消費期限) đã hết từ hôm qua. Nhìn bề ngoài có vẻ không sao.",
+    questionJa: "この食材への正しい対応はどれか。",
+    questionVi: "Cách xử lý đúng với nguyên liệu này là gì?",
+    options: [
+      { ja: "見た目に問題なくても、消費期限を過ぎた食材は使用しない", vi: "Dù bề ngoài không sao, nguyên liệu đã quá hạn sử dụng thì không được dùng" },
+      { ja: "見た目に問題なければそのまま使用してよい", vi: "Nếu bề ngoài ổn thì cứ dùng bình thường" },
+      { ja: "賞味期限と同じ扱いなので多少過ぎても問題ない", vi: "Coi như hạn dùng tốt nhất nên quá hạn chút ít không sao" },
+      { ja: "加熱すれば期限切れでも安全になる", vi: "Nếu nấu chín thì dù hết hạn vẫn an toàn" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "消費期限 (hạn sử dụng) khác với 賞味期限 (hạn dùng tốt nhất) — quá 消費期限 thì tuyệt đối không được dùng dù bề ngoài trông ổn, vì đây là hạn liên quan trực tiếp đến an toàn thực phẩm, cần quản lý nghiêm ngặt hơn.",
+    sourceQuoteJa:
+      "消費期限：定められた方法により保存した場合において、腐敗、変敗その他の品質（状態）の劣化に伴い安全性を欠くことになるおそれがないと認められる期限を示す年月日のことで、開封前の状態で定められた方法により保存すれば食品衛生上の問題が生じないと認められるものです。そのため、消費期限を過ぎた食品は食べないようにしてください。",
+    sourcePage: 9,
+  },
+  {
+    id: "sg-cs2-3",
+    chapterId: "cs-ch2",
+    kind: "judgment",
+    scenarioJa: "ハラール認証を気にするお客様から「このソースにお酒は使われていますか」と聞かれました。実際にはみりん（酒類）を使用しています。",
+    scenarioVi: "Một khách quan tâm đến chuẩn Halal hỏi: \"Sốt này có dùng rượu không?\" Thực tế món có dùng mirin (một loại rượu nấu ăn).",
+    questionJa: "この状況を踏まえ、なぜ正確に回答することが重要か。",
+    questionVi: "Dựa vào tình huống này, vì sao việc trả lời chính xác lại quan trọng?",
+    options: [
+      { ja: "みりんはアルコールに該当しないため伝える必要はない", vi: "Mirin không tính là cồn nên không cần báo" },
+      { ja: "ハラールは豚肉にのみ関係し、調味料は関係ない", vi: "Halal chỉ liên quan đến thịt heo, không liên quan gia vị" },
+      { ja: "曖昧に答えても問題ない", vi: "Trả lời mập mờ cũng không sao" },
+      { ja: "ハラールではアルコールが使えないため、みりんなどアルコールを含む調味料の使用有無を正確に伝える必要がある", vi: "Vì chuẩn Halal không cho dùng cồn, nên phải báo chính xác có dùng gia vị chứa cồn như mirin hay không" },
+    ],
+    correctIndex: 3,
+    explanationVi: "Halal không cho phép dùng cồn dưới bất kỳ hình thức nào, kể cả rưới lên nguyên liệu — mirin là rượu nấu ăn nên phải báo chính xác cho khách, không được trả lời mập mờ.",
+    sourceQuoteJa: "特に、ハラール（イスラム圏での原材料基準）ではアルコールは使えないため、食材にアルコールをかけることはできませんので注意してください。",
+    sourcePage: 10,
+  },
+  {
+    id: "sg-cs3-1",
+    chapterId: "cs-ch3",
+    kind: "calculation",
+    scenarioJa: "レジを締めたところ、ロール上の現金有り高は500,000円でしたが、実際に数えた現金は505,000円でした。",
+    scenarioVi: "Khi chốt sổ quỹ, số tiền ghi trên cuộn giấy là 500.000 yên, nhưng đếm thực tế được 505.000 yên.",
+    questionJa: "この5,000円の差はどのような問題を引き起こしている可能性があるか。",
+    questionVi: "Khoản chênh lệch 5.000 yên này có thể cho thấy vấn đề gì?",
+    options: [
+      { ja: "実際有り高の方が多いため、お客様に損失（受け取り過ぎまたはお釣り不足）が発生した可能性がある", vi: "Vì tiền thực tế nhiều hơn, có thể khách hàng đã bị thiệt hại (bị thu thừa tiền hoặc trả thiếu tiền thối)" },
+      { ja: "店に損失が発生した可能性がある", vi: "Có thể cửa hàng đã bị thiệt hại" },
+      { ja: "特に何の問題も示していない", vi: "Không cho thấy vấn đề gì cả" },
+      { ja: "従業員の残業代が増えたことを示す", vi: "Cho thấy tiền làm thêm giờ của nhân viên tăng lên" },
+    ],
+    correctIndex: 0,
+    explanationVi:
+      "500,000円(sổ) so với 505,000円(thực tế) → thực tế NHIỀU HƠN 5,000円. Theo quy tắc: nếu thực tế ÍT hơn sổ thì cửa hàng chịu thiệt hại; nếu thực tế NHIỀU hơn sổ thì khách hàng chịu thiệt hại (do bị thu thừa hoặc trả thiếu tiền thối) — ở đây là trường hợp thứ hai.",
+    sourceQuoteJa: "ロール上の現金有り高より実際の現金有り高が少なければ、店に損失が発生することになり、逆に、実際の現金有り高が多ければ、お客様に損失が発生することになり、信頼を損ね客数を減らす要因になります。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-cs3-2",
+    chapterId: "cs-ch3",
+    kind: "judgment",
+    scenarioJa: "掃除を早く終わらせたいスタッフが、洗剤を規定より濃い濃度で薄めて使おうとしています。",
+    scenarioVi: "Một nhân viên muốn dọn dẹp nhanh hơn nên định pha chất tẩy rửa đậm đặc hơn nồng độ quy định.",
+    questionJa: "この行動は適切か。",
+    questionVi: "Hành động này có phù hợp không?",
+    options: [
+      { ja: "適切。濃ければ濃いほど早く汚れが落ちて良い", vi: "Phù hợp. Càng đậm đặc thì càng sạch nhanh" },
+      { ja: "不適切。洗剤は必ず正しい希釈濃度で使用しなければならない", vi: "Không phù hợp. Chất tẩy rửa bắt buộc phải dùng đúng nồng độ pha loãng quy định" },
+      { ja: "適切。濃度は特に気にしなくてよい", vi: "Phù hợp. Không cần để ý nồng độ" },
+      { ja: "不適切だが、急いでいる時は例外的に許される", vi: "Không phù hợp, nhưng khi gấp thì được phép ngoại lệ" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Chất tẩy rửa phải luôn dùng đúng nồng độ pha loãng quy định — không có ngoại lệ vì lý do muốn làm nhanh, vì nồng độ sai có thể gây hại bề mặt/sức khỏe hoặc không đạt hiệu quả vệ sinh.",
+    sourceQuoteJa: "洗剤などを正しい希釈濃度で使っているか、確認してください。",
+    sourcePage: 13,
+  },
+  {
+    id: "sg-cs3-3",
+    chapterId: "cs-ch3",
+    kind: "judgment",
+    scenarioJa: "閉店後、レジ締めを終えたスタッフが1人で夜間金庫に売上金を投入しようとしています。",
+    scenarioVi: "Sau khi đóng cửa và chốt sổ quỹ, một nhân viên định 1 mình nộp tiền doanh thu vào két đêm.",
+    questionJa: "このやり方に問題はあるか。",
+    questionVi: "Cách làm này có vấn đề gì không?",
+    options: [
+      { ja: "問題ない。1人でも構わない", vi: "Không sao. 1 người cũng được" },
+      { ja: "問題ない。信頼できるスタッフなら1人でよい", vi: "Không sao. Nhân viên đáng tin cậy thì 1 người cũng được" },
+      { ja: "問題がある。防犯のため必ず二人でおこなう必要がある", vi: "Có vấn đề. Vì lý do phòng chống trộm cắp, bắt buộc phải có 2 người thực hiện" },
+      { ja: "問題があるが、店長の許可があれば1人でもよい", vi: "Có vấn đề, nhưng nếu quản lý cho phép thì 1 người cũng được" },
+    ],
+    correctIndex: 2,
+    explanationVi: "Nộp tiền vào két đêm bắt buộc phải có 2 người thực hiện vì lý do phòng chống trộm cắp — không có ngoại lệ dựa trên độ tin cậy cá nhân hay sự cho phép của quản lý.",
+    sourceQuoteJa: "閉店後レジ締めをおこない、所定のバッグに現金と入金票を入れて投入します。この時必ず二人でおこなってください。理由は防犯のためです。",
+    sourcePage: 16,
+  },
+  {
+    id: "sg-cs4-1",
+    chapterId: "cs-ch4",
+    kind: "judgment",
+    scenarioJa: "料理に髪の毛が入っていたと、お客様から指摘を受けました。",
+    scenarioVi: "Khách phản ánh có sợi tóc lẫn trong món ăn.",
+    questionJa: "取るべき正しい対応の順序はどれか。",
+    questionVi: "Thứ tự xử lý đúng cần thực hiện là gì?",
+    options: [
+      { ja: "まず伝票をキャンセルしてから事実確認する", vi: "Trước tiên hủy hóa đơn rồi mới xác nhận sự việc" },
+      { ja: "お詫びせず、まず作り直すかどうかだけ聞く", vi: "Không xin lỗi, chỉ hỏi có muốn làm lại không" },
+      { ja: "1週間かけて調査してから謝罪する", vi: "Điều tra trong 1 tuần rồi mới xin lỗi" },
+      { ja: "事実を確認したらすぐにお詫びし、その後、作り直してよいか確認して不要なら伝票をキャンセルする", vi: "Xác nhận sự việc rồi xin lỗi ngay, sau đó hỏi khách có muốn làm lại không, nếu không cần thì nhanh chóng hủy hóa đơn" },
+    ],
+    correctIndex: 3,
+    explanationVi: "Thứ tự đúng: (1) xác nhận sự việc → xin lỗi ngay; (2) hỏi khách có muốn làm lại món không, nếu không cần thì nhanh chóng hủy hóa đơn.",
+    sourceQuoteJa:
+      "（１）①の「クレームに対する基本的な対応」に沿い、事実を確認したらすぐにお詫びをしてください。 お客様にはまず、作り直してよいか確認し、作り直し不要と言われれば伝票をキャンセルする対応を素早くおこなってください。それ以上の対応が店のルールで決まっている場合は、それに従ってください。",
+    sourcePage: 18,
+  },
+  {
+    id: "sg-cs5-1",
+    chapterId: "cs-ch5",
+    kind: "judgment",
+    scenarioJa: "レストランでお客様が突然てんかん発作を起こして倒れました。付き添いの方は見当たりません。",
+    scenarioVi: "Một khách đột nhiên lên cơn động kinh và ngã xuống trong nhà hàng. Không thấy người đi cùng.",
+    questionJa: "この場合、正しい対応はどれか。",
+    questionVi: "Trong trường hợp này, cách xử lý đúng là gì?",
+    options: [
+      { ja: "付き添いの方がいないため、すぐに救急車を呼ぶ", vi: "Vì không có người đi cùng, phải gọi xe cấp cứu ngay" },
+      { ja: "口に物を入れて舌を守る", vi: "Nhét vật vào miệng để bảo vệ lưỡi" },
+      { ja: "すぐに抱き起こして座らせる", vi: "Ngay lập tức bế khách dậy và cho ngồi" },
+      { ja: "周囲から離れて何もしない", vi: "Tránh xa và không làm gì cả" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Với khách bị ngã do lên cơn động kinh: nếu có người đi cùng thì làm theo chỉ dẫn của người đó; nếu KHÔNG có người đi cùng (như tình huống này) thì phải gọi xe cấp cứu ngay.",
+    sourceQuoteJa: "てんかん発作で倒れたお客様には、付き添いの方がいれば、その方の指示に従ってください。付き添いの方がいない場合は、すぐに救急車を呼んでください。",
+    sourcePage: 19,
+  },
+  {
+    id: "sg-cs5-2",
+    chapterId: "cs-ch5",
+    kind: "judgment",
+    scenarioJa: "厨房近くで倒れたお客様の意識がなく、呼吸も確認できません。店内にAEDが設置されています。",
+    scenarioVi: "Một khách ngã gần khu bếp, bất tỉnh và không thấy có nhịp thở. Trong quán có lắp máy AED.",
+    questionJa: "取るべき対応はどれか。",
+    questionVi: "Hành động cần thực hiện là gì?",
+    options: [
+      { ja: "意識が戻るまで何もせず待つ", vi: "Không làm gì, chờ khách tỉnh lại" },
+      { ja: "AEDをすぐに当て、同時に救急車を呼ぶ", vi: "Dùng AED ngay lập tức, đồng thời gọi xe cấp cứu" },
+      { ja: "心臓マッサージのみおこない救急車は呼ばない", vi: "Chỉ xoa bóp tim, không gọi xe cấp cứu" },
+      { ja: "AEDは訓練を受けた人だけが使えるので何もしない", vi: "Vì AED chỉ người đã qua đào tạo mới dùng được nên không làm gì" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Với khách bị ngừng tim (bất tỉnh, không thở), phải dùng máy AED ngay lập tức, đồng thời gọi xe cấp cứu — không chờ đợi, không chỉ dựa vào xoa bóp tim.",
+    sourceQuoteJa: "心停止を起こしたお客様には、AED（自動体外式除細動器）をすぐに当ててください。そして同時に救急車を呼んでください。",
+    sourcePage: 19,
+  },
+];
+
+export const PLANNINGS: PlanningQuestion[] = [
+  {
+    id: "pl-sm1-1",
+    chapterId: "sm-ch1",
+    scenarioJa: "新人スタッフに「Q（クオリティ）」の優先順位を教える研修中です。5つの項目を優先度が高い順に並べてください。",
+    scenarioVi: "Bạn đang đào tạo nhân viên mới về thứ tự ưu tiên của \"Q (Chất lượng)\". Hãy sắp xếp 5 mục theo đúng thứ tự ưu tiên từ cao đến thấp.",
+    steps: [
+      { ja: "品質（味・分量・盛り付け）の一定化", vi: "Đồng nhất chất lượng (vị, khối lượng, cách trình bày)" },
+      { ja: "熱いものは厚く、冷たいものは冷たく", vi: "Nóng thì dày dặn, lạnh thì mát lạnh" },
+      { ja: "早く出す", vi: "Phục vụ nhanh" },
+      { ja: "同時同卓提供", vi: "Phục vụ đồng thời cùng bàn" },
+      { ja: "気配り（愛）", vi: "Sự quan tâm chu đáo" },
+    ],
+    sourceQuoteJa:
+      "Q（クオリティ）の優先順位　1.品質（味・分量・盛り付け）の一定化　2.熱いものは厚く、冷たいものは冷たく　3.早く出す・・・ランチ6～8分以内、ディナー12分以内　4.同時同卓提供　5.気配り（愛）・・・美味しくなるように心を込め調理",
+    sourcePage: 2,
+  },
+  {
+    id: "pl-sm1-2",
+    chapterId: "sm-ch1",
+    scenarioJa: "新人スタッフに「S（サービス）」の優先順位を教える研修中です。5つの項目を優先度が高い順に並べてください。",
+    scenarioVi: "Bạn đang đào tạo nhân viên mới về thứ tự ưu tiên của \"S (Dịch vụ)\". Hãy sắp xếp 5 mục theo đúng thứ tự ưu tiên từ cao đến thấp.",
+    steps: [
+      { ja: "定型サービス（スマイル＆アイコンタクト）", vi: "Dịch vụ tiêu chuẩn (mỉm cười & giao tiếp mắt)" },
+      { ja: "声（発声）・・・ハキハキ", vi: "Giọng nói dứt khoát, rõ ràng" },
+      { ja: "笑顔（スマイル＆ハッスル）・・・ニコニコ", vi: "Nụ cười tươi" },
+      { ja: "動作（姿勢、動き）・・・キビキビ、テキパキ", vi: "Động tác nhanh nhẹn, dứt khoát" },
+      { ja: "気配り（愛）", vi: "Sự quan tâm chu đáo" },
+    ],
+    sourceQuoteJa:
+      "S（サービス）の優先順位　1.定型サービス（基本）（スマイル＆アイコンタクト）　2.声（発生）・・・ハキハキ　3.笑顔（スマイル＆ハッスル）・・・ニコニコ　4.動作（姿勢、動き）・・・キビキビ、テキパキ　5.気配り（愛）・・・お客様の立場で気づく、察する心",
+    sourcePage: 2,
+  },
+  {
+    id: "pl-sm3-1",
+    chapterId: "sm-ch3",
+    scenarioJa: "納品された食材を確認する検収作業をおこないます。3つの確認項目を、本文に記載されている順番に並べてください。",
+    scenarioVi: "Bạn thực hiện công tác kiểm nhận nguyên liệu vừa giao đến. Hãy sắp xếp 3 hạng mục cần xác nhận theo đúng thứ tự được nêu trong tài liệu.",
+    steps: [
+      { ja: "発注数量", vi: "Số lượng đã đặt hàng" },
+      { ja: "納品書の数量", vi: "Số lượng trên phiếu giao hàng" },
+      { ja: "現品の数量と品質", vi: "Số lượng và chất lượng hàng thực tế" },
+    ],
+    sourceQuoteJa: "A）発注数量とB）納品書の数量、C）現品の数量と品質の３つを確認します。",
+    sourcePage: 15,
+  },
+  {
+    id: "pl-sm5-1",
+    chapterId: "sm-ch5",
+    scenarioJa: "顧客管理の基本方針に従い、お客様のランクをどのように引き上げていくべきか、正しい流れに並べてください。",
+    scenarioVi: "Theo phương châm cơ bản của quản lý khách hàng, hãy sắp xếp đúng chuỗi nâng hạng khách hàng.",
+    steps: [
+      { ja: "新規顧客", vi: "Khách hàng mới" },
+      { ja: "準固定顧客", vi: "Khách bán cố định" },
+      { ja: "固定顧客", vi: "Khách quen cố định" },
+    ],
+    sourceQuoteJa: "顧客管理とは準固定顧客を固定客に、新規顧客を準固定顧客あるいは固定顧客にしていくことが重要です。",
+    sourcePage: 17,
+  },
+  {
+    id: "pl-sm6-1",
+    chapterId: "sm-ch6",
+    scenarioJa: "新人アルバイトスタッフの採用初日です。オリエンテーションの正しい流れを順番に並べてください。",
+    scenarioVi: "Đây là ngày đầu tiên của nhân viên thời vụ mới. Hãy sắp xếp đúng thứ tự quy trình định hướng ngày đầu.",
+    steps: [
+      { ja: "ハウスルール（出退勤の仕方、制服の着用や身だしなみルール、手洗いなどの衛生管理など）を教える", vi: "Dạy nội quy cửa hàng (cách chấm công, đồng phục/tác phong, vệ sinh cá nhân...)" },
+      { ja: "店舗の設備や配置を説明して案内（ストアツアー）し、スタッフを紹介する", vi: "Giới thiệu/hướng dẫn thiết bị và cách bố trí cửa hàng (Store Tour), giới thiệu với các nhân viên khác" },
+    ],
+    sourceQuoteJa:
+      "初日はオリエンテーションとハウスルール（出退勤の仕方、制服の着用や身だしなみルール、手洗いなどの衛生管理など）店内で働く上での基本を教えます。次に店舗の設備や配置を説明して案内（ストアツアー）し、スタッフを紹介します。",
+    sourcePage: 19,
+  },
+  {
+    id: "pl-sm7-1",
+    chapterId: "sm-ch7",
+    scenarioJa: "人材育成の基本体系には4つの段階があります。新人スタッフが成長していく正しい順番に並べてください。",
+    scenarioVi: "Hệ thống đào tạo nhân sự cơ bản có 4 giai đoạn. Hãy sắp xếp đúng thứ tự trưởng thành của nhân viên mới.",
+    steps: [
+      { ja: "教育（芽を引き出す）", vi: "Giáo dục (khơi gợi mầm non/tiềm năng)" },
+      { ja: "導入（方向付ける）", vi: "Định hướng (chỉ ra phương hướng)" },
+      { ja: "訓練（反復練習する）", vi: "Huấn luyện (luyện tập lặp lại)" },
+      { ja: "啓発（開発する）", vi: "Khai mở (phát triển bản thân)" },
+    ],
+    sourceQuoteJa: "教育 芽を引き出す■ 導入 方向付ける■ 訓練 反復練習する■ 啓発 開発する",
+    sourcePage: 20,
+  },
+  {
+    id: "pl-sm7-2",
+    chapterId: "sm-ch7",
+    scenarioJa: "新人にサービスの「型」をOJTで教えることになりました。トレーニングの4ステップを正しい順番に並べてください。",
+    scenarioVi: "Bạn sẽ đào tạo nhân viên mới về \"khuôn mẫu\" dịch vụ theo hình thức OJT. Hãy sắp xếp đúng 4 bước đào tạo.",
+    steps: [
+      { ja: "導入・・トレーニーを習う気持ちにさせる", vi: "Dẫn nhập — tạo tinh thần muốn học cho học viên" },
+      { ja: "掲示・・トレーナーがやって見せる", vi: "Trình diễn — huấn luyện viên làm mẫu" },
+      { ja: "適用・・トレーニーにやらせてみる", vi: "Áp dụng — để học viên tự làm" },
+      { ja: "的確にフォローアップする", vi: "Theo dõi sát sao, kiểm tra cụ thể mức độ hiểu và làm được" },
+    ],
+    sourceQuoteJa:
+      "① 導入・・トレーニーを習う気持ちにさせる。② 掲示・・トレーナーがやって見せる。③ 適用・・トレーニーにやらせてみる。④ 的確にフォローアップする。トレーニーがどのくらい理解しているか、できたかを具体的にチェックし、フォローアップに結び付けます。",
+    sourcePage: 21,
+  },
+  {
+    id: "pl-sm8-1",
+    chapterId: "sm-ch8",
+    scenarioJa:
+      "火災などの緊急事態に備え、各種マニュアルの内容を事前に確認しておく必要があります。本文に挙げられている3つの確認事項を、記載されている順番に並べてください。",
+    scenarioVi: "Để chuẩn bị cho tình huống khẩn cấp như hỏa hoạn, cần xác nhận trước nội dung các loại sổ tay. Hãy sắp xếp đúng thứ tự 3 mục xác nhận được nêu trong tài liệu.",
+    steps: [
+      { ja: "消防署への通報マニュアル", vi: "Sổ tay báo tin cho sở cứu hỏa" },
+      { ja: "お客様の避難誘導マニュアル", vi: "Sổ tay hướng dẫn sơ tán khách hàng" },
+      { ja: "緊急時の従業員役割分担マニュアル", vi: "Sổ tay phân công vai trò nhân viên lúc khẩn cấp" },
+    ],
+    sourceQuoteJa:
+      "① 消防署への通報マニュアルを確認しておいてください。② お客様の避難誘導マニュアルを確認しておいてください。③ 緊急時の従業員役割分担マニュアルを確認しておいてください。",
+    sourcePage: 24,
+  },
+  // Phần 2: 衛生管理 (hy-ch2..4)
+  {
+    id: "pl-hy2-1",
+    chapterId: "hy-ch2",
+    scenarioJa: "厨房の5S活動を新人に教える研修中です。5つの要素を正しい順番に並べてください。",
+    scenarioVi: "Bạn đang đào tạo nhân viên mới về hoạt động 5S trong bếp. Hãy sắp xếp 5 yếu tố theo đúng thứ tự.",
+    steps: [
+      { ja: "整理（Seiri）", vi: "Sàng lọc" },
+      { ja: "整頓（Seiton）", vi: "Sắp xếp" },
+      { ja: "清掃（Seisou）", vi: "Sạch sẽ" },
+      { ja: "清潔（Seiketsu）", vi: "Săn sóc" },
+      { ja: "習慣（Syukan）", vi: "Sẵn sàng" },
+    ],
+    sourceQuoteJa:
+      "５ S 活動は、①整理（Seiri）、②整頓（Seiton）、③清掃（Seisou）、④清潔（Seiketsu）、⑤習慣（Syukan）の５つで構成され",
+    sourcePage: 4,
+  },
+  {
+    id: "pl-hy3-1",
+    chapterId: "hy-ch3",
+    scenarioJa: "HACCPに基づく衛生管理計画を作成することになりました。7原則を正しい順番に並べてください。",
+    scenarioVi: "Bạn cần lập kế hoạch quản lý vệ sinh theo HACCP. Hãy sắp xếp đúng thứ tự 7 nguyên tắc.",
+    steps: [
+      { ja: "危害要因の分析", vi: "Phân tích yếu tố nguy hại" },
+      { ja: "重要管理点の決定", vi: "Xác định điểm quản lý quan trọng" },
+      { ja: "管理基準の設定", vi: "Thiết lập tiêu chuẩn quản lý" },
+      { ja: "モニタリング方法の設定", vi: "Thiết lập phương pháp giám sát" },
+      { ja: "改善措置の設定", vi: "Thiết lập biện pháp cải thiện" },
+      { ja: "検証方法の設定", vi: "Thiết lập phương pháp kiểm chứng" },
+      { ja: "記録の作成", vi: "Lập hồ sơ ghi chép" },
+    ],
+    sourceQuoteJa:
+      "危害要因の分析：食品又は添加物の製造、加工、調理、運搬、貯蔵又は販売の工程ごとに、食品衛生上の危害を発生させ得る要因（危害要因）の一覧表を作成し、これら危害要因を管理するための措置（管理措置）を定めること。 重要管理点の決定：①で特定された危害要因の発生の防止、排除又は許容できる水準にまで低減するために管理措置を講ずることが不可欠な工程を重要管理点として特定すること。 管理基準の設定：個々の重要管理点において、危害要因の発生の防止、排除又は許容できる水準にまで低減するための基準（管理基準）を設定すること。 モニタリング方法の設定：重要管理点の管理の実施状況について、連続的又は相当な頻度の確認（モニタリング）をするための方法を設定すること。 改善措置の設定：個々の重要管理点において、モニタリングの結果、管理基準を逸脱したことが判明した場合の改善措置を設定すること。 検証方法の設定：①～⑤に規定する措置の内容の効果を、定期的に検証するための手順を定めること。 記録の作成：営業の規模や業態に応じて、①～⑥に規定する措置の内容に関する書面とその実施の記録を作成すること。",
+    sourcePage: 6,
+  },
+  {
+    id: "pl-hy4-1",
+    chapterId: "hy-ch4",
+    scenarioJa: "新人スタッフの衛生教育訓練メニューを、本文に記載されている順番に並べてください。",
+    scenarioVi: "Hãy sắp xếp chương trình đào tạo vệ sinh cho nhân viên mới theo đúng thứ tự được nêu trong tài liệu.",
+    steps: [
+      { ja: "健康管理（出勤時の健康チェック項目など）", vi: "Quản lý sức khỏe (kiểm tra sức khỏe khi vào ca...)" },
+      { ja: "身だしなみ（作業着の着用、持ち込み禁止品など）", vi: "Tác phong (mặc đồng phục, vật cấm mang vào bếp...)" },
+      { ja: "手洗いなど（手洗い方法、タイミング、衛生手袋の使用法）", vi: "Rửa tay... (cách rửa tay, thời điểm, cách dùng găng vệ sinh)" },
+    ],
+    sourceQuoteJa:
+      "① 健康管理：出勤時の健康チェック項目、体調不良時の業務対応および連絡方法など② 身だしなみ：作業着の着用、持ち込み禁止品などの厨房入室時のルールなど③ 手洗いなど：手洗い方法、手洗いのタイミング、衛生手袋の使用方法など",
+    sourcePage: 29,
+  },
+  // Phần 3: 飲食物調理 (ck-ch2, ck-ch6)
+  {
+    id: "pl-ck2-1",
+    chapterId: "ck-ch2",
+    scenarioJa: "仕入れた魚を調理前に下処理することになりました。正しい手順に並べてください。",
+    scenarioVi: "Bạn cần sơ chế cá vừa nhập trước khi nấu. Hãy sắp xếp đúng thứ tự các bước.",
+    steps: [
+      { ja: "うろこを落とす", vi: "Gạt vảy" },
+      { ja: "えらを取る", vi: "Lấy mang" },
+      { ja: "内臓をとりだす", vi: "Lấy nội tạng" },
+      { ja: "水洗いする", vi: "Rửa nước" },
+      { ja: "頭を取る", vi: "Cắt bỏ đầu" },
+    ],
+    sourceQuoteJa:
+      "うろこを落とす：尾から頭の方向に向かってとります。専用のウロコ取りを使うと簡単ですが、ない場合には包丁の背を使って、身を傷つけないようにとります。 えらを取る：魚の腹を上にしてえらぶたを開き、包丁の刃先を入れ、えらと身のつなぎ部分を切ります。反対側も同じように切り、えらをひっかけるようにして引き出します。 切り身にする場合：えらのところから腹のところまでまっすぐに切り、腹を開いて刃先で内臓をかきだします。尾頭付きの場合：魚の表に切り込みが見えないようにするため、裏側の胸びれの下を切り込み、内臓を出します。 水洗い：手早く流水で洗い流し、水気をしっかりふきとります。 頭を取る：腹びれの後ろのつけねから胸びれの後ろまで斜めに、中骨まで包丁を入れます。裏返し同様にし、中骨ごと頭を落とします。",
+    sourcePage: 5,
+  },
+  {
+    id: "pl-ck6-1",
+    chapterId: "ck-ch6",
+    scenarioJa: "食品が生産者から消費者に届くまでの流通経路を、正しい順番に並べてください。",
+    scenarioVi: "Hãy sắp xếp đúng thứ tự các khâu lưu thông thực phẩm từ nhà sản xuất đến người tiêu dùng.",
+    steps: [
+      { ja: "生産者", vi: "Nhà sản xuất" },
+      { ja: "農協などの出荷事業者", vi: "Đơn vị xuất hàng như hợp tác xã nông nghiệp" },
+      { ja: "卸売市場や食品製造業", vi: "Chợ đầu mối, ngành chế biến thực phẩm" },
+      { ja: "食品小売業", vi: "Ngành bán lẻ thực phẩm" },
+    ],
+    sourceQuoteJa: "生産者から農協などの出荷事業者、卸売市場や食品製造業、食品小売業などを経由して消費者の元に届きます。",
+    sourcePage: 15,
+  },
+  // Phần 4: 接客全般 (cs-ch1)
+  {
+    id: "pl-cs1-1",
+    chapterId: "cs-ch1",
+    scenarioJa:
+      "接客人員が少なく、複数のサービス（料理提供・レジ精算・ご案内・注文受け・デザート提供・下げ）が同時に必要になりました。優先順位の高い順に並べてください。",
+    scenarioVi: "Do thiếu nhân lực phục vụ, nhiều dịch vụ (phục vụ món, thanh toán, đón khách, nhận order, phục vụ tráng miệng, dọn bàn) cùng cần làm một lúc. Hãy sắp xếp theo đúng thứ tự ưu tiên từ cao đến thấp.",
+    steps: [
+      { ja: "料理提供", vi: "Phục vụ món" },
+      { ja: "レジ精算", vi: "Thanh toán" },
+      { ja: "ご案内", vi: "Đón khách" },
+      { ja: "注文受け", vi: "Nhận order" },
+      { ja: "デザート・ドリンクの提供", vi: "Phục vụ tráng miệng/đồ uống" },
+      { ja: "下げ", vi: "Dọn bàn" },
+    ],
+    sourceQuoteJa:
+      "その時の優先順位は、①料理提供②レジ精算③ご案内④注文受け⑤デザート・ドリンクの提供⑥下げとなります。料理提供を優先し、レジ精算が２番目に来るのは、待たせすぎると料理が冷めて美味しさが低下し再来店してもらえないからです。また、レジ精算のお客様は声掛けで待ってもらえるからです。",
+    sourcePage: 7,
+  },
+];
+
 export function vocabByChapter(chapterId: string): VocabQuestion[] {
   return VOCAB.filter((v) => v.chapterId === chapterId);
 }
@@ -13744,4 +15003,12 @@ export function translationsByChapter(chapterId: string): TranslationQuestion[] 
 
 export function reordersByChapter(chapterId: string): ReorderQuestion[] {
   return REORDERS.filter((r) => r.chapterId === chapterId);
+}
+
+export function scenariosByChapter(chapterId: string): ScenarioQuestion[] {
+  return SCENARIOS.filter((s) => s.chapterId === chapterId);
+}
+
+export function planningsByChapter(chapterId: string): PlanningQuestion[] {
+  return PLANNINGS.filter((p) => p.chapterId === chapterId);
 }
