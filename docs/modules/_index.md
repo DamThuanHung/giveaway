@@ -61,6 +61,12 @@
 | Bump Package | `post/bump_package_screen.dart` | Done | Chọn gói boost (Free/Plus/VIP) + PayOSWebView |
 | Admin | `admin/admin_dashboard_screen.dart` | Done | Quản trị: Stats/Posts/Users/Reports/Doanh thu |
 
+## Web Modules (Next.js — web/)
+
+| Module | File tài liệu | Trạng thái | Mô tả |
+|---|---|---|---|
+| /dac-dinh | [dac-dinh.md](dac-dinh.md) | Nội dung + Lớp 1-2 test HOÀN TẤT — chỉ còn thiếu Mức 4 (browser thật, cần user) | Luyện thi Đặc định kỹ năng ngành nhà hàng — song ngữ, 4 dạng bài, dựa theo tài liệu OTAFF |
+
 ## Quy trình phát hành
 
 | Module | File tài liệu | Mô tả |

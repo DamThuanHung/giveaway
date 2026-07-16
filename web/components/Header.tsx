@@ -40,6 +40,12 @@ export function Header() {
             >
               Bài đăng
             </Link>
+            <Link
+              href="/dac-dinh/"
+              className="hidden md:inline px-2 py-1.5 hover:text-primary transition-colors duration-150 ease-warm"
+            >
+              🇯🇵 Luyện thi Đặc định
+            </Link>
             <a
               href="/tai-app/"
               className="hidden md:inline-flex bg-primary hover:bg-primary-dark active:scale-[0.97] text-white px-4 py-2 rounded-md font-semibold shadow-soft hover:shadow-card transition duration-250 ease-warm"
@@ -83,6 +89,9 @@ export function Header() {
             <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 text-base">
               <Link href="/posts/" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-md hover:bg-ink-100 text-ink-800 font-medium transition">
                 <span className="mr-2.5">📦</span>Bài đăng
+              </Link>
+              <Link href="/dac-dinh/" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-md hover:bg-ink-100 text-ink-800 font-medium transition">
+                <span className="mr-2.5">🇯🇵</span>Luyện thi Đặc định
               </Link>
               <Link href="/me/" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-md hover:bg-ink-100 text-ink-800 font-medium transition">
                 <span className="mr-2.5">👤</span>Hồ sơ của tôi

@@ -130,6 +130,30 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Đặc định kỹ năng promo */}
+      <section className="py-14 md:py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="bg-gradient-hero rounded-2xl border border-primary-200/60 p-8 md:p-10 shadow-soft">
+            <span className="inline-flex items-center gap-1.5 bg-primary-100 text-primary-800 text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full mb-4">
+              🇯🇵 Tính năng mới
+            </span>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-ink-900 mb-3 tracking-tight text-balance">
+              Luyện thi Đặc định kỹ năng ngành nhà hàng
+            </h2>
+            <p className="text-ink-600 mb-6 max-w-xl leading-relaxed">
+              Ôn tập song ngữ Việt–Nhật cho kỳ thi 外食業特定技能２号技能測定試験, bám sát tài liệu học chính thức OTAFF —
+              trắc nghiệm, dịch câu, sắp xếp câu, từ vựng. Miễn phí hoàn toàn, chỉ cần đăng nhập Trao Tay để bắt đầu làm bài.
+            </p>
+            <Link
+              href="/dac-dinh/"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-semibold px-6 py-3 rounded-md shadow-card hover:shadow-elevated transition duration-250 ease-warm"
+            >
+              Bắt đầu luyện thi →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section id="features" className="py-20 md:py-24 bg-cream-100">
         <div className="max-w-6xl mx-auto px-4">
