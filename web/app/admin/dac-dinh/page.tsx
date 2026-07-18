@@ -11,7 +11,13 @@ type LeaderboardRow = {
   userId: string;
   name: string;
   avatar: string | null;
-  chaptersCompleted: number;
+  completedCount: number;
+};
+
+type OnlineStats = {
+  onlineCount: number;
+  totalAttempts: number;
+  totalUsers: number;
 };
 
 const ONLINE_POLL_MS = 30_000;
@@ -20,7 +26,7 @@ export default function AdminDacDinhPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<OnlineStats | null>(null);
   const [period, setPeriod] = useState<"day" | "week">("day");
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -33,7 +39,11 @@ export default function AdminDacDinhPage() {
       const res = await authFetch("/admin/dac-dinh/online?minutes=10");
       if (!res.ok) return;
       const data = await res.json();
-      setOnlineCount(data.onlineCount ?? 0);
+      setStats({
+        onlineCount: data.onlineCount ?? 0,
+        totalAttempts: data.totalAttempts ?? 0,
+        totalUsers: data.totalUsers ?? 0,
+      });
     } catch {
       // giữ giá trị cũ nếu lỗi mạng tạm thời
     }
@@ -111,20 +121,35 @@ export default function AdminDacDinhPage() {
       </section>
 
       <section className="max-w-3xl mx-auto px-4 py-6">
-        {/* Online card */}
-        <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 mb-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-2xl shrink-0">
-            🟢
+        {/* Online + số liệu nền */}
+        <div className="grid sm:grid-cols-3 gap-3 mb-6">
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center text-xl shrink-0">
+              🟢
+            </div>
+            <div>
+              <p className="text-2xl font-extrabold text-ink-900">
+                {stats === null ? "..." : stats.onlineCount}
+              </p>
+              <p className="text-xs text-ink-500">Đang online (10 phút gần nhất)</p>
+            </div>
           </div>
-          <div>
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
             <p className="text-2xl font-extrabold text-ink-900">
-              {onlineCount === null ? "..." : onlineCount}
+              {stats === null ? "..." : stats.totalAttempts}
             </p>
-            <p className="text-xs text-ink-500">
-              Người đang làm bài (hoạt động trong 10 phút gần nhất) · tự cập nhật mỗi 30 giây
+            <p className="text-xs text-ink-500">Tổng lượt làm bài (toàn thời gian)</p>
+          </div>
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-5">
+            <p className="text-2xl font-extrabold text-ink-900">
+              {stats === null ? "..." : stats.totalUsers}
             </p>
+            <p className="text-xs text-ink-500">Tổng người từng thử (toàn thời gian)</p>
           </div>
         </div>
+        <p className="text-xs text-ink-400 -mt-3 mb-6">
+          "Đang online" tự cập nhật mỗi 30 giây — tính theo người có mặt tại trang trong 10 phút gần nhất (không chỉ lúc vừa hoàn thành bài).
+        </p>
 
         {/* Leaderboard */}
         <div className="flex items-center justify-between mb-4">
@@ -154,14 +179,14 @@ export default function AdminDacDinhPage() {
         </div>
 
         <p className="text-xs text-ink-400 mb-4">
-          Xếp hạng theo số chương hoàn thành 100% (Trắc nghiệm kiến thức) trong khung thời gian đã chọn.
+          Xếp hạng theo số dạng bài (mọi chương, cả 6 dạng) đạt 100% trong khung thời gian đã chọn.
         </p>
 
         {loadingData && <p className="text-center text-ink-500 py-8">Đang tải...</p>}
         {error && <p className="text-center text-red-600 py-8">{error}</p>}
 
         {!loadingData && !error && leaderboard.length === 0 && (
-          <p className="text-center text-ink-400 py-8">Chưa có ai hoàn thành chương nào trong khung thời gian này.</p>
+          <p className="text-center text-ink-400 py-8">Chưa có ai hoàn thành dạng bài nào trong khung thời gian này.</p>
         )}
 
         {!loadingData && !error && leaderboard.length > 0 && (
@@ -188,7 +213,7 @@ export default function AdminDacDinhPage() {
                   className="w-9 h-9 rounded-full object-cover border border-ink-200/70"
                 />
                 <p className="flex-1 min-w-0 font-semibold text-ink-900 text-sm truncate">{row.name}</p>
-                <p className="text-sm font-bold text-primary-dark shrink-0">{row.chaptersCompleted} chương</p>
+                <p className="text-sm font-bold text-primary-dark shrink-0">{row.completedCount} dạng bài</p>
               </div>
             ))}
           </div>

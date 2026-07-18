@@ -42,6 +42,7 @@ model User {
   adminActions       AdminActionLog[] @relation("AdminActionLog_admin")
   webPushSubscriptions WebPushSubscription[]
   dacDinhAttempts    DacDinhAttempt[]
+  dacDinhPresence    DacDinhPresence?
 }
 
 model Post {
@@ -361,6 +362,21 @@ model DacDinhAttempt {
   @@index([createdAt])
   @@index([userId, createdAt])
   @@index([exerciseType, createdAt])
+}
+
+/// Presence NHẸ cho /dac-dinh — 1 row/user, ghi đè lastSeenAt mỗi lần client gửi heartbeat
+/// (mỗi 45s trong lúc còn ở trang, không đợi làm xong bài). Khác hẳn DacDinhAttempt (ghi
+/// LỊCH SỬ mỗi lần hoàn thành 1 dạng bài) — bảng này chỉ track "đang có mặt", không tích lũy
+/// log, không tăng kích thước theo thời gian. Sửa lỗi thiết kế ban đầu của ADR-0015: đếm
+/// "online" dựa vào DacDinhAttempt bị thiếu nghiêm trọng vì chỉ có tín hiệu lúc HOÀN THÀNH
+/// bài, không có tín hiệu lúc đang làm dở (bài dài nhiều câu có thể mất nhiều phút không có
+/// tín hiệu nào). Xem ADR-0016.
+model DacDinhPresence {
+  userId     String   @id
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastSeenAt])
 }
 
 model WebPushSubscription {

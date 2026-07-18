@@ -207,8 +207,9 @@ backend/src/
 | Method | Path | Auth | Mô tả |
 |---|---|---|---|
 | POST | `/dac-dinh/attempt` | JWT | Ghi 1 lần hoàn thành dạng bài (`{ chapterId, exerciseType, score, total }`) — best-effort, chạy song song với localStorage phía client |
+| POST | `/dac-dinh/heartbeat` | JWT | Ping presence (không tham số) — client gọi mỗi 45s trong lúc còn ở trang, dùng cho số "online" admin — ADR-0016 |
 
-Thống kê admin — `GET /admin/dac-dinh/online?minutes=10` và `GET /admin/dac-dinh/leaderboard?period=day|week&limit=20` (đều AdminGuard), nằm chung trong `AdminController`/`AdminService` như mọi domain admin khác (không có module riêng).
+Thống kê admin — `GET /admin/dac-dinh/online?minutes=10` (trả `onlineCount`, `totalAttempts`, `totalUsers`) và `GET /admin/dac-dinh/leaderboard?period=day|week&limit=20` (xếp theo số cặp chương+dạng bài đạt 100%) (đều AdminGuard), nằm chung trong `AdminController`/`AdminService` như mọi domain admin khác (không có module riêng).
 
 ### Follow — `/follow`
 

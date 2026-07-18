@@ -466,3 +466,13 @@ export async function recordDacDinhAttempt(
     // best-effort, không chặn luồng làm bài của user
   }
 }
+
+/// Ping presence cho admin đếm "đang online" — gọi định kỳ trong lúc còn ở trang /dac-dinh,
+/// không phụ thuộc đang làm bài hay chỉ xem danh sách chương. Xem ADR-0016.
+export async function sendDacDinhHeartbeat(): Promise<void> {
+  try {
+    await authFetch("/dac-dinh/heartbeat", { method: "POST" });
+  } catch {
+    // best-effort
+  }
+}

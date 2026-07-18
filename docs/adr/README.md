@@ -22,6 +22,7 @@ Xem `docs/standards/ADR_TEMPLATE.md` cho template chi tiết.
 | 0013 | [Migration tổng hợp đóng băng schema drift + thêm User.lastActiveAt](0013-sync-schema-drift-last-active-at.md) | Accepted | 2026-06-25 |
 | 0014 | [Lưu OAuth token TikTok trong Postgres (TiktokCredential), 1 row duy nhất](0014-tiktok-credential-storage.md) | Proposed | 2026-06-29 |
 | 0015 | [DacDinhAttempt: bảng tracking kết quả làm bài /dac-dinh](0015-dac-dinh-attempt-tracking.md) | Accepted | 2026-07-17 |
+| 0016 | [Sửa lỗi thiết kế thống kê /dac-dinh: DacDinhPresence + xếp hạng theo dạng bài](0016-dac-dinh-presence-and-leaderboard-fix.md) | Accepted | 2026-07-17 |
 
 ## Workflow tạo ADR mới
 

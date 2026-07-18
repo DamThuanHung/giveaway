@@ -14,4 +14,10 @@ export class DacDinhController {
   ) {
     return this.dacDinhService.recordAttempt(req.user.id, body);
   }
+
+  @Post('heartbeat')
+  @UseGuards(JwtAuthGuard)
+  heartbeat(@Request() req) {
+    return this.dacDinhService.heartbeat(req.user.id);
+  }
 }

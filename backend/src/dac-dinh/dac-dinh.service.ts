@@ -32,4 +32,13 @@ export class DacDinhService {
       },
     });
   }
+
+  // Ping presence — upsert 1 row/user, KHÔNG tích lũy lịch sử. Xem ADR-0016.
+  heartbeat(userId: string) {
+    return this.prisma.dacDinhPresence.upsert({
+      where: { userId },
+      create: { userId },
+      update: { lastSeenAt: new Date() },
+    });
+  }
 }

@@ -306,7 +306,18 @@
 | `total` | `Int` | |
 | `createdAt` | `DateTime` | Tự động, có index riêng + index kết hợp `[userId,createdAt]` và `[exerciseType,createdAt]` |
 
-**Mục đích:** Ghi lại mỗi lần hoàn thành 1 dạng bài ở `/dac-dinh` — nguồn dữ liệu cho admin xem số người đang hoạt động + bảng xếp hạng (ADR-0015). Chạy song song với `localStorage` phía client, KHÔNG thay thế (logic mở khóa dạng bài tuần tự vẫn dựa vào localStorage). "Hoàn thành 1 chương" định nghĩa là có attempt `exerciseType="quiz"` đạt `score=total` ở chương đó.
+**Mục đích:** Ghi lại mỗi lần hoàn thành 1 dạng bài ở `/dac-dinh` — nguồn dữ liệu cho bảng xếp hạng admin (ADR-0015, sửa tiêu chí xếp hạng ở ADR-0016). Chạy song song với `localStorage` phía client, KHÔNG thay thế (logic mở khóa dạng bài tuần tự vẫn dựa vào localStorage). Xếp hạng đếm số cặp (chương, dạng bài) đạt `score=total` trong kỳ — KHÔNG dùng để tính "online" (xem `DacDinhPresence`).
+
+---
+
+### `DacDinhPresence`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `userId` | `String` | PK, FK → `User.id` (cascade delete) — 1 row/user, KHÔNG tích lũy lịch sử |
+| `lastSeenAt` | `DateTime` | Ghi đè (upsert) mỗi lần client gửi heartbeat, có index |
+
+**Mục đích:** Presence nhẹ cho `/dac-dinh` — nguồn dữ liệu cho số "đang online" ở admin (ADR-0016). Client gửi `POST /dac-dinh/heartbeat` mỗi 45s trong lúc còn ở trang, không phụ thuộc đang làm bài hay chỉ xem danh sách chương. Khác `DacDinhAttempt` (ghi lịch sử kết quả) — bảng này chỉ track "đang có mặt", không tăng kích thước theo thời gian.
 
 ---
 

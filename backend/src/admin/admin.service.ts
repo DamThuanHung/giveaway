@@ -1391,40 +1391,44 @@ export class AdminService implements OnModuleInit {
     };
   }
 
-  // ─── /dac-dinh (luyện thi Đặc định kỹ năng) — ADR-0015 ─────────
-  // "Online" = proxy đơn giản, không phải WebSocket presence thật: đếm userId phân biệt
-  // có attempt trong N phút gần nhất.
+  // ─── /dac-dinh (luyện thi Đặc định kỹ năng) — ADR-0015, sửa ở ADR-0016 ─────────
+  // "Online" = đếm DacDinhPresence có lastSeenAt trong N phút gần nhất (client ping mỗi 45s
+  // trong lúc còn ở trang, không phụ thuộc đang làm bài hay chỉ xem danh sách chương — khác hẳn
+  // bản cũ dựa vào DacDinhAttempt vốn chỉ có tín hiệu lúc HOÀN THÀNH bài, đếm thiếu nghiêm
+  // trọng với bài dài nhiều câu). Kèm 2 số liệu nền không lọc thời gian để phân biệt "chưa ai
+  // dùng" với "có lỗi ngầm".
   async getDacDinhOnlineCount(minutes = 10) {
     const since = new Date(Date.now() - minutes * 60_000);
-    const rows = await this.prisma.dacDinhAttempt.findMany({
-      where: { createdAt: { gte: since } },
-      distinct: ['userId'],
-      select: { userId: true },
-    });
-    return { onlineCount: rows.length, sinceMinutes: minutes };
+    const [onlineCount, totalAttempts, totalUsersRows] = await Promise.all([
+      this.prisma.dacDinhPresence.count({ where: { lastSeenAt: { gte: since } } }),
+      this.prisma.dacDinhAttempt.count(),
+      this.prisma.dacDinhAttempt.findMany({ distinct: ['userId'], select: { userId: true } }),
+    ]);
+    return { onlineCount, sinceMinutes: minutes, totalAttempts, totalUsers: totalUsersRows.length };
   }
 
-  // "Hoàn thành 1 chương" = có attempt exerciseType="quiz" đạt score=total ở chương đó — xem lý
-  // do chọn mốc "quiz" trong ADR-0015. Prisma không so sánh được 2 cột (score vs total) trong
-  // where nên fetch rồi lọc ở application layer — chấp nhận được vì đây là truy vấn admin,
-  // không phải hot path, khối lượng dữ liệu nhỏ.
+  // Xếp hạng theo số CẶP (chương, dạng bài) đạt score=total trong kỳ — không giới hạn riêng
+  // "quiz" như bản cũ (ADR-0015), để ghi nhận cả 2 dạng bài mới (Tình huống & Tính toán, Lập kế
+  // hoạch) thay vì chỉ đếm Trắc nghiệm kiến thức. Xem lý do đổi ở ADR-0016. Prisma không so
+  // sánh được 2 cột (score vs total) trong where nên fetch rồi lọc ở application layer — chấp
+  // nhận được vì đây là truy vấn admin, không phải hot path, khối lượng dữ liệu nhỏ.
   async getDacDinhLeaderboard(period: 'day' | 'week' = 'day', limit = 20) {
     const since = computeSince(period);
     const rows = await this.prisma.dacDinhAttempt.findMany({
-      where: { exerciseType: 'quiz', ...(since ? { createdAt: { gte: since } } : {}) },
-      select: { userId: true, chapterId: true, score: true, total: true },
+      where: since ? { createdAt: { gte: since } } : {},
+      select: { userId: true, chapterId: true, exerciseType: true, score: true, total: true },
     });
 
-    const chaptersByUser = new Map<string, Set<string>>();
+    const completedByUser = new Map<string, Set<string>>();
     for (const r of rows) {
       if (r.total <= 0 || r.score !== r.total) continue;
-      if (!chaptersByUser.has(r.userId)) chaptersByUser.set(r.userId, new Set());
-      chaptersByUser.get(r.userId)!.add(r.chapterId);
+      if (!completedByUser.has(r.userId)) completedByUser.set(r.userId, new Set());
+      completedByUser.get(r.userId)!.add(`${r.chapterId}::${r.exerciseType}`);
     }
 
-    const ranked = [...chaptersByUser.entries()]
-      .map(([userId, chapters]) => ({ userId, chaptersCompleted: chapters.size }))
-      .sort((a, b) => b.chaptersCompleted - a.chaptersCompleted)
+    const ranked = [...completedByUser.entries()]
+      .map(([userId, combos]) => ({ userId, completedCount: combos.size }))
+      .sort((a, b) => b.completedCount - a.completedCount)
       .slice(0, capLimit(limit));
 
     const users = await this.prisma.user.findMany({
@@ -1439,7 +1443,7 @@ export class AdminService implements OnModuleInit {
         userId: r.userId,
         name: userMap.get(r.userId)?.name ?? 'Người dùng ẩn danh',
         avatar: userMap.get(r.userId)?.avatar ?? null,
-        chaptersCompleted: r.chaptersCompleted,
+        completedCount: r.completedCount,
       })),
     };
   }

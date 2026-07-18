@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
-import { recordDacDinhAttempt } from "@/lib/auth";
+import { recordDacDinhAttempt, sendDacDinhHeartbeat } from "@/lib/auth";
 import {
   PARTS,
   CHAPTERS,
@@ -126,6 +126,15 @@ export default function DacDinhPage() {
   useEffect(() => {
     setBestScores(loadBestScores());
   }, []);
+
+  // Ping presence cho admin đếm "đang online" — chạy suốt thời gian còn ở trang /dac-dinh,
+  // không phụ thuộc đang làm bài hay chỉ xem danh sách chương. Xem ADR-0016.
+  useEffect(() => {
+    if (!user) return;
+    sendDacDinhHeartbeat();
+    const interval = setInterval(sendDacDinhHeartbeat, 45_000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   function openPart(id: string) {
     setPartId(id);
