@@ -4923,7 +4923,7 @@ export const QUESTIONS: QuizQuestion[] = [
       { ja: "従業員が有給休暇を申請した場合", vi: "Khi nhân viên xin nghỉ phép có lương" },
     ],
     correctIndex: 3,
-    explanationVi: "Các trường hợp cần báo cáo bảo健所: nghi ngờ ngộ độc từ bác sĩ/khách, phát hiện vi sinh vật có hại, khả năng lẫn dị vật, sản phẩm bị thu hồi từ nước ngoài — KHÔNG liên quan đến việc xin nghỉ phép của nhân viên.",
+    explanationVi: "Các trường hợp cần báo cáo cho trung tâm y tế (保健所): nghi ngờ ngộ độc từ bác sĩ/khách, phát hiện vi sinh vật có hại, khả năng lẫn dị vật, sản phẩm bị thu hồi từ nước ngoài — KHÔNG liên quan đến việc xin nghỉ phép của nhân viên.",
     sourceQuoteJa:
       "医師や複数のお客様から、食中毒ではないかとの連絡があった場合／製品の自主検査の結果、未加熱で食べる食品から有害微生物を検出した場合／製造機械の破損で、金属や硬質プラスチックなどの異物が製品に混入した可能性がある場合",
     sourcePage: 24,
@@ -13664,7 +13664,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs1-5", chapterId: "cs-ch1", direction: "ja-to-vi", term: "身だしなみ", options: ["Tác phong, trang phục chỉnh tề", "Kỹ năng nấu ăn", "Tốc độ phục vụ", "Giọng nói"], correctIndex: 0 },
   { id: "vc-cs1-6", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Cúi chào", options: ["あいさつ", "お辞儀", "握手", "会釈"], correctIndex: 1 },
   { id: "vc-cs1-7", chapterId: "cs-ch1", direction: "ja-to-vi", term: "主賓", options: ["Nhân viên phục vụ", "Đầu bếp", "Khách chính (chủ tiệc)", "Quản lý cửa hàng"], correctIndex: 2 },
-  { id: "vc-cs1-8", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Chó dẫn đường/hỗ trợ", options: ["ペット", "家畜", "盲導犬など補助犬", "野良犬"], correctIndex: 3 },
+  { id: "vc-cs1-8", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Chó dẫn đường/hỗ trợ", options: ["ペット", "家畜", "盲導犬など補助犬", "野良犬"], correctIndex: 2 },
   { id: "vc-cs1-9", chapterId: "cs-ch1", direction: "ja-to-vi", term: "配膳", options: ["Bày món ra bàn cho khách", "Rửa chén", "Thu ngân", "Kiểm kê kho"], correctIndex: 0 },
   { id: "vc-cs1-10", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Mang về (takeaway)", options: ["店内飲食", "テイクアウト", "デリバリー", "予約"], correctIndex: 1 },
   { id: "vc-cs1-11", chapterId: "cs-ch1", direction: "ja-to-vi", term: "消費期限", options: ["Ngày sản xuất", "Ngày nhập kho", "Hạn sử dụng (an toàn)", "Hạn bảo hành"], correctIndex: 2 },
