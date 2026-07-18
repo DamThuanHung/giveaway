@@ -17,12 +17,16 @@ import {
   reordersByChapter,
   scenariosByChapter,
   planningsByChapter,
+  matchingsByChapter,
+  fillBlanksByChapter,
   type QuizQuestion,
   type TranslationQuestion,
   type VocabQuestion,
   type ReorderQuestion,
   type ScenarioQuestion,
   type PlanningQuestion,
+  type MatchingQuestion,
+  type FillBlankQuestion,
   type ExerciseType,
 } from "./data";
 
@@ -33,6 +37,8 @@ type Screen =
   | "vocab"
   | "translation"
   | "reorder"
+  | "matching"
+  | "fillblank"
   | "quiz"
   | "judgment"
   | "planning"
@@ -51,14 +57,19 @@ type BestScore = { score: number; total: number; date: string };
 
 const STORAGE_KEY = "dac-dinh-best-scores-v2";
 
-// Thứ tự học: Từ vựng → Dịch câu → Sắp xếp câu → Trắc nghiệm kiến thức → Tình huống & Tính toán → Lập kế hoạch.
+// Thứ tự học: Từ vựng → Điền từ vào chỗ trống → Dịch câu → Sắp xếp câu → Trắc nghiệm kiến thức →
+// Phân loại → Tình huống & Tính toán → Lập kế hoạch.
 // Dạng sau chỉ mở khóa khi dạng ngay trước đạt 100% (điểm tuyệt đối) ở chương đó.
-// 2 dạng cuối mô phỏng 実技試験 (thực hành) của đề thi thật — xem docs/modules/dac-dinh.md phần chuẩn nguồn.
+// "Điền từ" đặt ngay sau Từ vựng vì cùng kiểm tra từ vựng (thêm ngữ cảnh câu). "Phân loại" đặt sau
+// Trắc nghiệm, ngay trước 2 dạng mô phỏng 実技試験 cuối cùng, vì cùng tầng kiến thức nội dung nhưng đòi
+// hỏi phân biệt nhiều thuật ngữ cùng lúc thay vì chỉ chọn 1/4 — xem docs/modules/dac-dinh.md phần chuẩn nguồn.
 const EXERCISE_TYPES: { id: ExerciseType; emoji: string; label: string }[] = [
   { id: "vocab", emoji: "🔤", label: "Từ vựng" },
+  { id: "fillblank", emoji: "✏️", label: "Điền từ vào chỗ trống" },
   { id: "translation", emoji: "🔄", label: "Dịch câu" },
   { id: "reorder", emoji: "🧩", label: "Sắp xếp câu" },
   { id: "quiz", emoji: "📝", label: "Trắc nghiệm kiến thức" },
+  { id: "matching", emoji: "🧷", label: "Phân loại" },
   { id: "judgment", emoji: "🎯", label: "Tình huống & Tính toán" },
   { id: "planning", emoji: "📋", label: "Lập kế hoạch" },
 ];
@@ -119,6 +130,17 @@ export default function DacDinhPage() {
   const [planningBuilt, setPlanningBuilt] = useState<{ ja: string; vi: string }[]>([]);
   const [planningRevealed, setPlanningRevealed] = useState(false);
   const [planningAnswers, setPlanningAnswers] = useState<boolean[]>([]);
+
+  // Điền từ vào chỗ trống — dùng chung cơ chế chọn 1 đáp án như quiz.
+  const [fillBlankQuestions, setFillBlankQuestions] = useState<FillBlankQuestion[]>([]);
+
+  // Phân loại — bấm chọn 1 item trong "pool", rồi bấm 1 target để gán (không dùng drag-and-drop thật).
+  const [matchingQuestions, setMatchingQuestions] = useState<MatchingQuestion[]>([]);
+  const [matchingPool, setMatchingPool] = useState<{ id: string; ja: string; vi: string }[]>([]);
+  const [matchingAssignments, setMatchingAssignments] = useState<Record<string, string>>({});
+  const [matchingSelectedItem, setMatchingSelectedItem] = useState<string | null>(null);
+  const [matchingRevealed, setMatchingRevealed] = useState(false);
+  const [matchingAnswers, setMatchingAnswers] = useState<boolean[]>([]);
   // CHỈ DÙNG ĐỂ TEST — mở khóa tạm thời toàn bộ dạng bài để xem giao diện, không đụng vào localStorage/điểm số thật.
   // Gỡ bỏ khi các dạng bài đã có đủ nội dung và không cần bypass nữa.
   const [devUnlockAll, setDevUnlockAll] = useState(false);
@@ -238,6 +260,35 @@ export default function DacDinhPage() {
     setScreen("planning");
   }
 
+  function startFillBlank(chId: string) {
+    if (!requireAuth()) return;
+    const fs = fillBlanksByChapter(chId);
+    if (fs.length === 0) return;
+    setChapterId(chId);
+    setActiveExercise("fillblank");
+    setFillBlankQuestions(fs);
+    setCurrent(0);
+    setSelected(null);
+    setAnswers([]);
+    setScreen("fillblank");
+  }
+
+  function startMatching(chId: string) {
+    if (!requireAuth()) return;
+    const ms = matchingsByChapter(chId);
+    if (ms.length === 0) return;
+    setChapterId(chId);
+    setActiveExercise("matching");
+    setMatchingQuestions(ms);
+    setCurrent(0);
+    setMatchingPool(shuffleArray(ms[0].items));
+    setMatchingAssignments({});
+    setMatchingSelectedItem(null);
+    setMatchingRevealed(false);
+    setMatchingAnswers([]);
+    setScreen("matching");
+  }
+
   function pickAnswer(index: number) {
     if (selected !== null) return; // đã chọn rồi, khóa lại
     setSelected(index);
@@ -248,6 +299,7 @@ export default function DacDinhPage() {
     if (activeExercise === "translation") return translationQuestions[i]?.correctIndex;
     if (activeExercise === "vocab") return vocabQuestions[i]?.correctIndex;
     if (activeExercise === "judgment") return scenarioQuestions[i]?.correctIndex;
+    if (activeExercise === "fillblank") return fillBlankQuestions[i]?.correctIndex;
     return undefined;
   }
 
@@ -263,6 +315,8 @@ export default function DacDinhPage() {
         ? translationQuestions.length
         : activeExercise === "judgment"
         ? scenarioQuestions.length
+        : activeExercise === "fillblank"
+        ? fillBlankQuestions.length
         : vocabQuestions.length;
 
     if (current + 1 < total) {
@@ -358,6 +412,59 @@ export default function DacDinhPage() {
     }
   }
 
+  // Phân loại: bấm 1 item trong pool để chọn (bấm lại để bỏ chọn), rồi bấm 1 target để gán item đã chọn
+  // vào đó. Bấm 1 item ĐÃ gán (hiện trong target) để trả nó về lại pool.
+  function pickMatchingItem(itemId: string) {
+    if (matchingRevealed) return;
+    setMatchingSelectedItem((cur) => (cur === itemId ? null : itemId));
+  }
+
+  function assignMatchingTarget(targetId: string) {
+    if (matchingRevealed || !matchingSelectedItem) return;
+    setMatchingAssignments((a) => ({ ...a, [matchingSelectedItem]: targetId }));
+    setMatchingPool((p) => p.filter((it) => it.id !== matchingSelectedItem));
+    setMatchingSelectedItem(null);
+  }
+
+  function unassignMatchingItem(itemId: string) {
+    if (matchingRevealed) return;
+    const mq = matchingQuestions[current];
+    const item = mq?.items.find((it) => it.id === itemId);
+    if (!item) return;
+    setMatchingAssignments((a) => {
+      const next = { ...a };
+      delete next[itemId];
+      return next;
+    });
+    setMatchingPool((p) => [...p, { id: item.id, ja: item.ja, vi: item.vi }]);
+  }
+
+  function checkMatching() {
+    const mq = matchingQuestions[current];
+    const allCorrect = mq.items.every((it) => matchingAssignments[it.id] === it.targetId);
+    setMatchingRevealed(true);
+    setMatchingAnswers((a) => [...a, allCorrect]);
+  }
+
+  function nextMatchingQuestion() {
+    const nextIdx = current + 1;
+    if (nextIdx < matchingQuestions.length) {
+      setCurrent(nextIdx);
+      setMatchingPool(shuffleArray(matchingQuestions[nextIdx].items));
+      setMatchingAssignments({});
+      setMatchingSelectedItem(null);
+      setMatchingRevealed(false);
+    } else {
+      const sc = matchingAnswers.filter(Boolean).length;
+      if (chapterId) {
+        saveBestScore(exerciseStorageKey(chapterId, "matching"), sc, matchingQuestions.length);
+        recordDacDinhAttempt(chapterId, "matching", sc, matchingQuestions.length);
+      }
+      setBestScores(loadBestScores());
+      setScreen("result");
+    }
+  }
+
   function backToParts() {
     setScreen("parts");
     setPartId(null);
@@ -385,6 +492,8 @@ export default function DacDinhPage() {
     if (exerciseId === "vocab") return vocabByChapter(chId).length;
     if (exerciseId === "reorder") return reordersByChapter(chId).length;
     if (exerciseId === "judgment") return scenariosByChapter(chId).length;
+    if (exerciseId === "matching") return matchingsByChapter(chId).length;
+    if (exerciseId === "fillblank") return fillBlanksByChapter(chId).length;
     return planningsByChapter(chId).length; // "planning"
   }
 
@@ -429,6 +538,8 @@ export default function DacDinhPage() {
   const rq = reorderQuestions[current];
   const sq = scenarioQuestions[current];
   const pq = planningQuestions[current];
+  const fbq = fillBlankQuestions[current];
+  const mq = matchingQuestions[current];
   const resultTotal =
     activeExercise === "quiz"
       ? questions.length
@@ -440,12 +551,18 @@ export default function DacDinhPage() {
       ? scenarioQuestions.length
       : activeExercise === "planning"
       ? planningQuestions.length
+      : activeExercise === "fillblank"
+      ? fillBlankQuestions.length
+      : activeExercise === "matching"
+      ? matchingQuestions.length
       : reorderQuestions.length;
   const score =
     activeExercise === "reorder"
       ? reorderAnswers.filter(Boolean).length
       : activeExercise === "planning"
       ? planningAnswers.filter(Boolean).length
+      : activeExercise === "matching"
+      ? matchingAnswers.filter(Boolean).length
       : answers.filter((a, i) => a === correctIndexAt(i)).length;
 
   return (
@@ -593,6 +710,8 @@ export default function DacDinhPage() {
                       else if (ex.id === "reorder") startReorder(chapter.id);
                       else if (ex.id === "judgment") startJudgment(chapter.id);
                       else if (ex.id === "planning") startPlanning(chapter.id);
+                      else if (ex.id === "fillblank") startFillBlank(chapter.id);
+                      else if (ex.id === "matching") startMatching(chapter.id);
                     }}
                     disabled={!available}
                     className={`text-left border rounded-md p-4 flex items-center gap-3 transition duration-150 ease-warm ${
@@ -687,6 +806,104 @@ export default function DacDinhPage() {
                     className="mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
                   >
                     {current + 1 < vocabQuestions.length ? "Câu tiếp theo →" : "Xem kết quả"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {screen === "fillblank" && fbq && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-ink-600">
+                {part?.emoji} {chapter?.titleVi} · ✏️ Điền từ vào chỗ trống
+              </p>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className="text-sm text-ink-500">
+                  Câu {current + 1}/{fillBlankQuestions.length}
+                </p>
+                <button
+                  onClick={exitExercise}
+                  className="text-xs font-semibold text-ink-500 hover:text-primary border border-ink-200 hover:border-primary rounded-full px-2.5 py-1 transition duration-150 ease-warm"
+                >
+                  ✕ Thoát
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full h-2 bg-ink-100 rounded-full overflow-hidden mb-5">
+              <div
+                className="h-full bg-primary transition-all duration-250 ease-warm"
+                style={{ width: `${((current + 1) / fillBlankQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 md:p-6">
+              <p className="text-xs font-semibold text-primary-dark mb-2">🇯🇵 Điền từ đúng vào chỗ trống</p>
+              <p className="text-lg font-bold text-ink-900 leading-relaxed">
+                {fbq.sentenceJa.split("＿＿＿").map((part, i, arr) => (
+                  <span key={i}>
+                    {part}
+                    {i < arr.length - 1 && (
+                      <span className="inline-block mx-1 px-2 border-b-2 border-primary text-primary-dark">
+                        ＿＿＿
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </p>
+              <p className="text-sm text-ink-500 mt-1 mb-5">{fbq.sentenceVi}</p>
+
+              <div className="space-y-2.5">
+                {fbq.options.map((opt, i) => {
+                  const isCorrect = i === fbq.correctIndex;
+                  const isSelected = i === selected;
+                  const revealed = selected !== null;
+
+                  let style =
+                    "border-ink-200/70 bg-white hover:border-primary hover:bg-primary-100/20";
+                  if (revealed && isCorrect) {
+                    style = "border-primary bg-primary-100/40";
+                  } else if (revealed && isSelected && !isCorrect) {
+                    style = "border-red-300 bg-red-50";
+                  } else if (revealed) {
+                    style = "border-ink-200/70 bg-white opacity-60";
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => pickAnswer(i)}
+                      disabled={revealed}
+                      className={`w-full text-left border rounded-md px-4 py-3 transition duration-150 ease-warm ${style}`}
+                    >
+                      <p className="font-semibold text-ink-900">{opt}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selected !== null && (
+                <div className="mt-5 bg-cream-50 border border-ink-200/50 rounded-md p-4 animate-fade-in">
+                  <p className="font-bold text-sm mb-1">
+                    {selected === fbq.correctIndex ? "✅ Chính xác!" : "❌ Chưa đúng — đáp án đúng là:"}
+                  </p>
+                  {selected !== fbq.correctIndex && (
+                    <p className="text-sm font-semibold text-primary-dark mb-2">{fbq.options[fbq.correctIndex]}</p>
+                  )}
+                  <p className="text-sm text-ink-600 leading-relaxed">{fbq.explanationVi}</p>
+                  <div className="mt-3 pt-3 border-t border-ink-200/50">
+                    <p className="text-xs text-ink-500 leading-relaxed">
+                      📖 Câu đầy đủ — {chapter && SOURCE_DOC_BY_PART[chapter.partId]}, trang {fbq.sourcePage}:
+                      「{fbq.sourceQuoteJa}」
+                    </p>
+                  </div>
+                  <button
+                    onClick={nextQuestion}
+                    className="mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+                  >
+                    {current + 1 < fillBlankQuestions.length ? "Câu tiếp theo →" : "Xem kết quả"}
                   </button>
                 </div>
               )}
@@ -959,6 +1176,152 @@ export default function DacDinhPage() {
                     className="mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
                   >
                     {current + 1 < questions.length ? "Câu tiếp theo →" : "Xem kết quả"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {screen === "matching" && mq && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-ink-600">
+                {part?.emoji} {chapter?.titleVi} · 🧷 Phân loại
+              </p>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className="text-sm text-ink-500">
+                  Câu {current + 1}/{matchingQuestions.length}
+                </p>
+                <button
+                  onClick={exitExercise}
+                  className="text-xs font-semibold text-ink-500 hover:text-primary border border-ink-200 hover:border-primary rounded-full px-2.5 py-1 transition duration-150 ease-warm"
+                >
+                  ✕ Thoát
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full h-2 bg-ink-100 rounded-full overflow-hidden mb-5">
+              <div
+                className="h-full bg-primary transition-all duration-250 ease-warm"
+                style={{ width: `${((current + 1) / matchingQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            <div className="bg-white border border-ink-200/70 rounded-md shadow-card p-5 md:p-6">
+              <p className="text-sm font-bold text-ink-900 leading-relaxed">{mq.instructionJa}</p>
+              <p className="text-xs text-ink-500 mt-1 mb-4">{mq.instructionVi}</p>
+
+              {!matchingRevealed && (
+                <p className="text-xs font-semibold text-primary-dark mb-3">
+                  {matchingSelectedItem
+                    ? "Đã chọn — bấm vào 1 nhóm bên dưới để gán"
+                    : "Bấm chọn 1 mục bên dưới, rồi bấm vào nhóm đúng"}
+                </p>
+              )}
+
+              {/* Các nhóm/đích — bấm để gán mục đang chọn vào đây */}
+              <div className="space-y-2.5 mb-4">
+                {mq.targets.map((t) => {
+                  const assignedItems = mq.items.filter((it) => matchingAssignments[it.id] === t.id);
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => assignMatchingTarget(t.id)}
+                      className={`border-2 rounded-md p-3 transition duration-150 ease-warm ${
+                        !matchingRevealed && matchingSelectedItem
+                          ? "border-dashed border-primary bg-primary-100/20 cursor-pointer hover:bg-primary-100/40"
+                          : "border-dashed border-ink-200 bg-cream-50"
+                      }`}
+                    >
+                      <p className="text-sm font-bold text-ink-900">{t.labelJa}</p>
+                      <p className="text-xs text-ink-500 mb-2">{t.labelVi}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {assignedItems.length === 0 && (
+                          <p className="text-xs text-ink-400 italic">Chưa có mục nào</p>
+                        )}
+                        {assignedItems.map((it) => {
+                          const isCorrect = it.targetId === t.id;
+                          let chipStyle = "bg-primary-100 border-primary text-primary-dark";
+                          if (matchingRevealed) {
+                            chipStyle = isCorrect
+                              ? "bg-primary-100 border-primary text-primary-dark"
+                              : "bg-red-50 border-red-300 text-red-700";
+                          }
+                          return (
+                            <button
+                              key={it.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                unassignMatchingItem(it.id);
+                              }}
+                              disabled={matchingRevealed}
+                              className={`border font-semibold text-sm px-3 py-1.5 rounded-md transition duration-150 ease-warm ${chipStyle}`}
+                            >
+                              {matchingRevealed && (isCorrect ? "✅ " : "❌ ")}
+                              {it.ja}
+                              <span className="block text-xs font-normal opacity-80">{it.vi}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pool các mục chưa gán */}
+              {matchingPool.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {matchingPool.map((it) => (
+                    <button
+                      key={it.id}
+                      onClick={() => pickMatchingItem(it.id)}
+                      className={`text-left border font-semibold text-sm px-3 py-1.5 rounded-md transition duration-150 ease-warm ${
+                        matchingSelectedItem === it.id
+                          ? "bg-primary text-white border-primary"
+                          : "bg-white border-ink-200/70 text-ink-900 hover:border-primary hover:bg-primary-100/20"
+                      }`}
+                    >
+                      {it.ja}
+                      <span className="block text-xs font-normal opacity-80">{it.vi}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!matchingRevealed && (
+                <button
+                  onClick={checkMatching}
+                  disabled={matchingPool.length > 0}
+                  className="bg-primary hover:bg-primary-dark active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+                >
+                  Kiểm tra
+                </button>
+              )}
+
+              {matchingRevealed && (
+                <div className="mt-2 bg-cream-50 border border-ink-200/50 rounded-md p-4 animate-fade-in">
+                  <p className="font-bold text-sm mb-2">
+                    {mq.items.every((it) => matchingAssignments[it.id] === it.targetId)
+                      ? "✅ Chính xác toàn bộ!"
+                      : "❌ Có mục chưa đúng nhóm — xem đáp án đúng bên trên"}
+                  </p>
+                  <p className="text-sm text-ink-600 leading-relaxed mb-3">{mq.explanationVi}</p>
+                  <div className="space-y-1.5 border-t border-ink-200/50 pt-2">
+                    {mq.items.map((it) => (
+                      <p key={it.id} className="text-xs text-ink-500 leading-relaxed">
+                        📖 <span className="font-semibold text-ink-700">{it.ja}</span> —{" "}
+                        {chapter && SOURCE_DOC_BY_PART[chapter.partId]}, trang {it.sourcePage}: 「{it.sourceQuoteJa}」
+                      </p>
+                    ))}
+                  </div>
+                  <button
+                    onClick={nextMatchingQuestion}
+                    className="mt-4 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-5 py-2.5 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
+                  >
+                    {current + 1 < matchingQuestions.length ? "Câu tiếp theo →" : "Xem kết quả"}
                   </button>
                 </div>
               )}
@@ -1352,6 +1715,61 @@ export default function DacDinhPage() {
                     </div>
                   );
                 })}
+
+              {activeExercise === "fillblank" &&
+                fillBlankQuestions.map((fqq, i) => {
+                  const userAnswer = answers[i];
+                  const correct = userAnswer === fqq.correctIndex;
+                  return (
+                    <div
+                      key={fqq.id}
+                      className={`bg-white border rounded-md p-4 ${correct ? "border-ink-200/70" : "border-red-200"}`}
+                    >
+                      <p className="text-sm font-semibold text-ink-900">
+                        {correct ? "✅" : "❌"} {fqq.sentenceJa}
+                      </p>
+                      <p className="text-xs text-ink-500 mb-2">{fqq.sentenceVi}</p>
+                      {!correct && userAnswer !== null && userAnswer !== undefined && (
+                        <p className="text-xs text-red-600 mb-1">Bạn chọn: {fqq.options[userAnswer]}</p>
+                      )}
+                      <p className="text-xs text-primary-dark font-semibold mb-1">
+                        Đáp án đúng: {fqq.options[fqq.correctIndex]}
+                      </p>
+                      <p className="text-xs text-ink-600 leading-relaxed mb-2">{fqq.explanationVi}</p>
+                      <p className="text-xs text-ink-400 leading-relaxed border-t border-ink-200/50 pt-2">
+                        📖 Câu đầy đủ — {part && SOURCE_DOC_BY_PART[part.id]}, trang {fqq.sourcePage}:
+                        「{fqq.sourceQuoteJa}」
+                      </p>
+                    </div>
+                  );
+                })}
+
+              {activeExercise === "matching" &&
+                matchingQuestions.map((mqq, i) => {
+                  const correct = matchingAnswers[i];
+                  return (
+                    <div
+                      key={mqq.id}
+                      className={`bg-white border rounded-md p-4 ${correct ? "border-ink-200/70" : "border-red-200"}`}
+                    >
+                      <p className="text-xs text-ink-400 mb-1">🧷 Phân loại</p>
+                      <p className="text-xs text-ink-500 italic mb-2">{mqq.instructionVi}</p>
+                      <p className="text-sm font-semibold text-ink-900 mb-2">
+                        {correct ? "✅ Đúng toàn bộ" : "❌ Có mục chưa đúng nhóm"}
+                      </p>
+                      <div className="space-y-0.5 mb-2">
+                        {mqq.items.map((it) => {
+                          const t = mqq.targets.find((tg) => tg.id === it.targetId);
+                          return (
+                            <p key={it.id} className="text-xs text-ink-600">
+                              <span className="font-semibold">{it.ja}</span> ({it.vi}) → {t?.labelVi}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
 
             <div className="mt-6 flex gap-3">
@@ -1364,6 +1782,8 @@ export default function DacDinhPage() {
                   else if (activeExercise === "reorder") startReorder(chapterId);
                   else if (activeExercise === "judgment") startJudgment(chapterId);
                   else if (activeExercise === "planning") startPlanning(chapterId);
+                  else if (activeExercise === "fillblank") startFillBlank(chapterId);
+                  else if (activeExercise === "matching") startMatching(chapterId);
                 }}
                 className="flex-1 bg-primary hover:bg-primary-dark active:scale-[0.97] text-white font-bold px-4 py-3 rounded-md shadow-soft hover:shadow-card transition duration-150 ease-warm"
               >

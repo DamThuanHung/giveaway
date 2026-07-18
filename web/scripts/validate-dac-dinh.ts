@@ -3,7 +3,7 @@
 // KHÔNG kiểm tra được nội dung có bỏ sót tài liệu OTAFF hay không — việc đó vẫn phải làm thủ công
 // theo quy trình Bước A-B-C (xem comment kiểm kê trong app/dac-dinh/data.ts).
 
-import { CHAPTERS, QUESTIONS, TRANSLATIONS, REORDERS, VOCAB, SCENARIOS, PLANNINGS } from "../app/dac-dinh/data";
+import { CHAPTERS, QUESTIONS, TRANSLATIONS, REORDERS, VOCAB, SCENARIOS, PLANNINGS, MATCHINGS, FILLBLANKS } from "../app/dac-dinh/data";
 
 type Issue = { level: "error" | "warn"; message: string };
 
@@ -108,6 +108,40 @@ for (const s of SCENARIOS) {
   if (!s.scenarioJa?.trim() || !s.scenarioVi?.trim()) err(`[SCENARIOS] ${s.id} thiếu scenarioJa/scenarioVi`);
 }
 
+checkDuplicateIds(MATCHINGS, "MATCHINGS");
+checkDuplicateIds(FILLBLANKS, "FILLBLANKS");
+checkChapterRefs(MATCHINGS, "MATCHINGS");
+checkChapterRefs(FILLBLANKS, "FILLBLANKS");
+checkMCQ(FILLBLANKS, "FILLBLANKS");
+checkCitation(FILLBLANKS, "FILLBLANKS");
+checkDistribution(FILLBLANKS, "FILLBLANKS");
+
+for (const m of MATCHINGS) {
+  if (!m.instructionJa?.trim() || !m.instructionVi?.trim()) err(`[MATCHINGS] ${m.id} thiếu instructionJa/instructionVi`);
+  if (m.items.length < 2) err(`[MATCHINGS] ${m.id} chỉ có ${m.items.length} item — cần tối thiểu 2`);
+  if (m.targets.length < 1) err(`[MATCHINGS] ${m.id} không có target nào`);
+  if (!m.explanationVi?.trim()) err(`[MATCHINGS] ${m.id} thiếu explanationVi`);
+
+  const targetIds = new Set(m.targets.map((t) => t.id));
+  const seenItemIds = new Set<string>();
+  for (const it of m.items) {
+    if (seenItemIds.has(it.id)) err(`[MATCHINGS] ${m.id} item id trùng lặp trong cùng câu: ${it.id}`);
+    seenItemIds.add(it.id);
+    if (!targetIds.has(it.targetId)) {
+      err(`[MATCHINGS] ${m.id} item ${it.id} tham chiếu targetId không tồn tại: "${it.targetId}"`);
+    }
+    if (!it.sourceQuoteJa?.trim()) err(`[MATCHINGS] ${m.id} item ${it.id} thiếu sourceQuoteJa`);
+    if (!it.sourcePage || it.sourcePage < 1) err(`[MATCHINGS] ${m.id} item ${it.id} sourcePage không hợp lệ: ${it.sourcePage}`);
+  }
+  // Nếu >1 target mà tất cả item đều dồn vào đúng 1 target thì câu Phân loại này không có giá trị phân loại thật.
+  if (m.targets.length > 1) {
+    const usedTargets = new Set(m.items.map((it) => it.targetId));
+    if (usedTargets.size === 1) {
+      warn(`[MATCHINGS] ${m.id} có ${m.targets.length} nhóm nhưng tất cả item đều thuộc đúng 1 nhóm — không có giá trị phân loại`);
+    }
+  }
+}
+
 checkCitation(QUESTIONS, "QUESTIONS");
 checkCitation(TRANSLATIONS, "TRANSLATIONS");
 checkCitation(REORDERS, "REORDERS");
@@ -124,7 +158,7 @@ const warnings = issues.filter((i) => i.level === "warn");
 
 console.log("\n=== Kiểm tra dữ liệu /dac-dinh ===");
 console.log(
-  `Chương: ${CHAPTERS.length} | Trắc nghiệm: ${QUESTIONS.length} | Dịch câu: ${TRANSLATIONS.length} | Sắp xếp câu: ${REORDERS.length} | Từ vựng: ${VOCAB.length} | Tình huống & Tính toán: ${SCENARIOS.length} | Lập kế hoạch: ${PLANNINGS.length}\n`
+  `Chương: ${CHAPTERS.length} | Trắc nghiệm: ${QUESTIONS.length} | Dịch câu: ${TRANSLATIONS.length} | Sắp xếp câu: ${REORDERS.length} | Từ vựng: ${VOCAB.length} | Tình huống & Tính toán: ${SCENARIOS.length} | Lập kế hoạch: ${PLANNINGS.length} | Phân loại: ${MATCHINGS.length} | Điền từ: ${FILLBLANKS.length}\n`
 );
 
 if (errors.length) {

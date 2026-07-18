@@ -17,7 +17,7 @@ export type Chapter = {
   titleJa: string;
 };
 
-export type ExerciseType = "quiz" | "vocab" | "translation" | "reorder" | "judgment" | "planning";
+export type ExerciseType = "quiz" | "vocab" | "translation" | "reorder" | "matching" | "fillblank" | "judgment" | "planning";
 
 export type QuizQuestion = {
   id: string;
@@ -71,6 +71,54 @@ export type PlanningQuestion = {
   scenarioVi: string;
   /** Các bước theo đúng thứ tự thật (sẽ bị xáo trộn khi hiển thị cho người học). */
   steps: { ja: string; vi: string }[];
+  sourceQuoteJa: string;
+  sourcePage: number;
+};
+
+/**
+ * Phân loại — ghép mỗi item (thuật ngữ/tên gọi) vào đúng 1 nhóm/đích trong danh sách targets.
+ * Cùng 1 cơ chế dùng được cho cả 2 kiểu nội dung: ghép cặp 1-1 (số targets = số items, mỗi target
+ * đúng cho đúng 1 item — VD 8 loại dao ↔ 8 công dụng) và xếp nhóm N-K (1 target là đáp án đúng cho
+ * nhiều item — VD nhiều món ăn ↔ 3 nhóm nhiệt độ bảo quản). Khác biệt chỉ nằm ở dữ liệu, không phải UI.
+ * Thao tác: bấm chọn 1 item trong "pool" rồi bấm 1 target để gán — KHÔNG dùng drag-and-drop thật (rủi ro
+ * UI cao hơn, khó dùng trên di động), mà tái dùng cơ chế "bấm để chuyển" đã có ở Sắp xếp câu/Lập kế hoạch.
+ * Mỗi item có `sourceQuoteJa`/`sourcePage` RIÊNG (không dùng chung 1 trích dẫn cho cả câu) vì các item
+ * trong cùng 1 câu Phân loại thường đến từ nhiều đoạn nguồn khác nhau trong cùng chương.
+ */
+export type MatchingQuestion = {
+  id: string;
+  chapterId: string;
+  instructionJa: string;
+  instructionVi: string;
+  items: {
+    id: string;
+    ja: string;
+    vi: string;
+    /** targetId đúng cho item này — tham chiếu tới 1 phần tử trong `targets`. */
+    targetId: string;
+    sourceQuoteJa: string;
+    sourcePage: number;
+  }[];
+  targets: { id: string; labelJa: string; labelVi: string }[];
+  explanationVi: string;
+};
+
+/**
+ * Điền từ vào chỗ trống — lấy nguyên 1 câu đã có `sourceQuoteJa`/`sourcePage` đã verify sẵn ở QUESTIONS/
+ * TRANSLATIONS/REORDERS cùng chương, che 1 thuật ngữ quan trọng bằng "＿＿＿", bắt chọn đúng từ trong 4
+ * lựa chọn. Tái dùng gần như nguyên UI Trắc nghiệm, chỉ khác cách hiển thị phần câu hỏi (câu có chỗ trống
+ * thay vì câu hỏi thường).
+ */
+export type FillBlankQuestion = {
+  id: string;
+  chapterId: string;
+  /** Câu tiếng Nhật đã che 1 từ, dùng "＿＿＿" làm chỗ trống. */
+  sentenceJa: string;
+  sentenceVi: string;
+  options: string[];
+  correctIndex: number;
+  explanationVi: string;
+  /** Câu gốc ĐẦY ĐỦ (không che) — trích dẫn nguyên văn, phải khớp 1 sourceQuoteJa đã verify sẵn trong chương. */
   sourceQuoteJa: string;
   sourcePage: number;
 };
@@ -8506,7 +8554,7 @@ export const QUESTIONS: QuizQuestion[] = [
     options: [
       { ja: "アルコールを使った料理も問題ない", vi: "Món dùng cồn cũng không sao" },
       { ja: "豚肉以外はすべて自由に使える", vi: "Ngoài thịt heo thì dùng gì cũng được" },
-      { ja: "特に制限はない", vi: "Không có giới hạn gì đặc biệt" },
+      { ja: "特に制限はなく、店舗の判断で自由に対応してよい", vi: "Không có giới hạn gì đặc biệt, quán có thể tự quyết định cách xử lý" },
       { ja: "アルコールは使えないため、食材にアルコールをかけることはできない", vi: "Không được dùng cồn, nên không thể rưới rượu lên nguyên liệu" },
     ],
     correctIndex: 3,
@@ -8522,8 +8570,8 @@ export const QUESTIONS: QuizQuestion[] = [
     options: [
       { ja: "できるだけそのお客様が食べられないものを除いて確認を取ってから料理を提供する", vi: "Cố gắng loại bỏ những thứ khách không ăn được, xác nhận rồi mới phục vụ" },
       { ja: "通常のメニューをそのまま提供する", vi: "Cứ phục vụ thực đơn thông thường" },
-      { ja: "特別な確認は不要", vi: "Không cần xác nhận gì đặc biệt" },
-      { ja: "来店を断る", vi: "Từ chối phục vụ" },
+      { ja: "特別な確認は不要で、通常通りに接客すればよい", vi: "Không cần xác nhận gì đặc biệt, cứ phục vụ như bình thường là được" },
+      { ja: "食物制限のあるお客様には、他店を紹介して来店を断るのが望ましい", vi: "Khách có hạn chế ăn uống thì nên giới thiệu quán khác và từ chối phục vụ" },
     ],
     correctIndex: 0,
     explanationVi: "Khi khách theo đạo Hồi (Muslim), ăn chay v.v. đến quán, nên cố gắng loại trừ những thứ khách không ăn được, xác nhận với khách rồi mới phục vụ món ăn.",
@@ -13284,7 +13332,7 @@ export const VOCAB: VocabQuestion[] = [
 
   // sm-ch4: gom từ mục 販売管理 (trang 16-17) + thuật ngữ đã dùng ở 3 dạng bài kia.
   { id: "vc-sm4-1", chapterId: "sm-ch4", direction: "ja-to-vi", term: "販売促進", options: ["Quản lý nhân sự", "Xúc tiến bán hàng", "Kiểm soát chất lượng", "Phòng cháy chữa cháy"], correctIndex: 1 },
-  { id: "vc-sm4-2", chapterId: "sm-ch4", direction: "vi-to-ja", term: "Phân tích ABC (xếp menu theo doanh thu/số lượng bán)", options: ["QSC分析", "ABC分析", "SWOT分析", "5S分析"], correctIndex: 1 },
+  { id: "vc-sm4-2", chapterId: "sm-ch4", direction: "vi-to-ja", term: "Phương pháp xếp hạng menu theo doanh thu/số lượng bán, chia thành 3 nhóm ưu tiên", options: ["QSC分析", "ABC分析", "SWOT分析", "5S分析"], correctIndex: 1 },
   { id: "vc-sm4-3", chapterId: "sm-ch4", direction: "ja-to-vi", term: "売れ筋", options: ["Món ế", "Món mới ra mắt", "Món bán chạy", "Món theo mùa"], correctIndex: 2 },
   { id: "vc-sm4-4", chapterId: "sm-ch4", direction: "vi-to-ja", term: "Cải tiến/thay đổi thực đơn", options: ["メニュー廃止", "メニュー撮影", "メニュー印刷", "メニュー改定"], correctIndex: 3 },
   { id: "vc-sm4-5", chapterId: "sm-ch4", direction: "ja-to-vi", term: "セット割引商品", options: ["Sản phẩm chỉ bán vào cuối tuần", "Sản phẩm giảm giá khi mua theo set nhiều món", "Sản phẩm cao cấp không giảm giá", "Sản phẩm dành riêng cho trẻ em"], correctIndex: 1 },
@@ -13315,7 +13363,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-sm6-1", chapterId: "sm-ch6", direction: "ja-to-vi", term: "割増賃金", options: ["Lương cơ bản", "Lương phụ trội (làm thêm/đêm/ngày nghỉ)", "Tiền thưởng cuối năm", "Phí bảo hiểm"], correctIndex: 1 },
   { id: "vc-sm6-2", chapterId: "sm-ch6", direction: "vi-to-ja", term: "Làm thêm giờ (vượt giờ quy định)", options: ["深夜労働", "時間外労働", "休日労働", "所定労働"], correctIndex: 1 },
   { id: "vc-sm6-3", chapterId: "sm-ch6", direction: "ja-to-vi", term: "深夜労働", options: ["Làm việc buổi sáng sớm", "Làm việc cuối tuần", "Lao động ban đêm (22h-5h sáng)", "Làm việc ngoài trời"], correctIndex: 2 },
-  { id: "vc-sm6-4", chapterId: "sm-ch6", direction: "vi-to-ja", term: "Thỏa ước lao động theo Điều 36 (cho phép làm thêm giờ)", options: ["就業規則", "雇用契約書", "36協定", "労働条件通知書"], correctIndex: 2 },
+  { id: "vc-sm6-4", chapterId: "sm-ch6", direction: "vi-to-ja", term: "Thỏa ước lao động cho phép làm thêm giờ (ký giữa doanh nghiệp và đại diện lao động)", options: ["就業規則", "雇用契約書", "36協定", "労働条件通知書"], correctIndex: 2 },
   { id: "vc-sm6-5", chapterId: "sm-ch6", direction: "ja-to-vi", term: "労働基準監督署", options: ["Cục Thuế", "Sở Y tế", "Cục Xuất nhập cảnh", "Sở Giám sát Tiêu chuẩn Lao động"], correctIndex: 3 },
   { id: "vc-sm6-6", chapterId: "sm-ch6", direction: "vi-to-ja", term: "Giờ nghỉ giữa ca", options: ["休日", "有給休暇", "残業時間", "休憩時間"], correctIndex: 3 },
   { id: "vc-sm6-7", chapterId: "sm-ch6", direction: "ja-to-vi", term: "有給休暇", options: ["Nghỉ không lương", "Nghỉ phép có lương", "Nghỉ thai sản", "Nghỉ ốm"], correctIndex: 1 },
@@ -13383,7 +13431,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-hy1-5", chapterId: "hy-ch1", direction: "ja-to-vi", term: "ウイルス", options: ["Vi khuẩn", "Ký sinh trùng", "Virus", "Nấm mốc"], correctIndex: 2 },
   { id: "vc-hy1-6", chapterId: "hy-ch1", direction: "vi-to-ja", term: "Ký sinh trùng", options: ["細菌", "ウイルス", "寄生虫", "カビ"], correctIndex: 2 },
   { id: "vc-hy1-7", chapterId: "hy-ch1", direction: "ja-to-vi", term: "アニサキス", options: ["Vi khuẩn trong thịt sống", "Virus lây qua đường hô hấp", "Ký sinh trùng thường có trong hải sản", "Nấm mốc trên bánh mì"], correctIndex: 2 },
-  { id: "vc-hy1-8", chapterId: "hy-ch1", direction: "vi-to-ja", term: "Norovirus (virus gây ngộ độc phổ biến, nhiều bệnh nhân nhất)", options: ["アニサキス", "カンピロバクター", "ノロウイルス", "サルモネラ属菌"], correctIndex: 2 },
+  { id: "vc-hy1-8", chapterId: "hy-ch1", direction: "vi-to-ja", term: "Loại virus gây ngộ độc thực phẩm có số bệnh nhân nhiều nhất trong các vụ dịch", options: ["アニサキス", "カンピロバクター", "ノロウイルス", "サルモネラ属菌"], correctIndex: 2 },
   { id: "vc-hy1-9", chapterId: "hy-ch1", direction: "ja-to-vi", term: "カンピロバクター", options: ["Virus cúm", "Ký sinh trùng trong rau", "Nấm mốc trong gạo", "Vi khuẩn Campylobacter (thường trong thịt gà sống)"], correctIndex: 3 },
   { id: "vc-hy1-10", chapterId: "hy-ch1", direction: "vi-to-ja", term: "Dị vật lẫn trong thức ăn", options: ["食物アレルギー", "食中毒", "食品ロス", "異物混入"], correctIndex: 3 },
   { id: "vc-hy1-11", chapterId: "hy-ch1", direction: "ja-to-vi", term: "食物アレルギー", options: ["Ngộ độc rượu", "Thiếu vitamin", "Ngộ độc thực phẩm", "Dị ứng thực phẩm"], correctIndex: 3 },
@@ -13454,9 +13502,9 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-hy5-5", chapterId: "hy-ch5", direction: "ja-to-vi", term: "ボツリヌス菌", options: ["Vi khuẩn Clostridium botulinum (tạo bào tử chịu nhiệt)", "Virus cúm", "Ký sinh trùng đường ruột", "Nấm men bánh mì"], correctIndex: 0 },
   { id: "vc-hy5-6", chapterId: "hy-ch5", direction: "vi-to-ja", term: "Vi khuẩn Clostridium perfringens (thường gặp trong món hầm để nguội chậm)", options: ["セレウス菌", "ウエルシュ菌", "サルモネラ属菌", "腸炎ビブリオ"], correctIndex: 1 },
   { id: "vc-hy5-7", chapterId: "hy-ch5", direction: "ja-to-vi", term: "危険温度帯", options: ["Vùng nhiệt độ thuận lợi cho vi khuẩn sinh sôi (10-60°C)", "Vùng nhiệt độ an toàn tuyệt đối", "Vùng nhiệt độ dùng để bảo quản đông lạnh", "Vùng nhiệt độ chỉ áp dụng cho đồ uống"], correctIndex: 0 },
-  { id: "vc-hy5-8", chapterId: "hy-ch5", direction: "vi-to-ja", term: "Máy làm lạnh nhanh (Blast chiller)", options: ["真空冷却機", "ブラストチラー", "保温庫", "電子レンジ"], correctIndex: 1 },
+  { id: "vc-hy5-8", chapterId: "hy-ch5", direction: "vi-to-ja", term: "Thiết bị hạ nhiệt độ thực phẩm thật nhanh sau khi nấu, tránh vùng nhiệt độ nguy hiểm", options: ["真空冷却機", "ブラストチラー", "保温庫", "電子レンジ"], correctIndex: 1 },
   { id: "vc-hy5-9", chapterId: "hy-ch5", direction: "ja-to-vi", term: "真空冷却機", options: ["Máy làm lạnh chân không", "Máy hút bụi", "Máy đóng gói chân không thực phẩm khô", "Máy pha cà phê"], correctIndex: 0 },
-  { id: "vc-hy5-10", chapterId: "hy-ch5", direction: "vi-to-ja", term: "Tủ giữ ấm thức ăn (Warmer)", options: ["冷蔵庫", "保温庫（ウォーマー）", "冷凍庫", "食器戸棚"], correctIndex: 1 },
+  { id: "vc-hy5-10", chapterId: "hy-ch5", direction: "vi-to-ja", term: "Tủ giữ nhiệt độ cao liên tục cho món ăn đã nấu chín", options: ["冷蔵庫", "保温庫（ウォーマー）", "冷凍庫", "食器戸棚"], correctIndex: 1 },
   { id: "vc-hy5-11", chapterId: "hy-ch5", direction: "ja-to-vi", term: "中心温度計", options: ["Nhiệt kế đo phần lõi thực phẩm", "Nhiệt kế đo phòng", "Nhiệt kế đo cơ thể người", "Nhiệt kế đo nước hồ bơi"], correctIndex: 0 },
   { id: "vc-hy5-12", chapterId: "hy-ch5", direction: "vi-to-ja", term: "Trộn (rau, salad...)", options: ["炒める", "和える", "揚げる", "蒸す"], correctIndex: 1 },
   { id: "vc-hy5-13", chapterId: "hy-ch5", direction: "ja-to-vi", term: "トング", options: ["Kẹp gắp thức ăn", "Đũa dùng 1 lần", "Muỗng múc canh", "Dao lọc xương"], correctIndex: 0 },
@@ -13662,7 +13710,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs1-3", chapterId: "cs-ch1", direction: "ja-to-vi", term: "顧客満足", options: ["Chi phí khách hàng", "Số lượng khách", "Sự hài lòng của khách hàng", "Độ tuổi khách hàng"], correctIndex: 2 },
   { id: "vc-cs1-4", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Nụ cười & giao tiếp bằng mắt", options: ["おもてなし", "お辞儀", "身だしなみ", "スマイル＆アイコンタクト"], correctIndex: 3 },
   { id: "vc-cs1-5", chapterId: "cs-ch1", direction: "ja-to-vi", term: "身だしなみ", options: ["Tác phong, trang phục chỉnh tề", "Kỹ năng nấu ăn", "Tốc độ phục vụ", "Giọng nói"], correctIndex: 0 },
-  { id: "vc-cs1-6", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Cúi chào", options: ["あいさつ", "お辞儀", "握手", "会釈"], correctIndex: 1 },
+  { id: "vc-cs1-6", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Cúi chào đúng chuẩn (dừng hẳn người, khác với cúi đầu nhẹ khi đi ngang khách)", options: ["あいさつ", "お辞儀", "握手", "会釈"], correctIndex: 1 },
   { id: "vc-cs1-7", chapterId: "cs-ch1", direction: "ja-to-vi", term: "主賓", options: ["Nhân viên phục vụ", "Đầu bếp", "Khách chính (chủ tiệc)", "Quản lý cửa hàng"], correctIndex: 2 },
   { id: "vc-cs1-8", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Chó dẫn đường/hỗ trợ", options: ["ペット", "家畜", "盲導犬など補助犬", "野良犬"], correctIndex: 2 },
   { id: "vc-cs1-9", chapterId: "cs-ch1", direction: "ja-to-vi", term: "配膳", options: ["Bày món ra bàn cho khách", "Rửa chén", "Thu ngân", "Kiểm kê kho"], correctIndex: 0 },
@@ -13674,7 +13722,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs1-15", chapterId: "cs-ch1", direction: "ja-to-vi", term: "中間サービス", options: ["Dịch vụ khai vị", "Dịch vụ tráng miệng", "Dịch vụ giữa bữa ăn (tiếp nước, dọn bớt...)", "Dịch vụ thanh toán"], correctIndex: 2 },
   { id: "vc-cs1-16", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Dọn bàn sau khi khách về", options: ["配膳", "中間サービス", "検品", "バッシング"], correctIndex: 3 },
   { id: "vc-cs1-17", chapterId: "cs-ch1", direction: "ja-to-vi", term: "顧客管理", options: ["Quản lý khách hàng", "Quản lý kho", "Quản lý nhân sự", "Quản lý tài chính"], correctIndex: 0 },
-  { id: "vc-cs1-18", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Xây dựng mối quan hệ tốt với khách (Customer Relations)", options: ["在庫管理", "カスタマーリレーションズ", "仕様書発注", "棚卸し"], correctIndex: 1 },
+  { id: "vc-cs1-18", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Xây dựng mối quan hệ tốt, lâu dài với khách hàng", options: ["在庫管理", "カスタマーリレーションズ", "仕様書発注", "棚卸し"], correctIndex: 1 },
   { id: "vc-cs1-19", chapterId: "cs-ch1", direction: "ja-to-vi", term: "個人情報", options: ["Thông tin công khai", "Thông tin sản phẩm", "Thông tin định danh cá nhân", "Thông tin tài chính công ty"], correctIndex: 2 },
   { id: "vc-cs1-20", chapterId: "cs-ch1", direction: "vi-to-ja", term: "Thông tin bị rò rỉ", options: ["新規情報", "公開情報", "更新情報", "漏えい情報"], correctIndex: 3 },
   { id: "vc-cs1-21", chapterId: "cs-ch1", direction: "ja-to-vi", term: "ホスピタリティ", options: ["Lòng hiếu khách, tinh thần phục vụ tận tâm", "Sự vội vàng", "Kỷ luật", "Chi phí"], correctIndex: 0 },
@@ -13690,7 +13738,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs2-5", chapterId: "cs-ch2", direction: "ja-to-vi", term: "消費期限", options: ["Hạn sử dụng (an toàn)", "Hạn dùng tốt nhất", "Ngày sản xuất", "Ngày nhập kho"], correctIndex: 0 },
   { id: "vc-cs2-6", chapterId: "cs-ch2", direction: "vi-to-ja", term: "Hạn dùng tốt nhất", options: ["消費期限", "賞味期限", "製造日", "納品日"], correctIndex: 1 },
   { id: "vc-cs2-7", chapterId: "cs-ch2", direction: "ja-to-vi", term: "未成年者", options: ["Người cao tuổi", "Người nước ngoài", "Người chưa thành niên", "Người khuyết tật"], correctIndex: 2 },
-  { id: "vc-cs2-8", chapterId: "cs-ch2", direction: "vi-to-ja", term: "Tiêu chuẩn Halal (đạo Hồi)", options: ["ベジタリアン", "ヴィーガン", "グルテンフリー", "ハラール"], correctIndex: 3 },
+  { id: "vc-cs2-8", chapterId: "cs-ch2", direction: "vi-to-ja", term: "Quy chuẩn ẩm thực dành riêng cho tín đồ đạo Hồi (cấm cồn, cấm thịt heo)", options: ["ベジタリアン", "ヴィーガン", "グルテンフリー", "ハラール"], correctIndex: 3 },
   { id: "vc-cs2-9", chapterId: "cs-ch2", direction: "ja-to-vi", term: "ベジタリアン", options: ["Người ăn chay", "Người ăn kiêng đường", "Người dị ứng hải sản", "Người theo đạo Hồi"], correctIndex: 0 },
   { id: "vc-cs2-10", chapterId: "cs-ch2", direction: "vi-to-ja", term: "Người thuần chay (không dùng sản phẩm động vật)", options: ["ベジタリアン", "ヴィーガン", "ムスリム", "ハラール"], correctIndex: 1 },
   { id: "vc-cs2-11", chapterId: "cs-ch2", direction: "ja-to-vi", term: "ムスリム", options: ["Người ăn chay", "Người thuần chay", "Người theo đạo Hồi", "Người theo đạo Phật"], correctIndex: 2 },
@@ -13708,7 +13756,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs3-5", chapterId: "cs-ch3", direction: "ja-to-vi", term: "セキュリティー装置", options: ["Thiết bị an ninh", "Thiết bị nấu ăn", "Thiết bị đo lường", "Thiết bị làm lạnh"], correctIndex: 0 },
   { id: "vc-cs3-6", chapterId: "cs-ch3", direction: "vi-to-ja", term: "Cảm giác sạch sẽ", options: ["雰囲気", "清潔感", "高級感", "安心感"], correctIndex: 1 },
   { id: "vc-cs3-7", chapterId: "cs-ch3", direction: "ja-to-vi", term: "モップ", options: ["Chổi quét", "Khăn lau", "Cây lau nhà (mop)", "Bàn chải"], correctIndex: 2 },
-  { id: "vc-cs3-8", chapterId: "cs-ch3", direction: "vi-to-ja", term: "Dụng cụ gạt kính (squeegee)", options: ["ほうき", "たわし", "ぞうきん", "スクイジー"], correctIndex: 3 },
+  { id: "vc-cs3-8", chapterId: "cs-ch3", direction: "vi-to-ja", term: "Cây gạt nước lau kính", options: ["ほうき", "たわし", "ぞうきん", "スクイジー"], correctIndex: 3 },
   { id: "vc-cs3-9", chapterId: "cs-ch3", direction: "ja-to-vi", term: "希釈濃度", options: ["Nồng độ pha loãng", "Nhiệt độ sôi", "Độ pH", "Áp suất"], correctIndex: 0 },
   { id: "vc-cs3-10", chapterId: "cs-ch3", direction: "vi-to-ja", term: "Tiền lẻ (tồn quỹ để thối)", options: ["売上金", "釣銭", "入金票", "現金有り高"], correctIndex: 1 },
   { id: "vc-cs3-11", chapterId: "cs-ch3", direction: "ja-to-vi", term: "キャッシュレス決済", options: ["Thanh toán tiền mặt", "Thanh toán trả góp", "Thanh toán không tiền mặt", "Thanh toán trước"], correctIndex: 2 },
@@ -13758,7 +13806,7 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-cs5-21", chapterId: "cs-ch5", direction: "ja-to-vi", term: "サービングタイム", options: ["Thời gian từ khi nhận order đến khi phục vụ món", "Thời gian dọn bàn", "Thời gian đóng cửa", "Thời gian nghỉ giữa ca"], correctIndex: 0 },
   { id: "vc-cs5-22", chapterId: "cs-ch5", direction: "vi-to-ja", term: "Công việc phụ (dọn dẹp/bổ sung khi rảnh tay)", options: ["メインワーク", "サイドワーク", "ナイトワーク", "デスクワーク"], correctIndex: 1 },
   { id: "vc-cs5-23", chapterId: "cs-ch5", direction: "ja-to-vi", term: "サジェスティブセールス", options: ["Giảm giá đại trà", "Quảng cáo ngoài trời", "Bán hàng gợi ý (đề xuất món thêm)", "Khuyến mãi giờ vàng"], correctIndex: 2 },
-  { id: "vc-cs5-24", chapterId: "cs-ch5", direction: "vi-to-ja", term: "Sự hài lòng của khách hàng (CS)", options: ["ES", "QSC", "KPI", "カスタマーサティスファクション"], correctIndex: 3 },
+  { id: "vc-cs5-24", chapterId: "cs-ch5", direction: "vi-to-ja", term: "Mức độ hài lòng của khách hàng sau khi trải nghiệm dịch vụ", options: ["ES", "QSC", "KPI", "カスタマーサティスファクション"], correctIndex: 3 },
   { id: "vc-cs5-25", chapterId: "cs-ch5", direction: "ja-to-vi", term: "主力商品", options: ["Món chủ lực (bán chạy, lợi nhuận cao)", "Món mới ra mắt", "Món giá rẻ nhất", "Món theo mùa"], correctIndex: 0 },
   { id: "vc-cs5-26", chapterId: "cs-ch5", direction: "vi-to-ja", term: "Phục vụ tại bàn (khách ngồi chờ được phục vụ)", options: ["セルフサービス", "テーブルサービス", "ドライブスルー", "デリバリー"], correctIndex: 1 },
   { id: "vc-cs5-27", chapterId: "cs-ch5", direction: "ja-to-vi", term: "テーブルセッティング", options: ["Dọn bàn sau khi ăn", "Order món", "Chuẩn bị dao nĩa/ly tách trên bàn theo món", "Tính tiền"], correctIndex: 2 },
@@ -15814,6 +15862,315 @@ export const PLANNINGS: PlanningQuestion[] = [
   },
 ];
 
+export const MATCHINGS: MatchingQuestion[] = [
+  {
+    id: "mt-sm8-1",
+    chapterId: "sm-ch8",
+    instructionJa: "次の5つの消火法を、それぞれの内容に正しく当てはめてください。",
+    instructionVi: "Hãy ghép đúng 5 phương pháp chữa cháy sau đây với nội dung tương ứng.",
+    items: [
+      {
+        id: "jokyo",
+        ja: "除去消火法",
+        vi: "Chữa cháy bằng loại bỏ",
+        targetId: "t1",
+        sourceQuoteJa: "ア 除去消火法 ガスの元栓を閉めるなど燃えるものを取り去ることで火を消す方法。",
+        sourcePage: 22,
+      },
+      {
+        id: "chissoku",
+        ja: "窒息消火法",
+        vi: "Chữa cháy bằng chặn oxy (ngạt)",
+        targetId: "t2",
+        sourceQuoteJa:
+          "イ 窒息消火法 燃えている油に布などをかぶせ酸素を遮断することで火を消す方法。火が上がったフライヤーに毛布やシーツのような布をかぶせることで一気に鎮火する。",
+        sourcePage: 23,
+      },
+      {
+        id: "reikyaku",
+        ja: "冷却消火法",
+        vi: "Chữa cháy bằng làm lạnh",
+        targetId: "t3",
+        sourceQuoteJa:
+          "ウ 冷却消火法 水をかけて熱を奪い燃焼の継続を遮断することで火を消す方法。消火器を使い火元に放水することで鎮火させる。",
+        sourcePage: 23,
+      },
+      {
+        id: "kishaku",
+        ja: "希釈消火法",
+        vi: "Chữa cháy bằng pha loãng",
+        targetId: "t4",
+        sourceQuoteJa:
+          "エ 希釈消火 燃焼しているアルコールを水で薄めて火を消す方法。床にこぼれたアルコールに引火した場合は水をかけ薄めて鎮火させる。",
+        sourcePage: 23,
+      },
+      {
+        id: "kagakuteki",
+        ja: "科学的消火法",
+        vi: "Chữa cháy bằng phản ứng hóa học",
+        targetId: "t5",
+        sourceQuoteJa:
+          "オ 科学的消火法 窒素ガスや炭酸ガスを充満させて酸素と反応させないようにして火を消す方法。建築当初から設備されていれば、スプリンクラーの水の代わりにガスが出て鎮火させる。",
+        sourcePage: 23,
+      },
+    ],
+    targets: [
+      { id: "t1", labelJa: "ガスの元栓を閉めるなど燃えるものを取り去る方法", labelVi: "Loại bỏ vật liệu cháy (VD đóng van gas)" },
+      { id: "t2", labelJa: "布などをかぶせ酸素を遮断する方法（フライヤーの油火災に）", labelVi: "Phủ vải chặn oxy (dùng cho cháy dầu ở chảo chiên)" },
+      { id: "t3", labelJa: "水をかけて熱を奪う方法（消火器で放水）", labelVi: "Dội nước hút nhiệt (dùng bình chữa cháy)" },
+      { id: "t4", labelJa: "水で薄めて火を消す方法（アルコール火災に）", labelVi: "Pha loãng bằng nước (dùng riêng cho cháy cồn)" },
+      { id: "t5", labelJa: "窒素・炭酸ガスで酸素反応を防ぐ方法（スプリンクラー代替）", labelVi: "Dùng khí nitơ/carbonic ngăn phản ứng oxy (thay nước sprinkler)" },
+    ],
+    explanationVi:
+      "5 phương pháp chữa cháy có cơ chế và tình huống áp dụng khác nhau: loại bỏ nguồn cháy (gas), chặn oxy (dầu ở chảo chiên), hút nhiệt bằng nước (chữa cháy thông thường), pha loãng bằng nước (RIÊNG cho cồn — nước KHÔNG dùng để dội trực tiếp lên dầu cháy), và phản ứng hóa học bằng khí trơ (hệ thống sprinkler đặc biệt).",
+  },
+  {
+    id: "mt-ck4-1",
+    chapterId: "ck-ch4",
+    instructionJa: "次の6種類の包丁を、それぞれの主な用途に正しく当てはめてください。",
+    instructionVi: "Hãy ghép đúng 6 loại dao sau đây với công dụng chính tương ứng.",
+    items: [
+      {
+        id: "yanagiba",
+        ja: "柳刃包丁",
+        vi: "Dao Yanagiba",
+        targetId: "t1",
+        sourceQuoteJa: "柳刃包丁：刃渡りが長く、主に刺身を切るときに使用する包丁で「刺身包丁」とも呼びます。",
+        sourcePage: 9,
+      },
+      {
+        id: "deba",
+        ja: "出刃包丁",
+        vi: "Dao Deba",
+        targetId: "t2",
+        sourceQuoteJa: "出刃包丁：魚をさばくときに使用する包丁です。重みがあり、刃に厚みもあるため、骨を切ったりすることもできます。",
+        sourcePage: 9,
+      },
+      {
+        id: "nakiri",
+        ja: "菜切包丁",
+        vi: "Dao Nakiri",
+        targetId: "t3",
+        sourceQuoteJa:
+          "菜切包丁：日本の和包丁で、野菜を切ることに適しています。三徳包丁に比べ、野菜のみじん切りや千切りなどがしやすいです。薄刃包丁：菜切包丁と同じく日本の和包丁で、野菜を切ることに適しています。野菜の皮むきや、刻むのに適しています。",
+        sourcePage: 10,
+      },
+      {
+        id: "usuba",
+        ja: "薄刃包丁",
+        vi: "Dao Usuba",
+        targetId: "t4",
+        sourceQuoteJa:
+          "菜切包丁：日本の和包丁で、野菜を切ることに適しています。三徳包丁に比べ、野菜のみじん切りや千切りなどがしやすいです。薄刃包丁：菜切包丁と同じく日本の和包丁で、野菜を切ることに適しています。野菜の皮むきや、刻むのに適しています。",
+        sourcePage: 10,
+      },
+      {
+        id: "gyuto",
+        ja: "牛刀",
+        vi: "Dao bò (Gyuto)",
+        targetId: "t5",
+        sourceQuoteJa:
+          "牛刀：もともとは肉専用包丁として設定されましたが、肉以外にも魚や野菜などを切ることにも使用できます。三徳包丁：肉、魚、野菜など様々な食材に使用できる包丁です。",
+        sourcePage: 10,
+      },
+      {
+        id: "santoku",
+        ja: "三徳包丁",
+        vi: "Dao Santoku",
+        targetId: "t6",
+        sourceQuoteJa:
+          "牛刀：もともとは肉専用包丁として設定されましたが、肉以外にも魚や野菜などを切ることにも使用できます。三徳包丁：肉、魚、野菜など様々な食材に使用できる包丁です。",
+        sourcePage: 10,
+      },
+    ],
+    targets: [
+      { id: "t1", labelJa: "主に刺身を切るときに使用（刃渡りが長い）", labelVi: "Chủ yếu cắt sashimi (lưỡi dài)" },
+      { id: "t2", labelJa: "魚をさばくときに使用（重みがあり骨も切れる）", labelVi: "Mổ cá (nặng, cắt được cả xương)" },
+      { id: "t3", labelJa: "野菜のみじん切り・千切りがしやすい和包丁", labelVi: "Dao Nhật dễ thái nhỏ/thái sợi rau" },
+      { id: "t4", labelJa: "野菜の皮むきや刻むのに適した和包丁", labelVi: "Dao Nhật thích hợp gọt vỏ/thái nhỏ rau" },
+      { id: "t5", labelJa: "もともと肉専用だが他の食材にも使用可", labelVi: "Vốn chuyên thịt nhưng dùng được cho loại khác" },
+      { id: "t6", labelJa: "肉・魚・野菜など様々な食材に使える万能包丁", labelVi: "Dao đa năng dùng cho nhiều loại thực phẩm" },
+    ],
+    explanationVi:
+      "6 loại dao có công dụng riêng biệt: Yanagiba/Deba chuyên cho hải sản (sashimi vs mổ cá có xương), Nakiri/Usuba đều là dao Nhật cho rau nhưng khác thao tác cụ thể (thái nhỏ/thái sợi vs gọt vỏ/thái nhỏ), Gyuto/Santoku là 2 loại dao đa năng (gốc thịt nhưng dùng được nhiều loại vs đa năng thịt/cá/rau ngay từ đầu).",
+  },
+  {
+    id: "mt-ck7-1",
+    chapterId: "ck-ch7",
+    instructionJa: "次の8種類の食品添加物（グループ１）を、それぞれの目的・効果に正しく当てはめてください。",
+    instructionVi: "Hãy ghép đúng 8 loại phụ gia thực phẩm (nhóm 1) sau đây với mục đích/tác dụng tương ứng.",
+    items: [
+      { id: "kanmiryo", ja: "甘味料", vi: "Chất tạo ngọt", targetId: "t1", sourceQuoteJa: "甘味料 食品に甘味を与える キシリトール、アスパルテーム", sourcePage: 16 },
+      { id: "chakushokuryo", ja: "着色料", vi: "Chất tạo màu", targetId: "t2", sourceQuoteJa: "着色料 食品を着色する クチナシ黄色素、食用黄色４号", sourcePage: 16 },
+      { id: "hozonryo", ja: "保存料", vi: "Chất bảo quản", targetId: "t3", sourceQuoteJa: "保存料 かびや細菌などの発育を抑制し、食品の保存性を向上させる ソルビン酸、安息香酸ナトリウム", sourcePage: 16 },
+      { id: "sankabosiizai", ja: "酸化防止剤", vi: "Chất chống oxy hóa", targetId: "t4", sourceQuoteJa: "酸化防止剤 油脂などの酸化を防ぎ保存性をよくする エリソルビン酸ナトリウム、ミックスビタミンＥ", sourcePage: 17 },
+      { id: "hasshokuzai", ja: "発色剤", vi: "Chất tạo màu ổn định cho thịt", targetId: "t5", sourceQuoteJa: "発色剤 肉類の色調・風味を改善する 亜硝酸ナトリウム、硝酸ナトリウム", sourcePage: 17 },
+      { id: "hyohakuzai", ja: "漂白剤", vi: "Chất tẩy trắng", targetId: "t6", sourceQuoteJa: "漂白剤 食品を漂白し、白くきれいにする 亜硫酸ナトリウム、次亜硫酸ナトリウム", sourcePage: 17 },
+      { id: "bokabizai", ja: "防カビ剤", vi: "Chất chống nấm mốc", targetId: "t7", sourceQuoteJa: "防カビ剤 柑橘類などのかびの発生を防止する オルトフェニルフェノール、ジフェニル", sourcePage: 17 },
+      { id: "bochozai", ja: "膨張剤", vi: "Chất tạo xốp/nở", targetId: "t8", sourceQuoteJa: "膨張剤 ケーキなどに膨らみを与える 炭酸水素ナトリウム、焼ミョウバン", sourcePage: 17 },
+    ],
+    targets: [
+      { id: "t1", labelJa: "食品に甘味を与える", labelVi: "Tạo vị ngọt cho thực phẩm" },
+      { id: "t2", labelJa: "食品を着色する", labelVi: "Tạo màu cho thực phẩm" },
+      { id: "t3", labelJa: "かびや細菌などの発育を抑制し、保存性を向上させる", labelVi: "Ức chế nấm mốc/vi khuẩn, cải thiện độ bền bảo quản" },
+      { id: "t4", labelJa: "油脂などの酸化を防ぎ保存性をよくする", labelVi: "Ngăn oxy hóa dầu mỡ, cải thiện độ bền bảo quản" },
+      { id: "t5", labelJa: "肉類の色調・風味を改善する", labelVi: "Cải thiện màu sắc/hương vị của thịt" },
+      { id: "t6", labelJa: "食品を漂白し、白くきれいにする", labelVi: "Tẩy trắng thực phẩm cho sạch đẹp" },
+      { id: "t7", labelJa: "柑橘類などのかびの発生を防止する", labelVi: "Phòng ngừa nấm mốc trên trái cây họ cam quýt" },
+      { id: "t8", labelJa: "ケーキなどに膨らみを与える", labelVi: "Làm bánh nở xốp" },
+    ],
+    explanationVi:
+      "8 loại phụ gia dễ nhầm vì đều liên quan đến 'giữ chất lượng thực phẩm' nhưng mục đích khác nhau rõ rệt: bảo quản (ức chế vi sinh vật) khác chống oxy hóa (ngăn dầu mỡ hỏng) khác chống nấm mốc (riêng cho cam quýt) — 3 loại này dễ bị nhầm lẫn nhất nếu không phân biệt kỹ.",
+  },
+  {
+    id: "mt-ck7-2",
+    chapterId: "ck-ch7",
+    instructionJa: "次の7種類の食品添加物（グループ２）を、それぞれの目的・効果に正しく当てはめてください。",
+    instructionVi: "Hãy ghép đúng 7 loại phụ gia thực phẩm (nhóm 2) sau đây với mục đích/tác dụng tương ứng.",
+    items: [
+      {
+        id: "zonenzai",
+        ja: "増粘剤、安定剤、ゲル化剤、糊剤",
+        vi: "Chất làm đặc/ổn định/tạo gel/hồ hóa",
+        targetId: "t1",
+        sourceQuoteJa: "増粘剤、安定剤、ゲル化剤、糊剤 食品に粘性を持たせたり、滑らかにして食感をよくしたり、品質を安定、向上させる ペクチン、カルボキシメチルセルロースナトリウム",
+        sourcePage: 16,
+      },
+      { id: "koryo", ja: "香料", vi: "Hương liệu", targetId: "t2", sourceQuoteJa: "香料 食品に香りをつける オレンジ香料、バニリン", sourcePage: 17 },
+      { id: "sanmiryo", ja: "酸味料", vi: "Chất tạo vị chua", targetId: "t3", sourceQuoteJa: "酸味料 食品に酸味を与える クエン酸、乳酸", sourcePage: 17 },
+      { id: "chomiryo", ja: "調味料", vi: "Chất điều vị", targetId: "t4", sourceQuoteJa: "調味料 食品にうまみを与える L-グルタミン酸ナトリウム、5’-イノシン酸二ナトリウム", sourcePage: 17 },
+      { id: "gyogyozai", ja: "豆腐用凝固剤", vi: "Chất làm đông đậu phụ", targetId: "t5", sourceQuoteJa: "豆腐用凝固剤 豆腐を作る際に豆乳を凝固させる 塩化マグネシウム、グルコノデルタラクトン", sourcePage: 17 },
+      { id: "nyukazai", ja: "乳化剤", vi: "Chất nhũ hóa", targetId: "t6", sourceQuoteJa: "乳化剤 水と油を均一に乳化させる グリセリン脂肪酸エステル、植物レシチン", sourcePage: 17 },
+      { id: "eiyokyokazai", ja: "栄養強化剤", vi: "Chất tăng cường dinh dưỡng", targetId: "t7", sourceQuoteJa: "栄養強化剤 栄養価を強化する ビタミンＣ、乳酸カルシウム", sourcePage: 17 },
+    ],
+    targets: [
+      { id: "t1", labelJa: "粘性を持たせ、食感をよくし、品質を安定・向上させる", labelVi: "Tạo độ nhớt, cải thiện kết cấu, ổn định chất lượng" },
+      { id: "t2", labelJa: "食品に香りをつける", labelVi: "Tạo mùi thơm cho thực phẩm" },
+      { id: "t3", labelJa: "食品に酸味を与える", labelVi: "Tạo vị chua cho thực phẩm" },
+      { id: "t4", labelJa: "食品にうまみを与える", labelVi: "Tạo vị ngon (umami) cho thực phẩm" },
+      { id: "t5", labelJa: "豆乳を凝固させる（豆腐製造）", labelVi: "Làm đông sữa đậu nành (làm đậu phụ)" },
+      { id: "t6", labelJa: "水と油を均一に乳化させる", labelVi: "Nhũ hóa đều nước và dầu" },
+      { id: "t7", labelJa: "栄養価を強化する", labelVi: "Tăng cường giá trị dinh dưỡng" },
+    ],
+    explanationVi:
+      "7 loại phụ gia còn lại dễ nhầm giữa 'tạo vị' (chua/ngon/ngọt là 3 nhóm KHÁC nhau: 酸味料/調味料/甘味料) và giữa các chất có chức năng liên quan đến kết cấu/liên kết (làm đặc khác với làm đông đậu phụ khác với nhũ hóa).",
+  },
+];
+
+export const FILLBLANKS: FillBlankQuestion[] = [
+  {
+    id: "fb-sm2-1",
+    chapterId: "sm-ch2",
+    sentenceJa: "１日の＿＿＿÷１日の総労働時間=人時生産性",
+    sentenceVi: "Công thức tính Năng suất theo giờ công (人時生産性) lấy đại lượng nào trong ngày, chia cho tổng giờ lao động trong ngày?",
+    options: ["売上高", "粗利益", "人件費", "原価高"],
+    correctIndex: 1,
+    explanationVi: "人時生産性 (năng suất theo giờ công) = Lợi nhuận gộp (粗利益) ÷ Tổng giờ lao động — không phải doanh thu hay nhân công phí.",
+    sourceQuoteJa: "１日の粗利益÷１日の総労働時間=人時生産性",
+    sourcePage: 4,
+  },
+  {
+    id: "fb-sm2-2",
+    chapterId: "sm-ch2",
+    sentenceJa: "労働分配率とは＿＿＿に占める人件費の割合です。",
+    sentenceVi: "Tỷ lệ phân phối lao động (労働分配率) là tỷ lệ nhân công phí chiếm trong đại lượng nào?",
+    options: ["売上高", "客単価", "粗利益", "原価高"],
+    correctIndex: 2,
+    explanationVi: "労働分配率 (tỷ lệ phân phối lao động) = Nhân công phí ÷ Lợi nhuận gộp (粗利益) — không phải doanh thu hay đơn giá khách.",
+    sourceQuoteJa: "労働分配率とは粗利益に占める人件費の割合です。",
+    sourcePage: 4,
+  },
+  {
+    id: "fb-sm2-3",
+    chapterId: "sm-ch2",
+    sentenceJa: "企業全体として労働分配率を適正値内で収めるには、店舗での労働分配率を＿＿＿％以下に低減させる必要があるのです。",
+    sentenceVi: "Để tỷ lệ phân phối lao động của toàn doanh nghiệp nằm trong ngưỡng hợp lý, tỷ lệ này ở từng cửa hàng cần giảm xuống dưới bao nhiêu %.",
+    options: ["３５", "３０", "５０", "４０"],
+    correctIndex: 3,
+    explanationVi: "Vì trụ sở chính cũng gánh chi phí quản lý, để cả doanh nghiệp giữ tỷ lệ phân phối lao động trong ngưỡng hợp lý, riêng từng cửa hàng cần giảm xuống dưới 40%.",
+    sourceQuoteJa: "企業全体として労働分配率を適正値内で収めるには、店舗での労働分配率を４０％以下に低減させる必要があるのです。",
+    sourcePage: 4,
+  },
+  {
+    id: "fb-sm2-4",
+    chapterId: "sm-ch2",
+    sentenceJa: "＿＿＿を売上高で割り１００を掛けたものが原価率となります。",
+    sentenceVi: "Tỷ lệ giá vốn (原価率) được tính bằng cách lấy đại lượng nào, chia cho doanh thu rồi nhân với 100?",
+    options: ["原価高", "粗利益", "客単価", "人件費"],
+    correctIndex: 0,
+    explanationVi: "原価率 (tỷ lệ giá vốn) = Giá vốn (原価高) ÷ Doanh thu × 100.",
+    sourceQuoteJa: "原価高を売上高で割り１００を掛けたものが原価率となります。",
+    sourcePage: 4,
+  },
+  {
+    id: "fb-sm2-5",
+    chapterId: "sm-ch2",
+    sentenceJa: "人時生産性は企業側が生産性を上げるための指数と見られがちですが、実際には＿＿＿の源泉でもあるのです。",
+    sentenceVi: "Năng suất theo giờ công thường bị coi là chỉ số riêng của doanh nghiệp, nhưng thực chất còn là nguồn gốc của điều gì?",
+    options: ["会社の利益", "従業員の賃金", "本部の経費", "設備の維持費"],
+    correctIndex: 1,
+    explanationVi: "人時生産性 tuy hay bị coi là chỉ số riêng để doanh nghiệp tăng năng suất, nhưng thực chất chính là nguồn gốc của tiền lương nhân viên (従業員の賃金).",
+    sourceQuoteJa: "人時生産性は企業側が生産性を上げるための指数と見られがちですが、実際には従業員の賃金の源泉でもあるのです。",
+    sourcePage: 4,
+  },
+  {
+    id: "fb-hy2-1",
+    chapterId: "hy-ch2",
+    sentenceJa: "腸管出血性大腸菌（O１５７）やノロウイルスなどの有害微生物は、＿＿＿個から１００個程度の少ない量を摂取するだけで感染します。",
+    sentenceVi: "Vi khuẩn E.coli xuất huyết đường ruột (O157) hay Norovirus gây lây nhiễm chỉ với một lượng RẤT NHỎ vi sinh vật — cụ thể là bao nhiêu con (tới khoảng 100 con)?",
+    options: ["１００", "１０", "１，０００", "１０，０００"],
+    correctIndex: 1,
+    explanationVi: "少量感染 (lây nhiễm liều nhỏ): chỉ cần khoảng 10 đến 100 con vi sinh vật là đã đủ gây nhiễm bệnh.",
+    sourceQuoteJa:
+      "腸管出血性大腸菌（O１５７）やノロウイルスなどの有害微生物は、１０個から１００個程度の少ない量を摂取するだけで感染します。これを「少量感染」と言います。",
+    sourcePage: 3,
+  },
+  {
+    id: "fb-hy2-2",
+    chapterId: "hy-ch2",
+    sentenceJa: "３原則のうち「＿＿＿」対策は、ノロウイルスなどの少量感染を起こす微生物による食中毒対策では特に重要です。",
+    sentenceVi: "Trong 3 nguyên tắc phòng ngừa ngộ độc thực phẩm, biện pháp nào đặc biệt quan trọng đối với vi sinh vật gây lây nhiễm liều nhỏ như Norovirus?",
+    options: ["つけない", "増やさない", "やっつける", "持ち込まない"],
+    correctIndex: 0,
+    explanationVi: "Vì Norovirus chỉ cần rất ít số lượng đã gây bệnh, biện pháp つけない (ngăn không cho nhiễm ngay từ đầu) trở nên đặc biệt quan trọng — không phải 増やさない hay やっつける.",
+    sourceQuoteJa: "３原則のうち「つけない」対策は、ノロウイルスなどの少量感染を起こす微生物による食中毒対策では特に重要です。",
+    sourcePage: 3,
+  },
+  {
+    id: "fb-hy2-3",
+    chapterId: "hy-ch2",
+    sentenceJa: "有害微生物を調理場に持ち込まないため、具体的には、＿＿＿の健康管理、清潔な作業着や履物の着用、手洗いの励行などが不可欠です。",
+    sentenceVi: "Để không mang vi sinh vật có hại vào khu bếp, cần quản lý sức khỏe của đối tượng nào, cùng với mặc trang phục/giày dép sạch và tích cực rửa tay?",
+    options: ["保健所職員", "仕入れ業者", "警備員", "食品取扱者"],
+    correctIndex: 3,
+    explanationVi: "「持ち込まない」cần quản lý sức khỏe của chính người xử lý thực phẩm (食品取扱者) — không phải nhân viên y tế hay đơn vị cung ứng.",
+    sourceQuoteJa: "有害微生物を調理場に持ち込まないため、具体的には、食品取扱者の健康管理、清潔な作業着や履物の着用、手洗いの励行などが不可欠です。",
+    sourcePage: 3,
+  },
+  {
+    id: "fb-hy2-4",
+    chapterId: "hy-ch2",
+    sentenceJa: "ただし、＿＿＿は食品中で増えないため、この原則は適用できません。",
+    sentenceVi: "Tác nhân gây ngộ độc nào KHÔNG tự sinh sôi trong thực phẩm, khiến nguyên tắc \"không để sinh sôi\" không áp dụng được cho nó?",
+    options: ["細菌", "寄生虫", "ウイルス", "カビ"],
+    correctIndex: 2,
+    explanationVi: "Virus (ウイルス) KHÔNG tự sinh sôi trong thực phẩm (khác với vi khuẩn), nên nguyên tắc 増やさない không áp dụng được cho virus.",
+    sourceQuoteJa: "ただし、ウイルスは食品中で増えないため、この原則は適用できません。",
+    sourcePage: 3,
+  },
+  {
+    id: "fb-hy2-5",
+    chapterId: "hy-ch2",
+    sentenceJa: "調理施設内では、食品の中心部が＿＿＿℃で１分間以上（ノロウイルス汚染のおそれのある食品は８５～９０℃で９０秒間以上）加熱",
+    sentenceVi: "Trong bếp, phần lõi thực phẩm phải đạt nhiệt độ tối thiểu bao nhiêu °C, trong ít nhất 1 phút (riêng thực phẩm nghi nhiễm Norovirus là 85-90°C trong ít nhất 90 giây)?",
+    options: ["６０", "７５", "８５", "１００"],
+    correctIndex: 1,
+    explanationVi: "Tiêu chuẩn gia nhiệt cơ bản: phần lõi thực phẩm phải đạt 75°C trong ít nhất 1 phút — riêng thực phẩm nghi nhiễm Norovirus thì ngưỡng cao hơn (85-90°C).",
+    sourceQuoteJa: "調理施設内では、食品の中心部が７５℃で１分間以上（ノロウイルス汚染のおそれのある食品は８５～９０℃で９０秒間以上）加熱",
+    sourcePage: 4,
+  },
+];
+
 export function vocabByChapter(chapterId: string): VocabQuestion[] {
   return VOCAB.filter((v) => v.chapterId === chapterId);
 }
@@ -15840,4 +16197,12 @@ export function scenariosByChapter(chapterId: string): ScenarioQuestion[] {
 
 export function planningsByChapter(chapterId: string): PlanningQuestion[] {
   return PLANNINGS.filter((p) => p.chapterId === chapterId);
+}
+
+export function matchingsByChapter(chapterId: string): MatchingQuestion[] {
+  return MATCHINGS.filter((m) => m.chapterId === chapterId);
+}
+
+export function fillBlanksByChapter(chapterId: string): FillBlankQuestion[] {
+  return FILLBLANKS.filter((f) => f.chapterId === chapterId);
 }
