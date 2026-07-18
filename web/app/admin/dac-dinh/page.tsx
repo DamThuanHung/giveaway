@@ -20,6 +20,15 @@ type OnlineStats = {
   totalUsers: number;
 };
 
+type Period = "day" | "week" | "month" | "year";
+
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: "day", label: "Ngày" },
+  { value: "week", label: "Tuần" },
+  { value: "month", label: "Tháng" },
+  { value: "year", label: "Năm" },
+];
+
 const ONLINE_POLL_MS = 30_000;
 
 export default function AdminDacDinhPage() {
@@ -27,8 +36,9 @@ export default function AdminDacDinhPage() {
   const router = useRouter();
 
   const [stats, setStats] = useState<OnlineStats | null>(null);
-  const [period, setPeriod] = useState<"day" | "week">("day");
+  const [period, setPeriod] = useState<Period>("day");
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [participantCount, setParticipantCount] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +59,7 @@ export default function AdminDacDinhPage() {
     }
   }, []);
 
-  const loadLeaderboard = useCallback(async (p: "day" | "week") => {
+  const loadLeaderboard = useCallback(async (p: Period) => {
     setLoadingData(true);
     setError(null);
     try {
@@ -57,6 +67,7 @@ export default function AdminDacDinhPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setLeaderboard(data.leaderboard ?? []);
+      setParticipantCount(data.participantCount ?? 0);
     } catch {
       setError("Không tải được bảng xếp hạng. Thử lại sau.");
     } finally {
@@ -155,31 +166,27 @@ export default function AdminDacDinhPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-ink-900">🏆 Bảng xếp hạng</h2>
           <div className="flex gap-2">
-            <button
-              onClick={() => setPeriod("day")}
-              className={`text-sm font-semibold px-3.5 py-1.5 rounded-full border transition duration-150 ease-warm ${
-                period === "day"
-                  ? "bg-primary text-white border-primary"
-                  : "bg-white text-ink-700 border-ink-200 hover:border-primary"
-              }`}
-            >
-              Hôm nay
-            </button>
-            <button
-              onClick={() => setPeriod("week")}
-              className={`text-sm font-semibold px-3.5 py-1.5 rounded-full border transition duration-150 ease-warm ${
-                period === "week"
-                  ? "bg-primary text-white border-primary"
-                  : "bg-white text-ink-700 border-ink-200 hover:border-primary"
-              }`}
-            >
-              Tuần này
-            </button>
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setPeriod(opt.value)}
+                className={`text-sm font-semibold px-3.5 py-1.5 rounded-full border transition duration-150 ease-warm ${
+                  period === opt.value
+                    ? "bg-primary text-white border-primary"
+                    : "bg-white text-ink-700 border-ink-200 hover:border-primary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <p className="text-xs text-ink-400 mb-4">
+        <p className="text-xs text-ink-400 mb-1">
           Xếp hạng theo số dạng bài (mọi chương, cả 6 dạng) đạt 100% trong khung thời gian đã chọn.
+        </p>
+        <p className="text-sm text-ink-600 mb-4">
+          👥 <span className="font-bold text-ink-900">{participantCount === null ? "..." : participantCount}</span> người đã tham gia làm đề trong khung thời gian này.
         </p>
 
         {loadingData && <p className="text-center text-ink-500 py-8">Đang tải...</p>}

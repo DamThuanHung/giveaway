@@ -310,10 +310,11 @@ export class AdminController {
 
   @Get('dac-dinh/leaderboard')
   getDacDinhLeaderboard(
-    @Query('period') period: 'day' | 'week' = 'day',
+    @Query('period') period: 'day' | 'week' | 'month' | 'year' = 'day',
     @Query('limit') limit = '20',
   ) {
-    const safePeriod = period === 'week' ? 'week' : 'day';
-    return this.adminService.getDacDinhLeaderboard(safePeriod, +limit);
+    const allowed = ['day', 'week', 'month', 'year'] as const;
+    const safePeriod = (allowed as readonly string[]).includes(period) ? period : 'day';
+    return this.adminService.getDacDinhLeaderboard(safePeriod as typeof allowed[number], +limit);
   }
 }

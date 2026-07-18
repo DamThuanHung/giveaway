@@ -1412,12 +1412,14 @@ export class AdminService implements OnModuleInit {
   // hoạch) thay vì chỉ đếm Trắc nghiệm kiến thức. Xem lý do đổi ở ADR-0016. Prisma không so
   // sánh được 2 cột (score vs total) trong where nên fetch rồi lọc ở application layer — chấp
   // nhận được vì đây là truy vấn admin, không phải hot path, khối lượng dữ liệu nhỏ.
-  async getDacDinhLeaderboard(period: 'day' | 'week' = 'day', limit = 20) {
+  async getDacDinhLeaderboard(period: 'day' | 'week' | 'month' | 'year' = 'day', limit = 20) {
     const since = computeSince(period);
     const rows = await this.prisma.dacDinhAttempt.findMany({
       where: since ? { createdAt: { gte: since } } : {},
       select: { userId: true, chapterId: true, exerciseType: true, score: true, total: true },
     });
+
+    const participantCount = new Set(rows.map((r) => r.userId)).size;
 
     const completedByUser = new Map<string, Set<string>>();
     for (const r of rows) {
@@ -1439,6 +1441,7 @@ export class AdminService implements OnModuleInit {
 
     return {
       period,
+      participantCount,
       leaderboard: ranked.map((r) => ({
         userId: r.userId,
         name: userMap.get(r.userId)?.name ?? 'Người dùng ẩn danh',
