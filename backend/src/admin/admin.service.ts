@@ -1412,6 +1412,11 @@ export class AdminService implements OnModuleInit {
   // hoạch) thay vì chỉ đếm Trắc nghiệm kiến thức. Xem lý do đổi ở ADR-0016. Prisma không so
   // sánh được 2 cột (score vs total) trong where nên fetch rồi lọc ở application layer — chấp
   // nhận được vì đây là truy vấn admin, không phải hot path, khối lượng dữ liệu nhỏ.
+  //
+  // Liệt kê TẤT CẢ người có ít nhất 1 lượt làm bài trong kỳ (không chỉ người đã đạt 100% ít
+  // nhất 1 dạng bài) — trước đây chỉ hiện người có completedCount>0 khiến participantCount và
+  // số dòng trong bảng lệch nhau gây hiểu lầm (vd 2 người tham gia nhưng chỉ hiện 1 dòng).
+  // Người chưa hoàn thành dạng nào hiện completedCount=0, xếp dưới theo attemptCount giảm dần.
   async getDacDinhLeaderboard(period: 'day' | 'week' | 'month' | 'year' = 'day', limit = 20) {
     const since = computeSince(period);
     const rows = await this.prisma.dacDinhAttempt.findMany({
@@ -1422,15 +1427,21 @@ export class AdminService implements OnModuleInit {
     const participantCount = new Set(rows.map((r) => r.userId)).size;
 
     const completedByUser = new Map<string, Set<string>>();
+    const attemptCountByUser = new Map<string, number>();
     for (const r of rows) {
+      attemptCountByUser.set(r.userId, (attemptCountByUser.get(r.userId) ?? 0) + 1);
       if (r.total <= 0 || r.score !== r.total) continue;
       if (!completedByUser.has(r.userId)) completedByUser.set(r.userId, new Set());
       completedByUser.get(r.userId)!.add(`${r.chapterId}::${r.exerciseType}`);
     }
 
-    const ranked = [...completedByUser.entries()]
-      .map(([userId, combos]) => ({ userId, completedCount: combos.size }))
-      .sort((a, b) => b.completedCount - a.completedCount)
+    const ranked = [...attemptCountByUser.keys()]
+      .map((userId) => ({
+        userId,
+        completedCount: completedByUser.get(userId)?.size ?? 0,
+        attemptCount: attemptCountByUser.get(userId)!,
+      }))
+      .sort((a, b) => b.completedCount - a.completedCount || b.attemptCount - a.attemptCount)
       .slice(0, capLimit(limit));
 
     const users = await this.prisma.user.findMany({
@@ -1447,6 +1458,7 @@ export class AdminService implements OnModuleInit {
         name: userMap.get(r.userId)?.name ?? 'Người dùng ẩn danh',
         avatar: userMap.get(r.userId)?.avatar ?? null,
         completedCount: r.completedCount,
+        attemptCount: r.attemptCount,
       })),
     };
   }

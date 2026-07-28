@@ -12,6 +12,7 @@ type LeaderboardRow = {
   name: string;
   avatar: string | null;
   completedCount: number;
+  attemptCount: number;
 };
 
 type OnlineStats = {
@@ -183,7 +184,7 @@ export default function AdminDacDinhPage() {
         </div>
 
         <p className="text-xs text-ink-400 mb-1">
-          Xếp hạng theo số dạng bài (mọi chương, cả 6 dạng) đạt 100% trong khung thời gian đã chọn.
+          Liệt kê mọi người đã làm bài trong khung thời gian đã chọn, xếp theo số dạng bài (mọi chương, cả 6 dạng) đạt 100% — người chưa hoàn thành dạng nào vẫn hiện, xếp theo số lượt đã làm.
         </p>
         <p className="text-sm text-ink-600 mb-4">
           👥 <span className="font-bold text-ink-900">{participantCount === null ? "..." : participantCount}</span> người đã tham gia làm đề trong khung thời gian này.
@@ -193,7 +194,7 @@ export default function AdminDacDinhPage() {
         {error && <p className="text-center text-red-600 py-8">{error}</p>}
 
         {!loadingData && !error && leaderboard.length === 0 && (
-          <p className="text-center text-ink-400 py-8">Chưa có ai hoàn thành dạng bài nào trong khung thời gian này.</p>
+          <p className="text-center text-ink-400 py-8">Chưa có ai làm bài trong khung thời gian này.</p>
         )}
 
         {!loadingData && !error && leaderboard.length > 0 && (
@@ -220,7 +221,10 @@ export default function AdminDacDinhPage() {
                   className="w-9 h-9 rounded-full object-cover border border-ink-200/70"
                 />
                 <p className="flex-1 min-w-0 font-semibold text-ink-900 text-sm truncate">{row.name}</p>
-                <p className="text-sm font-bold text-primary-dark shrink-0">{row.completedCount} dạng bài</p>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-primary-dark">{row.completedCount} dạng bài</p>
+                  <p className="text-xs text-ink-400">{row.attemptCount} lượt làm</p>
+                </div>
               </div>
             ))}
           </div>
