@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { authFetch } from "@/lib/auth";
+import { PARTS, chaptersByPart, type ExerciseType } from "@/app/dac-dinh/data";
 
 type LeaderboardRow = {
   userId: string;
@@ -21,6 +22,8 @@ type OnlineStats = {
   totalUsers: number;
 };
 
+type CompletionCell = { chapterId: string; exerciseType: string; completedUsers: number };
+
 type Period = "day" | "week" | "month" | "year";
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
@@ -30,7 +33,32 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "year", label: "Năm" },
 ];
 
+// Khớp đúng thứ tự dạng bài + nhãn ở web/app/dac-dinh/page.tsx (không export dùng chung được vì
+// đó là const nội bộ của trang luyện thi) — nếu đổi thứ tự/nhãn ở đó thì sửa luôn ở đây.
+const COMPLETION_EXERCISE_TYPES: { id: ExerciseType; emoji: string; label: string }[] = [
+  { id: "vocab", emoji: "🔤", label: "Từ vựng" },
+  { id: "fillblank", emoji: "✏️", label: "Điền từ" },
+  { id: "translation", emoji: "🔄", label: "Dịch câu" },
+  { id: "reorder", emoji: "🧩", label: "Sắp xếp câu" },
+  { id: "quiz", emoji: "📝", label: "Trắc nghiệm" },
+  { id: "matching", emoji: "🧷", label: "Phân loại" },
+  { id: "judgment", emoji: "🎯", label: "Tình huống" },
+  { id: "planning", emoji: "📋", label: "Lập kế hoạch" },
+];
+
 const ONLINE_POLL_MS = 30_000;
+
+// Sequential 1-hue (thang màu primary emerald sẵn có của design system) — nhạt→đậm theo % tăng
+// dần, chữ đổi trắng khi nền đủ đậm để đảm bảo tương phản đọc được.
+function completionCellStyle(percent: number | null): { bg: string; text: string } {
+  if (percent === null) return { bg: "bg-ink-50", text: "text-ink-300" };
+  if (percent === 0) return { bg: "bg-ink-50", text: "text-ink-400" };
+  if (percent <= 20) return { bg: "bg-primary-100", text: "text-ink-700" };
+  if (percent <= 40) return { bg: "bg-primary-200", text: "text-ink-800" };
+  if (percent <= 60) return { bg: "bg-primary-400", text: "text-white" };
+  if (percent <= 80) return { bg: "bg-primary-600", text: "text-white" };
+  return { bg: "bg-primary-800", text: "text-white" };
+}
 
 export default function AdminDacDinhPage() {
   const { user, loading: authLoading } = useAuth();
@@ -42,6 +70,11 @@ export default function AdminDacDinhPage() {
   const [participantCount, setParticipantCount] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [completionCells, setCompletionCells] = useState<CompletionCell[]>([]);
+  const [completionTotalUsers, setCompletionTotalUsers] = useState<number | null>(null);
+  const [loadingCompletion, setLoadingCompletion] = useState(true);
+  const [completionError, setCompletionError] = useState<string | null>(null);
 
   const isAdmin = !!user && user.role === "admin";
 
@@ -89,6 +122,35 @@ export default function AdminDacDinhPage() {
     if (!isAdmin) return;
     loadLeaderboard(period);
   }, [authLoading, isAdmin, period, loadLeaderboard]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAdmin) return;
+    (async () => {
+      setLoadingCompletion(true);
+      setCompletionError(null);
+      try {
+        const res = await authFetch("/admin/dac-dinh/chapter-completion");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setCompletionCells(data.cells ?? []);
+        setCompletionTotalUsers(data.totalUsers ?? 0);
+      } catch {
+        setCompletionError("Không tải được bảng % hoàn thành. Thử lại sau.");
+      } finally {
+        setLoadingCompletion(false);
+      }
+    })();
+  }, [authLoading, isAdmin]);
+
+  const completionMap = new Map(
+    completionCells.map((c) => [`${c.chapterId}::${c.exerciseType}`, c.completedUsers])
+  );
+  function completionPercent(chapterId: string, exerciseType: ExerciseType): number | null {
+    if (!completionTotalUsers) return null;
+    const completed = completionMap.get(`${chapterId}::${exerciseType}`) ?? 0;
+    return Math.round((completed / completionTotalUsers) * 100);
+  }
 
   if (authLoading) {
     return (
@@ -229,9 +291,103 @@ export default function AdminDacDinhPage() {
             ))}
           </div>
         )}
+
+        {/* % hoàn thành theo từng chương × từng dạng bài */}
+        <div className="flex items-center justify-between mt-10 mb-2">
+          <h2 className="text-lg font-bold text-ink-900">📈 % hoàn thành theo chương</h2>
+        </div>
+        <p className="text-xs text-ink-400 mb-1">
+          Toàn thời gian (không lọc theo kỳ ở trên) — mỗi ô là % trong số{" "}
+          <span className="font-semibold text-ink-600">
+            {completionTotalUsers === null ? "..." : completionTotalUsers}
+          </span>{" "}
+          người từng thử /dac-dinh đã đạt 100% ở đúng chương + dạng bài đó.
+        </p>
+
+        {loadingCompletion && <p className="text-center text-ink-500 py-8">Đang tải...</p>}
+        {completionError && <p className="text-center text-red-600 py-8">{completionError}</p>}
+
+        {!loadingCompletion && !completionError && (
+          <div className="bg-white border border-ink-200/70 rounded-md shadow-soft p-3 mt-3 overflow-x-auto">
+            <table className="border-separate border-spacing-1 text-xs w-full">
+              <thead>
+                <tr>
+                  <th className="text-left font-semibold text-ink-500 px-1 sticky left-0 bg-white">Chương</th>
+                  {COMPLETION_EXERCISE_TYPES.map((ex) => (
+                    <th key={ex.id} className="font-semibold text-ink-500 px-1 min-w-[52px]" title={ex.label}>
+                      <span className="block text-base leading-none">{ex.emoji}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {PARTS.map((part) => (
+                  <PartRows
+                    key={part.id}
+                    partId={part.id}
+                    partLabel={`${part.emoji} ${part.titleVi}`}
+                    completionPercent={completionPercent}
+                  />
+                ))}
+              </tbody>
+            </table>
+
+            {/* Legend thang màu */}
+            <div className="flex items-center gap-2 mt-4 px-1 flex-wrap">
+              <span className="text-xs text-ink-400">Thấp</span>
+              {[0, 10, 30, 50, 70, 90].map((p) => {
+                const style = completionCellStyle(p);
+                return <div key={p} className={`w-5 h-5 rounded ${style.bg}`} />;
+              })}
+              <span className="text-xs text-ink-400">Cao</span>
+            </div>
+          </div>
+        )}
       </section>
 
       <Footer />
+    </>
+  );
+}
+
+function PartRows({
+  partId,
+  partLabel,
+  completionPercent,
+}: {
+  partId: string;
+  partLabel: string;
+  completionPercent: (chapterId: string, exerciseType: ExerciseType) => number | null;
+}) {
+  const chapters = chaptersByPart(partId);
+  return (
+    <>
+      <tr>
+        <td colSpan={COMPLETION_EXERCISE_TYPES.length + 1} className="pt-3 pb-1 text-xs font-bold text-ink-600 sticky left-0 bg-white">
+          {partLabel}
+        </td>
+      </tr>
+      {chapters.map((c) => (
+        <tr key={c.id}>
+          <td className="px-1 py-0.5 text-ink-800 font-medium whitespace-nowrap sticky left-0 bg-white" title={c.titleJa}>
+            {c.order}. {c.titleVi.length > 22 ? `${c.titleVi.slice(0, 22)}…` : c.titleVi}
+          </td>
+          {COMPLETION_EXERCISE_TYPES.map((ex) => {
+            const percent = completionPercent(c.id, ex.id);
+            const style = completionCellStyle(percent);
+            return (
+              <td key={ex.id} className="p-0">
+                <div
+                  className={`w-full h-7 rounded flex items-center justify-center font-semibold ${style.bg} ${style.text}`}
+                  title={`${c.titleVi} · ${ex.label}: ${percent ?? 0}%`}
+                >
+                  {percent === null ? "–" : `${percent}%`}
+                </div>
+              </td>
+            );
+          })}
+        </tr>
+      ))}
     </>
   );
 }

@@ -1462,4 +1462,35 @@ export class AdminService implements OnModuleInit {
       })),
     };
   }
+
+  // % hoàn thành theo TỪNG (chương, dạng bài) — trước đây từng bị bỏ khỏi scope ADR-0015 ban
+  // đầu, nay khôi phục lại theo yêu cầu. Toàn thời gian (không lọc theo kỳ) vì đây là chỉ số
+  // "nội dung đã hoàn thành tới đâu" chứ không phải hoạt động gần đây. Mẫu số = tổng số user
+  // từng có ít nhất 1 attempt (mọi lúc), giống totalUsers ở getDacDinhOnlineCount. Frontend tự
+  // đối chiếu CHAPTERS/danh sách dạng bài (đã có sẵn ở app/dac-dinh/data.ts) với danh sách cells
+  // trả về ở đây để vẽ bảng — backend không cần biết tên chương/dạng bài.
+  async getDacDinhChapterCompletion() {
+    const [rows, totalUsersRows] = await Promise.all([
+      this.prisma.dacDinhAttempt.findMany({
+        select: { userId: true, chapterId: true, exerciseType: true, score: true, total: true },
+      }),
+      this.prisma.dacDinhAttempt.findMany({ distinct: ['userId'], select: { userId: true } }),
+    ]);
+    const totalUsers = totalUsersRows.length;
+
+    const completedUsersByCell = new Map<string, Set<string>>();
+    for (const r of rows) {
+      if (r.total <= 0 || r.score !== r.total) continue;
+      const key = `${r.chapterId}::${r.exerciseType}`;
+      if (!completedUsersByCell.has(key)) completedUsersByCell.set(key, new Set());
+      completedUsersByCell.get(key)!.add(r.userId);
+    }
+
+    const cells = [...completedUsersByCell.entries()].map(([key, users]) => {
+      const [chapterId, exerciseType] = key.split('::');
+      return { chapterId, exerciseType, completedUsers: users.size };
+    });
+
+    return { totalUsers, cells };
+  }
 }

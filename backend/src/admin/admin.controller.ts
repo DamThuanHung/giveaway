@@ -317,4 +317,9 @@ export class AdminController {
     const safePeriod = (allowed as readonly string[]).includes(period) ? period : 'day';
     return this.adminService.getDacDinhLeaderboard(safePeriod as typeof allowed[number], +limit);
   }
+
+  @Get('dac-dinh/chapter-completion')
+  getDacDinhChapterCompletion() {
+    return this.adminService.getDacDinhChapterCompletion();
+  }
 }
