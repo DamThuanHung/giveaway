@@ -1412,7 +1412,7 @@ function renderUsers(loading) {
             ${isSelf?'<span class="chip chip-purple">Bạn</span>':''}
             ${(u.pendingReportsOnPosts||0) > 3 ? `<span class="chip chip-red" title="Bài của user này đang bị nhiều người báo cáo">🚩 ${u.pendingReportsOnPosts} báo cáo</span>` : ''}
           </div>
-          <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài đăng · ${(cnt.dealsAsRequester||0)+(cnt.dealsAsOwner||0)} giao dịch</div>
+          <div class="sub">${esc(u.email||u.phone||'—')} · ${cnt.posts||0} bài đăng · ${(cnt.dealsAsRequester||0)+(cnt.dealsAsOwner||0)} giao dịch · Đăng ký: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '—'}</div>
         </div>
       </div>
     </div>`;
