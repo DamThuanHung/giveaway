@@ -530,6 +530,18 @@ export default function DacDinhPage() {
     return null;
   }
 
+  // % hoàn thành của 1 chương, dựa trên các dạng bài CÓ NỘI DUNG trong chương đó — "hoàn thành" nghĩa
+  // là đạt điểm tuyệt đối (best.score === best.total), khớp đúng định nghĩa đang dùng để mở khóa ở trên.
+  function chapterCompletion(chId: string): { done: number; totalTypes: number; percent: number } {
+    const typesWithContent = EXERCISE_TYPES.filter((ex) => contentLengthFor(chId, ex.id) > 0);
+    const done = typesWithContent.filter((ex) => {
+      const best = bestScores[exerciseStorageKey(chId, ex.id)];
+      return !!best && best.total > 0 && best.score === best.total;
+    }).length;
+    const totalTypes = typesWithContent.length;
+    return { done, totalTypes, percent: totalTypes > 0 ? Math.round((done / totalTypes) * 100) : 0 };
+  }
+
   const part = PARTS.find((p) => p.id === partId);
   const chapter = CHAPTERS.find((c) => c.id === chapterId);
   const q = questions[current];
@@ -624,6 +636,7 @@ export default function DacDinhPage() {
             <div className="space-y-2.5">
               {chaptersByPart(part.id).map((c) => {
                 const qs = questionsByChapter(c.id);
+                const completion = chapterCompletion(c.id);
                 return (
                   <button
                     key={c.id}
@@ -636,9 +649,28 @@ export default function DacDinhPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-ink-900 text-sm">{c.titleVi}</p>
                       <p className="text-xs text-ink-500">{c.titleJa}</p>
+                      {completion.totalTypes > 0 && (
+                        <div className="w-full h-1.5 bg-ink-100 rounded-full overflow-hidden mt-1.5 max-w-[160px]">
+                          <div
+                            className={`h-full transition-all duration-250 ease-warm ${
+                              completion.percent === 100 ? "bg-primary" : "bg-primary-300"
+                            }`}
+                            style={{ width: `${completion.percent}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs text-ink-500">{qs.length > 0 ? `${qs.length} câu` : "Sắp có"}</p>
+                      {completion.totalTypes > 0 && (
+                        <p
+                          className={`text-xs font-semibold mt-0.5 ${
+                            completion.percent === 100 ? "text-primary-dark" : "text-ink-400"
+                          }`}
+                        >
+                          {completion.percent === 100 ? "✅ Hoàn thành" : `${completion.done}/${completion.totalTypes} dạng bài`}
+                        </p>
+                      )}
                     </div>
                   </button>
                 );
@@ -690,13 +722,19 @@ export default function DacDinhPage() {
                 const hasContent = contentLength > 0;
                 const unlocked = isUnlocked(chapter.id, ex.id);
                 const available = unlocked && hasContent;
+                const best = bestScores[exerciseStorageKey(chapter.id, ex.id)];
+                const isDone = !!best && best.total > 0 && best.score === best.total;
 
                 let statusText = "Sắp có nội dung";
                 if (!unlocked) {
                   const prevLabel = requiredPrevLabel(chapter.id, ex.id);
                   statusText = prevLabel ? `Khóa — cần đạt 100% "${prevLabel}" trước` : "Khóa";
                 } else if (hasContent) {
-                  statusText = `${contentLength} câu`;
+                  statusText = isDone
+                    ? `✅ Hoàn thành ${best.score}/${best.total}`
+                    : best
+                    ? `${contentLength} câu · Điểm cao nhất ${best.score}/${best.total}`
+                    : `${contentLength} câu`;
                 }
 
                 return (
@@ -723,7 +761,7 @@ export default function DacDinhPage() {
                     <div className="text-2xl leading-none">{unlocked ? ex.emoji : "🔒"}</div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-ink-900 text-sm">{ex.label}</p>
-                      <p className="text-xs text-ink-500">{statusText}</p>
+                      <p className={`text-xs ${isDone ? "text-primary-dark font-medium" : "text-ink-500"}`}>{statusText}</p>
                     </div>
                   </button>
                 );
