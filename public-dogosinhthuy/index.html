@@ -157,9 +157,46 @@
   @media (prefers-reduced-motion: reduce){
     *{animation:none !important;transition:none !important;}
   }
+
+  /* Banner chạy ngang — dải chữ chạy liên tục ở đầu trang */
+  .ticker{
+    background:var(--wood-dark);
+    overflow:hidden;
+    white-space:nowrap;
+    padding:9px 0;
+  }
+  .ticker-track{
+    display:inline-flex;
+    animation:ticker-scroll 22s linear infinite;
+  }
+  .ticker-track span{
+    color:var(--wood-light);
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:.2px;
+    padding:0 28px;
+    flex-shrink:0;
+  }
+  @keyframes ticker-scroll{
+    from{transform:translateX(0);}
+    to{transform:translateX(-50%);}
+  }
 </style>
 </head>
 <body>
+
+<div class="ticker">
+  <div class="ticker-track">
+    <span>🪵 Đồ gỗ mỹ nghệ Sinh Thủy — 30 năm kinh nghiệm</span>
+    <span>✂️ Nhận làm theo mọi yêu cầu về đồ gỗ</span>
+    <span>⭐ Đánh giá 5.0 sao trên Google</span>
+    <span>📞 0982 363 889</span>
+    <span>🪵 Đồ gỗ mỹ nghệ Sinh Thủy — 30 năm kinh nghiệm</span>
+    <span>✂️ Nhận làm theo mọi yêu cầu về đồ gỗ</span>
+    <span>⭐ Đánh giá 5.0 sao trên Google</span>
+    <span>📞 0982 363 889</span>
+  </div>
+</div>
 
 <header>
   <div class="grain-sheen" id="grainSheen"></div>
