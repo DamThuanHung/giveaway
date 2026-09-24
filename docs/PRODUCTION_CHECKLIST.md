@@ -203,7 +203,7 @@ services:
 ### 🚨 CRITICAL — Nginx + HTTPS
 - [ ] Cài Nginx trên VPS
 - [ ] Cấu hình 3 virtual host:
-  - `traotay.com.vn` → static landing (có thể `/opt/traotay/public/` hoặc Nginx `return 301` về Play Store)
+  - `traotay.com.vn` → reverse proxy `127.0.0.1:3000` (Next.js SSR container `web`, tự phục vụ `web/public/` riêng)
   - `api.traotay.com.vn` → reverse proxy `127.0.0.1:3800`
   - `s3.traotay.com.vn` → reverse proxy `127.0.0.1:9000`
 - [ ] Let's Encrypt HTTPS:
