@@ -21,7 +21,13 @@ export class NotificationCronService {
   // Auto-archive bài available > 30 ngày — không có activity (deal feature gone).
   // Bài cũ sẽ ẩn khỏi feed, không cho complete/review nữa.
   // Author vẫn thấy trong "Bài của tôi" với status 'archived' để biết.
-  @Cron('30 4 * * *') // 4:30 sáng UTC = 11:30 sáng VN
+  //
+  // TẠM DISABLE 2026-10-01: cron này xét createdAt (không phải updatedAt) nên
+  // sau 5 tháng không có bài mới, nó lần lượt archived hết 59/59 bài hiện có
+  // → trang /posts trống trơn. Bật lại sau khi có traffic bài mới ổn định +
+  // cân nhắc đổi điều kiện sang dựa trên hoạt động thật (updatedAt/bumpedAt)
+  // thay vì createdAt tuyệt đối.
+  // @Cron('30 4 * * *') // 4:30 sáng UTC = 11:30 sáng VN
   async autoArchiveStalePosts() {
     const cutoff30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const stale = await this.prisma.post.updateMany({
