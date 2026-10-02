@@ -50,6 +50,20 @@ const isListQueue = process.argv.includes('--queue');
 const QUEUE_DIR = path.join(__dirname, 'queue');
 const DONE_DIR = path.join(__dirname, 'queue', 'done');
 
+// ─── Mode: lịch đăng tách riêng theo nền tảng (quyết định 2026-10-03) ───────
+// Instagram có trần cứng 25 bài/24h do chính Meta áp đặt (Graph API trả lỗi
+// "User request limit reached" nếu vượt) — Facebook Page & Threads KHÔNG có
+// giới hạn tương tự. Để Facebook+Threads đăng mỗi 30 phút không ngừng nghỉ mà
+// vẫn không làm Instagram vượt trần, tách thành 2 cron độc lập gọi script này
+// với --mode khác nhau, mỗi mode tự lấy caption riêng từ queue (không đồng bộ
+// nội dung giữa 2 luồng — FB/Threads sẽ đăng nhiều caption hơn IG trong ngày).
+//   --mode=fast → chỉ Facebook + Threads, không áp trần (an toàn, không giới hạn)
+//   --mode=ig   → chỉ Instagram, áp trần 25/ngày như cũ
+//   (không truyền --mode, vd --dry-run thủ công) → mặc định 'all', đăng cả 3
+//   như hành vi gốc, dùng khi test tay.
+const modeArg = process.argv.find(a => a.startsWith('--mode='));
+const MODE = modeArg ? modeArg.split('=')[1] : 'all';
+
 // ─── Queue ────────────────────────────────────────────────────────────────────
 
 function ensureDirs() {
@@ -128,7 +142,9 @@ function getNextCaption() {
 // Video Reels chạy lâu hơn ảnh nhiều (ffmpeg + IG polling tối đa 60s) — tăng
 // khả năng job giờ sau chạy đè lên job giờ trước nếu job trước chưa xong.
 
-const LOCK_FILE = path.join(__dirname, '.post-all.lock');
+// Lock file riêng theo mode — để luồng fast (mỗi 30 phút) và luồng ig (mỗi giờ)
+// chạy độc lập, không chặn lẫn nhau dù khác tiến trình cron.
+const LOCK_FILE = path.join(__dirname, `.post-all-${MODE}.lock`);
 const LOCK_STALE_MS = 10 * 60 * 1000; // 10 phút — job nào chạy lâu hơn coi như treo, bỏ qua lock cũ
 
 function acquireLock() {
@@ -176,7 +192,10 @@ function reserveDailySlot() {
 // bị kẹt nhiều lần (xem postmortem 2026-06-26-threads-caption-limit-duplicate-posts.md
 // — trước đây phải đợi user hỏi mới phát hiện 13 lần đăng trùng).
 
-const RETRY_STATE_FILE = path.join(__dirname, '.retry-state.json');
+// Tách theo mode — 'fast' và 'ig' tiêu thụ queue độc lập (file khác nhau mỗi
+// lần chạy), dùng chung 1 state sẽ làm bộ đếm liên tục reset về 1 do đổi file
+// giữa 2 luồng, mất tác dụng cảnh báo.
+const RETRY_STATE_FILE = path.join(__dirname, `.retry-state-${MODE}.json`);
 
 function trackRetry(file) {
   let state = { file: null, count: 0 };
@@ -574,10 +593,17 @@ async function main() {
 }
 
 async function runOnce() {
-  if (!isDryRun && !reserveDailySlot()) {
+  // Trần 25/ngày chỉ có ý nghĩa với Instagram (giới hạn thật của Meta) — luồng
+  // 'fast' (Facebook + Threads) không bị chặn bởi trần này.
+  const capAppliesToThisMode = MODE !== 'fast';
+  if (!isDryRun && capAppliesToThisMode && !reserveDailySlot()) {
     console.log(`⏭️  Đã đủ ${DAILY_CAP} bài hôm nay (${getTodayVN()} giờ VN) — bỏ qua lượt cron này, đợi mai.`);
     return;
   }
+
+  const wantFacebook = MODE === 'fast' || MODE === 'all';
+  const wantInstagram = MODE === 'ig' || MODE === 'all';
+  const wantThreads = MODE === 'fast' || MODE === 'all';
 
   const { caption, file, fromDone } = getNextCaption();
   const { body, hashtags } = splitCaptionAndHashtags(caption);
@@ -611,18 +637,21 @@ async function runOnce() {
   // từ 2026-07-28). Caption /dac-dinh dạng giới thiệu (không phải câu hỏi) TẠM vẫn
   // dùng ảnh tĩnh — getOrCreateReelUrl() chỉ render template Reel marketplace
   // ("Mua • Bán • Cho tặng"), chưa có bản riêng cho dạng này.
+  // Reel chỉ có ý nghĩa cho Facebook/Instagram — luồng 'fast' (chỉ FB+Threads)
+  // vẫn thử Reel cho Facebook, luồng 'ig' vẫn thử Reel cho Instagram; không
+  // nền tảng nào cần thì bỏ qua hẳn bước render (đỡ tốn ffmpeg/polling vô ích).
   let videoUrl = null;
-  if (isVideoSlot() && isQuestionCaption(caption)) {
+  if ((wantFacebook || wantInstagram) && isVideoSlot() && isQuestionCaption(caption)) {
     console.log('🎬 Slot VIDEO_REELS_HOURS — thử render Reel câu hỏi /dac-dinh...');
     videoUrl = await getOrCreateQuestionReelUrl(file, caption);
     if (videoUrl) console.log(`🎬 Video: ${videoUrl}`);
     else console.warn('⚠️  Render Reels thất bại — fallback ảnh tĩnh cho slot này.');
-  } else if (isVideoSlot() && !isDacDinhCaption(caption)) {
+  } else if ((wantFacebook || wantInstagram) && isVideoSlot() && !isDacDinhCaption(caption)) {
     console.log('🎬 Slot VIDEO_REELS_HOURS — thử render Reels...');
     videoUrl = await getOrCreateReelUrl(file, caption);
     if (videoUrl) console.log(`🎬 Video: ${videoUrl}`);
     else console.warn('⚠️  Render Reels thất bại — fallback ảnh tĩnh cho slot này.');
-  } else if (isVideoSlot()) {
+  } else if ((wantFacebook || wantInstagram) && isVideoSlot()) {
     console.log('🎬 Slot VIDEO_REELS_HOURS — bỏ qua Reel cho caption /dac-dinh dạng giới thiệu (chưa có template riêng), dùng ảnh tĩnh.');
   }
 
@@ -638,17 +667,28 @@ async function runOnce() {
     console.warn(`⚠️  Không tạo được ảnh (${err.message}) — đăng text-only.`);
   }
 
-  const results = await Promise.allSettled([
-    videoUrl ? postFacebookReel(body, videoUrl) : postFacebook(body, imageUrl),
-    videoUrl ? postInstagramReel(igCaption, videoUrl) : postInstagram(igCaption, imageUrl),
-    postThreads(body, imageUrl), // luôn ảnh tĩnh, không đổi dù slot này có video hay không
-  ]);
+  // Chỉ gọi đúng nền tảng mà mode này phụ trách — tránh gọi nhầm Instagram
+  // trong luồng 'fast' (sẽ làm trần 25/ngày của IG bị tính sai) hay gọi nhầm
+  // Facebook/Threads trong luồng 'ig'.
+  const platformCalls = [];
+  const PLATFORM_CRITICAL = [];
+  if (wantFacebook) {
+    platformCalls.push(videoUrl ? postFacebookReel(body, videoUrl) : postFacebook(body, imageUrl));
+    PLATFORM_CRITICAL.push(true); // Facebook lỗi → giữ bài lại retry giờ sau
+  }
+  if (wantInstagram) {
+    platformCalls.push(videoUrl ? postInstagramReel(igCaption, videoUrl) : postInstagram(igCaption, imageUrl));
+    PLATFORM_CRITICAL.push(true); // Instagram lỗi → giữ bài lại retry giờ sau
+  }
+  if (wantThreads) {
+    platformCalls.push(postThreads(body, imageUrl)); // luôn ảnh tĩnh, không đổi dù slot này có video hay không
+    PLATFORM_CRITICAL.push(false); // Threads không critical, không chặn advance queue
+  }
+
+  const results = await Promise.allSettled(platformCalls);
 
   console.log('\n📊 KẾT QUẢ:\n');
   let allOk = true;
-  // Facebook & Instagram critical (lỗi thì giữ bài lại để retry giờ sau).
-  // Threads không critical: lỗi Threads không được chặn FB/IG advance queue.
-  const PLATFORM_CRITICAL = [true, true, false];
 
   results.forEach((r, i) => {
     const result = r.status === 'fulfilled' ? r.value : { platform: '?', ok: false, error: r.reason?.message };
