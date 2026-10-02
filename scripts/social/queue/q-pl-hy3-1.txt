@@ -1,0 +1,35 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sắp đúng thứ tự quy trình dưới đây xem!
+
+TÌNH HUỐNG: HACCPに基づく衛生管理計画を作成することになりました。7原則を正しい順番に並べてください。
+🇻🇳 Bạn cần lập kế hoạch quản lý vệ sinh theo HACCP. Hãy sắp xếp đúng thứ tự 7 nguyên tắc.
+
+Các bước (đã xáo trộn):
+1. 重要管理点の決定 — Xác định điểm quản lý quan trọng
+2. 管理基準の設定 — Thiết lập tiêu chuẩn quản lý
+3. 検証方法の設定 — Thiết lập phương pháp kiểm chứng
+4. 記録の作成 — Lập hồ sơ ghi chép
+5. モニタリング方法の設定 — Thiết lập phương pháp giám sát
+6. 改善措置の設定 — Thiết lập biện pháp cải thiện
+7. 危害要因の分析 — Phân tích yếu tố nguy hại
+
+✅ Thứ tự đúng:
+1. 危害要因の分析 — Phân tích yếu tố nguy hại
+2. 重要管理点の決定 — Xác định điểm quản lý quan trọng
+3. 管理基準の設定 — Thiết lập tiêu chuẩn quản lý
+4. モニタリング方法の設定 — Thiết lập phương pháp giám sát
+5. 改善措置の設定 — Thiết lập biện pháp cải thiện
+6. 検証方法の設定 — Thiết lập phương pháp kiểm chứng
+7. 記録の作成 — Lập hồ sơ ghi chép
+
+📖 Trích dẫn OTAFF trang 6: "危害要因の分析：食品又は添加物の製造、加工、調理、運搬、貯蔵又は販売の工程ごとに、食品衛生上の危害を発生させ得る要因（危害要因）の一覧表を作成し、これら危害要因を管理するための措置（管理措置）を定めること。 重要管理点の決定：①で特定された危害要因の発生の防止、排除又は許容できる水準にまで低減するために管理措置を講ずることが不可欠な工程を重要管理点として特定すること。 管理基準の設定：個々の重要管理点において、危害要因の発生の防止、排除又は許容できる水準にまで低減するための基準（管理基準）を設定すること。 モニタリング方法の設定：重要管理点の管理の実施状況について、連続的又は相当な頻度の確認（モニタリング）をするための方法を設定すること。 改善措置の設定：個々の重要管理点において、モニタリングの結果、管理基準を逸脱したことが判明した場合の改善措置を設定すること。 検証方法の設定：①～⑤に規定する措置の内容の効果を、定期的に検証するための手順を定めること。 記録の作成：営業の規模や業態に応じて、①～⑥に規定する措置の内容に関する書面とその実施の記録を作成すること。"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị sắp đúng thứ tự quy trình không? Comment trước khi xem đáp án ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #LapKeHoach

@@ -1,0 +1,31 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử phân loại danh sách dưới đây xem!
+
+Hãy ghép đúng 4 chỉ số kinh doanh sau đây với công thức tính tương ứng.
+(次の4つの経営指標を、それぞれ正しい計算式に当てはめてください。)
+
+Danh sách cần phân loại:
+1. 人時生産性 (Năng suất theo giờ công)
+2. 労働分配率 (Tỷ lệ phân phối lao động)
+3. 原価率 (Tỷ lệ giá vốn)
+4. 客単価 (Đơn giá trung bình mỗi khách)
+
+Các nhóm: Lợi nhuận gộp ÷ Tổng giờ lao động / Tỷ lệ nhân công phí trong lợi nhuận gộp / Giá vốn ÷ Doanh thu × 100 / Số món gọi × Đơn giá trung bình mỗi món
+
+✅ Đáp án đúng:
+1. 人時生産性 → Lợi nhuận gộp ÷ Tổng giờ lao động
+2. 労働分配率 → Tỷ lệ nhân công phí trong lợi nhuận gộp
+3. 原価率 → Giá vốn ÷ Doanh thu × 100
+4. 客単価 → Số món gọi × Đơn giá trung bình mỗi món
+
+💡 4 chỉ số dễ nhầm vì đều liên quan đến "chia cho 1 đại lượng khác": 人時生産性 chia cho GIỜ LAO ĐỘNG, 労働分配率 là TỶ LỆ (không phải phép chia hoàn chỉnh mà là phần trăm cấu thành), 原価率 chia cho DOANH THU, còn 客単価 lại là phép NHÂN chứ không phải chia.
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị phân loại đúng không? Comment trước khi xem đáp án ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #PhanLoai

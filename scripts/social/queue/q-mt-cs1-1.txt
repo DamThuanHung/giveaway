@@ -1,0 +1,31 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử phân loại danh sách dưới đây xem!
+
+Hãy ghép đúng 4 mục kiểm tra sau đây với hạng mục QSCA tương ứng.
+(次の4つのチェック項目を、それぞれ正しいQSCAの区分に当てはめてください。)
+
+Danh sách cần phân loại:
+1. いつも通りの味・分量・盛り付けで提供できているか (Có phục vụ đúng vị/lượng/cách bày như thường lệ không)
+2. オーダー（注文）受けが放置されていないか (Việc nhận order có bị bỏ mặc không)
+3. 客用トイレに異臭がなく清潔感があるか (Nhà vệ sinh khách không có mùi lạ và sạch sẽ)
+4. BGMの選曲は適切であり、適度な音量で流れているか (Nhạc nền có phù hợp và âm lượng vừa phải không)
+
+Các nhóm: Quality (Chất lượng món ăn) / Service (Dịch vụ) / Cleanliness (Sạch sẽ) / Atmosphere (Bầu không khí)
+
+✅ Đáp án đúng:
+1. いつも通りの味・分量・盛り付けで提供できているか → Quality (Chất lượng món ăn)
+2. オーダー（注文）受けが放置されていないか → Service (Dịch vụ)
+3. 客用トイレに異臭がなく清潔感があるか → Cleanliness (Sạch sẽ)
+4. BGMの選曲は適切であり、適度な音量で流れているか → Atmosphere (Bầu không khí)
+
+💡 4 mục kiểm tra tưởng chừng dễ nhầm hạng mục: 'nhận order không bị bỏ mặc' thuộc SERVICE (thao tác con người) chứ không phải QUALITY (dù liên quan đến món ăn, nhưng đây là hành vi phục vụ); 'nhà vệ sinh sạch' thuộc CLEANLINESS; 'nhạc nền phù hợp' thuộc ATMOSPHERE (không khí chung, không phải sạch sẽ vật lý).
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị phân loại đúng không? Comment trước khi xem đáp án ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #PhanLoai

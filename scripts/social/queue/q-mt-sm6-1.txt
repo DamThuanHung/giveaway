@@ -1,0 +1,33 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử phân loại danh sách dưới đây xem!
+
+Hãy ghép đúng 5 trường hợp lao động sau đây với tỷ lệ lương phụ trội tương ứng.
+(次の5つの割増賃金の適用場面を、それぞれ正しい割増率に当てはめてください。)
+
+Danh sách cần phân loại:
+1. 週40時間を超えた労働（時間外労働） (Lao động vượt quá 40 giờ/tuần (làm thêm giờ thông thường))
+2. 22時から翌朝5時の労働（深夜労働、単独） (Lao động từ 22h đến 5h sáng hôm sau (ban đêm, đơn lẻ))
+3. 残業時間が月60時間を超えた部分 (Phần giờ làm thêm vượt quá 60 giờ/tháng)
+4. 休日労働と深夜労働が重複 (Lao động ngày nghỉ trùng với lao động ban đêm)
+5. 月超60時間残業労働と深夜労働が重複 (Làm thêm giờ vượt quá 60 giờ/tháng trùng với lao động ban đêm)
+
+Các nhóm: Từ 25% trở lên (mức cơ bản) / Từ 50% trở lên / Từ 60% trở lên / Từ 75% trở lên (mức cao nhất)
+
+✅ Đáp án đúng:
+1. 週40時間を超えた労働（時間外労働） → Từ 25% trở lên (mức cơ bản)
+2. 22時から翌朝5時の労働（深夜労働、単独） → Từ 25% trở lên (mức cơ bản)
+3. 残業時間が月60時間を超えた部分 → Từ 50% trở lên
+4. 休日労働と深夜労働が重複 → Từ 60% trở lên
+5. 月超60時間残業労働と深夜労働が重複 → Từ 75% trở lên (mức cao nhất)
+
+💡 Bảng phụ trội lương dễ nhầm vì có nhiều mức chồng lấn: làm thêm giờ thông thường VÀ lao động ban đêm đơn lẻ đều chỉ 25% (không cộng dồn thành 50% trừ khi TRÙNG NHAU cùng lúc); làm thêm vượt 60h/tháng riêng lẻ là 50%; nghỉ+đêm trùng nhau là 60%; mức cao nhất 75% chỉ khi CẢ BA điều kiện (vượt 60h + đêm) trùng nhau.
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị phân loại đúng không? Comment trước khi xem đáp án ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #PhanLoai
