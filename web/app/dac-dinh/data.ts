@@ -5378,6 +5378,72 @@ export const QUESTIONS: QuizQuestion[] = [
     sourceQuoteJa: "温蔵品は温蔵庫内で６５℃以上、常温品は専用ケース１５～２５℃、冷蔵品は食品冷蔵庫（棚）で１０℃以下、冷凍品は食品冷凍庫内で－１５℃以下などが目安になります。",
     sourcePage: 34,
   },
+  // 図1-2 令和4年 病因物質別食中毒事件数 (hy-ch1, trang 2) — bổ sung 2026-10-03,
+  // nguồn: NH2- QLVS.pdf (biểu đồ dạng ảnh scan, đọc bằng vision; số liệu công khai của 厚生労働省).
+  {
+    id: "hy-107",
+    chapterId: "hy-ch1",
+    questionJa: "令和4年の食中毒事件のうち、病因物質別で最も割合が高いものは何か。",
+    questionVi: "Trong các vụ ngộ độc thực phẩm năm Reiwa 4 (2022), tác nhân gây bệnh nào chiếm tỷ lệ cao nhất?",
+    options: [
+      { ja: "アニサキス", vi: "Ký sinh trùng Anisakis" },
+      { ja: "カンピロバクター", vi: "Vi khuẩn Campylobacter" },
+      { ja: "ノロウイルス", vi: "Virus Norovirus" },
+      { ja: "サルモネラ属菌", vi: "Vi khuẩn Salmonella" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Theo thống kê của 厚生労働省 (Bộ Y tế, Lao động và Phúc lợi Nhật Bản) năm Reiwa 4, アニサキス (ký sinh trùng Anisakis, thường có trong hải sản sống) chiếm tỷ lệ cao nhất với 58,8% tổng số vụ.",
+    sourceQuoteJa: "アニサキス 58.8%",
+    sourcePage: 2,
+  },
+  {
+    id: "hy-108",
+    chapterId: "hy-ch1",
+    questionJa: "令和4年の食中毒事件数で、カンピロバクター・ジェジュニ／コリの割合はどれか。",
+    questionVi: "Tỷ lệ vụ ngộ độc do Campylobacter jejuni/coli năm Reiwa 4 là bao nhiêu?",
+    options: [
+      { ja: "6.5%", vi: "6,5%" },
+      { ja: "19.2%", vi: "19,2%" },
+      { ja: "2.3%", vi: "2,3%" },
+      { ja: "58.8%", vi: "58,8%" },
+    ],
+    correctIndex: 1,
+    explanationVi: "カンピロバクター・ジェジュニ／コリ đứng thứ 2 với 19,2%, sau アニサキス (58,8%).",
+    sourceQuoteJa: "カンピロバクター・ジェジュニ／コリ 19.2%",
+    sourcePage: 2,
+  },
+  {
+    id: "hy-109",
+    chapterId: "hy-ch1",
+    questionJa: "令和4年の食中毒総事件数はいくつか。",
+    questionVi: "Tổng số vụ ngộ độc thực phẩm năm Reiwa 4 là bao nhiêu?",
+    options: [
+      { ja: "462件", vi: "462 vụ" },
+      { ja: "962件", vi: "962 vụ" },
+      { ja: "1,962件", vi: "1.962 vụ" },
+      { ja: "96件", vi: "96 vụ" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Theo biểu đồ thống kê, tổng số vụ ngộ độc thực phẩm năm Reiwa 4 là 962 vụ.",
+    sourceQuoteJa: "令和4年総事件数 962件",
+    sourcePage: 2,
+  },
+  {
+    id: "hy-110",
+    chapterId: "hy-ch1",
+    questionJa: "この食中毒統計の資料出所はどこか。",
+    questionVi: "Nguồn số liệu thống kê ngộ độc thực phẩm này lấy từ đâu?",
+    options: [
+      { ja: "農林水産省", vi: "Bộ Nông Lâm Thủy sản" },
+      { ja: "厚生労働省「食中毒統計調査」", vi: "Bộ Y tế, Lao động và Phúc lợi — 'Điều tra thống kê ngộ độc thực phẩm'" },
+      { ja: "消費者庁", vi: "Cơ quan Bảo vệ người tiêu dùng" },
+      { ja: "WHO", vi: "Tổ chức Y tế Thế giới" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Nguồn số liệu là 厚生労働省 (Bộ Y tế, Lao động và Phúc lợi Nhật Bản), báo cáo '食中毒統計調査' (Điều tra thống kê ngộ độc thực phẩm).",
+    sourceQuoteJa: "（資料出所）厚生労働省「食中毒統計調査」",
+    sourcePage: 2,
+  },
   {
     id: "ck-1",
     chapterId: "ck-ch1",
@@ -7778,6 +7844,72 @@ export const QUESTIONS: QuizQuestion[] = [
     sourceQuoteJa: "ガムベース チューインガムの基材に用いる エステルガム、チクル",
     sourcePage: 17,
   },
+  // 図「飲食店における労働災害」(ck-ch5, trang 11) — bổ sung 2026-10-03, nguồn:
+  // NH2- Chế biến.pdf (biểu đồ tròn dạng ảnh scan, đọc bằng vision; số liệu 厚生労働省).
+  {
+    id: "ck-151",
+    chapterId: "ck-ch5",
+    questionJa: "飲食店の労働災害で最も多い事故の種類は何か。",
+    questionVi: "Loại tai nạn lao động phổ biến nhất trong ngành nhà hàng là gì?",
+    options: [
+      { ja: "転倒", vi: "Ngã, trượt chân" },
+      { ja: "切れ・こすれ", vi: "Đứt tay / trầy xước" },
+      { ja: "高温・低温物との接触", vi: "Tiếp xúc vật nóng/lạnh" },
+      { ja: "墜落・転落", vi: "Rơi/ngã từ trên cao" },
+    ],
+    correctIndex: 0,
+    explanationVi: "Theo thống kê 厚生労働省, ngã/trượt chân (転倒) chiếm tỷ lệ cao nhất với khoảng 30% tổng số tai nạn lao động ngành nhà hàng.",
+    sourceQuoteJa: "飲食店での労働災害で最も多い事故は「転倒」で全体の約3割を占めています。",
+    sourcePage: 11,
+  },
+  {
+    id: "ck-152",
+    chapterId: "ck-ch5",
+    questionJa: "飲食店の労働災害のうち、「切れ・こすれ」の割合はどれか。",
+    questionVi: "Tỷ lệ tai nạn dạng 'đứt tay/trầy xước' trong tai nạn lao động ngành nhà hàng là bao nhiêu?",
+    options: [
+      { ja: "10%", vi: "10%" },
+      { ja: "15%", vi: "15%" },
+      { ja: "20%", vi: "20%" },
+      { ja: "30%", vi: "30%" },
+    ],
+    correctIndex: 2,
+    explanationVi: "切れ・こすれ (đứt/trầy xước) đứng thứ 2, chiếm 20% tổng số tai nạn lao động ngành nhà hàng.",
+    sourceQuoteJa: "切れ・こすれ 20%",
+    sourcePage: 11,
+  },
+  {
+    id: "ck-153",
+    chapterId: "ck-ch5",
+    questionJa: "飲食店の労働災害の事故類別で、全産業と比較して高く、過去5年間減少していない項目はどれか。",
+    questionVi: "Những loại tai nạn nào khi so với toàn ngành thì cao hơn và không giảm trong 5 năm qua?",
+    options: [
+      { ja: "墜落・転落のみ", vi: "Chỉ riêng rơi/ngã từ trên cao" },
+      { ja: "交通事故のみ", vi: "Chỉ riêng tai nạn giao thông" },
+      { ja: "はさまれ・巻き込まれのみ", vi: "Chỉ riêng bị kẹp/cuốn vào máy" },
+      { ja: "切れ・こすれ、高温・低温物との接触", vi: "Đứt/trầy xước và tiếp xúc vật nóng/lạnh" },
+    ],
+    correctIndex: 3,
+    explanationVi: "So với toàn ngành, tỷ lệ 'đứt/trầy xước' và 'tiếp xúc vật nóng/lạnh' cao hơn và không giảm trong 5 năm qua — đặc thù rủi ro của ngành nhà hàng (dao, bếp nóng).",
+    sourceQuoteJa: "事故の類別で全産業と比較して高いものは「切れ・こすれ」、「高温・低温物との接触」であり、これは、過去5年間減少していません。",
+    sourcePage: 11,
+  },
+  {
+    id: "ck-154",
+    chapterId: "ck-ch5",
+    questionJa: "飲食店の労働災害に特徴的な状況として正しいのはどれか。",
+    questionVi: "Đặc điểm nổi bật của tai nạn lao động ngành nhà hàng là gì?",
+    options: [
+      { ja: "高齢者の被災はない", vi: "Người lớn tuổi không bị tai nạn" },
+      { ja: "女性のみが被災する", vi: "Chỉ có phụ nữ bị tai nạn" },
+      { ja: "若年層の労働者の被災が目立つ", vi: "Lao động trẻ tuổi bị tai nạn nhiều, nổi bật" },
+      { ja: "正社員のみが被災する", vi: "Chỉ nhân viên chính thức mới bị tai nạn" },
+    ],
+    correctIndex: 2,
+    explanationVi: "Đặc điểm của ngành nhà hàng là lao động trẻ tuổi (若年層) bị tai nạn nhiều và nổi bật.",
+    sourceQuoteJa: "飲食店に特徴的な状況として、若年層の労働者が多く、その被災が目立っています。",
+    sourcePage: 11,
+  },
   {
     id: "cs-1",
     chapterId: "cs-ch1",
@@ -9233,6 +9365,58 @@ export const QUESTIONS: QuizQuestion[] = [
     explanationVi: "Nội dung 'Tiêu chuẩn hành động khi khẩn cấp' được ghi trong giáo trình 'Vận hành cửa hàng' (店舗運営 — chính là nội dung đã học đầy đủ ở Phần 1 sm-ch1~8), không lặp lại chi tiết ở đây.",
     sourceQuoteJa: "「店舗運営」のテキストに記載",
     sourcePage: 19,
+  },
+  // (参考) フロア係の1日仕事の流れ例 (cs-ch3, trang 12) — bổ sung 2026-10-03,
+  // nguồn: NH2- Tiếp khách.pdf (bảng dạng ảnh scan, đọc bằng vision).
+  {
+    id: "cs-92",
+    chapterId: "cs-ch3",
+    questionJa: "開店時に準備する釣り銭の金額はいくらか。",
+    questionVi: "Số tiền lẻ chuẩn bị sẵn lúc mở cửa là bao nhiêu?",
+    options: [
+      { ja: "10万円", vi: "100.000 yên" },
+      { ja: "16万円", vi: "160.000 yên" },
+      { ja: "20万円", vi: "200.000 yên" },
+      { ja: "30万円", vi: "300.000 yên" },
+    ],
+    correctIndex: 1,
+    explanationVi: "Theo lịch trình mẫu của フロア係, tiền lẻ chuẩn bị khi mở cửa là 160.000 yên (計16万円), sau đó đổi tại ngân hàng.",
+    sourceQuoteJa: "釣り銭（計16万円）→ 両替、銀行",
+    sourcePage: 12,
+  },
+  // (参考) クレンリネス作業の作業マニュアル例 (cs-ch3, trang 14-15) — bổ sung 2026-10-03.
+  {
+    id: "cs-93",
+    chapterId: "cs-ch3",
+    questionJa: "化粧室や便器の清掃頻度の目安はどれか。",
+    questionVi: "Tần suất vệ sinh phòng trang điểm/bồn cầu tham khảo là gì?",
+    options: [
+      { ja: "毎日1回", vi: "1 lần/ngày" },
+      { ja: "必要な都度（1日1回以上）", vi: "Khi cần, tối thiểu 1 lần/ngày" },
+      { ja: "必要な都度（毎日3回以上）", vi: "Khi cần, tối thiểu 3 lần/ngày" },
+      { ja: "週1回", vi: "1 lần/tuần" },
+    ],
+    correctIndex: 2,
+    explanationVi: "化粧室 (phòng trang điểm) và 便器 (bồn cầu) có tần suất vệ sinh nghiêm ngặt nhất trong bảng: khi cần, tối thiểu 3 lần/ngày — vì là khu vực vệ sinh nhạy cảm tiếp xúc trực tiếp khách hàng.",
+    sourceQuoteJa: "必要な都度（毎日3回以上）",
+    sourcePage: 15,
+  },
+  // ②クレーム対応のポイント (cs-ch4, trang 17) — bổ sung 2026-10-03.
+  {
+    id: "cs-94",
+    chapterId: "cs-ch4",
+    questionJa: "クレーム対応で、お客様の感情が治まらない場合に用いる手法は何か。",
+    questionVi: "Khi cảm xúc khách hàng chưa nguôi, kỹ thuật nào được áp dụng trong xử lý khiếu nại?",
+    options: [
+      { ja: "無視して様子を見る", vi: "Lờ đi và quan sát tình hình" },
+      { ja: "すぐに返金する", vi: "Hoàn tiền ngay lập tức" },
+      { ja: "警察に通報する", vi: "Báo cảnh sát" },
+      { ja: "三変（人・場所・時を変える）", vi: "Kỹ thuật 'Tam biến' (đổi người/địa điểm/thời gian)" },
+    ],
+    correctIndex: 3,
+    explanationVi: "Khi khách chưa nguôi giận, áp dụng kỹ thuật 'Tam biến' (三変): đổi người tiếp, đổi địa điểm, hoặc đổi thời điểm trao đổi.",
+    sourceQuoteJa: "お客様の感情が治まらない場合は三変（人・場所・時を変える）手法で対応する",
+    sourcePage: 17,
   },
 ];
 
@@ -13400,6 +13584,15 @@ export const VOCAB: VocabQuestion[] = [
   { id: "vc-sm7-16", chapterId: "sm-ch7", direction: "vi-to-ja", term: "Luyện tập lặp lại (giai đoạn 3 trong 4 giai đoạn đào tạo)", options: ["教育", "導入", "訓練", "啓発"], correctIndex: 2 },
   { id: "vc-sm7-17", chapterId: "sm-ch7", direction: "ja-to-vi", term: "導入（人材育成の基本体系）", options: ["Định hướng", "Khơi gợi tiềm năng", "Luyện tập lặp lại", "Phát triển thêm"], correctIndex: 0 },
   { id: "vc-sm7-18", chapterId: "sm-ch7", direction: "vi-to-ja", term: "Ánh mắt (một trong các điểm cần kiểm tra khi huấn luyện)", options: ["視線", "姿勢", "手の使い方", "声の出し方"], correctIndex: 0 },
+  // (参考4) 最重要接客用語集, trang 21 — bổ sung 2026-10-03, nguồn: NH2-Quản lý cửa hàng.pdf (ảnh scan, đọc bằng vision)
+  { id: "vc-sm7-19", chapterId: "sm-ch7", direction: "ja-to-vi", term: "いらっしゃいませ", options: ["Kính chào quý khách", "Xin quý khách đợi một chút", "Vâng, tôi đã rõ ạ", "Xin chân thành cảm ơn quý khách"], correctIndex: 0 },
+  { id: "vc-sm7-20", chapterId: "sm-ch7", direction: "vi-to-ja", term: "Xin lỗi đã để quý khách chờ lâu", options: ["失礼致します", "お待たせ致しました", "申し訳ございません", "かしこまりました"], correctIndex: 1 },
+  { id: "vc-sm7-21", chapterId: "sm-ch7", direction: "ja-to-vi", term: "失礼致します", options: ["Xin quý khách đợi một chút", "Tôi thành thật xin lỗi quý khách", "Xin phép quý khách (dùng khi vào/ra/ngắt lời)", "Vâng, tôi đã rõ ạ"], correctIndex: 2 },
+  { id: "vc-sm7-22", chapterId: "sm-ch7", direction: "vi-to-ja", term: "Xin lỗi làm phiền quý khách, nhưng...", options: ["ありがとうございました", "いらっしゃいませ", "お待たせ致しました", "おそれいりますが"], correctIndex: 3 },
+  { id: "vc-sm7-23", chapterId: "sm-ch7", direction: "ja-to-vi", term: "かしこまりました", options: ["Vâng, tôi đã rõ ạ", "Xin phép quý khách", "Kính chào quý khách", "Xin quý khách đợi một chút"], correctIndex: 0 },
+  { id: "vc-sm7-24", chapterId: "sm-ch7", direction: "vi-to-ja", term: "Tôi thành thật xin lỗi quý khách", options: ["かしこまりました", "申し訳ございません", "失礼致します", "少々お待ち下さい"], correctIndex: 1 },
+  { id: "vc-sm7-25", chapterId: "sm-ch7", direction: "ja-to-vi", term: "少々お待ち下さい", options: ["Xin lỗi đã để quý khách chờ lâu", "Xin chân thành cảm ơn quý khách", "Xin quý khách đợi một chút", "Xin phép quý khách"], correctIndex: 2 },
+  { id: "vc-sm7-26", chapterId: "sm-ch7", direction: "vi-to-ja", term: "Xin chân thành cảm ơn quý khách", options: ["いらっしゃいませ", "おそれいりますが", "申し訳ございません", "ありがとうございました"], correctIndex: 3 },
 
   // sm-ch8: gom từ mục 防火・防災管理 (trang 22-24) + 参考６ マネジメント基本用語 (trang 27, thuật ngữ chưa dùng ở chương trước).
   { id: "vc-sm8-1", chapterId: "sm-ch8", direction: "ja-to-vi", term: "防火管理者", options: ["Nhân viên cứu hỏa", "Cảnh sát khu vực", "Quản lý phòng cháy", "Thanh tra xây dựng"], correctIndex: 2 },
@@ -15860,6 +16053,68 @@ export const PLANNINGS: PlanningQuestion[] = [
       "その時の優先順位は、①料理提供②レジ精算③ご案内④注文受け⑤デザート・ドリンクの提供⑥下げとなります。料理提供を優先し、レジ精算が２番目に来るのは、待たせすぎると料理が冷めて美味しさが低下し再来店してもらえないからです。また、レジ精算のお客様は声掛けで待ってもらえるからです。",
     sourcePage: 7,
   },
+  // (参考5) 緊急事態への対応と処理の基本的な流れ (sm-ch8, trang 25) — bổ sung 2026-10-03,
+  // nguồn: NH2-Quản lý cửa hàng.pdf (ảnh scan, đọc bằng vision). Đây chính là nội dung mà
+  // cs-91 đã trỏ tới ("緊急時の行動基準... 「店舗運営」のテキストに記載") nhưng trước đây
+  // chưa từng được số hóa vào app.
+  {
+    id: "pl-sm8-2",
+    chapterId: "sm-ch8",
+    scenarioJa:
+      "緊急事態（火災や地震など）が発生しました。対応と処理の基本的な流れを優先順位に沿って並べてください。",
+    scenarioVi: "Tình huống khẩn cấp (hỏa hoạn, động đất...) xảy ra. Hãy sắp xếp đúng thứ tự quy trình xử lý cơ bản theo mức độ ưu tiên.",
+    steps: [
+      { ja: "冷静になり決して慌てない。火災発生やその可能性のある場合、火を消し、ガスの元栓を閉める", vi: "Giữ bình tĩnh, tuyệt đối không hoảng loạn. Nếu có cháy hoặc khả năng cháy, dập lửa và khóa van gas chính" },
+      { ja: "消防署や管理室（ビル内などの営業店）へ通報、連絡", vi: "Báo tin, liên lạc cho đội cứu hỏa hoặc phòng quản lý tòa nhà" },
+      { ja: "お客さまの安全確保（地震の場合は原則として待機）、必要により誘導、避難", vi: "Đảm bảo an toàn cho khách hàng (nếu động đất thì nguyên tắc là chờ tại chỗ), hướng dẫn/sơ tán nếu cần" },
+      { ja: "従業員の避難（火災発生時、可能なら消火器を集め初期消火）", vi: "Sơ tán nhân viên (nếu cháy, nếu có thể thì tập hợp bình chữa cháy để dập lửa ban đầu)" },
+      { ja: "時間があれば重要書類（非常持ち出し品）などの持ち出し", vi: "Nếu còn thời gian thì mang theo giấy tờ quan trọng (đồ mang theo khẩn cấp)" },
+      { ja: "火災発生の場合、消火活動の円滑化に協力", vi: "Nếu có cháy, hợp tác để việc chữa cháy diễn ra thuận lợi" },
+      { ja: "緊急連絡先リストにより連絡", vi: "Liên lạc theo danh sách liên hệ khẩn cấp" },
+      { ja: "復旧作業と正しい情報の入手", vi: "Thực hiện công tác khôi phục và thu thập thông tin chính xác" },
+      { ja: "所定の手続きにより報告", vi: "Báo cáo theo đúng thủ tục quy định" },
+    ],
+    sourceQuoteJa:
+      "緊急事態への対応と処理の基本的な流れを優先順位に沿って挙げてみます。①冷静になり決して慌てない。火災発生やその可能性のある場合、火を消し、ガスの元栓を閉める②消防署や管理室（ビル内などの営業店）へ通報、連絡③お客さまの安全確保（地震の場合は原則として待機）、必要により誘導、避難④従業員の避難（火災発生時、可能なら消火器を集め初期消火）⑤時間があれば重要書類（非常持ち出し品）などの持ち出し⑥火災発生の場合、消火活動の円滑化に協力⑦緊急連絡先リストにより連絡⑧復旧作業と正しい情報の入手⑨所定の手続きにより報告",
+    sourcePage: 25,
+  },
+  // (参考) フロア係の1日仕事の流れ例 (cs-ch3, trang 12) — bổ sung 2026-10-03.
+  {
+    id: "pl-cs3-1",
+    chapterId: "cs-ch3",
+    scenarioJa: "あるフロア係の1日の仕事の流れです。正しい時間順に並べてください。",
+    scenarioVi: "Đây là lịch trình công việc 1 ngày của nhân viên phục vụ (フロア係). Hãy sắp xếp đúng theo thứ tự thời gian.",
+    steps: [
+      { ja: "開店準備作業（9:00）", vi: "Chuẩn bị mở cửa (9:00)" },
+      { ja: "開店（10:00）", vi: "Mở cửa đón khách (10:00)" },
+      { ja: "ランチタイム開始（11:00）", vi: "Bắt đầu giờ ăn trưa (11:00)" },
+      { ja: "ランチタイム終了（14:00）", vi: "Kết thúc giờ ăn trưa (14:00)" },
+      { ja: "フロアスタンバイ（16:30）", vi: "Chuẩn bị sẵn sàng phục vụ tối (16:30)" },
+      { ja: "レジ精算（17:00）", vi: "Quyết toán thu ngân (17:00)" },
+      { ja: "ラストオーダー（0:55）", vi: "Gọi món lần cuối (0:55)" },
+      { ja: "閉店（1:30）", vi: "Đóng cửa (1:30)" },
+    ],
+    sourceQuoteJa:
+      "9:00 開店準備作業 ／ 10:00 開店 ／ 11:00 ランチタイム開始（平日）／ 14:00 ランチタイム終了（平日）／ 16:30 フロアスタンバイ ／ 17:00 レジ精算 ／ 0:55 ラストオーダー ／ 1:30 閉店",
+    sourcePage: 12,
+  },
+  // ②クレーム対応のポイント (cs-ch4, trang 17) — bổ sung 2026-10-03.
+  {
+    id: "pl-cs4-1",
+    chapterId: "cs-ch4",
+    scenarioJa: "お客様からクレーム（苦情）が入りました。対応の基本的な流れを正しい順番に並べてください。",
+    scenarioVi: "Khách hàng đưa ra khiếu nại (phàn nàn). Hãy sắp xếp đúng thứ tự quy trình xử lý cơ bản.",
+    steps: [
+      { ja: "丁寧に謝る（言い訳・口論は絶対にしない）", vi: "Xin lỗi lịch sự (tuyệt đối không biện minh/cãi lại)" },
+      { ja: "お客さまの言い分（苦情の内容）を聞く", vi: "Lắng nghe ý kiến của khách (nội dung khiếu nại)" },
+      { ja: "迅速な処理", vi: "Xử lý nhanh chóng" },
+      { ja: "責任者への報告と責任者の対応", vi: "Báo cáo người quản lý và quản lý xử lý tiếp" },
+      { ja: "クレーム処理報告書や日報で本部へ報告", vi: "Báo cáo về trụ sở qua báo cáo xử lý khiếu nại/báo cáo ngày" },
+    ],
+    sourceQuoteJa:
+      "①丁寧に謝る ②お客さまの言い分（苦情の内容）を聞く ③迅速な処理 ④責任者への報告と責任者の対応 ⑤クレーム処理報告書や日報で本部へ報告",
+    sourcePage: 17,
+  },
 ];
 
 export const MATCHINGS: MatchingQuestion[] = [
@@ -16743,6 +16998,32 @@ export const MATCHINGS: MatchingQuestion[] = [
     ],
     explanationVi:
       "7 loại phụ gia còn lại dễ nhầm giữa 'tạo vị' (chua/ngon/ngọt là 3 nhóm KHÁC nhau: 酸味料/調味料/甘味料) và giữa các chất có chức năng liên quan đến kết cấu/liên kết (làm đặc khác với làm đông đậu phụ khác với nhũ hóa).",
+  },
+  // (参考) クレンリネス作業の作業マニュアル例 (cs-ch3, trang 14-15) — bổ sung 2026-10-03,
+  // nguồn: NH2- Tiếp khách.pdf (bảng dạng ảnh scan, đọc bằng vision).
+  {
+    id: "mt-cs3-1",
+    chapterId: "cs-ch3",
+    instructionJa: "次の清掃対象を、それぞれ正しい清掃頻度に当てはめてください。",
+    instructionVi: "Hãy ghép các khu vực/đồ vật cần vệ sinh sau vào đúng tần suất vệ sinh tương ứng.",
+    items: [
+      { id: "sotomawari", ja: "外回り", vi: "Khu vực xung quanh bên ngoài", targetId: "t1", sourceQuoteJa: "外回り ...毎日1回", sourcePage: 14 },
+      { id: "uekomi", ja: "植え込み花壇", vi: "Bồn cây, hoa", targetId: "t1", sourceQuoteJa: "植え込み花壇 ...毎日1回", sourcePage: 14 },
+      { id: "oogatamado", ja: "大型窓ガラス", vi: "Kính cửa sổ lớn", targetId: "t1", sourceQuoteJa: "大型窓ガラス ...毎日1回", sourcePage: 14 },
+      { id: "tsuro", ja: "通路", vi: "Lối đi, hành lang", targetId: "t1", sourceQuoteJa: "通路 ...毎日1回", sourcePage: 14 },
+      { id: "isuteeburu", ja: "椅子・テーブル・カウンター・パーティション", vi: "Bàn ghế, quầy, vách ngăn", targetId: "t1", sourceQuoteJa: "椅子 テーブル カウンター パーティション ...毎日1回", sourcePage: 15 },
+      { id: "carpet", ja: "カーペット部分の汚れ", vi: "Vết bẩn trên thảm", targetId: "t2", sourceQuoteJa: "カーペット部分の汚れ ...必要な都度", sourcePage: 15 },
+      { id: "caster", ja: "カスター類", vi: "Bộ gia vị để bàn (lọ tiêu, muối...)", targetId: "t2", sourceQuoteJa: "カスター類 ...必要な都度", sourcePage: 15 },
+      { id: "keshoshitsu", ja: "化粧室", vi: "Phòng trang điểm/khu vệ sinh", targetId: "t3", sourceQuoteJa: "化粧室 ...必要な都度（毎日3回以上）", sourcePage: 15 },
+      { id: "benki", ja: "便器", vi: "Bồn cầu", targetId: "t3", sourceQuoteJa: "便器 ...必要な都度（毎日3回以上）", sourcePage: 15 },
+    ],
+    targets: [
+      { id: "t1", labelJa: "毎日1回", labelVi: "1 lần mỗi ngày" },
+      { id: "t2", labelJa: "必要な都度", labelVi: "Khi cần thiết" },
+      { id: "t3", labelJa: "必要な都度（毎日3回以上）", labelVi: "Khi cần, tối thiểu 3 lần/ngày" },
+    ],
+    explanationVi:
+      "Khu vực cố định (ngoại thất, sân vườn, kính lớn, lối đi, bàn ghế) vệ sinh 1 lần/ngày; đồ vật/vết bẩn phát sinh không đều (thảm, gia vị) vệ sinh khi cần; riêng khu vệ sinh (化粧室/便器) — nơi nhạy cảm tiếp xúc trực tiếp khách hàng — có tần suất nghiêm ngặt nhất: khi cần VÀ tối thiểu 3 lần/ngày.",
   },
 ];
 

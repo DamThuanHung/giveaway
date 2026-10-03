@@ -1,0 +1,37 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sắp đúng thứ tự quy trình dưới đây xem!
+
+TÌNH HUỐNG: あるフロア係の1日の仕事の流れです。正しい時間順に並べてください。
+🇻🇳 Đây là lịch trình công việc 1 ngày của nhân viên phục vụ (フロア係). Hãy sắp xếp đúng theo thứ tự thời gian.
+
+Các bước (đã xáo trộn):
+1. 開店（10:00） — Mở cửa đón khách (10:00)
+2. ランチタイム終了（14:00） — Kết thúc giờ ăn trưa (14:00)
+3. ラストオーダー（0:55） — Gọi món lần cuối (0:55)
+4. レジ精算（17:00） — Quyết toán thu ngân (17:00)
+5. ランチタイム開始（11:00） — Bắt đầu giờ ăn trưa (11:00)
+6. 閉店（1:30） — Đóng cửa (1:30)
+7. フロアスタンバイ（16:30） — Chuẩn bị sẵn sàng phục vụ tối (16:30)
+8. 開店準備作業（9:00） — Chuẩn bị mở cửa (9:00)
+
+✅ Thứ tự đúng:
+1. 開店準備作業（9:00） — Chuẩn bị mở cửa (9:00)
+2. 開店（10:00） — Mở cửa đón khách (10:00)
+3. ランチタイム開始（11:00） — Bắt đầu giờ ăn trưa (11:00)
+4. ランチタイム終了（14:00） — Kết thúc giờ ăn trưa (14:00)
+5. フロアスタンバイ（16:30） — Chuẩn bị sẵn sàng phục vụ tối (16:30)
+6. レジ精算（17:00） — Quyết toán thu ngân (17:00)
+7. ラストオーダー（0:55） — Gọi món lần cuối (0:55)
+8. 閉店（1:30） — Đóng cửa (1:30)
+
+📖 Trích dẫn OTAFF trang 12: "9:00 開店準備作業 ／ 10:00 開店 ／ 11:00 ランチタイム開始（平日）／ 14:00 ランチタイム終了（平日）／ 16:30 フロアスタンバイ ／ 17:00 レジ精算 ／ 0:55 ラストオーダー ／ 1:30 閉店"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị sắp đúng thứ tự quy trình không? Comment trước khi xem đáp án ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #LapKeHoach
