@@ -8,7 +8,8 @@
     "build:next-only": "next build",
     "build:og": "node scripts/generate-og-images.mjs",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "validate:dac-dinh": "tsx scripts/validate-dac-dinh.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -26,6 +27,7 @@
     "@types/react-dom": "^18",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }
