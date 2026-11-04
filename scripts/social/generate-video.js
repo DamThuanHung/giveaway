@@ -338,7 +338,15 @@ async function getOrCreateReelUrl(file, captionText) {
   }
 }
 
-module.exports = { getOrCreateReelUrl, pickMusicFile, extractVideoContent, renderReelMp4 };
+module.exports = {
+  getOrCreateReelUrl, pickMusicFile, extractVideoContent, renderReelMp4,
+  // Export thêm để scripts/social/generate-video-tiktok.js (kênh TikTok riêng,
+  // không gắn brand Trao Tay) tái dùng phần ffmpeg/MinIO chung — KHÔNG đổi gì
+  // logic bên trong các hàm này, chỉ export thêm.
+  getFonts, FPS, STAGE_SEC, VIDEO_W, VIDEO_H, TMP_DIR, MUSIC_DIR,
+  encodeStageVideo, concatStageVideos, muxAudio, ffprobeDurationSec,
+  getMinioClient, BUCKET, PUBLIC_URL,
+};
 
 // ─── CLI test mode — render 1 video mẫu ra file local, không cần MinIO ────────
 

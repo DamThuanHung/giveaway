@@ -44,13 +44,20 @@ const FONT_DIR = path.join(__dirname, '..', '..', 'web', 'public', 'fonts');
 let fontsCache = null;
 async function getFonts() {
   if (fontsCache) return fontsCache;
-  const [regular, bold] = await Promise.all([
+  const [regular, bold, notoJp] = await Promise.all([
     fsp.readFile(path.join(FONT_DIR, 'BeVietnamPro-Regular.ttf')),
     fsp.readFile(path.join(FONT_DIR, 'BeVietnamPro-Bold.ttf')),
+    fsp.readFile(path.join(FONT_DIR, 'NotoSansJP-Regular.ttf')),
   ]);
   fontsCache = [
     { name: 'Be Vietnam Pro', data: regular, weight: 400, style: 'normal' },
     { name: 'Be Vietnam Pro', data: bold, weight: 700, style: 'normal' },
+    // Be Vietnam Pro không có glyph tiếng Nhật (Kanji/Kana) — satori âm thầm bỏ qua
+    // ký tự không tìm được glyph thay vì báo lỗi, nên chữ Nhật sẽ biến mất hoàn toàn
+    // khỏi ảnh nếu thiếu font này. Đăng ký thêm Noto Sans JP để satori tự chọn đúng
+    // font theo từng ký tự khi template khai `fontFamily: 'Be Vietnam Pro, Noto Sans JP'`.
+    { name: 'Noto Sans JP', data: notoJp, weight: 400, style: 'normal' },
+    { name: 'Noto Sans JP', data: notoJp, weight: 700, style: 'normal' },
   ];
   return fontsCache;
 }
