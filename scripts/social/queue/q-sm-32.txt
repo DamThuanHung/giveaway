@@ -1,0 +1,25 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sức với câu hỏi thật trong đề hôm nay nhé!
+
+CÂU HỎI ÔN THI HÔM NAY — Quản lý số liệu cần thiết để vận hành cửa hàng
+📝 1日の平均客単価が1,800円を超え、アルコール比率が高い居酒屋などの業態で基準とする指標はどれか。
+🇻🇳 Với mô hình đơn giá khách trung bình >1.800 yên, tỷ lệ đồ uống có cồn cao (quán nhậu...), chỉ số nào được dùng làm cơ sở kiểm soát giờ lao động?
+
+A. 人時接客数
+B. 人時売上高
+C. 原価率
+D. 客数
+
+✅ Đáp án đúng: B. 人時売上高
+💡 Với mô hình đơn giá cao (>1.800 yên, tỷ lệ cồn cao như quán nhậu, sushi cao cấp), người ta dùng 人時売上高 làm cơ sở lập lịch làm việc — ngược với mô hình đơn giá thấp dùng 人時接客数.
+📖 Trích dẫn OTAFF trang 5: "１日の平均客単価が１，８００円を超え、サジェスティブセールス（お奨め販売）により客単価が高まるグルメ回転寿司や高級寿司専門店、焼肉専門店などの業態や、売上高に占めるアルコール比率が高いカジュアルレストランや居酒屋系の業態の場合は人時売上高を基準としてオペレーションが組まれます。"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị trả lời đúng không? Comment câu trả lời trước khi đọc phần giải thích ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #CauHoiOnThi
