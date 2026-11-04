@@ -549,6 +549,8 @@ sudo tail -10 /var/log/nginx/access.log
 | Nginx `502 Bad Gateway` | Backend chưa start hoặc bind sai port — `docker logs traotay_backend` |
 | Cert renewal fail | `sudo certbot renew --dry-run`, check DNS + port 80 accessible |
 | MinIO 403 khi xem ảnh | Bucket policy chưa public — `mc admin policy attach traotay/ readwrite` |
+| `mc admin` báo "invalid hostname" khi alias set qua container name | mc/MinIO admin API từ chối hostname chứa dấu gạch dưới `_` (vd `traotay_storage`) — dùng IP nội bộ container thay vì tên (`docker inspect <container> --format '{{.NetworkSettings.Networks.repo_default.IPAddress}}'`) |
+| API trả 522/525 (Cloudflare Connection Timeout) dù backend/DB khỏe, `/health` local nhanh | Check `sudo docker stats` toàn bộ container — MinIO scanner mặc định (`speed=default`) có thể ngốn CPU kéo dài trên t3.micro, nghẽn cả proxy nginx dù không liên quan trực tiếp. Fix: `mc admin config set myminio scanner speed=slow` + restart container. Chi tiết: `docs/postmortems/2026-09-21-minio-cpu-spike-connection-timeout.md` |
 | Resend DKIM không verify | Đợi lâu hơn (lên tới 24h), check đúng record type TXT |
 | PayOS webhook không trigger | Check Nginx access log `/var/log/nginx/access.log`, verify URL public |
 

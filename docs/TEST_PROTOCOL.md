@@ -100,6 +100,7 @@ Sau khi deploy production:
 | Cross-service feature (mobile + backend + push) | **5** + trigger end-to-end pipeline 1 lần thật |
 | Deploy có DB change | **5** + verify schema sync giữa code và prod DB |
 | Bug fix tester báo cáo | 4 + reproduce bug trước, verify fix bằng cách reproduce lại |
+| Nội dung học liệu (quiz/vocab có đáp án đúng/sai) | 3 + **Lớp 2 riêng** — xem [modules/dac-dinh.md](modules/dac-dinh.md#tiêu-chuẩn-test-bổ-sung-cho-docstest_protocolmd): coverage đối chiếu nguồn, trích dẫn khớp nguyên văn, tự làm bài mù trước khi báo xong |
 
 **Quy tắc vàng**: nếu nghi ngờ → mức cao hơn 1 nấc.
 
