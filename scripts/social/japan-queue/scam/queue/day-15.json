@@ -1,0 +1,13 @@
+{
+  "badgeLabel": "CẢNH BÁO LỪA ĐẢO — NGÀY 15",
+  "title": "Giả nhân viên Amazon/Rakuten báo khoá tài khoản",
+  "bullets": [
+    "• Email/SMS báo tài khoản mua sắm bị nghi ngờ hoạt động bất thường, sắp bị khoá vĩnh viễn",
+    "• Yêu cầu bấm link đăng nhập gấp để \"xác minh danh tính\", link dẫn đến trang giả mạo y hệt thật",
+    "• Kiểm tra email người gửi kỹ — địa chỉ giả thường chỉ khác 1-2 ký tự so với domain chính thức"
+  ],
+  "emphasis": "Không đăng nhập qua link trong email — luôn tự gõ địa chỉ web chính thức hoặc dùng app đã cài sẵn",
+  "source": "Kinh nghiệm sống ở Nhật — không phải nguồn chính thức",
+  "caption": "Chào cả nhà mình 👋\n\nMột chiêu lừa đảo qua email/SMS giả mạo các nền tảng mua sắm lớn quen thuộc như Amazon, Rakuten: thông báo tài khoản của bạn có hoạt động bất thường, nghi ngờ bị xâm nhập trái phép, và sắp bị khoá vĩnh viễn nếu không xác minh ngay.\n\nĐể tạo cảm giác gấp gáp, tin nhắn thường kèm theo đồng hồ đếm ngược hoặc deadline gấp trong vài giờ, thúc giục người nhận bấm ngay vào link để \"xác minh danh tính\". Link này dẫn đến một trang đăng nhập giả mạo được thiết kế giống hệt trang thật, khi nhập tài khoản/mật khẩu vào, thông tin sẽ ngay lập tức rơi vào tay kẻ gian, có thể dùng để mua hàng khống hoặc đánh cắp thông tin thanh toán đã lưu.\n\nMột mẹo hữu ích để nhận biết: kiểm tra kỹ địa chỉ email người gửi — email giả mạo thường chỉ khác domain chính thức 1-2 ký tự nhỏ (ví dụ amaz0n.com thay vì amazon.com), rất dễ bỏ sót nếu không để ý kỹ.\n\nCách an toàn nhất: không bao giờ đăng nhập tài khoản qua link được gửi trong email/SMS, thay vào đó luôn tự gõ địa chỉ website chính thức vào trình duyệt hoặc mở trực tiếp app đã cài sẵn trên điện thoại để kiểm tra tình trạng tài khoản thật.\n\nAnh chị đã từng nhận được email/SMS giả mạo kiểu này chưa?\n\nTheo dõi để cập nhật thêm các chiêu lừa đảo cần cảnh giác nhé!\n\n#CanhBaoLuaDao #NguoiVietTaiNhat #SongONhat #LuaDaoEmail #PhishingScam #ThongTinNhatBan #NguoiVietONhatBan #DoiSongONhat #AnToanTaiChinh #CanhBaoNguoiViet",
+  "videoScript": "Giả nhân viên Amazon/Rakuten báo khoá tài khoản\nEmail báo tài khoản nghi ngờ bất thường, sắp bị khoá vĩnh viễn\nYêu cầu bấm link đăng nhập gấp, link dẫn đến trang giả mạo\nKhông đăng nhập qua link email, luôn tự gõ địa chỉ web chính thức"
+}

@@ -1,0 +1,13 @@
+{
+  "badgeLabel": "CẢNH BÁO LỪA ĐẢO — NGÀY 6",
+  "title": "Tin nhắn SMS giả mạo bưu điện/chuyển phát",
+  "bullets": [
+    "• SMS báo \"kiện hàng không giao được, bấm link để xác nhận lại địa chỉ/đóng phí\"",
+    "• Link dẫn đến trang giả mạo giống hệt Japan Post/Yamato, yêu cầu nhập thông tin thẻ tín dụng",
+    "• Bưu điện/công ty chuyển phát thật KHÔNG BAO GIỜ gửi link yêu cầu nhập thẻ tín dụng qua SMS"
+  ],
+  "emphasis": "Không bấm vào link trong SMS lạ — tra cứu mã vận đơn trực tiếp trên app/web chính thức",
+  "source": "Kinh nghiệm sống ở Nhật — không phải nguồn chính thức",
+  "caption": "Chào cả nhà mình 👋\n\nMột chiêu lừa đảo rất phổ biến qua tin nhắn SMS: giả mạo thông báo từ bưu điện Nhật Bản (Japan Post) hoặc các công ty chuyển phát lớn như Yamato, báo rằng \"kiện hàng của bạn không giao được, vui lòng bấm vào link để xác nhận lại địa chỉ hoặc đóng phí giao lại\".\n\nLink trong tin nhắn dẫn đến một trang web giả mạo được thiết kế giống hệt giao diện thật, yêu cầu nhập thông tin thẻ tín dụng để \"xác nhận\" hoặc \"đóng phí nhỏ\". Một khi đã nhập, thông tin thẻ sẽ bị đánh cắp và có thể bị trừ tiền ngay sau đó.\n\nĐiều cần nhớ: các công ty chuyển phát và bưu điện chính thức của Nhật KHÔNG BAO GIỜ gửi link yêu cầu nhập thông tin thẻ tín dụng qua tin nhắn SMS. Nếu nhận được tin nhắn kiểu này, tuyệt đối không bấm vào link, thay vào đó hãy tự tra cứu mã vận đơn trực tiếp trên app hoặc website chính thức của công ty chuyển phát đó để kiểm tra tình trạng đơn hàng thật.\n\nAnh chị đã từng nhận được tin nhắn SMS lừa đảo kiểu này chưa?\n\nTheo dõi để cập nhật thêm các chiêu lừa đảo cần cảnh giác nhé!\n\n#CanhBaoLuaDao #NguoiVietTaiNhat #SongONhat #LuaDaoSMS #ThongTinNhatBan #NguoiVietONhatBan #DoiSongONhat #AnToanTaiChinh #CanhBaoNguoiViet",
+  "videoScript": "Tin nhắn SMS giả mạo bưu điện/chuyển phát\nSMS báo kiện hàng không giao được, yêu cầu bấm link đóng phí\nLink dẫn đến trang giả mạo yêu cầu nhập thông tin thẻ tín dụng\nBưu điện thật không bao giờ gửi link yêu cầu nhập thẻ qua SMS"
+}
