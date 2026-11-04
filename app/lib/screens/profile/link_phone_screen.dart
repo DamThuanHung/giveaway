@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/phone_format.dart';
 
 /// Liên kết SĐT dự phòng cho user đã đăng nhập (đối xứng với LinkEmailScreen).
 /// Firebase verify SMS OTP ở client → gửi idToken lên backend POST /user/link-phone.
@@ -20,6 +21,7 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocuses = List.generate(6, (_) => FocusNode());
 
+  String _dialCode = '+84';
   bool _isLoading = false;
   bool _otpSent = false;
   String? _verificationId;
@@ -51,12 +53,7 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
     });
   }
 
-  String _formatPhone(String raw) {
-    final digits = raw.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('0')) return '+84${digits.substring(1)}';
-    if (digits.startsWith('84')) return '+$digits';
-    return '+84$digits';
-  }
+  String _formatPhone(String raw) => formatPhoneWithDialCode(raw, _dialCode);
 
   Future<void> _sendOtp({bool isResend = false}) async {
     final phone = _phoneCtrl.text.trim();
@@ -206,7 +203,7 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
               const SizedBox(height: 8),
               Text(
                 _otpSent
-                    ? 'Mã OTP đã gửi đến\n+84 ${_phoneCtrl.text.trim().replaceAll(RegExp(r"^0"), "")}'
+                    ? 'Mã OTP đã gửi đến\n$_dialCode ${_phoneCtrl.text.trim().replaceAll(RegExp(r"^0"), "")}'
                     : 'SĐT này sẽ dùng để khôi phục tài khoản khi cần',
                 style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.5),
               ),
@@ -220,18 +217,28 @@ class _LinkPhoneScreenState extends State<LinkPhoneScreen> {
                     border: Border.all(color: AppTheme.border),
                   ),
                   child: Row(children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                      decoration: const BoxDecoration(
-                        border: Border(right: BorderSide(color: AppTheme.border)),
+                    PopupMenuButton<String>(
+                      initialValue: _dialCode,
+                      onSelected: (v) => setState(() => _dialCode = v),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: '+84', child: Text('🇻🇳 +84 Việt Nam')),
+                        PopupMenuItem(value: '+81', child: Text('🇯🇵 +81 Nhật Bản')),
+                      ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                        decoration: const BoxDecoration(
+                          border: Border(right: BorderSide(color: AppTheme.border)),
+                        ),
+                        child: Row(children: [
+                          Text(_dialCode == '+84' ? '🇻🇳' : '🇯🇵', style: const TextStyle(fontSize: 18)),
+                          const SizedBox(width: 6),
+                          Text(_dialCode, style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary,
+                          )),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.arrow_drop_down, size: 18, color: AppTheme.textSecondary),
+                        ]),
                       ),
-                      child: const Row(children: [
-                        Text('🇻🇳', style: TextStyle(fontSize: 18)),
-                        SizedBox(width: 6),
-                        Text('+84', style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary,
-                        )),
-                      ]),
                     ),
                     Expanded(
                       child: TextField(

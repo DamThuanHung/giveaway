@@ -54,6 +54,7 @@ class _HomeFeed extends StatefulWidget {
 class _HomeFeedState extends State<_HomeFeed> {
   final Set<String> _favoriteIds = {};
   String _selectedProvince = 'Toàn quốc';
+  String _selectedCountry = 'VN'; // "VN" | "JP" — quốc gia đang browse
   RadiusMapResult? _radiusResult;
 
   // -1 = Đang theo dõi, 0 = Tất cả, 1 = Miễn phí
@@ -161,7 +162,7 @@ class _HomeFeedState extends State<_HomeFeed> {
   // Filter 1 tỉnh cụ thể
   String? get _provinceFilter {
     if (_radiusResult != null) return null;
-    if (_selectedProvince == 'Toàn quốc') return null;
+    if (_selectedProvince == 'Toàn quốc' || _selectedProvince == 'Toàn Nhật Bản') return null;
     if (_regionProvinces.containsKey(_selectedProvince)) return null;
     return _selectedProvince;
   }
@@ -187,7 +188,8 @@ class _HomeFeedState extends State<_HomeFeed> {
       province = null;
       provinces = null;
     } else if (_feedTab == 2) {
-      province = _selectedProvince != 'Toàn quốc' && !_regionProvinces.containsKey(_selectedProvince)
+      province = _selectedProvince != 'Toàn quốc' && _selectedProvince != 'Toàn Nhật Bản' &&
+              !_regionProvinces.containsKey(_selectedProvince)
           ? _selectedProvince
           : null;
       provinces = null;
@@ -199,6 +201,7 @@ class _HomeFeedState extends State<_HomeFeed> {
     postProv.fetchPosts(
       listingType: _selectedChip == 1 ? 'give' : null,
       itemCategory: _selectedCategory,
+      country: _selectedCountry,
       province: province,
       provinces: provinces,
       lat: lat, lng: lng, radius: radius,
@@ -251,11 +254,13 @@ class _HomeFeedState extends State<_HomeFeed> {
       backgroundColor: Colors.transparent,
       builder: (_) => ProvincePickerSheet(
         selected: _selectedProvince == 'Toàn quốc' ? null : _selectedProvince,
+        country: _selectedCountry,
         radiusResult: _radiusResult,
-        onConfirm: (val) {
-          final newProvince = val ?? 'Toàn quốc';
+        onConfirm: (val, country) {
+          final newProvince = val ?? (country == 'JP' ? 'Toàn Nhật Bản' : 'Toàn quốc');
           setState(() {
             _selectedProvince = newProvince;
+            _selectedCountry = country;
             _radiusResult = null;
           });
           _refetch();

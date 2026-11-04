@@ -343,7 +343,7 @@ class _PostCard extends StatelessWidget {
                   maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
               Text(
-                PostCard.formatPrice(post.price, post.listingType),
+                PostCard.formatPrice(post.price, post.listingType, country: post.country),
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold,
                     color: isFree ? AppTheme.freeColor : AppTheme.primary),
               ),

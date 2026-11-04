@@ -14,6 +14,7 @@ export class CreatePostDto {
   @IsOptional() @IsString() price?: string;
   @IsOptional() @IsString() latitude?: string;
   @IsOptional() @IsString() longitude?: string;
+  @IsOptional() @IsString() @MaxLength(2) country?: string;
   @IsOptional() @IsString() @MaxLength(50) province?: string;
   @IsOptional() @IsString() @MaxLength(50) district?: string;
   @IsOptional() @IsString() @MaxLength(50) ward?: string;

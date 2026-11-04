@@ -6,6 +6,7 @@ class Post {
   final String description;
   final int price;
 
+  final String country; // "VN" | "JP" — quốc gia nơi món đồ đang ở
   final String province;
   final String district;
   final String ward;
@@ -42,6 +43,7 @@ class Post {
     required this.title,
     required this.description,
     required this.price,
+    this.country = 'VN',
     required this.province,
     required this.district,
     required this.ward,
@@ -229,17 +231,18 @@ class Post {
     return parts.isEmpty ? 'Chưa cập nhật' : parts.join(', ');
   }
 
-  /// Format giá hiển thị cho user. 1.500.000đ thay vì 1500000đ — chuẩn VN.
-  /// Dùng [formatVndPrice] từ utils/price_format.dart cho thống nhất.
+  /// Format giá hiển thị cho user theo quốc gia của bài đăng: VNĐ (mặc định)
+  /// hoặc Yên Nhật. Dùng [formatPrice] từ utils/price_format.dart cho thống nhất.
   String get displayPrice {
     if (listingType == 'give' || listingType == 'free') return 'Miễn phí';
     if (price == 0) return 'Thương lượng';
-    return formatVndPrice(price);
+    return formatPrice(price, country: country);
   }
 
   Post copyWith({String? status, DateTime? bumpedAt, bool clearBumpedAt = false}) {
     return Post(
       id: id, title: title, description: description, price: price,
+      country: country,
       province: province, district: district, ward: ward, addressDetail: addressDetail,
       listingType: listingType, itemCategory: itemCategory,
       status: status ?? this.status,
@@ -297,6 +300,7 @@ class Post {
       title: json['title']?.toString() ?? 'Không có tiêu đề',
       description: json['description']?.toString() ?? '',
       price: parsedPrice,
+      country: json['country']?.toString().isNotEmpty == true ? json['country'] : 'VN',
       province: province,
       district: district,
       ward: ward,

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart' as app_auth;
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/phone_format.dart';
 import '../app_shell.dart';
 import '../../widgets/app_logo.dart';
 import 'complete_profile_screen.dart';
@@ -181,6 +182,7 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
   final List<TextEditingController> _otpCtrls = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocuses = List.generate(6, (_) => FocusNode());
 
+  String _dialCode = '+84';
   bool _isLoading = false;
   bool _otpSent = false;
   String? _verificationId;
@@ -214,12 +216,7 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
     });
   }
 
-  String _formatPhone(String raw) {
-    final digits = raw.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('0')) return '+84${digits.substring(1)}';
-    if (digits.startsWith('84')) return '+$digits';
-    return '+84$digits';
-  }
+  String _formatPhone(String raw) => formatPhoneWithDialCode(raw, _dialCode);
 
   Future<void> _sendOtp({bool isResend = false}) async {
     final phone = _phoneCtrl.text.trim();
@@ -333,18 +330,28 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
               border: Border.all(color: AppTheme.border),
             ),
             child: Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                decoration: const BoxDecoration(
-                  border: Border(right: BorderSide(color: AppTheme.border)),
+              PopupMenuButton<String>(
+                initialValue: _dialCode,
+                onSelected: (v) => setState(() => _dialCode = v),
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: '+84', child: Text('🇻🇳 +84 Việt Nam')),
+                  PopupMenuItem(value: '+81', child: Text('🇯🇵 +81 Nhật Bản')),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                  decoration: const BoxDecoration(
+                    border: Border(right: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Row(children: [
+                    Text(_dialCode == '+84' ? '🇻🇳' : '🇯🇵', style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 6),
+                    Text(_dialCode, style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary,
+                    )),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_drop_down, size: 18, color: AppTheme.textSecondary),
+                  ]),
                 ),
-                child: const Row(children: [
-                  Text('🇻🇳', style: TextStyle(fontSize: 18)),
-                  SizedBox(width: 6),
-                  Text('+84', style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary,
-                  )),
-                ]),
               ),
               Expanded(
                 child: TextField(
@@ -369,7 +376,7 @@ class _PhoneOtpFormState extends State<_PhoneOtpForm> {
             children: [
               const TextSpan(text: 'Mã OTP đã được gửi đến '),
               TextSpan(
-                text: '+84 ${_phoneCtrl.text.trim().replaceAll(RegExp(r'^0'), '')}',
+                text: '$_dialCode ${_phoneCtrl.text.trim().replaceAll(RegExp(r'^0'), '')}',
                 style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
               ),
             ],

@@ -26,6 +26,7 @@ const VALID_ITEM_CATEGORIES = [
 // Đã thu hẹp xuống 2 đúng với UI.
 const VALID_LISTING_TYPES = ['sell', 'give'] as const;
 const VALID_POST_TYPES = ['item', 'realestate', 'service', 'job'] as const;
+const VALID_COUNTRIES = ['VN', 'JP'] as const;
 
 const MAX_TITLE_LEN = 120;
 const MAX_DESC_LEN = 5000;
@@ -75,6 +76,7 @@ export class PostService {
     page?: number;
     limit?: number;
     search?: string;
+    country?: string; // "VN" | "JP" — mặc định "VN" nếu không truyền, để client cũ không lẫn bài JP
     province?: string;
     provinces?: string[]; // filter theo nhiều tỉnh (Toàn miền X)
     listingType?: string;
@@ -102,6 +104,9 @@ export class PostService {
     const where: any = {
       status: query.status ?? { in: ['available', 'reserved'] },
       NOT: { status: DELETED_BY_ADMIN_STATUS },
+      // Mặc định "VN" khi client không gửi param — app cũ (chưa update) không
+      // bỗng dưng thấy lẫn bài JP vào feed "Toàn quốc".
+      country: VALID_COUNTRIES.includes(query.country as any) ? query.country : 'VN',
     };
 
     // Lọc bài của người bị chặn bởi viewer
@@ -247,6 +252,7 @@ export class PostService {
     const listingType = VALID_LISTING_TYPES.includes(data.listingType)
       ? data.listingType : 'sell';
     const postType = VALID_POST_TYPES.includes(data.postType) ? data.postType : 'item';
+    const country = VALID_COUNTRIES.includes(data.country) ? data.country : 'VN';
 
     const priceStr = data.price ? data.price.toString().replace(/[^\d]/g, '') : '0';
     const parsedPrice = parseInt(priceStr, 10) || 0;
@@ -260,6 +266,7 @@ export class PostService {
         latitude: parseFloat(data.latitude) || 0.0,
         longitude: parseFloat(data.longitude) || 0.0,
         itemCategory,
+        country,
         province: String(data.province ?? '').slice(0, 50),
         district: String(data.district ?? '').slice(0, 50),
         ward: String(data.ward ?? '').slice(0, 50),

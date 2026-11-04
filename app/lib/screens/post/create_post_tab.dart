@@ -29,6 +29,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
   double? _lat;
   double? _lng;
   String _selectedAddress = '';
+  String _selectedCountry = 'VN'; // "VN" | "JP" — quyết định currency hiển thị
   String _selectedProvince = '';
   String _selectedDistrict = '';
   String _selectedWard = '';
@@ -56,6 +57,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
       if (posts.isEmpty) return;
       final last = posts.first;
       setState(() {
+        if ((last['country'] ?? '').toString().isNotEmpty) _selectedCountry = last['country'];
         if ((last['province'] ?? '').toString().isNotEmpty) _selectedProvince = last['province'];
         if ((last['district'] ?? '').toString().isNotEmpty) _selectedDistrict = last['district'];
         if ((last['ward'] ?? '').toString().isNotEmpty) _selectedWard = last['ward'];
@@ -67,6 +69,8 @@ class _CreatePostTabState extends State<CreatePostTab> {
   bool get _isRealestate => _itemCategory == 'realestate';
   bool get _isService => _itemCategory == 'service';
   bool get _isJob => _itemCategory == 'jobs';
+  // Đơn vị tiền tệ hiển thị trên label — theo quốc gia đã chọn ở map picker.
+  String get _currencyLabel => _selectedCountry == 'JP' ? '¥' : 'VNĐ';
   String get _postType {
     if (_isRealestate) return 'realestate';
     if (_isService) return 'service';
@@ -216,6 +220,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
       'listingType': (_isRealestate || _isJob) ? 'sell' : _listingType,
       'itemCategory': _itemCategory,
       'postType': _postType,
+      'country': _selectedCountry,
       'province': _selectedProvince,
       'district': _selectedDistrict,
       'ward': _selectedWard,
@@ -253,6 +258,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
           _lat = null;
           _lng = null;
           _selectedAddress = '';
+          _selectedCountry = 'VN';
           _selectedProvince = '';
           _selectedDistrict = '';
           _selectedWard = '';
@@ -354,7 +360,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
                       TextFormField(
                         controller: _priceController,
                         decoration: InputDecoration(
-                          labelText: 'Giá (VNĐ)',
+                          labelText: 'Giá ($_currencyLabel)',
                           hintText: 'Để trống nếu muốn thương lượng',
                           filled: true,
                           fillColor: Colors.white,
@@ -459,7 +465,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
             flex: 3,
             child: TextFormField(
               controller: _priceController,
-              decoration: inputDeco.copyWith(labelText: 'Giá (VNĐ)', hintText: 'Để trống = thương lượng'),
+              decoration: inputDeco.copyWith(labelText: 'Giá ($_currencyLabel)', hintText: 'Để trống = thương lượng'),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
             ),
@@ -530,7 +536,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
             flex: 3,
             child: TextFormField(
               controller: _priceController,
-              decoration: inputDeco.copyWith(labelText: 'Giá (VNĐ)', hintText: 'Để trống = thương lượng'),
+              decoration: inputDeco.copyWith(labelText: 'Giá ($_currencyLabel)', hintText: 'Để trống = thương lượng'),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
             ),
@@ -614,7 +620,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
             child: TextFormField(
               controller: _priceController,
               decoration: inputDeco.copyWith(
-                labelText: 'Mức lương (VNĐ)',
+                labelText: 'Mức lương ($_currencyLabel)',
                 hintText: 'Để trống = thỏa thuận',
                 prefixIcon: const Icon(Icons.payments_outlined),
               ),
@@ -833,6 +839,7 @@ class _CreatePostTabState extends State<CreatePostTab> {
               _lng = latlng.longitude;
             }
             _selectedAddress = result['address'] ?? '';
+            _selectedCountry = result['country'] ?? 'VN';
             _selectedProvince = result['province'] ?? '';
             _selectedDistrict = result['district'] ?? '';
             _selectedWard = result['ward'] ?? '';

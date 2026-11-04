@@ -328,7 +328,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   maxLength: 100,
                 ),
                 const SizedBox(height: 8),
-                const _Label('Mức lương (VNĐ)'),
+                _Label('Mức lương (${widget.post.country == 'JP' ? '¥' : 'VNĐ'})'),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(flex: 3, child: TextFormField(
                     controller: _priceCtrl,
@@ -365,7 +365,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ),
                 const SizedBox(height: 16),
                 if (_listingType == 'sell') ...[
-                  const _Label('Giá (VNĐ)'),
+                  _Label('Giá (${widget.post.country == 'JP' ? '¥' : 'VNĐ'})'),
                   TextFormField(
                     controller: _priceCtrl,
                     decoration: _deco('Để trống = thương lượng'),

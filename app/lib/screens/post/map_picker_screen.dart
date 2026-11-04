@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../../data/province_coords.dart';
 import '../../data/provinces.dart';
+import '../../data/prefecture_coords.dart';
+import '../../data/japan_prefectures.dart';
 import '../../theme/app_theme.dart';
 
 class MapPickerScreen extends StatefulWidget {
@@ -26,6 +28,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   String _displayAddress = 'Hà Nội';
   bool _isGeocoding = false;
 
+  // "VN" | "JP" — quốc gia đang chọn, quyết định dùng list tỉnh/thành nào.
+  String _country = 'VN';
+
   void _moveToCity(String name, LatLng pos) {
     setState(() {
       _selectedPos = pos;
@@ -36,6 +41,15 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       _displayAddress = name;
     });
     _mapController.move(pos, 13);
+  }
+
+  void _moveToCountry(String country) {
+    final pos = country == 'JP'
+        ? const LatLng(35.6762, 139.6503) // Tokyo
+        : const LatLng(21.0285, 105.8542); // Hà Nội
+    final name = country == 'JP' ? 'Tokyo' : 'Hà Nội';
+    setState(() => _country = country);
+    _moveToCity(name, pos);
   }
 
   Future<void> _onMapTap(LatLng latLng) async {
@@ -58,20 +72,42 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final addr = data['address'] as Map<String, dynamic>? ?? {};
 
-      // Nominatim VN: road, suburb/quarter, city_district, state
-      final street = (addr['road'] ?? addr['pedestrian'] ?? addr['footway'] ?? '').toString();
-      final ward = (addr['suburb'] ?? addr['quarter'] ?? addr['neighbourhood'] ?? '').toString();
-      final district = (addr['city_district'] ?? addr['county'] ?? '').toString();
+      // Xác định quốc gia thực tế của điểm vừa tap qua ISO country_code (đáng
+      // tin hơn fuzzy-match tên tỉnh) — quyết định dùng list VN hay JP để
+      // validate. Trước đây chỉ match tên tỉnh vào list 34 tỉnh VN, không khớp
+      // thì fallback về "Hà Nội" — khiến 1 điểm ở Tokyo bị lưu sai thành Hà Nội.
+      final countryCode = (addr['country_code'] ?? '').toString().toLowerCase();
+      final detectedCountry = countryCode == 'jp'
+          ? 'JP'
+          : (countryCode == 'vn' ? 'VN' : _country);
 
-      // Sanitize province: Nominatim đôi khi trả về "Tỉnh Bắc Ninh" hoặc "Phường XYZ"
-      // (cấp xã, không phải tỉnh). Strip prefix + chuẩn hoá tên cũ → mới + validate
-      // phải nằm trong list 34 tỉnh hợp lệ. Nếu không match thì fallback _cityName.
-      final rawProvince = (addr['city'] ?? addr['state'] ?? '').toString().trim();
-      final cleanedProvince = _cleanProvincePrefix(rawProvince);
-      final normalizedProvince = AppProvinces.normalize(cleanedProvince);
-      final province = AppProvinces.list.contains(normalizedProvince)
-          ? normalizedProvince
-          : _cityName;
+      final street = (addr['road'] ?? addr['pedestrian'] ?? addr['footway'] ?? '').toString();
+      String ward;
+      String district;
+      String province;
+
+      if (detectedCountry == 'JP') {
+        ward = (addr['suburb'] ?? addr['neighbourhood'] ?? '').toString();
+        district = (addr['city'] ?? addr['county'] ?? '').toString();
+        final rawPref = (addr['state'] ?? '').toString().trim();
+        final cleanedPref = _cleanJpPrefectureSuffix(rawPref);
+        province = AppPrefectures.list.contains(cleanedPref)
+            ? cleanedPref
+            : (_country == 'JP' ? _cityName : 'Tokyo');
+      } else {
+        // Nominatim VN: road, suburb/quarter, city_district, state
+        ward = (addr['suburb'] ?? addr['quarter'] ?? addr['neighbourhood'] ?? '').toString();
+        district = (addr['city_district'] ?? addr['county'] ?? '').toString();
+        // Sanitize province: Nominatim đôi khi trả về "Tỉnh Bắc Ninh" hoặc "Phường XYZ"
+        // (cấp xã, không phải tỉnh). Strip prefix + chuẩn hoá tên cũ → mới + validate
+        // phải nằm trong list 34 tỉnh hợp lệ.
+        final rawProvince = (addr['city'] ?? addr['state'] ?? '').toString().trim();
+        final cleanedProvince = _cleanProvincePrefix(rawProvince);
+        final normalizedProvince = AppProvinces.normalize(cleanedProvince);
+        province = AppProvinces.list.contains(normalizedProvince)
+            ? normalizedProvince
+            : (_country == 'VN' ? _cityName : 'Hà Nội');
+      }
 
       // Loại trùng liền kề
       final parts = [street, ward, district, province].where((s) => s.isNotEmpty).toList();
@@ -81,6 +117,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       }
 
       setState(() {
+        _country = detectedCountry;
+        _cityName = province;
         _ward = ward;
         _district = district;
         _province = province;
@@ -99,6 +137,19 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     for (final p in prefixes) {
       if (v.startsWith(p)) {
         v = v.substring(p.length).trim();
+        break;
+      }
+    }
+    return v;
+  }
+
+  /// Bỏ suffix kiểu " Prefecture", " Metropolis" (Nominatim Nhật Bản hay trả về có suffix).
+  static String _cleanJpPrefectureSuffix(String s) {
+    var v = s.trim();
+    const suffixes = [' Prefecture', ' Metropolis'];
+    for (final suf in suffixes) {
+      if (v.endsWith(suf)) {
+        v = v.substring(0, v.length - suf.length).trim();
         break;
       }
     }
@@ -276,10 +327,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _ProvinceSearchSheet(currentName: _cityName),
+      builder: (_) => _ProvinceSearchSheet(currentName: _cityName, country: _country),
     );
     if (picked == null) return;
-    final pos = ProvinceCoords.data[picked];
+    final pos = _country == 'JP' ? PrefectureCoords.data[picked] : ProvinceCoords.data[picked];
     if (pos == null) return;
     _moveToCity(picked, pos);
   }
@@ -320,42 +371,71 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             ],
           ),
 
-          // Chọn tỉnh/thành nhanh — tap mở bottom sheet 34 tỉnh có search
+          // Chọn quốc gia + tỉnh/thành nhanh
           Positioned(
             top: 12,
             left: 12,
             right: 12,
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              elevation: 4,
-              shadowColor: Colors.black.withOpacity(0.1),
-              child: InkWell(
-                onTap: _openProvinceSheet,
-                borderRadius: BorderRadius.circular(10),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_city, size: 18, color: AppTheme.primary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _cityName,
-                          style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      const Icon(Icons.keyboard_arrow_down, size: 20, color: AppTheme.textSecondary),
-                    ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Toggle quốc gia — Việt Nam / Nhật Bản
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  elevation: 4,
+                  shadowColor: Colors.black.withOpacity(0.1),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(children: [
+                      Expanded(child: _CountrySegment(
+                        label: '🇻🇳 Việt Nam',
+                        selected: _country == 'VN',
+                        onTap: () => _moveToCountry('VN'),
+                      )),
+                      Expanded(child: _CountrySegment(
+                        label: '🇯🇵 Nhật Bản',
+                        selected: _country == 'JP',
+                        onTap: () => _moveToCountry('JP'),
+                      )),
+                    ]),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                // Tap mở bottom sheet danh sách tỉnh/thành có search
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  elevation: 4,
+                  shadowColor: Colors.black.withOpacity(0.1),
+                  child: InkWell(
+                    onTap: _openProvinceSheet,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_city, size: 18, color: AppTheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _cityName,
+                              style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          const Icon(Icons.keyboard_arrow_down, size: 20, color: AppTheme.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
           // FAB "Vị trí của tôi" — bay map đến GPS hiện tại
           Positioned(
-            top: 80,
+            top: 128,
             right: 12,
             child: Material(
               color: Colors.white,
@@ -434,6 +514,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 Navigator.pop(context, {
                   'latlng': _selectedPos,
                   'address': _displayAddress,
+                  'country': _country,
                   'province': _province,
                   'district': _district,
                   'ward': _ward,
@@ -452,9 +533,39 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   }
 }
 
+class _CountrySegment extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _CountrySegment({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Text(label, style: TextStyle(
+          fontSize: 13,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+          color: selected ? AppTheme.primary : AppTheme.textSecondary,
+        )),
+      ),
+    );
+  }
+}
+
 class _ProvinceSearchSheet extends StatefulWidget {
   final String currentName;
-  const _ProvinceSearchSheet({required this.currentName});
+  final String country;
+  const _ProvinceSearchSheet({required this.currentName, required this.country});
 
   @override
   State<_ProvinceSearchSheet> createState() => _ProvinceSearchSheetState();
@@ -482,10 +593,12 @@ class _ProvinceSearchSheetState extends State<_ProvinceSearchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final allNames = ProvinceCoords.data.keys.toList();
-    final popular = ProvinceCoords.popular.where(_match).toList();
+    final isJp = widget.country == 'JP';
+    final allNames = isJp ? PrefectureCoords.data.keys.toList() : ProvinceCoords.data.keys.toList();
+    final popularSource = isJp ? PrefectureCoords.popular : ProvinceCoords.popular;
+    final popular = popularSource.where(_match).toList();
     final others = allNames
-        .where((n) => !ProvinceCoords.popular.contains(n) && _match(n))
+        .where((n) => !popularSource.contains(n) && _match(n))
         .toList()
       ..sort();
 
@@ -504,11 +617,11 @@ class _ProvinceSearchSheetState extends State<_ProvinceSearchSheet> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Text(
-                'Chọn tỉnh / thành phố',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                isJp ? 'Chọn tỉnh (Nhật Bản)' : 'Chọn tỉnh / thành phố',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
               ),
             ),
 
@@ -520,7 +633,7 @@ class _ProvinceSearchSheetState extends State<_ProvinceSearchSheet> {
                 onChanged: (v) => setState(() => _query = v),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search, size: 20),
-                  hintText: 'Tìm tỉnh / thành (vd: Bình Dương, Lao Cai)',
+                  hintText: isJp ? 'Tìm tỉnh (vd: Tokyo, Osaka)' : 'Tìm tỉnh / thành (vd: Bình Dương, Lao Cai)',
                   hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   filled: true,
                   fillColor: AppTheme.background,

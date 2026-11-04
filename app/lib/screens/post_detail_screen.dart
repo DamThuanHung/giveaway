@@ -526,7 +526,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black87),
             onPressed: () {
-              final price = PostCard.formatPrice(_post.price, _post.listingType);
+              final price = PostCard.formatPrice(_post.price, _post.listingType, country: _post.country);
               final text = '${_post.title}\n$price\n\nTìm thấy trên Trao Tay!';
               Share.share(text, subject: _post.title);
             },
@@ -677,7 +677,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      PostCard.formatPrice(_post.price, _post.listingType),
+                      PostCard.formatPrice(_post.price, _post.listingType, country: _post.country),
                       style: TextStyle(fontSize: 22, color: _post.isFree ? AppTheme.freeColor : AppTheme.priceColor, fontWeight: FontWeight.bold),
                     ),
                     if (_post.priceUnit != null && _post.priceUnit!.isNotEmpty && _post.priceUnitLabel.isNotEmpty)
@@ -720,7 +720,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       _InfoChip(label: _post.subTypeLabel, icon: Icons.work_outline, color: const Color(0xFF5C6BC0)),
                     if (_post.priceUnitLabel.isNotEmpty || _post.price > 0)
                       _InfoChip(
-                        label: _post.price == 0 ? 'Thỏa thuận' : '${PostCard.formatPrice(_post.price, 'sell')}${_post.priceUnitLabel}',
+                        label: _post.price == 0 ? 'Thỏa thuận' : '${PostCard.formatPrice(_post.price, 'sell', country: _post.country)}${_post.priceUnitLabel}',
                         icon: Icons.payments_outlined,
                         color: AppTheme.primary,
                       ),

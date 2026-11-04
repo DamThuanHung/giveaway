@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/japan_prefectures.dart';
 import '../theme/app_theme.dart';
 import 'radius_map_picker.dart';
 
@@ -38,13 +39,15 @@ class _SegmentBtn extends StatelessWidget {
 
 class ProvincePickerSheet extends StatefulWidget {
   final String? selected;
+  final String country; // "VN" | "JP" — quốc gia đang chọn để browse
   final RadiusMapResult? radiusResult;
-  final ValueChanged<String?> onConfirm;
+  final void Function(String? province, String country) onConfirm;
   final ValueChanged<RadiusMapResult>? onRadiusConfirm;
 
   const ProvincePickerSheet({
     super.key,
     this.selected,
+    this.country = 'VN',
     this.radiusResult,
     required this.onConfirm,
     this.onRadiusConfirm,
@@ -58,11 +61,13 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   String? _selected;
+  late String _country;
 
   @override
   void initState() {
     super.initState();
     _selected = widget.selected;
+    _country = widget.country;
     // Nếu đang ở radius mode → mở tab bản đồ
     _tabCtrl = TabController(length: 2, vsync: this,
         initialIndex: widget.selected != null ? 1 : 0);
@@ -128,6 +133,34 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
             child: Text('Khu vực tìm kiếm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
 
+          // Toggle quốc gia — Việt Nam / Nhật Bản
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(
+                children: [
+                  _SegmentBtn(
+                    label: '🇻🇳 Việt Nam',
+                    selected: _country == 'VN',
+                    onTap: () => setState(() { _country = 'VN'; _selected = null; }),
+                  ),
+                  _SegmentBtn(
+                    label: '🇯🇵 Nhật Bản',
+                    selected: _country == 'JP',
+                    onTap: () => setState(() { _country = 'JP'; _selected = null; }),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
           // Tab toggle — segmented control tự làm
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -174,7 +207,33 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
                 Column(
                   children: [
                     Expanded(
-                      child: ListView(
+                      child: _country == 'JP'
+                          ? ListView(
+                              children: [
+                                _buildToggleRow(
+                                  label: 'Toàn Nhật Bản',
+                                  selected: _selected == null,
+                                  onTap: () => setState(() => _selected = null),
+                                ),
+                                const Divider(height: 1, indent: 16),
+                                for (final p in (() {
+                                  final list = AppPrefectures.list
+                                      .where((n) => n != 'Toàn Nhật Bản')
+                                      .toList();
+                                  list.sort((a, b) => a.compareTo(b));
+                                  return list;
+                                })()) ...[
+                                  _buildRadioRow(
+                                    label: p,
+                                    value: p,
+                                    onTap: () => setState(() => _selected = p),
+                                  ),
+                                  const Divider(height: 1, indent: 56),
+                                ],
+                                const SizedBox(height: 16),
+                              ],
+                            )
+                          : ListView(
                         children: [
                           // Toggle Toàn quốc
                           _buildToggleRow(
@@ -248,7 +307,7 @@ class _ProvincePickerSheetState extends State<ProvincePickerSheet>
                               ),
                               onPressed: () {
                                 Navigator.pop(context);
-                                widget.onConfirm(_selected);
+                                widget.onConfirm(_selected, _country);
                               },
                               child: const Text('Áp dụng', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                             ),

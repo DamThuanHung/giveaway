@@ -221,7 +221,7 @@ class _FavoriteItem extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, height: 1.3)),
                   const SizedBox(height: 6),
-                  Text(PostCard.formatPrice(post.price, post.listingType),
+                  Text(PostCard.formatPrice(post.price, post.listingType, country: post.country),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,

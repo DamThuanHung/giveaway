@@ -336,7 +336,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                         Text(post.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
                                         const Spacer(),
-                                        Text(PostCard.formatPrice(post.price, post.listingType),
+                                        Text(PostCard.formatPrice(post.price, post.listingType, country: post.country),
                                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
                                             color: isFree ? AppTheme.freeColor : AppTheme.priceColor)),
                                       ]),

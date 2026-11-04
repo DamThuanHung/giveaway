@@ -482,7 +482,7 @@ class _SearchTabState extends State<SearchTab> {
                             builder: (_) => ProvincePickerSheet(
                               selected: tmpProvince,
                               radiusResult: tmpRadius,
-                              onConfirm: (val) {
+                              onConfirm: (val, country) {
                                 setSheet(() { tmpProvince = val; tmpRadius = null; });
                               },
                               onRadiusConfirm: (result) {
@@ -803,7 +803,7 @@ class _SearchTabState extends State<SearchTab> {
                                 maxLines: 2, overflow: TextOverflow.ellipsis),
                             const Spacer(),
                             Text(
-                              PostCard.formatPrice(p['price'] as int? ?? 0, p['listingType'] ?? 'sell'),
+                              PostCard.formatPrice(p['price'] as int? ?? 0, p['listingType'] ?? 'sell', country: p['country'] ?? 'VN'),
                               style: TextStyle(
                                 fontSize: 11, fontWeight: FontWeight.bold,
                                 color: isFree ? AppTheme.freeColor : AppTheme.priceColor,
@@ -1042,7 +1042,7 @@ class _SearchTabState extends State<SearchTab> {
                                   )),
                               const SizedBox(height: 6),
                               Text(
-                                  PostCard.formatPrice(post.price, post.listingType),
+                                  PostCard.formatPrice(post.price, post.listingType, country: post.country),
                                   style: TextStyle(
                                     color: post.isFree ? AppTheme.freeColor : AppTheme.priceColor,
                                     fontWeight: FontWeight.bold, fontSize: 14,

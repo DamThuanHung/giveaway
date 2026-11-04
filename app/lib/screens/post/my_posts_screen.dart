@@ -435,7 +435,8 @@ class _PostItemState extends State<_PostItem> {
           ),
         ],
       ),
-        if (post.status == 'available') ...[
+        // Bump dùng PayOS — cổng thanh toán nội địa VN, chưa hỗ trợ bài ở Nhật Bản.
+        if (post.status == 'available' && post.country != 'JP') ...[
           const SizedBox(height: 8),
           _BumpButton(countdown: post.bumpCountdown, onBump: _handleBump, loading: _bumping),
         ],

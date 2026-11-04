@@ -15,6 +15,7 @@ class PostProvider with ChangeNotifier {
 
   String? _listingType;
   String? _itemCategory;
+  String? _country;
   String? _province;
   List<String>? _provinces;
   double? _lat;
@@ -36,6 +37,7 @@ class PostProvider with ChangeNotifier {
     bool refresh = true,
     String? listingType,
     String? itemCategory,
+    String? country,
     String? province,
     List<String>? provinces,
     double? lat,
@@ -48,6 +50,7 @@ class PostProvider with ChangeNotifier {
       _fetchVersion++; // invalidate any in-flight fetch
       _listingType = listingType;
       _itemCategory = itemCategory;
+      _country = country;
       _province = province;
       _provinces = provinces;
       _lat = lat;
@@ -71,6 +74,7 @@ class PostProvider with ChangeNotifier {
         limit: 20,
         listingType: _listingType,
         itemCategory: _itemCategory,
+        country: _country,
         province: isRadiusMode ? null : _province,
         provinces: isRadiusMode ? null : _provinces,
         lat: _lat,
@@ -120,6 +124,7 @@ class PostProvider with ChangeNotifier {
         refresh: true,
         listingType: _listingType,
         itemCategory: _itemCategory,
+        country: _country,
         province: _province,
         provinces: _provinces,
         lat: _lat,
@@ -131,6 +136,7 @@ class PostProvider with ChangeNotifier {
         refresh: false,
         listingType: _listingType,
         itemCategory: _itemCategory,
+        country: _country,
         province: _province,
         provinces: _provinces,
         lat: _lat,

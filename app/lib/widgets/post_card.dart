@@ -25,18 +25,22 @@ class PostCard extends StatefulWidget {
     this.onToggleFavorite,
   });
 
-  static String formatPrice(int price, String listingType) {
+  static String formatPrice(int price, String listingType, {String country = 'VN'}) {
     if (listingType == 'give' || listingType == 'free') return 'Miễn phí';
     if (price == 0) return 'Thương lượng';
+    final isJp = country == 'JP';
     if (price >= 1000000) {
       final tr = price / 1000000;
       final s = tr == tr.roundToDouble()
           ? '${tr.toInt()}tr'
           : '${tr.toStringAsFixed(1)}tr';
-      return s;
+      return isJp ? '¥$s' : s;
     }
-    if (price >= 1000) return '${(price / 1000).round()}k';
-    return '$priceđ';
+    if (price >= 1000) {
+      final k = '${(price / 1000).round()}k';
+      return isJp ? '¥$k' : k;
+    }
+    return isJp ? '¥$price' : '$priceđ';
   }
 
   @override
@@ -289,7 +293,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  post.price == 0 ? 'Thỏa thuận' : '${PostCard.formatPrice(post.price, 'sell')}${post.priceUnitLabel}',
+                                  post.price == 0 ? 'Thỏa thuận' : '${PostCard.formatPrice(post.price, 'sell', country: post.country)}${post.priceUnitLabel}',
                                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primary),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -298,7 +302,7 @@ class _PostCardState extends State<PostCard> with TickerProviderStateMixin {
                               ],
                             )
                           : Text(
-                              PostCard.formatPrice(post.price, post.listingType),
+                              PostCard.formatPrice(post.price, post.listingType, country: post.country),
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
