@@ -77,3 +77,8 @@ scripts/social/assets/music/*.m4a
 # Logs
 *.log
 npm-debug.log*
+
+# Dự án khác / output sinh ra / file nháp — không thuộc repo Trao Tay
+restaurant-qr/
+scripts/social/tiktok-ready/
+scripts/social/valid_ids.txt
