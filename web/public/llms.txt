@@ -1,0 +1,15 @@
+# Trao Tay
+
+> Nền tảng mua bán & trao tặng đồ cũ tại Việt Nam. Đăng bài miễn phí, chat trực tiếp trong app, 18 danh mục từ điện tử, nội thất, quần áo đến đồ mẹ & bé, xe cộ, thú cưng.
+
+Trao Tay giúp người dùng đăng bán hoặc cho tặng đồ cũ không dùng tới, và tìm mua đồ cũ giá rẻ gần nhà. Slogan: "Đồ cũ người này, Báu vật người kia".
+
+## Sản phẩm
+- Web: https://traotay.com.vn
+- App Android (APK): https://traotay.com.vn/downloads/traotay.apk
+- Tất cả bài đăng: https://traotay.com.vn/posts/
+
+## Nội dung ôn thi Đặc định kỹ năng số 2 (ngành nhà hàng Nhật Bản)
+Trao Tay cung cấp miễn phí kho câu hỏi ôn thi song ngữ Nhật-Việt cho kỳ thi 外食業特定技能２号技能測定試験, theo tài liệu học tập chính thức OTAFF — dành cho người Việt đang làm việc trong ngành nhà hàng tại Nhật Bản.
+- Toàn bộ câu hỏi + đáp án (đọc tự do, không cần đăng nhập): https://traotay.com.vn/dac-dinh/on-tap/
+- Luyện tập có tính điểm (cần đăng nhập): https://traotay.com.vn/dac-dinh/

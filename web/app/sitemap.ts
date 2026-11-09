@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { fetchAllPostIds, fetchAllAuthorIds } from "@/lib/api";
+import { CHAPTERS } from "./dac-dinh/data";
 
 const BASE = "https://traotay.com.vn";
 
@@ -21,6 +22,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "hourly",
       priority: 0.9,
+    },
+    {
+      url: `${BASE}/dac-dinh/on-tap/`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
     },
     {
       url: `${BASE}/privacy.html`,
@@ -52,5 +59,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticEntries, ...postEntries, ...userEntries];
+  const dacDinhEntries: MetadataRoute.Sitemap = CHAPTERS.map((c) => ({
+    url: `${BASE}/dac-dinh/on-tap/${c.id}/`,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticEntries, ...postEntries, ...userEntries, ...dacDinhEntries];
 }
