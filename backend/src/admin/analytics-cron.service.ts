@@ -2,12 +2,95 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Resend } from 'resend';
 import { AdminService } from './admin.service';
+import * as https from 'https';
+
+function httpsGetJson(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (res) => {
+        let data = '';
+        res.on('data', (c) => (data += c));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            resolve({ raw: data });
+          }
+        });
+      })
+      .on('error', reject);
+  });
+}
 
 @Injectable()
 export class AnalyticsCronService {
   private readonly logger = new Logger(AnalyticsCronService.name);
 
   constructor(private readonly adminService: AdminService) {}
+
+  // Chỉ kiểm tra trạng thái (không tự refresh) — việc refresh Threads mỗi
+  // tuần vẫn do scripts/social/check-tokens.js đảm nhiệm (xem file đó). Đây
+  // chỉ thêm 1 dòng trạng thái vào mail hàng ngày đã có sẵn, theo yêu cầu
+  // 2026-11-09: không muốn 1 mail cảnh báo riêng dễ bị bỏ sót, gộp vào đây.
+  private async getSocialTokenStatusHtml(): Promise<{ html: string; warn: boolean }> {
+    const fbToken = process.env.FB_PAGE_ACCESS_TOKEN;
+    const threadsToken = process.env.THREADS_ACCESS_TOKEN;
+    const WARN_DAYS = 14;
+    const rows: string[] = [];
+    let warn = false;
+
+    if (fbToken) {
+      try {
+        const res = await httpsGetJson(
+          `https://graph.facebook.com/v19.0/debug_token?input_token=${fbToken}&access_token=${fbToken}`,
+        );
+        const d = res?.data;
+        if (!d?.is_valid) {
+          warn = true;
+          rows.push(`<li style="color:#ef4444">❌ Token Facebook/Instagram KHÔNG hợp lệ — cần lấy lại ngay.</li>`);
+        } else {
+          const daysLeft = d.data_access_expires_at
+            ? Math.floor((d.data_access_expires_at * 1000 - Date.now()) / 86400000)
+            : null;
+          if (daysLeft !== null && daysLeft <= WARN_DAYS) {
+            warn = true;
+            rows.push(`<li style="color:#ef4444">⚠️ Facebook/Instagram còn ${daysLeft} ngày trước khi cần xác nhận lại quyền truy cập trên Meta.</li>`);
+          } else {
+            rows.push(`<li style="color:#10b981">✅ Token Facebook/Instagram ổn${daysLeft !== null ? ` (còn ${daysLeft} ngày)` : ''}.</li>`);
+          }
+        }
+      } catch (err) {
+        warn = true;
+        rows.push(`<li style="color:#ef4444">⚠️ Không kiểm tra được token Facebook/Instagram (lỗi mạng).</li>`);
+      }
+    } else {
+      rows.push(`<li style="color:#9ca3af">— Chưa cấu hình FB_PAGE_ACCESS_TOKEN.</li>`);
+    }
+
+    if (threadsToken) {
+      try {
+        const res = await httpsGetJson(`https://graph.threads.net/v1.0/me?access_token=${threadsToken}`);
+        if (!res?.id) {
+          warn = true;
+          rows.push(`<li style="color:#ef4444">❌ Token Threads KHÔNG hợp lệ — cần lấy lại qua "Công cụ tạo mã người dùng" trên Meta.</li>`);
+        } else {
+          rows.push(`<li style="color:#10b981">✅ Token Threads ổn.</li>`);
+        }
+      } catch (err) {
+        warn = true;
+        rows.push(`<li style="color:#ef4444">⚠️ Không kiểm tra được token Threads (lỗi mạng).</li>`);
+      }
+    } else {
+      rows.push(`<li style="color:#9ca3af">— Chưa cấu hình THREADS_ACCESS_TOKEN.</li>`);
+    }
+
+    const html = `
+          <div style="margin-top:20px;padding:12px 16px;background:#f9fafb;border-radius:8px">
+            <div style="font-size:13px;font-weight:bold;color:#374151;margin-bottom:6px">🔑 Trạng thái token đăng bài social</div>
+            <ul style="margin:0;padding-left:18px;font-size:13px">${rows.join('')}</ul>
+          </div>`;
+    return { html, warn };
+  }
 
   // 8:00 sáng giờ VN (UTC+7) = 1:00 UTC
   @Cron('0 1 * * *')
@@ -20,10 +103,11 @@ export class AnalyticsCronService {
     }
 
     try {
-      const [data, digest, revenueStats] = await Promise.all([
+      const [data, digest, revenueStats, tokenStatus] = await Promise.all([
         this.adminService.getAnalytics('yesterday'),
         this.adminService.getYesterdayDigest(),
         this.adminService.getRevenueStats(),
+        this.getSocialTokenStatusHtml(),
       ]);
       const { web, app } = data;
       const { newUsers, newPosts, newCompleted, pendingReports, revenueYesterday } = digest;
@@ -102,6 +186,8 @@ export class AnalyticsCronService {
             </tr>${momRow}
           </table>
 
+          ${tokenStatus.html}
+
           <div style="margin-top:24px;text-align:center">
             <a href="https://api.traotay.com.vn/admin.html#analytics"
                style="background:#10b981;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px">
@@ -116,11 +202,12 @@ export class AnalyticsCronService {
       `;
 
       const reportWarning = pendingReports > 0 ? `⚠️ ${pendingReports} report chờ xử lý — ` : '';
+      const tokenWarning = tokenStatus.warn ? `🔑 Token social cần xử lý — ` : '';
       const resend = new Resend(apiKey);
       await resend.emails.send({
         from: 'Trao Tay <noreply@traotay.com.vn>',
         to: adminEmail,
-        subject: `📊 ${reportWarning}Báo cáo hôm qua — ${web.visitors} khách, ${app.total} lượt tải app`,
+        subject: `📊 ${tokenWarning}${reportWarning}Báo cáo hôm qua — ${web.visitors} khách, ${app.total} lượt tải app`,
         html,
       });
 
