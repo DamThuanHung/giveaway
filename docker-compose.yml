@@ -1,3 +1,6 @@
+# ⚠️ CHỈ dùng cho DEV LOCAL. Trên production dùng ĐÚNG MỘT MÌNH docker-compose.prod.yml
+# (không -f kết hợp 2 file — ports: của 2 file CỘNG DỒN chứ không ghi đè, gây xung đột cổng).
+# Sự cố thật 2026-11-09: kết hợp 2 file làm MinIO/backend mất port mapping đúng, gây downtime.
 services:
   postgres:
     image: postgres:15-alpine
