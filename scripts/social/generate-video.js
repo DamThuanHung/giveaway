@@ -201,13 +201,20 @@ function pickMusicFile() {
 // EC2 nhỏ ~900MB RAM hay swap). Đánh đổi: cắt cảnh cứng giữa các giai đoạn
 // (không crossfade mượt), nhưng mỗi bước rẻ — không filter phức tạp.
 
-// Bước 1: encode 1 khung tĩnh thành đoạn video ngắn, không filter gì (rẻ nhất có thể).
+// Bước 1: encode 1 khung tĩnh thành đoạn video — thêm zoom nhẹ (Ken Burns) qua
+// zoompan thay vì hoàn toàn đứng yên, để video có chuyển động thật thay vì
+// trông như ảnh tĩnh đóng gói (phát hiện 2026-11-09: Reel câm + không chuyển
+// động dễ bị lướt qua trong <1s dù được thuật toán ưu tiên hiển thị).
+// Biên độ zoom CỐ TÌNH rất nhỏ (1.0 → 1.06) — đủ để mắt nhận ra có chuyển
+// động, không đủ lớn để cần filter nặng hơn (vẫn 1 input, không crossfade).
 async function encodeStageVideo(framePath, durationSec, fps, outputPath) {
+  const frames = Math.round(durationSec * fps);
   await ffmpegExec([
     '-y', '-loop', '1', '-t', String(durationSec), '-i', framePath,
+    '-vf', `zoompan=z='min(zoom+0.0012,1.06)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${VIDEO_W}x${VIDEO_H}:fps=${fps}`,
     '-r', String(fps), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.0',
     '-t', String(durationSec), outputPath,
-  ], 60_000);
+  ], 90_000);
 }
 
 // Bước 2: nối các đoạn video bằng concat demuxer (stream-copy, gần như tốn 0 CPU

@@ -1,0 +1,25 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sức với câu hỏi thật trong đề hôm nay nhé!
+
+CÂU HỎI ÔN THI HÔM NAY — Quản lý đặt hàng và kiểm hàng/nhập kho
+📝 発注した量より実際の納品量が多い場合、起こりやすい問題はどれか。
+🇻🇳 Nếu lượng giao hàng thực tế nhiều hơn lượng đã đặt, vấn đề dễ xảy ra là gì?
+
+A. 品切れが発生する
+B. 売れ残りが発生し、品質が劣化して使用できずロスとなる
+C. 販売機会損失が発生する
+D. 何の問題も起こらない
+
+✅ Đáp án đúng: B. 売れ残りが発生し、品質が劣化して使用できずロスとなる
+💡 Giao nhiều hơn đặt → tồn kho dư thừa, không bán hết, chất lượng suy giảm theo thời gian, cuối cùng phải bỏ đi (ロス). Đây khác với 品切れ (hết hàng, xảy ra khi giao ÍT hơn).
+📖 Trích dẫn OTAFF trang 15: "それは発注した量より多ければ売れ残りが発生し、品質が劣化して使用できずロスとなるからです。"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị trả lời đúng không? Comment câu trả lời trước khi đọc phần giải thích ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat #CauHoiOnThi

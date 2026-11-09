@@ -1,0 +1,25 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sức với câu hỏi thật trong đề hôm nay nhé!
+
+CÂU HỎI ÔN THI HÔM NAY — Quản lý đặt hàng và kiểm hàng/nhập kho
+📝 発注量の計算式として正しいものはどれか。
+🇻🇳 Công thức tính "Lượng đặt hàng" (発注量) nào đúng?
+
+A. 各食材の発注時点での在庫量－各食材の適正在庫量＝各食材の発注量
+B. 各食材の適正在庫量－各食材の発注時点での在庫量＝各食材の発注量
+C. 各食材の適正在庫量×各食材の発注時点での在庫量＝各食材の発注量
+D. 各食材の適正在庫量＝各食材の発注量
+
+✅ Đáp án đúng: B. 各食材の適正在庫量－各食材の発注時点での在庫量＝各食材の発注量
+💡 発注量 = Lượng tồn kho hợp lý cần có − Lượng tồn kho thực tế tại thời điểm đặt hàng.
+📖 Trích dẫn OTAFF trang 13: "発注は[各食材の適正在庫量－各食材の発注時点での在庫量＝各食材の発注量]として納入業者別におこないます。"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị trả lời đúng không? Comment câu trả lời trước khi đọc phần giải thích ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat #CauHoiOnThi

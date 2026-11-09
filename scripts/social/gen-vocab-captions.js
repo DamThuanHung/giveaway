@@ -23,7 +23,9 @@ const path = require('path');
 
 const vocab = JSON.parse(fs.readFileSync(path.join(__dirname, 'vocab-export.json'), 'utf8'));
 const letters = ['A', 'B', 'C', 'D'];
-const HASHTAGS = '#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan #TuVungTiengNhat';
+// Giảm còn 5 tag (brand + chủ đề cốt lõi + 1 tag đặc thù) theo audit 2026-09-22
+// — 9-11 tag generic cũ dễ bị Explore/FYP coi là spam. Xem reduce-dac-dinh-hashtags.js.
+const HASHTAGS = '#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat #TuVungTiengNhat';
 
 const QUEUE_DIR = path.join(__dirname, 'queue');
 if (!fs.existsSync(QUEUE_DIR)) fs.mkdirSync(QUEUE_DIR, { recursive: true });

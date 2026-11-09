@@ -30,7 +30,11 @@ const usedIds = new Set(
 const chapterTitle = {};
 for (const c of data.CHAPTERS) chapterTitle[c.id] = c.titleVi;
 
-const HASHTAGS = '#TraoTay #DacDinhKyNang #TokuteiGinou #OnThiTiengNhat #NganhNhaHangNhatBan #NguoiVietTaiNhat #LaoDongNhatBan #DuHocNhat #ThucTapSinhNhatBan';
+// Giảm còn 4 tag cốt lõi (brand + chủ đề + đối tượng) theo audit 2026-09-22 —
+// mỗi nơi gọi bên dưới tự thêm 1 tag đặc thù riêng (#CauHoiOnThi, #PhanLoai...),
+// tổng vừa đúng 5 tag. Base cũ 9-11 tag generic dễ bị Explore/FYP coi là spam.
+// Xem reduce-dac-dinh-hashtags.js.
+const HASHTAGS = '#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat';
 const letters = ['A', 'B', 'C', 'D'];
 let total = 0;
 

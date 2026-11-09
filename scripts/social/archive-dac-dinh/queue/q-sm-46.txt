@@ -1,0 +1,25 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sức với câu hỏi thật trong đề hôm nay nhé!
+
+CÂU HỎI ÔN THI HÔM NAY — Quản lý số liệu cần thiết để vận hành cửa hàng
+📝 参考３の実例（1日平均売上高360,000円、実働時間75時間）で、人時売上高はいくらか。
+🇻🇳 Trong ví dụ ở 参考３ (doanh thu trung bình ngày 360.000 yên, tổng giờ làm việc thực tế 75 giờ), doanh thu mỗi giờ công là bao nhiêu?
+
+A. 4人
+B. 1,200円
+C. 5,000円
+D. 4,800円
+
+✅ Đáp án đúng: D. 4,800円
+💡 人時売上高 = 売上高÷実働時間 → 360,000円÷75時間＝4,800円.
+📖 Trích dẫn OTAFF trang 12: "計算式 売上高÷実働時間＝人時売上高360,000÷75時間＝4,800円 答 4,800円"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị trả lời đúng không? Comment câu trả lời trước khi đọc phần giải thích ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat #CauHoiOnThi

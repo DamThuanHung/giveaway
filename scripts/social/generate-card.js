@@ -80,8 +80,14 @@ function extractHook(captionText) {
     start++;
     if (start <= end) {
       const firstBullet = lines[start].trim();
+      // Chỉ cắt bỏ phần trước dấu cách đầu tiên khi dòng THỰC SỰ bắt đầu bằng
+      // emoji (bullet thật, vd "📸 Đăng ảnh...") — nếu không có guard này, dòng
+      // giới thiệu không-emoji đứng trước bullet (vd "Trao Tay giúp gọn nhẹ:")
+      // sẽ bị cắt nhầm mất từ đầu câu (phát hiện 2026-11-09: "Trao Tay giúp gọn
+      // nhẹ:" bị hiện thành "Tay giúp gọn nhẹ:" trên card thật).
+      const bulletRegex = /^[\u{1F300}-\u{1FAFF}☀-➿]/u;
       const spaceIdx = firstBullet.indexOf(' ');
-      const hook = (spaceIdx === -1 ? firstBullet : firstBullet.slice(spaceIdx + 1)).trim();
+      const hook = (bulletRegex.test(firstBullet) && spaceIdx !== -1 ? firstBullet.slice(spaceIdx + 1) : firstBullet).trim();
       if (hook) return truncate(hook, 100);
     }
   }

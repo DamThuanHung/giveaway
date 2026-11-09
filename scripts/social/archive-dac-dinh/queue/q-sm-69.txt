@@ -1,0 +1,25 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sức với câu hỏi thật trong đề hôm nay nhé!
+
+CÂU HỎI ÔN THI HÔM NAY — Quản lý đặt hàng và kiểm hàng/nhập kho
+📝 納品書の数量（12キロ）と現品の数量（12キロ）が一致し品質も問題ない場合でも要注意なのはなぜか。
+🇻🇳 Vì sao dù số lượng trên phiếu giao hàng (12kg) và hàng thực tế (12kg) khớp nhau, chất lượng cũng ổn, vẫn cần lưu ý?
+
+A. 発注数量（10キロ）より多く納品されていれば、売れ残り廃棄ロス＋支払い増加の問題になるため
+B. 数量が一致していれば絶対に問題は起きないため
+C. 品質確認が不要になるため
+D. 検収作業そのものが不要になるため
+
+✅ Đáp án đúng: A. 発注数量（10キロ）より多く納品されていれば、売れ残り廃棄ロス＋支払い増加の問題になるため
+💡 Phiếu giao hàng khớp với hàng thực tế không có nghĩa là ĐÚNG với lượng đã ĐẶT — nếu đặt 10kg mà nhận 12kg (dù khớp giấy tờ-thực tế), phần dư 2kg vẫn dễ tồn kho, hỏng, phải vứt bỏ, và vẫn phải trả thêm tiền cho phần dư đó.
+📖 Trích dẫn OTAFF trang 16: "仮にこのときのマグロの発注数量（A）が１０キロであったとすれば、２キロ多く納品されており問題です。売上予測に基づく発注量より多い２キロは、売れずに商品の劣化が進んで廃棄ロスになってしまいます。また、業者への支払い額も２キロ分増え問題です。"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị trả lời đúng không? Comment câu trả lời trước khi đọc phần giải thích ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat #CauHoiOnThi

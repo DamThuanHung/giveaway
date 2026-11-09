@@ -1,0 +1,25 @@
+Chào cả nhà ôn thi Đặc định số 2 ngành nhà hàng 👋 Thử sức với câu hỏi thật trong đề hôm nay nhé!
+
+CÂU HỎI ÔN THI HÔM NAY — Quản lý số liệu cần thiết để vận hành cửa hàng
+📝 同じマグロ寿司の例で、当月実際原価が6,750円、標準原価が6,000円のとき、ロス額はいくらか。
+🇻🇳 Cùng ví dụ trên, nếu giá vốn thực tế trong tháng là 6.750 yên còn giá vốn tiêu chuẩn là 6.000 yên, thì số tiền hao hụt (ロス額) là bao nhiêu?
+
+A. 12,750円
+B. 5％
+C. 750円
+D. 6,750円
+
+✅ Đáp án đúng: C. 750円
+💡 実際原価－標準原価＝ロス額 → 6,750円－6,000円＝750円. Còn 5% là tỷ lệ hao hụt (ロス率), không phải số tiền.
+📖 Trích dẫn OTAFF trang 11: "（前月末棚卸し額＋当月仕入額）－当月末棚卸し額＝当月実際原価（1,100円＋7,100円）－1,450円＝6,750円当月実際原価÷当月売上高×100＝当月実際原価率6,750円÷15,000円×100＝45.0％実際原価－標準原価＝ロス額"
+
+Lưu lại để ôn dần nhé!
+
+🌐 https://traotay.com.vn/dac-dinh
+📱 https://traotay.com.vn/downloads/traotay.apk
+
+Anh chị trả lời đúng không? Comment câu trả lời trước khi đọc phần giải thích ở trên nhé 👇
+
+Cảm ơn cả nhà đã đọc!
+
+#TraoTay #DacDinhKyNang #TokuteiGinou #NguoiVietTaiNhat #CauHoiOnThi

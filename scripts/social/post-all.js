@@ -71,57 +71,26 @@ function ensureDirs() {
   if (!fs.existsSync(DONE_DIR)) fs.mkdirSync(DONE_DIR, { recursive: true });
 }
 
-// ─── Luân phiên 50/50 marketplace ↔ dac-dinh ───────────────────────────────
-// Trước đây getNextCaption() lấy tuần tự theo tên file — vì file dac-dinh đặt
-// tên "q-*" (chữ) luôn xếp sau file marketplace đặt tên số ("001-*") trong
-// sort() bảng chữ cái, nên thực tế đăng lệch hẳn về 1 loại tuỳ thời điểm thay
-// vì chia đều. Giờ chủ động chọn xen kẽ theo loại, không phụ thuộc tên file.
-
-const TYPE_STATE_FILE = path.join(__dirname, '.last-content-type.json');
-
-function captionType(caption) {
-  return (isDacDinhCaption(caption) || isQuestionCaption(caption)) ? 'dac-dinh' : 'marketplace';
-}
-
-function getLastType() {
-  try { return JSON.parse(fs.readFileSync(TYPE_STATE_FILE, 'utf8')).lastType; } catch { return null; }
-}
-
-function setLastType(type) {
-  fs.writeFileSync(TYPE_STATE_FILE, JSON.stringify({ lastType: type }));
-}
-
-// Tìm file đầu tiên (theo thứ tự sort có sẵn) khớp đúng loại mong muốn trong
-// 1 danh sách file — dùng chung cho cả queue/ lẫn done/.
-function findByType(files, dir, wantType) {
-  for (const f of files) {
-    const caption = fs.readFileSync(path.join(dir, f), 'utf8').trim();
-    if (captionType(caption) === wantType) return { caption, file: f };
-  }
-  return null;
-}
+// ─── Lấy caption tiếp theo (FIFO đơn giản) ──────────────────────────────────
+// Quyết định 2026-11-09: nội dung social chỉ còn marketplace (đồ cũ/mua bán/
+// cho tặng) — bỏ hẳn nhánh dac-dinh khỏi queue (lưu riêng ở archive-dac-dinh/,
+// không xoá). Không còn 2 loại nội dung nên bỏ luôn logic luân phiên 50/50
+// (xem lịch sử ở git log nếu cần khôi phục).
 
 function getNextCaption() {
   ensureDirs();
-  const wantType = getLastType() === 'dac-dinh' ? 'marketplace' : 'dac-dinh';
 
   const files = fs.readdirSync(QUEUE_DIR)
     .filter(f => f.endsWith('.txt') && f !== 'done')
     .sort();
 
   if (files.length > 0) {
-    const match = findByType(files, QUEUE_DIR, wantType);
-    if (match) return { ...match, fromDone: false };
-    // Hết bài đúng loại trong queue/ (1 nhánh cạn trước) — vẫn đăng bài đang
-    // chờ sẵn thay vì bỏ phí, chỉ lệch nhịp xen kẽ tạm thời cho tới khi có
-    // thêm caption loại đang thiếu.
     const file = files[0];
     const caption = fs.readFileSync(path.join(QUEUE_DIR, file), 'utf8').trim();
     return { caption, file, fromDone: false };
   }
 
-  // Queue trống → tái sử dụng bài cũ nhất trong done/ (vòng quay round-robin),
-  // vẫn ưu tiên đúng loại đang thiếu.
+  // Queue trống → tái sử dụng bài cũ nhất trong done/ (vòng quay round-robin).
   const doneFiles = fs.readdirSync(DONE_DIR)
     .filter(f => f.endsWith('.txt'))
     .sort();
@@ -131,8 +100,6 @@ function getNextCaption() {
     process.exit(1);
   }
 
-  const match = findByType(doneFiles, DONE_DIR, wantType);
-  if (match) return { ...match, fromDone: true };
   const file = doneFiles[0];
   const caption = fs.readFileSync(path.join(DONE_DIR, file), 'utf8').trim();
   return { caption, file, fromDone: true };
@@ -706,7 +673,6 @@ async function runOnce() {
 
   if (allOk) {
     markDone(file, fromDone);
-    setLastType(captionType(caption));
     fs.writeFileSync(RETRY_STATE_FILE, JSON.stringify({ file: null, count: 0 }));
     const remaining = fs.readdirSync(QUEUE_DIR).filter(f => f.endsWith('.txt')).length;
     console.log(`🗑️  ${file} → done/`);
