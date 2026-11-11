@@ -3,6 +3,22 @@ import { Cron } from '@nestjs/schedule';
 import { Resend } from 'resend';
 import { AdminService } from './admin.service';
 import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Thư mục chứa file tổng hợp nguồn khách do scripts/analytics/nginx-sources.js (chạy trên host)
+// ghi ra, mount read-only vào container (xem docker-compose.prod.yml).
+const STATS_DIR = process.env.STATS_DIR || '/stats';
+const SOURCE_LABELS: Record<string, string> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  threads: 'Threads',
+  google: 'Google',
+  coccoc: 'Cốc Cốc',
+  zalo: 'Zalo',
+  khac: 'Website khác',
+};
+const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function httpsGetJson(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -90,6 +106,30 @@ export class AnalyticsCronService {
             <ul style="margin:0;padding-left:18px;font-size:13px">${rows.join('')}</ul>
           </div>`;
     return { html, warn };
+  }
+
+  // Khối "Khách đến từ đâu": đọc file tổng hợp của ngày vnDate (YYYY-MM-DD, giờ VN).
+  // Thiếu file → báo rõ chứ không im lặng (script host chưa chạy / mount chưa có).
+  private getSourceStatsHtml(vnDate: string): string {
+    let body: string;
+    try {
+      const raw = JSON.parse(fs.readFileSync(path.join(STATS_DIR, `sources-${vnDate}.json`), 'utf8'));
+      const entries = Object.entries(raw.sources ?? {}) as [string, { visitors: number; hits: number }][];
+      entries.sort((a, b) => b[1].visitors - a[1].visitors);
+      body = entries.length
+        ? `<ul style="margin:0;padding-left:18px;font-size:13px">${entries
+            .map(([k, v]) => `<li>${escapeHtml(SOURCE_LABELS[k] ?? k)}: <b>${v.visitors}</b> khách (${v.hits} lượt vào trang)</li>`)
+            .join('')}</ul>`
+        : `<div style="font-size:13px;color:#6b7280">Hôm qua chưa có khách nào bấm vào từ link bài đăng.</div>`;
+    } catch (err) {
+      this.logger.warn(`Không đọc được số liệu nguồn khách ${vnDate}: ${(err as Error).message}`);
+      body = `<div style="font-size:13px;color:#ef4444">⚠️ Chưa có số liệu nguồn khách (script đọc log nginx chưa chạy hoặc chưa mount).</div>`;
+    }
+    return `
+          <div style="margin-top:20px;padding:12px 16px;background:#f9fafb;border-radius:8px">
+            <div style="font-size:13px;font-weight:bold;color:#374151;margin-bottom:6px">🔎 Khách đến từ đâu (qua link bài đăng, đã loại bot)</div>
+            ${body}
+          </div>`;
   }
 
   // 8:00 sáng giờ VN (UTC+7) = 1:00 UTC
@@ -194,6 +234,8 @@ export class AnalyticsCronService {
             </tr>${momRow}
           </table>
           ${webNotice}
+
+          ${this.getSourceStatsHtml(new Date(Date.now() + 7 * 3600e3 - 86400e3).toISOString().slice(0, 10))}
 
           ${tokenStatus.html}
 

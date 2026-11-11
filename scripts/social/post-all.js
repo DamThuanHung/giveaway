@@ -298,6 +298,19 @@ function sleep(ms) {
 
 const SLOGAN = 'Đồ cũ người này, Báu vật người kia';
 
+// Gắn UTM vào link traotay.com.vn để biết khách đến từ kênh nào (2026-11-11).
+// Chỉ dùng cho Facebook + Threads — link trong caption Instagram không bấm được nên không gắn.
+// Bỏ qua link file tải (có đuôi .apk...) và link đã có query sẵn. Số liệu đọc từ log nginx
+// (scripts/analytics/nginx-sources.js) rồi vào mail báo cáo hàng ngày.
+function tagLinks(text, source) {
+  return text.replace(/(?<![\w.-])((?:https?:\/\/)?(?:www\.)?traotay\.com\.vn)((?:\/[^\s]*)?)/g, (m, host, rest) => {
+    const trail = (rest.match(/[.,!?)"'»]+$/) || [''])[0];
+    const pathPart = rest.slice(0, rest.length - trail.length);
+    if (pathPart.includes('?') || /\.\w{2,5}$/.test(pathPart)) return m;
+    return `${host}${pathPart}?utm_source=${source}&utm_medium=social${trail}`;
+  });
+}
+
 // Hash đơn giản + rotate — dùng để chọn hook/hashtag khác nhau theo từng caption
 // một cách tái lập được (không dùng Math.random() để không đổi mỗi lần chạy lại).
 function hashOf(str) {
@@ -524,7 +537,10 @@ async function postThreads(body, imageUrl) {
   const token = process.env.THREADS_ACCESS_TOKEN;
   if (!userId || !token) return { platform: 'Threads', skipped: true, reason: 'chưa set credentials' };
 
-  const text = buildThreadsText(body);
+  const plainText = buildThreadsText(body);
+  // Giới hạn cứng 500 ký tự: nếu gắn UTM làm vượt thì dùng bản không UTM (không để lỗi đăng bài).
+  const taggedText = tagLinks(plainText, 'threads');
+  const text = taggedText.length <= 500 ? taggedText : plainText;
   const createRes = await httpPost(
     `https://graph.threads.net/v1.0/${userId}/threads`,
     imageUrl
@@ -640,7 +656,8 @@ async function runOnce() {
   const platformCalls = [];
   const PLATFORM_CRITICAL = [];
   if (wantFacebook) {
-    platformCalls.push(videoUrl ? postFacebookReel(body, videoUrl) : postFacebook(body, imageUrl));
+    const fbBody = tagLinks(body, 'facebook');
+    platformCalls.push(videoUrl ? postFacebookReel(fbBody, videoUrl) : postFacebook(fbBody, imageUrl));
     PLATFORM_CRITICAL.push(true); // Facebook lỗi → giữ bài lại retry giờ sau
   }
   if (wantInstagram) {

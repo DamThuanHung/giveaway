@@ -108,6 +108,9 @@ services:
     environment:
       # Override bắt buộc trong production
       NODE_ENV: production
+    volumes:
+      # Số liệu nguồn khách đã tổng hợp từ log nginx (scripts/analytics/nginx-sources.js) — chỉ đọc
+      - /opt/traotay/stats:/stats:ro
     mem_limit: 384m
     mem_reservation: 256m
     logging:
