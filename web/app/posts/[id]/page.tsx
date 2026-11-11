@@ -49,7 +49,8 @@ export async function generateMetadata({
   const priceLabel = isFreePost(post) ? "Miễn phí" : formatPrice(post.price);
 
   return {
-    title: `${post.title} — ${priceLabel} · ${post.province}`,
+    // Bài không có tỉnh (vd bài order hàng Nhật) thì bỏ phần tỉnh — tránh "· ·" trong tiêu đề.
+    title: [`${post.title} — ${priceLabel}`, post.province].filter(Boolean).join(" · "),
     description: desc,
     alternates: { canonical: url },
     openGraph: {
@@ -102,30 +103,52 @@ export default async function PostDetailPage({
       ? catMeta
       : null;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: post.title,
-    description: post.description,
-    image: post.images.length > 0 ? post.images : [post.imageUrl].filter(Boolean),
-    dateModified: post.bumpedAt ?? post.createdAt,
-    offers: {
-      "@type": "Offer",
-      price: post.price,
-      priceCurrency: "VND",
-      availability:
-        post.status === "available"
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
-      itemCondition: "https://schema.org/UsedCondition",
-      seller: {
-        "@type": "Person",
-        name: post.author?.name || "Người dùng Trao Tay",
-        url: post.author?.id ? `https://traotay.com.vn/users/${post.author.id}/` : undefined,
-      },
-    },
-    category: CATEGORIES[post.itemCategory] || "Đồ cũ",
+  const seller = {
+    "@type": "Person",
+    name: post.author?.name || "Người dùng Trao Tay",
+    url: post.author?.id ? `https://traotay.com.vn/users/${post.author.id}/` : undefined,
   };
+  const jsonLdImages = post.images.length > 0 ? post.images : [post.imageUrl].filter(Boolean);
+  // Giá 0 chỉ là "miễn phí" thật khi bài tặng (listingType=give). Bài bán giá 0 = "Thương lượng" —
+  // KHÔNG được khai Offer price 0 vì Google sẽ hiểu là miễn phí (bài order hàng Nhật thu cọc 100k + ship 300k).
+  const isNegotiable = !isFreePost(post) && post.price === 0;
+
+  const jsonLd =
+    post.postType === "service"
+      ? {
+          // Dịch vụ không phải Product (không có giá/tình trạng hàng): dùng Service, không khai giá.
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: post.title,
+          description: post.description,
+          image: jsonLdImages,
+          provider: seller,
+          areaServed: "VN",
+        }
+      : {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: post.title,
+          description: post.description,
+          image: jsonLdImages,
+          dateModified: post.bumpedAt ?? post.createdAt,
+          ...(isNegotiable
+            ? {}
+            : {
+                offers: {
+                  "@type": "Offer",
+                  price: post.price,
+                  priceCurrency: "VND",
+                  availability:
+                    post.status === "available"
+                      ? "https://schema.org/InStock"
+                      : "https://schema.org/OutOfStock",
+                  itemCondition: "https://schema.org/UsedCondition",
+                  seller,
+                },
+              }),
+          category: CATEGORIES[post.itemCategory] || "Đồ cũ",
+        };
 
   return (
     <>
