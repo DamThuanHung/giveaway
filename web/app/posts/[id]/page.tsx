@@ -19,6 +19,7 @@ import { PostMap } from "@/components/PostMap";
 import { ContactSellerButton } from "@/components/ContactSellerButton";
 import { OwnerActions } from "@/components/OwnerActions";
 import { PostImageGallery } from "@/components/PostImageGallery";
+import { AREA_CATEGORIES, loadAreaIndex, MIN_POSTS_PER_AREA, provinceKey } from "@/lib/areas";
 
 export const revalidate = 3600;
 
@@ -90,6 +91,17 @@ export default async function PostDetailPage({
   const isVip = post.boostTier === 3;
   const isPlus = post.boostTier === 2;
 
+  // Liên kết lên trang khu vực/danh mục — CHỈ khi trang đó tồn tại (đủ ngưỡng bài), tránh link 404.
+  const areaIndex = await loadAreaIndex();
+  const provSlug = provinceKey(post.province);
+  const prov = provSlug ? areaIndex[provSlug] : undefined;
+  const areaProvince = prov && prov.posts.length >= MIN_POSTS_PER_AREA ? prov : null;
+  const catMeta = AREA_CATEGORIES[post.itemCategory];
+  const areaCategory =
+    areaProvince && catMeta && (areaProvince.byCategory[post.itemCategory]?.length ?? 0) >= MIN_POSTS_PER_AREA
+      ? catMeta
+      : null;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -130,6 +142,25 @@ export default async function PostDetailPage({
           <span className="text-ink-300">/</span>
           <Link href="/posts/" className="hover:text-primary transition-colors duration-150">Bài đăng</Link>
           <span className="text-ink-300">/</span>
+          {areaProvince && (
+            <>
+              <Link href={`/khu-vuc/${areaProvince.slug}/`} className="hover:text-primary transition-colors duration-150">
+                {areaProvince.name}
+              </Link>
+              <span className="text-ink-300">/</span>
+            </>
+          )}
+          {areaCategory && areaProvince && (
+            <>
+              <Link
+                href={`/khu-vuc/${areaProvince.slug}/${areaCategory.slug}/`}
+                className="hover:text-primary transition-colors duration-150"
+              >
+                {areaCategory.name}
+              </Link>
+              <span className="text-ink-300">/</span>
+            </>
+          )}
           <span className="text-ink-700 truncate max-w-[200px] md:max-w-none">{post.title}</span>
         </nav>
 
