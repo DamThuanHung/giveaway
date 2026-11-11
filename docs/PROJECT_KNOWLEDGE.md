@@ -116,6 +116,13 @@ Flutter `Post.bumpCountdown` và `Post.isBoosted` tính theo duration của tier
 - `price` + `priceUnit: 'month'/'hour'`: mức lương (0 = thỏa thuận)
 - PostCard hiển thị job type thay vì giá
 
+### Mail báo cáo hàng ngày (8:00 sáng giờ VN)
+- Số liệu web CHỈ tính khách từ Việt Nam, đã loại bot và request của chính VPS [xác nhận bởi user 2026-11-11: "chỉ quan tâm ở Việt Nam"].
+- Lý do: dữ liệu Cloudflare 2026-11-10 cho thấy 399/413 request "từ VN" là chính VPS (user-agent `node`), 799 "khách" phần lớn là bot ở Mỹ/Hà Lan/Bỉ/Ba Lan; khách VN thật chỉ ~3 [từ dữ liệu CF].
+- Cách tính [từ code `cloudflare-analytics.service.ts`, `fetchVietnamDay`]: `httpRequestsAdaptiveGroups` lọc `clientCountryName=VN` + `requestSource=eyeball`, loại user-agent bot/script (regex `BOT_UA`); khách = số IP khác nhau, lượt xem trang = trang HTML trả 200. Chỉ áp dụng kỳ `yesterday` (mail); dashboard tuần/tháng/năm vẫn dùng `httpRequests1dGroups` (tính cả bot).
+- Gotcha: gói Cloudflare miễn phí KHÔNG có `clientAsn`/điểm bot; khóa Resend trên prod chỉ có quyền gửi, không đọc lại được mail đã gửi.
+- Gửi thử ngay: `POST /admin/analytics/send-report` (JWT admin).
+
 ### Test accounts
 - Email: `1@test.com` → `10@test.com`
 - Login: gửi email OTP qua Resend, mã in vào console BE khi `RESEND_API_KEY` không set
