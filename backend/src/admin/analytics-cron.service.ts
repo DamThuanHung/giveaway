@@ -143,7 +143,7 @@ export class AnalyticsCronService {
             <tr>
               <td style="padding:12px;background:#f0fdf4;border-radius:8px;text-align:center;width:25%">
                 <div style="font-size:28px;font-weight:bold;color:#10b981">${webVal(web.visitors)}</div>
-                <div style="font-size:12px;color:#6b7280;margin-top:4px">Khách ghé web</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:4px">Khách ghé web (VN)</div>
               </td>
               <td style="width:8px"></td>
               <td style="padding:12px;background:#eff6ff;border-radius:8px;text-align:center;width:25%">
@@ -205,7 +205,8 @@ export class AnalyticsCronService {
           </div>
 
           <p style="color:#9ca3af;font-size:11px;text-align:center;margin-top:24px">
-            Trao Tay · Báo cáo hôm qua (trọn 24h) — gửi lúc 8:00 sáng
+            Trao Tay · Báo cáo hôm qua (trọn 24h) — gửi lúc 8:00 sáng<br>
+            Số liệu web chỉ tính khách từ Việt Nam, đã loại bot và script tự động
           </p>
         </div>
       `;
