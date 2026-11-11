@@ -247,8 +247,15 @@ async function syncImages(b, postId) {
   return images.length;
 }
 
+async function deletePost(postId) {
+  const me = adminIdentity();
+  const token = signJwt({ sub: me.id, email: me.email }, process.env.JWT_SECRET);
+  const r = await fetch(`${API_URL}/post/${postId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
+  if (!r.ok) throw new Error(`DELETE /post → HTTP ${r.status}: ${(await r.text()).slice(0, 150)}`);
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────────
-(async () => {
+async function main() {
   const args = process.argv.slice(2);
   const flag = n => args.includes(`--${n}`);
   const slugArg = (args.find(a => a.startsWith('--slug=')) || '').slice(7);
@@ -276,12 +283,20 @@ async function syncImages(b, postId) {
   }
 
   let brand;
+  let rotating = false;
   if (slugArg) {
     brand = BRANDS.find(b => b.slug === slugArg);
     if (!brand) throw new Error(`Không có hãng "${slugArg}" trong brands.json`);
   } else {
     brand = BRANDS.find(b => !state.posted[b.slug]);
-    if (!brand) { console.log('Đã đăng hết danh sách hãng — thêm hãng mới vào brands.json.'); return; }
+    if (!brand) {
+      // Hết vòng → xoay vòng liên tục (user xác nhận 2026-11-11): hãng có bài cũ nhất được đăng lại.
+      // Đăng bài MỚI trước rồi mới xóa bài cũ → không có khoảng trống, mỗi hãng luôn chỉ có 1 bài đang hiển thị.
+      brand = BRANDS.filter(b => state.posted[b.slug])
+        .sort((a, b) => (state.posted[a.slug].at || '').localeCompare(state.posted[b.slug].at || ''))[0];
+      if (!brand) { console.log('Danh sách hãng trống.'); return; }
+      rotating = true;
+    }
   }
 
   const { title, description } = buildPost(brand);
@@ -299,10 +314,26 @@ async function syncImages(b, postId) {
     const already = Object.values(state.posted).some(p => p.date === today);
     if (already) { console.log(`Hôm nay (${today}) đã đăng 1 bài — bỏ qua. Dùng --force nếu thật sự cần.`); return; }
   }
-  if (state.posted[brand.slug] && !flag('force')) { console.log(`${brand.name} đã đăng rồi — bỏ qua.`); return; }
+  if (state.posted[brand.slug] && !flag('force') && !rotating) { console.log(`${brand.name} đã đăng rồi — bỏ qua.`); return; }
 
+  const prev = state.posted[brand.slug];
   const post = await createPost(brand, png);
-  state.posted[brand.slug] = { postId: post.id, date: todayIct(), at: new Date().toISOString() };
+  state.posted[brand.slug] = {
+    postId: post.id, date: todayIct(), at: new Date().toISOString(),
+    cycle: prev ? (prev.cycle || 1) + 1 : 1,
+    imagesSynced: productImages(brand.slug).length > 0,
+  };
   writeState(state);
-  console.log(`✅ Đã đăng: ${title} → ${post.id}`);
-})().catch(e => { console.error('❌', e.message); process.exit(1); });
+  console.log(`✅ Đã đăng${rotating ? ' (xoay vòng, lượt ' + state.posted[brand.slug].cycle + ')' : ''}: ${title} → ${post.id}`);
+  if (prev && prev.postId && prev.postId !== post.id) {
+    try { await deletePost(prev.postId); console.log(`🗑️  Đã xóa bài cũ ${prev.postId}`); }
+    catch (e) { console.warn(`⚠️  Không xóa được bài cũ ${prev.postId}: ${e.message} (tạm thời có 2 bài cùng hãng)`); }
+  }
+}
+
+if (require.main === module) {
+  main().catch(e => { console.error('❌', e.message); process.exit(1); });
+}
+
+// Cho scripts/social/japan-order-social.js dùng lại đúng nội dung + ảnh thẻ + ảnh sản phẩm.
+module.exports = { BRANDS, buildPost, renderCardPng, productImages, readState, todayIct, SHIP_FEE, DEPOSIT, SIZE, deletePost };

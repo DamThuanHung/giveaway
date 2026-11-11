@@ -24,6 +24,11 @@ const { getOrCreateReelUrl } = require('./generate-video');
 const { isDacDinhCaption, isQuestionCaption, getOrCreateDacDinhCardUrl, getOrCreateQuestionCardUrl } = require('./generate-card-dac-dinh');
 const { getOrCreateQuestionReelUrl } = require('./generate-video-dac-dinh');
 
+// Bài "Nhận order <hãng> từ Nhật về VN" xen vào lịch đăng (2026-11-11). Nạp lỗi (thiếu thư viện…)
+// KHÔNG được làm hỏng luồng đăng bài cũ → JO = null thì bỏ qua hẳn nhánh này.
+let JO = null;
+try { JO = require('./japan-order-social'); } catch (e) { console.warn(`⚠️  Không nạp được japan-order-social (${e.message}) — bỏ qua bài order hàng Nhật.`); }
+
 // Card riêng cho caption quảng bá /dac-dinh — KHÔNG dùng template marketplace chung
 // (footer "Mua • Bán • Cho tặng" sai ngữ cảnh, xem generate-card-dac-dinh.js).
 async function getOrCreateCardUrlSmart(file, caption) {
@@ -532,12 +537,12 @@ async function postInstagramReel(caption, videoUrl) {
 // FB/Instagram advance queue — tránh đăng trùng lặp lên 2 nền tảng chính
 // mỗi giờ khi Threads cứ lỗi mãi (sự cố thật 2026-06-26: 1 bài bị đăng trùng
 // 13 lần lên FB+IG vì Threads lỗi chặn markDone).
-async function postThreads(body, imageUrl) {
+async function postThreads(body, imageUrl, presetText = null) {
   const userId = process.env.THREADS_USER_ID;
   const token = process.env.THREADS_ACCESS_TOKEN;
   if (!userId || !token) return { platform: 'Threads', skipped: true, reason: 'chưa set credentials' };
 
-  const plainText = buildThreadsText(body);
+  const plainText = presetText || buildThreadsText(body);
   // Giới hạn cứng 500 ký tự: nếu gắn UTM làm vượt thì dùng bản không UTM (không để lỗi đăng bài).
   const taggedText = tagLinks(plainText, 'threads');
   const text = taggedText.length <= 500 ? taggedText : plainText;
@@ -588,15 +593,28 @@ async function runOnce() {
   const wantInstagram = MODE === 'ig' || MODE === 'all';
   const wantThreads = MODE === 'fast' || MODE === 'all';
 
-  const { caption, file, fromDone } = getNextCaption();
+  // Lượt này có dành cho bài order hàng Nhật không? (nhịp + cooldown nằm trong japan-order-social.js)
+  // --japan-test=<slug>: thử tay 1 hãng cụ thể (bỏ qua nhịp, không đụng bộ đếm).
+  let japan = null;
+  if (JO) {
+    try {
+      const forceArg = process.argv.find(a => a.startsWith('--japan-test='));
+      japan = JO.pickJapan(MODE, { force: forceArg ? forceArg.split('=')[1] : null, dry: isDryRun });
+    } catch (e) {
+      console.warn(`⚠️  pickJapan lỗi (${e.message}) — dùng caption thường.`);
+    }
+  }
+  const { caption, file, fromDone } = japan
+    ? { caption: JO.buildCaption(japan.brand, japan.postId, japan.cycle), file: `jo-${japan.brand.slug}.txt`, fromDone: false }
+    : getNextCaption();
   const { body, hashtags } = splitCaptionAndHashtags(caption);
   const igCaption = hashtags ? `${body}\n\n${hashtags}` : body;
 
   console.log('\n📣 TRAO TAY — SOCIAL AUTO-POSTER');
   console.log(`🕐 ${new Date().toISOString()}`);
   console.log('═'.repeat(50));
-  console.log(`📄 File: ${file}${fromDone ? ' (tái sử dụng từ done/)' : ''}`);
-  if (!isDryRun) trackRetry(file);
+  console.log(`📄 File: ${file}${fromDone ? ' (tái sử dụng từ done/)' : ''}${japan ? ' 🇯🇵 (bài order hàng Nhật)' : ''}`);
+  if (!isDryRun && !japan) trackRetry(file);
   console.log(`📝 Caption (${caption.length} ký tự):\n${caption.slice(0, 120)}${caption.length > 120 ? '…' : ''}`);
   console.log('═'.repeat(50));
 
@@ -608,8 +626,9 @@ async function runOnce() {
     console.log(body);
     console.log('--- Instagram (kèm hashtag) ---');
     console.log(igCaption);
-    console.log(`--- Threads (rút gọn ≤500 ký tự, ${buildThreadsText(body).length} ký tự) ---`);
-    console.log(buildThreadsText(body));
+    const dryThreads = japan ? JO.buildThreadsText(japan.brand, japan.postId, japan.cycle) : buildThreadsText(body);
+    console.log(`--- Threads (rút gọn ≤500 ký tự, ${dryThreads.length} ký tự) ---`);
+    console.log(dryThreads);
     return;
   }
 
@@ -624,7 +643,14 @@ async function runOnce() {
   // vẫn thử Reel cho Facebook, luồng 'ig' vẫn thử Reel cho Instagram; không
   // nền tảng nào cần thì bỏ qua hẳn bước render (đỡ tốn ffmpeg/polling vô ích).
   let videoUrl = null;
-  if ((wantFacebook || wantInstagram) && isVideoSlot() && isQuestionCaption(caption)) {
+  if (japan) {
+    // Reel slideshow thẻ + ảnh sản phẩm; hãng chưa có ảnh sản phẩm / lỗi → null → ảnh thẻ
+    if ((wantFacebook || wantInstagram) && isVideoSlot()) {
+      console.log('🎬 Slot VIDEO_REELS_HOURS — thử render Reel order hàng Nhật...');
+      videoUrl = await JO.getJapanReelUrl(japan.brand);
+      if (videoUrl) console.log(`🎬 Video: ${videoUrl}`);
+    }
+  } else if ((wantFacebook || wantInstagram) && isVideoSlot() && isQuestionCaption(caption)) {
     console.log('🎬 Slot VIDEO_REELS_HOURS — thử render Reel câu hỏi /dac-dinh...');
     videoUrl = await getOrCreateQuestionReelUrl(file, caption);
     if (videoUrl) console.log(`🎬 Video: ${videoUrl}`);
@@ -644,7 +670,7 @@ async function runOnce() {
   // được làm fail cả bài đăng — fallback text-only.
   let imageUrl = null;
   try {
-    imageUrl = await getOrCreateCardUrlSmart(file, caption);
+    imageUrl = japan ? await JO.getJapanCardUrl(japan.brand) : await getOrCreateCardUrlSmart(file, caption);
     console.log(`🖼️  Ảnh: ${imageUrl}`);
   } catch (err) {
     console.warn(`⚠️  Không tạo được ảnh (${err.message}) — đăng text-only.`);
@@ -665,7 +691,7 @@ async function runOnce() {
     PLATFORM_CRITICAL.push(true); // Instagram lỗi → giữ bài lại retry giờ sau
   }
   if (wantThreads) {
-    platformCalls.push(postThreads(body, imageUrl)); // luôn ảnh tĩnh, không đổi dù slot này có video hay không
+    platformCalls.push(postThreads(body, imageUrl, japan ? JO.buildThreadsText(japan.brand, japan.postId, japan.cycle) : null)); // luôn ảnh tĩnh, không đổi dù slot này có video hay không
     PLATFORM_CRITICAL.push(false); // Threads không critical, không chặn advance queue
   }
 
@@ -688,7 +714,11 @@ async function runOnce() {
 
   console.log('\n' + '═'.repeat(50));
 
-  if (allOk) {
+  if (allOk && japan) {
+    // Bài order hàng Nhật dựng động, không có file trong queue/ → chỉ ghi nhận để áp cooldown 24h/hãng
+    JO.markJapanPosted(MODE, japan);
+    console.log(`🇯🇵 Đã ghi nhận ${japan.brand.name} (cooldown 24h cho mode ${MODE}).`);
+  } else if (allOk) {
     markDone(file, fromDone);
     fs.writeFileSync(RETRY_STATE_FILE, JSON.stringify({ file: null, count: 0 }));
     const remaining = fs.readdirSync(QUEUE_DIR).filter(f => f.endsWith('.txt')).length;
