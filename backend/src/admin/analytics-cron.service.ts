@@ -113,6 +113,14 @@ export class AnalyticsCronService {
       const { newUsers, newPosts, newCompleted, pendingReports, revenueYesterday } = digest;
       const { momPct } = revenueStats;
 
+      // Khi Cloudflare chưa cấu hình hoặc không trả dữ liệu, getAnalytics() trả số 0 giả
+      // → hiện "—" + dòng giải thích để không nhầm với "không có khách".
+      const webOk = data.configured && (web.byDay?.length ?? 0) > 0;
+      const webVal = (n: number) => (webOk ? String(n) : '—');
+      const webNotice = webOk
+        ? ''
+        : `<p style="margin:8px 0 0;font-size:12px;color:#ef4444">⚠️ Chưa lấy được số liệu web từ Cloudflare (chưa cấu hình CF_ZONE_ID / CF_API_TOKEN hoặc Cloudflare không phản hồi) — dấu "—" nghĩa là không có dữ liệu, không phải 0 khách.</p>`;
+
       const reportColor = pendingReports > 0 ? '#ef4444' : '#10b981';
       const reportBg = pendingReports > 0 ? '#fef2f2' : '#f0fdf4';
 
@@ -134,17 +142,17 @@ export class AnalyticsCronService {
           <table style="width:100%;border-collapse:collapse;margin-top:16px">
             <tr>
               <td style="padding:12px;background:#f0fdf4;border-radius:8px;text-align:center;width:25%">
-                <div style="font-size:28px;font-weight:bold;color:#10b981">${web.visitors}</div>
+                <div style="font-size:28px;font-weight:bold;color:#10b981">${webVal(web.visitors)}</div>
                 <div style="font-size:12px;color:#6b7280;margin-top:4px">Khách ghé web</div>
               </td>
               <td style="width:8px"></td>
               <td style="padding:12px;background:#eff6ff;border-radius:8px;text-align:center;width:25%">
-                <div style="font-size:28px;font-weight:bold;color:#3b82f6">${web.pageViews}</div>
+                <div style="font-size:28px;font-weight:bold;color:#3b82f6">${webVal(web.pageViews)}</div>
                 <div style="font-size:12px;color:#6b7280;margin-top:4px">Lượt xem trang</div>
               </td>
               <td style="width:8px"></td>
               <td style="padding:12px;background:#fdf4ff;border-radius:8px;text-align:center;width:25%">
-                <div style="font-size:28px;font-weight:bold;color:#a855f7">${web.requests}</div>
+                <div style="font-size:28px;font-weight:bold;color:#a855f7">${webVal(web.requests)}</div>
                 <div style="font-size:12px;color:#6b7280;margin-top:4px">Tổng request</div>
               </td>
               <td style="width:8px"></td>
@@ -185,6 +193,7 @@ export class AnalyticsCronService {
               <td colspan="3"></td>
             </tr>${momRow}
           </table>
+          ${webNotice}
 
           ${tokenStatus.html}
 
@@ -207,7 +216,7 @@ export class AnalyticsCronService {
       await resend.emails.send({
         from: 'Trao Tay <noreply@traotay.com.vn>',
         to: adminEmail,
-        subject: `📊 ${tokenWarning}${reportWarning}Báo cáo hôm qua — ${web.visitors} khách, ${app.total} lượt tải app`,
+        subject: `📊 ${tokenWarning}${reportWarning}Báo cáo hôm qua — ${webOk ? web.visitors : '—'} khách, ${app.total} lượt tải app`,
         html,
       });
 

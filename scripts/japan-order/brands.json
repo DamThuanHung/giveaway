@@ -1,0 +1,422 @@
+[
+  {
+    "slug": "nike",
+    "name": "Nike",
+    "jp": "ナイキ",
+    "category": "Giày & đồ thể thao",
+    "url": "https://www.nike.com/jp/"
+  },
+  {
+    "slug": "onitsuka-tiger",
+    "name": "Onitsuka Tiger",
+    "jp": "オニツカタイガー",
+    "category": "Giày & thời trang",
+    "url": "https://www.onitsukatiger.com/jp/ja-jp/"
+  },
+  {
+    "slug": "uniqlo",
+    "name": "UNIQLO",
+    "jp": "ユニクロ",
+    "category": "Thời trang",
+    "url": "https://www.uniqlo.com/jp/ja/"
+  },
+  {
+    "slug": "shiseido",
+    "name": "Shiseido",
+    "jp": "資生堂",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.shiseido.co.jp/"
+  },
+  {
+    "slug": "asics",
+    "name": "ASICS",
+    "jp": "アシックス",
+    "category": "Giày & đồ thể thao",
+    "url": "https://www.asics.com/jp/ja-jp/"
+  },
+  {
+    "slug": "muji",
+    "name": "MUJI",
+    "jp": "無印良品",
+    "category": "Gia dụng & thời trang",
+    "url": "https://www.muji.com/jp/"
+  },
+  {
+    "slug": "seiko",
+    "name": "Seiko",
+    "jp": "セイコー",
+    "category": "Đồng hồ",
+    "url": "https://www.seiko.co.jp/"
+  },
+  {
+    "slug": "new-balance",
+    "name": "New Balance",
+    "jp": "ニューバランス",
+    "category": "Giày & đồ thể thao",
+    "url": "https://shop.newbalance.jp/"
+  },
+  {
+    "slug": "zojirushi",
+    "name": "Zojirushi",
+    "jp": "象印",
+    "category": "Đồ gia dụng",
+    "url": "https://www.zojirushi.co.jp/"
+  },
+  {
+    "slug": "sk-ii",
+    "name": "SK-II",
+    "jp": "",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.sk-ii.jp/"
+  },
+  {
+    "slug": "mizuno",
+    "name": "Mizuno",
+    "jp": "ミズノ",
+    "category": "Giày & đồ thể thao",
+    "url": "https://jpn.mizuno.com/"
+  },
+  {
+    "slug": "casio-g-shock",
+    "name": "G-SHOCK (Casio)",
+    "jp": "ジーショック",
+    "category": "Đồng hồ",
+    "url": "https://gshock.casio.com/jp/"
+  },
+  {
+    "slug": "sanrio",
+    "name": "Sanrio",
+    "jp": "サンリオ",
+    "category": "Đồ chơi & quà tặng",
+    "url": "https://www.sanrio.co.jp/"
+  },
+  {
+    "slug": "adidas",
+    "name": "adidas",
+    "jp": "アディダス",
+    "category": "Giày & đồ thể thao",
+    "url": "https://www.adidas.jp/"
+  },
+  {
+    "slug": "kose",
+    "name": "KOSÉ",
+    "jp": "コーセー",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.kose.co.jp/"
+  },
+  {
+    "slug": "pilot",
+    "name": "Pilot",
+    "jp": "パイロット",
+    "category": "Văn phòng phẩm",
+    "url": "https://www.pilot.co.jp/"
+  },
+  {
+    "slug": "descente",
+    "name": "Descente",
+    "jp": "デサント",
+    "category": "Đồ thể thao",
+    "url": "https://www.descente.co.jp/"
+  },
+  {
+    "slug": "pigeon",
+    "name": "Pigeon",
+    "jp": "ピジョン",
+    "category": "Đồ mẹ & bé",
+    "url": "https://www.pigeon.co.jp/"
+  },
+  {
+    "slug": "converse",
+    "name": "Converse",
+    "jp": "コンバース",
+    "category": "Giày",
+    "url": "https://converse.co.jp/"
+  },
+  {
+    "slug": "tiger",
+    "name": "Tiger",
+    "jp": "タイガー魔法瓶",
+    "category": "Đồ gia dụng",
+    "url": "https://www.tiger-corporation.com/ja/jpn/"
+  },
+  {
+    "slug": "mikimoto",
+    "name": "Mikimoto",
+    "jp": "ミキモト",
+    "category": "Trang sức ngọc trai",
+    "url": "https://www.mikimoto.com/jp_ja/"
+  },
+  {
+    "slug": "bandai",
+    "name": "Bandai",
+    "jp": "バンダイ",
+    "category": "Đồ chơi & mô hình",
+    "url": "https://www.bandai.co.jp/"
+  },
+  {
+    "slug": "fancl",
+    "name": "FANCL",
+    "jp": "ファンケル",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.fancl.co.jp/"
+  },
+  {
+    "slug": "citizen",
+    "name": "Citizen",
+    "jp": "シチズン",
+    "category": "Đồng hồ",
+    "url": "https://www.citizen.co.jp/"
+  },
+  {
+    "slug": "snow-peak",
+    "name": "Snow Peak",
+    "jp": "スノーピーク",
+    "category": "Đồ cắm trại & dã ngoại",
+    "url": "https://www.snowpeak.co.jp/"
+  },
+  {
+    "slug": "gu",
+    "name": "GU",
+    "jp": "ジーユー",
+    "category": "Thời trang",
+    "url": "https://www.gu-global.com/jp/ja/"
+  },
+  {
+    "slug": "combi",
+    "name": "Combi",
+    "jp": "コンビ",
+    "category": "Đồ mẹ & bé",
+    "url": "https://www.combi.co.jp/"
+  },
+  {
+    "slug": "montbell",
+    "name": "mont-bell",
+    "jp": "モンベル",
+    "category": "Đồ dã ngoại & leo núi",
+    "url": "https://www.montbell.jp/"
+  },
+  {
+    "slug": "kanebo",
+    "name": "Kanebo",
+    "jp": "カネボウ",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.kanebo-cosmetics.co.jp/"
+  },
+  {
+    "slug": "hario",
+    "name": "Hario",
+    "jp": "ハリオ",
+    "category": "Đồ pha cà phê & trà",
+    "url": "https://www.hario.com/"
+  },
+  {
+    "slug": "puma",
+    "name": "PUMA",
+    "jp": "プーマ",
+    "category": "Giày & đồ thể thao",
+    "url": "https://jp.puma.com/"
+  },
+  {
+    "slug": "pokemon-center",
+    "name": "Pokémon Center",
+    "jp": "ポケモンセンター",
+    "category": "Đồ chơi & quà tặng",
+    "url": "https://www.pokemoncenter-online.com/"
+  },
+  {
+    "slug": "dhc",
+    "name": "DHC",
+    "jp": "ディーエイチシー",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.dhc.co.jp/"
+  },
+  {
+    "slug": "yoshida-porter",
+    "name": "Porter (Yoshida)",
+    "jp": "吉田カバン",
+    "category": "Túi xách",
+    "url": "https://www.yoshidakaban.com/"
+  },
+  {
+    "slug": "tojiro",
+    "name": "Tojiro",
+    "jp": "藤次郎",
+    "category": "Dao bếp",
+    "url": "https://tojiro.net/"
+  },
+  {
+    "slug": "kokuyo",
+    "name": "Kokuyo",
+    "jp": "コクヨ",
+    "category": "Văn phòng phẩm",
+    "url": "https://www.kokuyo.com/"
+  },
+  {
+    "slug": "bape",
+    "name": "A BATHING APE (BAPE)",
+    "jp": "ア ベイシング エイプ",
+    "category": "Thời trang đường phố",
+    "url": "https://jp.bape.com/"
+  },
+  {
+    "slug": "pola",
+    "name": "POLA",
+    "jp": "ポーラ",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://www.pola.co.jp/"
+  },
+  {
+    "slug": "nintendo",
+    "name": "Nintendo",
+    "jp": "任天堂",
+    "category": "Máy chơi game & phụ kiện",
+    "url": "https://www.nintendo.com/jp/"
+  },
+  {
+    "slug": "beams",
+    "name": "BEAMS",
+    "jp": "ビームス",
+    "category": "Thời trang",
+    "url": "https://www.beams.co.jp/"
+  },
+  {
+    "slug": "noritake",
+    "name": "Noritake",
+    "jp": "ノリタケ",
+    "category": "Đồ sứ & bát đĩa",
+    "url": "https://www.noritake.co.jp/"
+  },
+  {
+    "slug": "grand-seiko",
+    "name": "Grand Seiko",
+    "jp": "グランドセイコー",
+    "category": "Đồng hồ",
+    "url": "https://www.grand-seiko.com/jp-ja"
+  },
+  {
+    "slug": "the-north-face",
+    "name": "The North Face",
+    "jp": "ザ・ノース・フェイス",
+    "category": "Thời trang & đồ dã ngoại",
+    "url": "https://www.thenorthface.jp/"
+  },
+  {
+    "slug": "sony",
+    "name": "Sony",
+    "jp": "ソニー",
+    "category": "Điện tử & âm thanh",
+    "url": "https://www.sony.jp/"
+  },
+  {
+    "slug": "zebra",
+    "name": "Zebra",
+    "jp": "ゼブラ",
+    "category": "Văn phòng phẩm",
+    "url": "https://www.zebra.co.jp/"
+  },
+  {
+    "slug": "human-made",
+    "name": "HUMAN MADE",
+    "jp": "ヒューマンメイド",
+    "category": "Thời trang đường phố",
+    "url": "https://www.humanmade.jp/"
+  },
+  {
+    "slug": "yoshikin-global",
+    "name": "Global (Yoshikin)",
+    "jp": "グローバル",
+    "category": "Dao bếp",
+    "url": "https://www.yoshikin.co.jp/"
+  },
+  {
+    "slug": "albion",
+    "name": "ALBION",
+    "jp": "アルビオン",
+    "category": "Mỹ phẩm & chăm sóc da",
+    "url": "https://albion.co.jp/"
+  },
+  {
+    "slug": "united-arrows",
+    "name": "UNITED ARROWS",
+    "jp": "ユナイテッドアローズ",
+    "category": "Thời trang",
+    "url": "https://store.united-arrows.co.jp/"
+  },
+  {
+    "slug": "panasonic",
+    "name": "Panasonic",
+    "jp": "パナソニック",
+    "category": "Điện tử & gia dụng",
+    "url": "https://panasonic.jp/"
+  },
+  {
+    "slug": "tamiya",
+    "name": "Tamiya",
+    "jp": "タミヤ",
+    "category": "Mô hình",
+    "url": "https://www.tamiya.com/japan/"
+  },
+  {
+    "slug": "issey-miyake",
+    "name": "ISSEY MIYAKE",
+    "jp": "イッセイ ミヤケ",
+    "category": "Thời trang",
+    "url": "https://www.isseymiyake.com/"
+  },
+  {
+    "slug": "kai",
+    "name": "Kai",
+    "jp": "貝印",
+    "category": "Dao kéo & đồ làm đẹp",
+    "url": "https://www.kai-group.com/"
+  },
+  {
+    "slug": "rohto",
+    "name": "Rohto",
+    "jp": "ロート製薬",
+    "category": "Chăm sóc da & mắt",
+    "url": "https://www.rohto.co.jp/"
+  },
+  {
+    "slug": "tasaki",
+    "name": "TASAKI",
+    "jp": "タサキ",
+    "category": "Trang sức ngọc trai",
+    "url": "https://www.tasaki.co.jp/"
+  },
+  {
+    "slug": "yohji-yamamoto",
+    "name": "Yohji Yamamoto",
+    "jp": "ヨウジヤマモト",
+    "category": "Thời trang",
+    "url": "https://www.yohjiyamamoto.co.jp/"
+  },
+  {
+    "slug": "neighborhood",
+    "name": "NEIGHBORHOOD",
+    "jp": "ネイバーフッド",
+    "category": "Thời trang đường phố",
+    "url": "https://www.neighborhood.jp/"
+  },
+  {
+    "slug": "hands",
+    "name": "Hands (Tokyu Hands)",
+    "jp": "ハンズ",
+    "category": "Đồ gia dụng & sáng tạo",
+    "url": "https://hands.net/"
+  },
+  {
+    "slug": "canon",
+    "name": "Canon",
+    "jp": "キヤノン",
+    "category": "Máy ảnh & máy in",
+    "url": "https://personal.canon.jp/"
+  },
+  {
+    "slug": "hobonichi",
+    "name": "Hobonichi",
+    "jp": "ほぼ日",
+    "category": "Sổ tay & văn phòng phẩm",
+    "url": "https://www.1101.com/store/techo/"
+  }
+]
