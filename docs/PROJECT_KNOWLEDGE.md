@@ -122,6 +122,15 @@ Flutter `Post.bumpCountdown` và `Post.isBoosted` tính theo duration của tier
 - Cách tính [từ code `cloudflare-analytics.service.ts`, `fetchVietnamDay`]: `httpRequestsAdaptiveGroups` lọc `clientCountryName=VN` + `requestSource=eyeball`, loại user-agent bot/script (regex `BOT_UA`); khách = số IP khác nhau, lượt xem trang = trang HTML trả 200. Chỉ áp dụng kỳ `yesterday` (mail); dashboard tuần/tháng/năm vẫn dùng `httpRequests1dGroups` (tính cả bot).
 - Gotcha: gói Cloudflare miễn phí KHÔNG có `clientAsn`/điểm bot; khóa Resend trên prod chỉ có quyền gửi, không đọc lại được mail đã gửi.
 - Gửi thử ngay: `POST /admin/analytics/send-report` (JWT admin).
+- Khối "Khách đến từ đâu" [từ code, 2026-11-11]: Cloudflare gói miễn phí KHÔNG cho đọc query string/referrer, nên đọc log nginx trên host bằng `scripts/analytics/nginx-sources.js` (cron 07:55, ghi `/opt/traotay/stats/sources-YYYY-MM-DD.json` — chỉ số đếm, không IP/URL), mount read-only `/stats` vào backend. Đếm lượt vào trang có `utm_source=` hoặc referrer từ web ngoài; loại bot, điều hướng nội bộ, truy cập trực tiếp. Thiếu file → mail báo cảnh báo chứ không im lặng.
+- UTM: `post-all.js` gắn `?utm_source=facebook|threads&utm_medium=social` vào link `traotay.com.vn` lúc đăng FB + Threads (Threads vượt 500 ký tự thì dùng bản không UTM). KHÔNG gắn cho Instagram (link trong caption không bấm được); bỏ qua link file `.apk` và link đã có query.
+
+### SEO địa phương — trang khu vực + danh mục [xác nhận bởi user 2026-11-11]
+- Dữ liệu prod 2026-11-11: 57/60 bài ở Bắc Ninh; ô `province` nhập tay lộn xộn ("Bắc ninh", "Băc ninh", "Phường Từ Sơn"). Code gom theo slug bỏ dấu/hoa-thường (`web/lib/areas.ts`), giá trị không phải tên tỉnh bị bỏ qua. Dữ liệu gốc chưa được dọn (ghi DB prod bị chặn) — không bắt buộc.
+- Trang `/khu-vuc/<tinh>/` và `/khu-vuc/<tinh>/<danh-muc>/` tự sinh, CHỈ khi nhóm có ≥ 5 bài (`MIN_POSTS_PER_AREA`) — tránh trang mỏng. Danh mục dùng slug tiếng Việt (`quan-ao`, `do-dien-tu`, `noi-that`...). Khu vực/danh mục chưa đủ ngưỡng → 404. Sitemap tự thêm các trang này và làm mới mỗi giờ (`revalidate = 3600`; trước đó sitemap chỉ dựng lúc build nên bài mới không vào).
+- JSON-LD trang bài: bài tặng (`give`) giữ `Offer price 0` (miễn phí thật); bài bán giá 0 ("Thương lượng") KHÔNG khai `offers`; bài `postType=service` dùng `Service` không khai giá (tránh Google hiểu bài order hàng Nhật là hàng miễn phí). Tiêu đề bỏ phần tỉnh khi bài không có tỉnh.
+- Bài order hàng Nhật (cron 10:00, 1 hãng/ngày): đăng thẳng trên Trao Tay, CHƯA đẩy lên social [user đồng ý 2026-11-11: giữ SEO, đợi số liệu UTM vài tuần rồi quyết].
+- Số liệu social 2026-11-11 (28 ngày): FB Page 15 người theo dõi, 30 lượt xem nội dung, 0 tương tác; IG 43 người theo dõi, reach 378, 0 lượt bấm website, 2.020 bài. Kết luận: vấn đề là khán giả/độ hấp dẫn, không phải số lượng bài. Kênh duy nhất ra khách thật hôm 10/11 là Google (2 khách).
 
 ### Test accounts
 - Email: `1@test.com` → `10@test.com`

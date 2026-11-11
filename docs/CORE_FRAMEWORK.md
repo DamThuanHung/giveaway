@@ -330,6 +330,13 @@ app/lib/screens/
 - ValidationPipe: `whitelist: true`
 - CORS mở toàn bộ
 
+### Web (Next.js, `web/`)
+- `trailingSlash: true` trong `next.config.mjs`: mọi URL/canonical/sitemap có dấu `/` cuối; link không có `/` bị 308 sang bản có `/` (giữ query UTM). Thiếu cấu hình này thì canonical và sitemap trỏ vào URL bị redirect (sự cố phát hiện 2026-11-11).
+- Route SEO: `/khu-vuc/[tinh]/` và `/khu-vuc/[tinh]/[danhMuc]/` (logic ở `lib/areas.ts`, giao diện `components/AreaPage.tsx`), `/posts/[id]/`, `/dac-dinh/on-tap/`. Các trang dữ liệu dùng ISR `revalidate = 3600`; `app/sitemap.ts` cũng `revalidate = 3600`.
+- Build web cần `NEXT_PUBLIC_API_URL=https://api.traotay.com.vn` (build gọi API thật).
+- Deploy web trên VPS: `docker compose -f docker-compose.prod.yml --env-file .env.docker up -d --build --no-deps web` (BẮT BUỘC `--no-deps`, nếu không backend bị build lại không có `GIT_SHA` → `/health` báo `unknown`), rồi purge Cloudflare. Chi tiết: memory `project_vps_deploy_procedure`.
+- Backend mount `/opt/traotay/stats:/stats:ro` (docker-compose.prod.yml) để đọc số liệu nguồn khách do script host ghi.
+
 ### Flutter
 - Tất cả Provider đặt ở `MultiProvider` trong `main.dart`
 - API call tập trung trong `ApiService` (static methods)
